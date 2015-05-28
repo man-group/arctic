@@ -1,0 +1,80 @@
+import pytest
+import datetime
+from datetime import datetime as dt
+import pytz
+from arctic.date import mktz, datetime_to_ms, ms_to_datetime
+
+
+def assert_roundtrip(tz):
+    ts = datetime.datetime(1982, 7, 1, 16, 5)
+
+    ts1 = ts.replace(tzinfo=tz)
+    ts2 = ms_to_datetime(datetime_to_ms(ts1.astimezone(mktz("UTC"))), tz)
+    ts1 = ts1.replace(tzinfo=None) if tz == mktz() else ts1
+    #logger.info(ts2.tzinfo)
+
+    assert(ts2.hour == ts1.hour)
+#    assert(ts2.tzinfo == ts1.tzinfo)
+    assert ts2 == ts1
+
+
+def get_tz():
+    #tz = mktz("Europe/London")
+    #tz = pytz.timezone("Europe/London")
+    #tz = pytz.timezone("UTC")
+    tz = pytz.timezone("Europe/London")
+    tmp = ms_to_datetime(0, tz)
+    tz = tmp.tzinfo
+    return tz
+
+
+def test_UTC_roundtrip():
+    tz = pytz.timezone("UTC")
+    assert_roundtrip(tz)
+
+
+def test_weird_get_tz_London():
+    tz = get_tz()
+    assert_roundtrip(tz)
+
+
+@pytest.mark.xfail
+def test_pytz_London():
+    # Don't use pytz
+    tz = pytz.timezone("Europe/London")
+    assert_roundtrip(tz)
+
+
+def test_mktz_London():
+    tz = mktz("Europe/London")
+    assert_roundtrip(tz)
+
+
+def test_datetime_roundtrip_lon_no_tz():
+    pdt = datetime.datetime(2012, 6, 12, 12, 12, 12, 123000)
+    pdt2 = ms_to_datetime(datetime_to_ms(pdt))
+    assert pdt2 == pdt
+
+    pdt = datetime.datetime(2012, 1, 12, 12, 12, 12, 123000)
+    pdt2 = ms_to_datetime(datetime_to_ms(pdt))
+    assert pdt2 == pdt
+
+
+def test_datetime_roundtrip_lon_tz():
+    pdt = datetime.datetime(2012, 6, 12, 12, 12, 12, 123000, tzinfo=mktz('Europe/London'))
+    pdt2 = ms_to_datetime(datetime_to_ms(pdt))
+    assert pdt2 == pdt.replace(tzinfo=None)
+
+    pdt = datetime.datetime(2012, 1, 12, 12, 12, 12, 123000, tzinfo=mktz('Europe/London'))
+    pdt2 = ms_to_datetime(datetime_to_ms(pdt))
+    assert pdt2 == pdt.replace(tzinfo=None)
+
+
+def test_datetime_roundtrip_est_tz():
+    pdt = datetime.datetime(2012, 6, 12, 12, 12, 12, 123000, tzinfo=mktz('EST'))
+    pdt2 = ms_to_datetime(datetime_to_ms(pdt))
+    assert pdt2.replace(tzinfo=mktz('Europe/London')) == pdt
+
+    pdt = datetime.datetime(2012, 1, 12, 12, 12, 12, 123000, tzinfo=mktz('EST'))
+    pdt2 = ms_to_datetime(datetime_to_ms(pdt))
+    assert pdt2.replace(tzinfo=mktz('Europe/London')) == pdt

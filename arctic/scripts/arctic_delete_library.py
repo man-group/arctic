@@ -1,0 +1,40 @@
+import optparse
+import pymongo
+
+from ..logging import logger
+from ..hooks import get_mongodb_uri
+from ..arctic import Arctic
+from .utils import do_db_auth
+
+
+def main():
+    usage = """usage: %prog [options]
+    
+    Deletes the named library from a user's database.
+
+    Example:
+        %prog --host=hostname --library=arctic_jblackburn.my_library
+    """
+
+    parser = optparse.OptionParser(usage=usage)
+    parser.add_option("--host", default='localhost', help="Hostname, or clustername. Default: localhost")
+    parser.add_option("--library", help="The name of the library. e.g. 'arctic_jblackburn.lib'")
+
+    (opts, _) = parser.parse_args()
+
+    if not opts.library:
+        parser.error('Must specify the full path of the library e.g. arctic_jblackburn.lib!')
+
+    print "Deleting: %s on mongo %s" % (opts.library, opts.host)
+    c = pymongo.MongoClient(get_mongodb_uri(opts.host))
+
+    db_name = opts.library[:opts.library.index('.')] if '.' in opts.library else None
+    do_db_auth(opts.host, c, db_name)
+    store = Arctic(c)
+    store.delete_library(opts.library)
+
+    logger.info("Library %s deleted" % opts.library)
+
+
+if __name__ == '__main__':
+    main()
