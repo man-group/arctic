@@ -1,11 +1,11 @@
 # [Arctic TimeSeries and Tick store](https://github.com/ahlmss/arctic)
 
-Arctic is a high performance datastore for numeric data. It supports [Pandas](http://pandas.pydata.org/), 
-[numpy](http://www.numpy.org/) arrays and pickled objects out-of-the-box, with pluggable support for 
+Arctic is a high performance datastore for numeric data. It supports [Pandas](http://pandas.pydata.org/),
+[numpy](http://www.numpy.org/) arrays and pickled objects out-of-the-box, with pluggable support for
 other data types and optional versioning.
 
-Arctic can query millions of rows per second per client, achieves ~10x compression on network bandwidth, 
-~10x compression on disk, and scales to hundreds of millions of rows per second per 
+Arctic can query millions of rows per second per client, achieves ~10x compression on network bandwidth,
+~10x compression on disk, and scales to hundreds of millions of rows per second per
 [MongoDB](https://www.mongodb.org/) instance.
 
 Arctic has been under active development at [Man AHL](http://www.ahl.com/) since 2012.
@@ -65,9 +65,9 @@ End-Of-Day; Minute Bars; etc.).
 
 Arctic supports multiple data libraries per user.  A user (or namespace)
 maps to a MongoDB database (the granularity of mongo authentication).  The library
-itself is composed of a number of collections within the database. Libraries look like: 
+itself is composed of a number of collections within the database. Libraries look like:
 
-  * user.EOD 
+  * user.EOD
   * user.ONEMINUTE
 
 A library is mapped to a Python class.  All library databases in MongoDB are prefixed with 'arctic_'
@@ -75,7 +75,7 @@ A library is mapped to a Python class.  All library databases in MongoDB are pre
 ### Storage Engines
 
 Arctic includes two storage engines:
-  
+
   * [VersionStore](arctic/store/version_store.py): a key-value versioned TimeSeries store. It supports:
       * Pandas data types (other Python types pickled)
       * Multiple versions of each data item. Can easily read previous versions.
@@ -85,7 +85,7 @@ Arctic includes two storage engines:
       * Audited writes: API for saving metadata and data before and after a write.
       * a wide range of TimeSeries data frequencies: End-Of-Day to Minute bars
       * [See the HowTo](howtos/how_to_use_arctic.py)
-  * [TickStore](arctic/tickstore/tickstore.py): Column oriented tick database.  Supports 
+  * [TickStore](arctic/tickstore/tickstore.py): Column oriented tick database.  Supports
     dynamic fields, chunks aren't versioned. Designed for large continuously ticking data.
 
 Arctic storage implementations are **pluggable**.  VersionStore is the default.
@@ -113,8 +113,10 @@ It wouldn't be possible without the work of the AHL Data Engineering Team includ
  * Tom Taylor
  * Tope Olukemi
  * Drake Siard
- * ... and many others ... 
- 
+ * [Slavi Marinov](https://github.com/slavi)
+ * [Wilfred Hughes](https://github.com/wilfred)
+ * ... and many others ...
+
 Contributions welcome!
 
 ## License
