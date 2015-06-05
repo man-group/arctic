@@ -26,19 +26,21 @@ def test_delete_version_version_not_found():
     logger.error.assert_called_once_with("Can't delete sentinel.symbol:sentinel.version as not found in DB")
 
 
-def test_list_versions_LondonTime():
+def test_list_versions_localTime():
     # Object ID's are stored in UTC. We need to ensure that the returned times
-    # for versions are in the local London TimeZone
+    # for versions are in the local  TimeZone
     vs = create_autospec(VersionStore, instance=True,
                          _versions=Mock())
     vs._find_snapshots.return_value = 'snap'
-    vs._versions.find.return_value = [{'_id': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0)),
-                       'symbol': 's', 'version': 10}]
+    date = dt(2013, 4, 1, 9, 0)
+    vs._versions.find.return_value = [{'_id': bson.ObjectId.from_datetime(date),
+                                       'symbol': 's', 'version': 10}]
 
     version = list(VersionStore.list_versions(vs, "symbol"))[0]
+    local_date = date.replace(tzinfo=mktz("UTC")).astimezone(mktz()).replace(tzinfo=None)
     assert version == {'symbol': version['symbol'], 'version': version['version'],
                        # We return naive datetimes in 'default' time, which is London for us
-                       'date': dt(2013, 4, 1, 10, 0),
+                       'date': local_date,
                        'snapshots': 'snap'}
 
 

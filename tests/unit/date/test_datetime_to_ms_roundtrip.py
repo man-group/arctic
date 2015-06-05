@@ -3,6 +3,7 @@ import datetime
 from datetime import datetime as dt
 import pytz
 from arctic.date import mktz, datetime_to_ms, ms_to_datetime
+from arctic.date._mktz import DEFAULT_TIME_ZONE_NAME
 
 
 def assert_roundtrip(tz):
@@ -33,7 +34,7 @@ def test_UTC_roundtrip():
     assert_roundtrip(tz)
 
 
-def test_weird_get_tz_London():
+def test_weird_get_tz_local():
     tz = get_tz()
     assert_roundtrip(tz)
 
@@ -50,7 +51,7 @@ def test_mktz_London():
     assert_roundtrip(tz)
 
 
-def test_datetime_roundtrip_lon_no_tz():
+def test_datetime_roundtrip_local_no_tz():
     pdt = datetime.datetime(2012, 6, 12, 12, 12, 12, 123000)
     pdt2 = ms_to_datetime(datetime_to_ms(pdt))
     assert pdt2 == pdt
@@ -60,12 +61,12 @@ def test_datetime_roundtrip_lon_no_tz():
     assert pdt2 == pdt
 
 
-def test_datetime_roundtrip_lon_tz():
-    pdt = datetime.datetime(2012, 6, 12, 12, 12, 12, 123000, tzinfo=mktz('Europe/London'))
+def test_datetime_roundtrip_local_tz():
+    pdt = datetime.datetime(2012, 6, 12, 12, 12, 12, 123000, tzinfo=mktz(DEFAULT_TIME_ZONE_NAME))
     pdt2 = ms_to_datetime(datetime_to_ms(pdt))
     assert pdt2 == pdt.replace(tzinfo=None)
 
-    pdt = datetime.datetime(2012, 1, 12, 12, 12, 12, 123000, tzinfo=mktz('Europe/London'))
+    pdt = datetime.datetime(2012, 1, 12, 12, 12, 12, 123000, tzinfo=mktz(DEFAULT_TIME_ZONE_NAME))
     pdt2 = ms_to_datetime(datetime_to_ms(pdt))
     assert pdt2 == pdt.replace(tzinfo=None)
 
@@ -73,8 +74,8 @@ def test_datetime_roundtrip_lon_tz():
 def test_datetime_roundtrip_est_tz():
     pdt = datetime.datetime(2012, 6, 12, 12, 12, 12, 123000, tzinfo=mktz('EST'))
     pdt2 = ms_to_datetime(datetime_to_ms(pdt))
-    assert pdt2.replace(tzinfo=mktz('Europe/London')) == pdt
+    assert pdt2.replace(tzinfo=mktz(DEFAULT_TIME_ZONE_NAME)) == pdt
 
     pdt = datetime.datetime(2012, 1, 12, 12, 12, 12, 123000, tzinfo=mktz('EST'))
     pdt2 = ms_to_datetime(datetime_to_ms(pdt))
-    assert pdt2.replace(tzinfo=mktz('Europe/London')) == pdt
+    assert pdt2.replace(tzinfo=mktz(DEFAULT_TIME_ZONE_NAME)) == pdt
