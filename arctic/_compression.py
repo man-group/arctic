@@ -1,5 +1,10 @@
 from .logging import logger
-import _compress as clz4
+
+try:
+    from . import _compress as clz4
+except ImportError:
+    logger.warn("Couldn't import cython lz4")
+    import lz4 as clz4
 
 
 USE_LZ4HC = True  # switch to use LZ4HC. Default True
