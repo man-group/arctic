@@ -1,6 +1,7 @@
 # [Arctic TimeSeries and Tick store](https://github.com/ahlmss/arctic)
 
 [![Circle CI](https://circleci.com/gh/ahlmss/arctic.svg?style=shield)](https://circleci.com/gh/ahlmss/arctic)
+[![Coverage Status](https://coveralls.io/repos/ahlmss/arctic/badge.svg?branch=master)](https://coveralls.io/r/ahlmss/arctic?branch=master)
 
 Arctic is a high performance datastore for numeric data. It supports [Pandas](http://pandas.pydata.org/),
 [numpy](http://www.numpy.org/) arrays and pickled objects out-of-the-box, with pluggable support for
