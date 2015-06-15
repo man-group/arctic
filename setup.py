@@ -17,8 +17,9 @@
 # USA
 
 import os
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 from setuptools.command.test import test as TestCommand
+from Finder.Files import package
 
 
 # Utility function to read the README file.
@@ -73,12 +74,12 @@ setup(
     license="GPL",
     keywords=["ahl", "keyvalue", "tickstore", "mongo", "timeseries", ],
     url="https://github.com/ahlmss/arctic",
-    packages=['arctic', 'tests'],
+    packages=find_packages(exclude=["test_*", "tests"]),
     long_description="",  # read('README'),
     cmdclass={'test': PyTest},
-    ext_modules=[compress],
-    setup_requires=["setuptools_cython",
-                    "Cython",
+    #ext_modules=[compress],
+    setup_requires=[#setuptools_cython",
+                    #"Cython",
                     "numpy",
                     ],
     install_requires=["decorator",
