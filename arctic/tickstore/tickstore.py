@@ -290,6 +290,100 @@ class TickStore(object):
             rtn = rtn.ix[date_range.start:date_range.end]
         return rtn
 
+
+    def read_latest(self, symbol, columns=None, include_images=False, _target_tick_count=0):
+        """
+        Read data for the last bucket of named symbol, and delete that bucket.  
+        Returns a VersionedItem object with
+        a data and metdata element (as passed into write).
+
+        Mostly a copy of read.
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        columns : `list` of `str`
+            Columns (fields) to return from the tickstore
+        include_images : `bool`
+            Should images (/snapshots) be included in the read
+        Returns
+        -------
+        pandas.DataFrame of data
+        """
+        perf_start = dt.now()
+        rtn = {}
+        column_set = set()
+
+        multiple_symbols = not isinstance(symbol, basestring)
+
+        query = self._symbol_query(symbol)
+
+        if columns:
+            projection = dict([(SYMBOL, 1),
+                           (INDEX, 1),
+                           (START, 1),
+                           (VERSION, 1),
+                           (IMAGE_DOC, 1)] +
+                          [(COLUMNS + '.%s' % c, 1) for c in columns])
+            column_set.update([c for c in columns if c != 'SYMBOL'])
+        else:
+            projection = dict([(SYMBOL, 1),
+                           (INDEX, 1),
+                           (START, 1),
+                           (VERSION, 1),
+                           (COLUMNS, 1),
+                           (IMAGE_DOC, 1)])
+
+        column_dtypes = {}
+        ticks_read = 0
+
+        b = self._collection.find_one(query, projection=projection, sort=[(START,-1)])
+
+        data = self._read_bucket(b, column_set, column_dtypes,
+                                multiple_symbols or (columns is not None and 'SYMBOL' in columns),
+                                include_images)
+
+        for k, v in data.iteritems():
+           try:
+               rtn[k].append(v)
+           except KeyError:
+               rtn[k] = [v]
+
+        if not rtn:
+            raise NoDataFoundException("No Data found for {}".format(symbol))
+        rtn = self._pad_and_fix_dtypes(rtn, column_dtypes)
+
+        index = pd.to_datetime(np.concatenate(rtn[INDEX]), unit='ms')
+        if columns is None:
+            columns = [x for x in rtn.keys() if x not in (INDEX, 'SYMBOL')]
+        if multiple_symbols and 'SYMBOL' not in columns:
+            columns = ['SYMBOL', ] + columns
+
+        if len(index) > 0:
+            arrays = [np.concatenate(rtn[k]) for k in columns]
+        else:
+            arrays = [[] for k in columns]
+
+        if multiple_symbols:
+            sort = np.argsort(index)
+            index = index[sort]
+            arrays = [a[sort] for a in arrays]
+
+        t = (dt.now() - perf_start).total_seconds()
+        logger.info("Got data in %s secs, creating DataFrame..." % t)
+        mgr = _arrays_to_mgr(arrays, columns, index, columns, dtype=None)
+        rtn = pd.DataFrame(mgr)
+
+        t = (dt.now() - perf_start).total_seconds()
+        ticks = len(rtn)
+        logger.info("%d rows in %s secs: %s ticks/sec" % (ticks, t, int(ticks / t)))
+        if not rtn.index.is_monotonic:
+            logger.error("TimeSeries data is out of order, sorting!")
+            rtn = rtn.sort_index()
+
+        return rtn
+
     def _pad_and_fix_dtypes(self, cols, column_dtypes):
         # Pad out Nones with empty arrays of appropriate dtypes
         rtn = {}
@@ -469,6 +563,52 @@ class TickStore(object):
         ticks = len(buckets) * self.chunk_size
         print "%d buckets in %s: approx %s ticks/sec" % (len(buckets), t, int(ticks / t))
 
+
+    def write_replace(self, symbol, data):
+        """
+        Writes a list of market data events. Mostly copied from write. Allows replacement of dates.
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        data : list of dicts
+            List of ticks to store to the tick-store.
+        """
+        pandas = False
+        # Check for overlapping data
+        if isinstance(data, list):
+            start = data[0]['index']
+            end = data[-1]['index']
+        elif isinstance(data, pd.DataFrame):
+            start = data.index[0].to_datetime()
+            end = data.index[-1].to_datetime()
+            pandas = True
+        else:
+            raise UnhandledDtypeException("Can't persist type %s to tickstore" % type(data))
+
+        if pandas:
+            buckets = self._pandas_to_buckets(data, symbol)
+        else:
+            buckets = self._to_buckets(data, symbol)
+        self._write_replace(buckets)
+
+    def _write_replace(self, buckets):
+        start = dt.now()
+
+        bulk = self._collection.initialize_unordered_bulk_op()
+
+        for b in buckets:
+             bulk.find({SYMBOL: b[SYMBOL], START: b[START]}).replace_one(b)
+
+        bulk.execute()
+
+        t = (dt.now() - start).total_seconds()
+        ticks = len(buckets) * self.chunk_size
+        print "%d buckets in %s: approx %s ticks/sec" % (len(buckets), t, int(ticks / t))
+
+
+
     def _pandas_to_buckets(self, x, symbol):
         rtn = []
         for i in range(0, len(x), self.chunk_size):
@@ -602,3 +742,17 @@ class TickStore(object):
         res = self._collection.find_one({SYMBOL: symbol}, projection={ID: 0, END: 1},
                                         sort=[(START, pymongo.DESCENDING)])
         return res[END]
+
+    def max_date_range(self, symbol):
+        """
+        Return the start and end datetime stored for a particular symbol
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        """
+        res = self._collection.find_one({SYMBOL: symbol}, projection={ID: 0, END: 1, START:1},
+                                        sort=[(START, pymongo.DESCENDING)])
+
+        return {'e': res[END], 's': res[START]}
