@@ -3,8 +3,8 @@
  @date: 6-1-15
  @version: 1.0
 
- Description: Program designed to grab tweet data from tweets2 database in mysql and convert it to lz4 compressed JSON data stored
- in Mongo
+ Description: Program designed to grab all _dollar_ ts_28 sentiment data and store to mongo. Note that this deletes the original library;
+ meant for a full update
 
  Note: missed _dollar_inqd.csv because added after the fact
 '''

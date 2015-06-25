@@ -732,7 +732,7 @@ class TickStore(object):
 
     def max_date(self, symbol):
         """
-        Return the maximum datetime stored for a particular symbol
+        Return the maximum datetime stored for a particular symbol, or none if query is empty
 
         Parameters
         ----------
@@ -741,11 +741,14 @@ class TickStore(object):
         """
         res = self._collection.find_one({SYMBOL: symbol}, projection={ID: 0, END: 1},
                                         sort=[(START, pymongo.DESCENDING)])
-        return res[END]
+        if res:
+          return res[END]
+        else:
+          return None
 
     def max_date_range(self, symbol):
         """
-        Return the start and end datetime stored for a particular symbol
+        Return the start and end datetime stored for a particular symbol, or none if query is empty
 
         Parameters
         ----------
@@ -754,5 +757,7 @@ class TickStore(object):
         """
         res = self._collection.find_one({SYMBOL: symbol}, projection={ID: 0, END: 1, START:1},
                                         sort=[(START, pymongo.DESCENDING)])
-
-        return {'e': res[END], 's': res[START]}
+        if res: 
+          return {'e': res[END], 's': res[START]}
+        else: 
+          return None

@@ -3,8 +3,9 @@
  @date: 6-1-15
  @version: 1.0
 
- Description: Program designed to grab tweet data from tweets2 database in mysql and convert it to lz4 compressed JSON data stored
- in Mongo
+ Description: Program designed to grab all _dollar_ ts_20 sentiment data and store to mongo. Note that this deletes the original library;
+ meant for a full update
+
 
  Note: missed _dollar_inqd.csv because added after the fact
 '''
@@ -23,12 +24,9 @@ import arctic_wrapper
 def getSentimentData(path):
      '''
      Gets the sentiment data, stores it in a pandas dataframe, converts the dataframe to an object with each column as a list (chunked by day)
-     and passes to tweetlibrary to store to mongo
+     and passes to arctic to store to mongo
 
      @param: path; type: string; the filepath of the sentiment data being read
-     @param: subject; type: string; the ticker for the sentiment data
-     @param: version; type: string; the version num of the NLP 
-     @param: collection; type: mongo collection; where to store the data
      '''
 
      df = pd.read_csv(path, engine='c', index_col = 0, parse_dates = True)

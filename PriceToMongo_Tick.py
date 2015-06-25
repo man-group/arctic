@@ -3,7 +3,9 @@
 @date: 6-22-15
 @version: 0.1
 
-Test driver for arctic wrapper.py storage functions
+
+Description: Program designed to grab all price  data and store to mongo. Note that this deletes the original library;
+meant for a full update
 '''
 import time
 
@@ -24,12 +26,9 @@ import os
 def getPriceData(path):
      '''
      Gets the sentiment data, stores it in a pandas dataframe, converts the dataframe to an object with each column as a list (chunked by day)
-     and passes to tweetlibrary to store to mongo
+     and passes to arctic to store to mongo
 
      @param: path; type: string; the filepath of the sentiment data being read
-     @param: subject; type: string; the ticker for the sentiment data
-     @param: version; type: string; the version num of the NLP 
-     @param: collection; type: mongo collection; where to store the data
      '''
 
      df = pd.read_csv(path, engine='c', header=None, index_col = 0, names=['date', 'time', 'open', 'high', 'low', 'close', 'cvol', 'vol'], parse_dates = [['date', 'time']])
