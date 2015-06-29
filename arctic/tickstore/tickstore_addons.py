@@ -47,7 +47,7 @@ def append(df, subject, library):
 
      if df.index[0].tzinfo is None:
           df.index = df.index.tz_localize(tzlocal.get_localzone())
-
+    
      df.index = df.index.tz_convert(pytz.utc)
 
      bucket_data = library.read_latest(subject)
@@ -60,7 +60,7 @@ def append(df, subject, library):
           raise ValueError('Newly appended data cannot have datetime before last update: {} before {}'.format(df.index[0], last_date))
      
      for col in df:
-          library._ensure_supported_dtypes(df[col])
+         library._ensure_supported_dtypes(df[col])
 
      daterange = arctic.date.DateRange(bucket_data.index[0], df.index[0])
 

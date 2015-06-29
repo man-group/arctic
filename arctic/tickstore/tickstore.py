@@ -591,6 +591,7 @@ class TickStore(object):
             buckets = self._pandas_to_buckets(data, symbol)
         else:
             buckets = self._to_buckets(data, symbol)
+        print len(buckets)
         self._write_replace(buckets)
 
     def _write_replace(self, buckets):
@@ -599,7 +600,7 @@ class TickStore(object):
         bulk = self._collection.initialize_unordered_bulk_op()
 
         for b in buckets:
-             bulk.find({SYMBOL: b[SYMBOL], START: b[START]}).replace_one(b)
+             bulk.find({SYMBOL: b[SYMBOL], START: b[START]}).upsert().replace_one(b)
 
         bulk.execute()
 
