@@ -591,7 +591,6 @@ class TickStore(object):
             buckets = self._pandas_to_buckets(data, symbol)
         else:
             buckets = self._to_buckets(data, symbol)
-        print len(buckets)
         self._write_replace(buckets)
 
     def _write_replace(self, buckets):
