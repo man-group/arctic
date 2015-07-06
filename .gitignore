@@ -10,3 +10,4 @@ htmlcov
 .coverage
 coverage.xml
 junit.xml
+/tmp/
