@@ -2,6 +2,7 @@
 
 [![Circle CI](https://circleci.com/gh/manahl/arctic.svg?style=shield)](https://circleci.com/gh/manahl/arctic)
 [![Coverage Status](https://coveralls.io/repos/manahl/arctic/badge.svg?branch=master)](https://coveralls.io/r/manahl/arctic?branch=master)
+[![Gitter chat](https://badges.gitter.im/manahl/arctic.png)](https://gitter.im/manahl/arctic)
 
 Arctic is a high performance datastore for numeric data. It supports [Pandas](http://pandas.pydata.org/),
 [numpy](http://www.numpy.org/) arrays and pickled objects out-of-the-box, with pluggable support for
