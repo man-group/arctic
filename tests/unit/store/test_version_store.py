@@ -5,7 +5,7 @@ from mock import patch, MagicMock, sentinel, create_autospec, Mock, call, ANY
 import pytest
 
 import pymongo
-from pymongo import ReadPreference
+from pymongo import ReadPreference, read_preferences
 
 from arctic.date import mktz
 from arctic.store import version_store
@@ -42,6 +42,33 @@ def test_list_versions_localTime():
                        # We return naive datetimes in 'default' time, which is London for us
                        'date': local_date,
                        'snapshots': 'snap'}
+
+
+def test_get_version_allow_secondary_True():
+    vs = create_autospec(VersionStore, instance=True,
+                         _versions=Mock())
+    vs._allow_secondary = True
+    vs._find_snapshots.return_value = 'snap'
+    vs._versions.find.return_value = [{'_id': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0)),
+                       'symbol': 's', 'version': 10}]
+
+    VersionStore.read(vs, "symbol")
+    assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, read_preference=ReadPreference.NEAREST)]
+    assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None, read_preference=ReadPreference.NEAREST)]
+
+
+def test_get_version_allow_secondary_user_override_False():
+    """Ensure user can override read preference when calling read"""
+    vs = create_autospec(VersionStore, instance=True,
+                         _versions=Mock())
+    vs._allow_secondary = True
+    vs._find_snapshots.return_value = 'snap'
+    vs._versions.find.return_value = [{'_id': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0)),
+                       'symbol': 's', 'version': 10}]
+
+    VersionStore.read(vs, "symbol", allow_secondary=False)
+    assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, read_preference=ReadPreference.PRIMARY)]
+    assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None, read_preference=ReadPreference.PRIMARY)]
 
 
 def test_read_as_of_LondonTime():
