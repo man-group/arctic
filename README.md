@@ -1,7 +1,7 @@
 # [Arctic TimeSeries and Tick store](https://github.com/manahl/arctic)
 
 [![Circle CI](https://circleci.com/gh/manahl/arctic.svg?style=shield)](https://circleci.com/gh/manahl/arctic)
-[![Coverage Status](https://coveralls.io/repos/manahl/arctic/badge.svg?branch=master)](https://coveralls.io/r/manahl/arctic?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/manahl/arctic/badge.svg?branch=master)](https://coveralls.io/github/manahl/arctic?branch=master)
 [![Join the chat at https://gitter.im/manahl/arctic](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/manahl/arctic?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Arctic is a high performance datastore for numeric data. It supports [Pandas](http://pandas.pydata.org/),
