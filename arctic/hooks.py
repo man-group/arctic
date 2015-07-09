@@ -16,7 +16,7 @@ def get_mongodb_uri(host):
 
 def register_resolve_mongodb_hook(hook):
     global _resolve_mongodb_hook
-    _mongodb_resolve_hook = hook
+    _resolve_mongodb_hook = hook
 
 
 def log_exception(fn_name, exception, retry_count, **kwargs):
