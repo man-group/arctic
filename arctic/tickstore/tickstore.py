@@ -504,8 +504,7 @@ class TickStore(object):
         elif date.tzinfo is None:
             if default_tz is None:
                 raise ValueError("Must specify a TimeZone on incoming data")
-            # Treat naive datetimes as London
-            return date.replace(tzinfo=mktz())
+            return date.replace(tzinfo=default_tz)
         return date
 
     def _str_dtype(self, dtype):
