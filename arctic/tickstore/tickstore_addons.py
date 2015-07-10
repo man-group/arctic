@@ -57,7 +57,10 @@ def append(df, subject, library):
      last_date = bucket_data.index[len(bucket_data) - 1]
 
      if last_date > df.index[0]:
-          raise ValueError('Newly appended data cannot have datetime before last update: {} before {}'.format(df.index[0], last_date))
+          print('Newly appended data cannot have datetime before last update: {} before {}. Appending new data only.'.format(df.index[0], last_date))
+          df = df[df.index > last_date]
+          if len(df) == 0:
+              return
      
      for col in df:
          library._ensure_supported_dtypes(df[col])
