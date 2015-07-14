@@ -21,10 +21,13 @@ from setuptools import setup, Extension
 from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
 
-
-# Utility function to read the README file.
-def read(fname):
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+# Convert Markdown to RST for PyPI
+# http://stackoverflow.com/a/26737672
+try:
+    import pypandoc
+    long_description = pypandoc.convert('README.md', 'rst')
+except (IOError, ImportError, OSError):
+    long_description = open('README.md').read()
 
 
 class PyTest(TestCommand):
@@ -75,7 +78,7 @@ setup(
     keywords=["ahl", "keyvalue", "tickstore", "mongo", "timeseries", ],
     url="https://github.com/manahl/arctic",
     packages=find_packages(),
-    long_description="",  # read('README'),
+    long_description=long_description,
     cmdclass={'test': PyTest},
     ext_modules=[compress],
     setup_requires=["setuptools_cython",
