@@ -73,7 +73,7 @@ setup(
     description=("AHL Research Versioned TimeSeries and Tick store"),
     license="GPL",
     keywords=["ahl", "keyvalue", "tickstore", "mongo", "timeseries", ],
-    url="https://github.com/ahlmss/arctic",
+    url="https://github.com/manahl/arctic",
     packages=find_packages(),
     long_description="",  # read('README'),
     cmdclass={'test': PyTest},
