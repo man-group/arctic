@@ -273,7 +273,7 @@ class VersionStore(object):
             handler = self._bson_handler
         return handler
 
-    def read(self, symbol, as_of=None, from_version=None, **kwargs):
+    def read(self, symbol, as_of=None, from_version=None, allow_secondary=None, **kwargs):
         """
         Read data for the named symbol.  Returns a VersionedItem object with
         a data and metdata element (as passed into write).
@@ -292,9 +292,10 @@ class VersionStore(object):
         -------
         VersionedItem namedtuple which contains a .data and .metadata element
         """
+        allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
         try:
-            _version = self._read_metadata(symbol, as_of=as_of)
-            read_preference = ReadPreference.NEAREST if self._allow_secondary else None
+            read_preference = ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
+            _version = self._read_metadata(symbol, as_of=as_of, read_preference=read_preference)
             return self._do_read(symbol, _version, from_version, read_preference=read_preference, **kwargs)
         except (OperationFailure, AutoReconnect) as e:
             # Log the exception so we know how often this is happening

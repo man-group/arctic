@@ -7,9 +7,8 @@ import pandas as pd
 import pytest
 import pytz
 
-from arctic import arctic as m
 from arctic.date import DateRange, mktz, CLOSED_CLOSED, CLOSED_OPEN, OPEN_CLOSED, OPEN_OPEN
-from arctic.exceptions import OverlappingDataException, NoDataFoundException
+from arctic.exceptions import NoDataFoundException
 
 
 def test_read(tickstore_lib):
@@ -356,11 +355,11 @@ def test_read_longs(tickstore_lib):
 def test_read_with_image(tickstore_lib):
     DUMMY_DATA = [
               {'a': 1.,
-               'index': dt(2013, 6, 1, 12, 00, tzinfo=mktz('Europe/London'))
+               'index': dt(2013, 1, 1, 11, 00, tzinfo=mktz('Europe/London'))
                },
               {
                'b': 4.,
-               'index': dt(2013, 6, 1, 13, 00, tzinfo=mktz('Europe/London'))
+               'index': dt(2013, 1, 1, 12, 00, tzinfo=mktz('Europe/London'))
                },
               ]
     # Add an image
@@ -371,21 +370,38 @@ def test_read_with_image(tickstore_lib):
                                               {'a': 37.,
                                                'c': 2.,
                                                },
-                                              't': dt(2013, 6, 1, 11, 0)
+                                              't': dt(2013, 1, 1, 10, tzinfo=mktz('Europe/London'))
                                               }
                                        }
                                       }
                                      )
 
-    tickstore_lib.read('SYM', columns=None)
-    read = tickstore_lib.read('SYM', columns=None, date_range=DateRange(dt(2013, 6, 1), dt(2013, 6, 2)))
-    assert read['a'][0] == 1
+    dr = DateRange(dt(2013, 1, 1), dt(2013, 1, 2))
+    # tickstore_lib.read('SYM', columns=None)
+    df = tickstore_lib.read('SYM', columns=None, date_range=dr)
+    assert df['a'][0] == 1
 
     # Read with the image as well
-    read = tickstore_lib.read('SYM', columns=None, date_range=DateRange(dt(2013, 6, 1), dt(2013, 6, 2)),
-                              include_images=True)
-    assert read['a'][0] == 37
-    assert read['a'][1] == 1
-    assert np.isnan(read['b'][0])
-    assert read['b'][2] == 4
-    assert read.index[0] == dt(2013, 6, 1, 11)
+    df = tickstore_lib.read('SYM', columns=None, date_range=dr, include_images=True)
+    assert set(df.columns) == set(('a', 'b', 'c'))
+    assert_array_equal(df['a'].values, np.array([37, 1, np.nan]))
+    assert_array_equal(df['b'].values, np.array([np.nan, np.nan, 4]))
+    assert_array_equal(df['c'].values, np.array([2, np.nan, np.nan]))
+    assert df.index[0] == dt(2013, 1, 1, 10)
+    assert df.index[1] == dt(2013, 1, 1, 11)
+    assert df.index[2] == dt(2013, 1, 1, 12)
+
+    df = tickstore_lib.read('SYM', columns=('a', 'b'), date_range=dr, include_images=True)
+    assert set(df.columns) == set(('a', 'b'))
+    assert_array_equal(df['a'].values, np.array([37, 1, np.nan]))
+    assert_array_equal(df['b'].values, np.array([np.nan, np.nan, 4]))
+    assert df.index[0] == dt(2013, 1, 1, 10)
+    assert df.index[1] == dt(2013, 1, 1, 11)
+    assert df.index[2] == dt(2013, 1, 1, 12)
+
+    df = tickstore_lib.read('SYM', columns=['c'], date_range=dr, include_images=True)
+    assert set(df.columns) == set(['c'])
+    assert_array_equal(df['c'].values, np.array([2, np.nan, np.nan]))
+    assert df.index[0] == dt(2013, 1, 1, 10)
+    assert df.index[1] == dt(2013, 1, 1, 11)
+    assert df.index[2] == dt(2013, 1, 1, 12)

@@ -243,7 +243,7 @@ class TickStore(object):
         for b in self._collection.find(query, projection=projection).sort([(START, pymongo.ASCENDING)],):
             data = self._read_bucket(b, column_set, column_dtypes,
                                      multiple_symbols or (columns is not None and 'SYMBOL' in columns),
-                                     include_images)
+                                     include_images, columns)
             for k, v in data.iteritems():
                 try:
                     rtn[k].append(v)
@@ -325,24 +325,35 @@ class TickStore(object):
                 dtype = np.dtype('f8')
             column_dtypes[c] = np.promote_types(column_dtypes.get(c, dtype), dtype)
 
-    def _prepend_image(self, document, im):
+    def _prepend_image(self, document, im, rtn_length, column_dtypes, column_set, columns):
         image = im[IMAGE]
         first_dt = im['t']
         if not first_dt.tzinfo:
             first_dt = first_dt.replace(tzinfo=mktz('UTC'))
         document[INDEX] = np.insert(document[INDEX], 0, np.uint64(datetime_to_ms(first_dt)))
-        for field in document:
-            if field == INDEX or document[field] is None:
+        for field in image:
+            if field == INDEX:
                 continue
-            if field in image:
-                val = image[field]
-            else:
-                logger.debug("Field %s is missing from image!", field)
-                val = np.nan
+            if columns and field not in columns:
+                continue
+            if field not in document or document[field] is None:
+                col_dtype = np.dtype(str if isinstance(image[field], basestring) else 'f8')
+                document[field] = self._empty(rtn_length, dtype=col_dtype)
+                column_dtypes[field] = col_dtype
+                column_set.add(field)
+            val = image[field]
             document[field] = np.insert(document[field], 0, document[field].dtype.type(val))
+        # Now insert rows for fields in document that are not in the image
+        for field in set(document).difference(set(image)):
+            if field == INDEX:
+                continue
+            logger.debug("Field %s is missing from image!", field)
+            if document[field] is not None:
+                val = np.nan
+                document[field] = np.insert(document[field], 0, document[field].dtype.type(val))
         return document
 
-    def _read_bucket(self, doc, columns, column_dtypes, include_symbol, include_images):
+    def _read_bucket(self, doc, column_set, column_dtypes, include_symbol, include_images, columns):
         rtn = {}
         if doc[VERSION] != 3:
             raise ArcticException("Unhandled document version: %s" % doc[VERSION])
@@ -351,8 +362,8 @@ class TickStore(object):
         rtn_length = len(rtn[INDEX])
         if include_symbol:
             rtn['SYMBOL'] = [doc[SYMBOL], ] * rtn_length
-        columns.update(doc[COLUMNS].keys())
-        for c in columns:
+        column_set.update(doc[COLUMNS].keys())
+        for c in column_set:
             try:
                 coldata = doc[COLUMNS][c]
                 dtype = np.dtype(coldata[DTYPE])
@@ -366,7 +377,7 @@ class TickStore(object):
                 rtn[c] = None
 
         if include_images and doc.get(IMAGE_DOC, {}).get(IMAGE, {}):
-            rtn = self._prepend_image(rtn, doc[IMAGE_DOC])
+            rtn = self._prepend_image(rtn, doc[IMAGE_DOC], rtn_length, column_dtypes, column_set, columns)
         return rtn
 
     def _empty(self, length, dtype):
@@ -493,8 +504,7 @@ class TickStore(object):
         elif date.tzinfo is None:
             if default_tz is None:
                 raise ValueError("Must specify a TimeZone on incoming data")
-            # Treat naive datetimes as London
-            return date.replace(tzinfo=mktz())
+            return date.replace(tzinfo=default_tz)
         return date
 
     def _str_dtype(self, dtype):
