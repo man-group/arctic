@@ -18,6 +18,7 @@
 
 import os
 from setuptools import setup, Extension
+from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
 
 
@@ -73,7 +74,7 @@ setup(
     license="GPL",
     keywords=["ahl", "keyvalue", "tickstore", "mongo", "timeseries", ],
     url="https://github.com/ahlmss/arctic",
-    packages=['arctic', 'tests'],
+    packages=find_packages(),
     long_description="",  # read('README'),
     cmdclass={'test': PyTest},
     ext_modules=[compress],
