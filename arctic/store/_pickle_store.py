@@ -2,14 +2,16 @@ import bson
 from bson.binary import Binary
 from bson.errors import InvalidDocument
 import cPickle
+import cStringIO as stringio
 import lz4
 import pymongo
 import pprint
 
-from ._version_store_utils import checksum
+from arctic.store._version_store_utils import checksum, pickle_compat_load
 
 _MAGIC_CHUNKED = '__chunked__'
 _CHUNK_SIZE = 15 * 1024 * 1024  # 15MB
+_MAX_BSON_ENCODE = 256 * 1024  # 256K - don't fill up the version document with encoded bson
 
 
 class PickleStore(object):
@@ -25,25 +27,28 @@ class PickleStore(object):
 
         return """Handler: %s\n\nVersion document:\n%s""" % (self.__class__.__name__, pprint.pformat(version))
 
-    def read(self, arctic_lib, version, symbol, **kwargs):
-        if 'blob' in version:
-            if version['blob'] == _MAGIC_CHUNKED:
-                collection = arctic_lib.get_top_level_collection()
-                data = ''.join([x['data'] for x in collection.find({'symbol': symbol,
-                                                                    'parent': version['_id']},
-                                                                    sort=[('segment', pymongo.ASCENDING)])])
+    def read(self, mongoose_lib, version, symbol, **kwargs):
+        blob = version.get("blob")
+        if blob is not None:
+            if blob == _MAGIC_CHUNKED:
+                collection = mongoose_lib.get_top_level_collection()
+                data = ''.join(x['data'] for x in collection.find({'symbol': symbol,
+                                                                   'parent': version['_id']},
+                                                                   sort=[('segment', pymongo.ASCENDING)]))
             else:
-                data = version['blob']
+                data = blob
             # Backwards compatibility
-            return cPickle.loads(lz4.decompress(data))
+            data = lz4.decompress(data)
+            return pickle_compat_load(stringio.StringIO(data))
         return version['data']
 
     def write(self, arctic_lib, version, symbol, item, previous_version):
         try:
             # If it's encodeable, then ship it
-            bson.BSON.encode({'data': item})
-            version['data'] = item
-            return
+            b = bson.BSON.encode({'data': item})
+            if len(b) < _MAX_BSON_ENCODE:
+                version['data'] = item
+                return
         except InvalidDocument:
             pass
 

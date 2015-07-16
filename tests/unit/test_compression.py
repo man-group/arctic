@@ -1,48 +1,14 @@
-from mock import patch, Mock
-
-from arctic._compression import use_lz4hc, _should_use_lz4hc, _is_interactive_mode, compress, compress_array, decompress, decompress_array
-from arctic import _compression
-
-
-def teardown_function(function):
-    _compression.USE_LZ4HC = True
-
-
-def test_use_lz4hc():
-    use_lz4hc(True)
-    assert _compression.USE_LZ4HC is True
-    use_lz4hc(False)
-    assert _compression.USE_LZ4HC is False
-
-
-def test_use_lz4hc_True():
-    use_lz4hc(True)
-    assert _should_use_lz4hc() is True
-
-
-def test_use_lz4hc_False():
-    use_lz4hc(False)
-    assert _should_use_lz4hc() is False
-
-
-def test__is_interactive_mode():
-    assert _is_interactive_mode() is False  # in a test!
+from mock import patch, Mock, sentinel, call
+from arctic._compression import compress, compress_array, decompress, decompress_array
+import lz4
 
 
 def test_compress():
     assert len(compress("foobar")) > 0
 
 
-def test_compress_LZ4HC():
-    use_lz4hc(True)
-    cfn = Mock()
-    with patch('arctic._compression.clz4.compressHC', cfn):
-        compress("foo")
-        assert cfn.call_count == 1
-
 
 def test_compress_LZ4():
-    use_lz4hc(False)
     cfn = Mock()
     with patch('arctic._compression.clz4.compress', cfn):
         compress("foo")
@@ -54,37 +20,13 @@ def test_compressarr():
     assert isinstance(compress_array(["foobar"*10]), list)
 
 
-def test_compressarr_LZ4HC():
-    assert len(compress_array(["foobar"*10])) > 0
-    assert isinstance(compress_array(["foobar"*10]), list)
-
-
-def test_compress_array_usesLZ4HC():
-    use_lz4hc(True)
-    cfn = Mock()
-    with patch('arctic._compression.clz4.compressarrHC', cfn):
-        compress_array(["foo"] * 100)
-        assert cfn.call_count == 1
-
-
 def test_compress_array_usesLZ4():
-    use_lz4hc(False)
     cfn = Mock()
     with patch('arctic._compression.clz4.compressarr', cfn):
         compress_array(["foo"] * 100)
         assert cfn.call_count == 1
 
-
-def test_compress_array_LZ4HC_sequential():
-    use_lz4hc(True)
-    cfn = Mock()
-    with patch('arctic._compression.clz4.compressHC', cfn):
-        compress_array(["foo"] * 4)
-        assert cfn.call_count == 4
-
-
 def test_compress_array_LZ4_sequential():
-    use_lz4hc(False)
     cfn = Mock()
     with patch('arctic._compression.clz4.compress', cfn):
         compress_array(["foo"] * 49)
@@ -99,3 +41,30 @@ def test_decompress_array():
     ll = ['foo%s' % i for i in range(100)]
     assert decompress_array(compress_array(ll)) == ll
 
+def test_compression_equal_regardless_parallel_mode():
+    a = ['spam '] * 666
+    with patch('arctic._compression.ENABLE_PARALLEL', True):
+        parallel = compress_array(a)
+    with patch('arctic._compression.ENABLE_PARALLEL', False):
+        serial = compress_array(a)
+    assert serial == parallel
+
+
+def test_compress_decompress_no_parallel():
+    with patch('arctic._compression.clz4', sentinel.clz4), \
+         patch('arctic._compression.ENABLE_PARALLEL', False), \
+         patch('arctic._compression.lz4', wraps=lz4) as patch_lz4:
+        # patching clz4 with sentinel will make accessing any clz4 function explode
+        assert decompress(compress('Foo')) == 'Foo' 
+        assert patch_lz4.compress.call_args_list == [call('Foo')]
+        assert patch_lz4.decompress.call_args_list == [call(compress('Foo'))]
+
+
+def test_compress_array_no_parallel():
+    a = ['spam', 'egg', 'spamm', 'spammm']
+    with patch('arctic._compression.clz4', sentinel.clz4), \
+         patch('arctic._compression.ENABLE_PARALLEL', False), \
+         patch('arctic._compression.lz4', wraps=lz4) as patch_lz4:
+        assert decompress_array(compress_array(a)) == a
+        assert patch_lz4.compress.call_args_list == [call(x) for x in a]
+        assert patch_lz4.decompress.call_args_list == [call(compress(x)) for x in a]
