@@ -381,7 +381,7 @@ def test_read_with_image(tickstore_lib):
     df = tickstore_lib.read('SYM', columns=None, date_range=dr)
     assert df['a'][0] == 1
 
-    # Read with the image as well
+    # Read with the image as well - all columns
     df = tickstore_lib.read('SYM', columns=None, date_range=dr, include_images=True)
     assert set(df.columns) == set(('a', 'b', 'c'))
     assert_array_equal(df['a'].values, np.array([37, 1, np.nan]))
@@ -391,6 +391,7 @@ def test_read_with_image(tickstore_lib):
     assert df.index[1] == dt(2013, 1, 1, 11)
     assert df.index[2] == dt(2013, 1, 1, 12)
 
+    # Read just columns from the updates
     df = tickstore_lib.read('SYM', columns=('a', 'b'), date_range=dr, include_images=True)
     assert set(df.columns) == set(('a', 'b'))
     assert_array_equal(df['a'].values, np.array([37, 1, np.nan]))
@@ -398,7 +399,16 @@ def test_read_with_image(tickstore_lib):
     assert df.index[0] == dt(2013, 1, 1, 10)
     assert df.index[1] == dt(2013, 1, 1, 11)
     assert df.index[2] == dt(2013, 1, 1, 12)
+    
+    # Read one column from the updates
+    df = tickstore_lib.read('SYM', columns=('a',), date_range=dr, include_images=True)
+    assert set(df.columns) == set(('a',))
+    assert_array_equal(df['a'].values, np.array([37, 1, np.nan]))
+    assert df.index[0] == dt(2013, 1, 1, 10)
+    assert df.index[1] == dt(2013, 1, 1, 11)
+    assert df.index[2] == dt(2013, 1, 1, 12)
 
+    # Read just the image column
     df = tickstore_lib.read('SYM', columns=['c'], date_range=dr, include_images=True)
     assert set(df.columns) == set(['c'])
     assert_array_equal(df['c'].values, np.array([2, np.nan, np.nan]))
