@@ -132,11 +132,17 @@ def read(subject, library, startdate=None, enddate=None, fields=None, mongo_feed
     df.index = df.index.tz_localize(pytz.utc).tz_convert(tzlocal.get_localzone())
 
     if mongo_feed and keyword:
+        print "HELLO"
+
+        print keyword
+        print mongo_feed
         
         cursor = mongo_feed.find({'in_arctic':{"$exists": False}, 'keyword': keyword}, 
                 {"received_time":1, "raw_sentiment":1, "keyword":1})
  
         new_data = pd.DataFrame(list(cursor))
+
+        print new_data
 
         if len(new_data) > 0:
             new_data['received_time'] = new_data['received_time'].astype('datetime64[ms]', copy=False)
@@ -146,6 +152,5 @@ def read(subject, library, startdate=None, enddate=None, fields=None, mongo_feed
             new_data.index = new_data.index.tz_localize('UTC').tz_convert(tzlocal.get_localzone())
 
             df = df.append(new_data)
-
 
     return df
