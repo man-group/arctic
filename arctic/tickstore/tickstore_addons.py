@@ -101,29 +101,51 @@ def write(df, subject, library):
 
      library.write(subject, df)
 
-def read(subject, library, startdate=None, enddate=None, fields=None):
-     '''
-     Searches for data requested by params. Returns data as a pandas dataframe, with datetimes as localzone
+def read(subject, library, startdate=None, enddate=None, fields=None, mongo_feed=None, keyword=None):
+    '''
+    Searches for data requested by params. Returns data as a pandas dataframe, with datetimes as localzone
 
-     With no datetimes provided, will return first 100000 results. With startdate only, will provide 100000 results from 
-     the starttdate. With enddate, will provide everything up to enddate. 
+    With no datetimes provided, will return first 100000 results. With startdate only, will provide 100000 results from 
+    the starttdate. With enddate, will provide everything up to enddate. 
 
-     @param: startdate; datetime; start date to query
-     @param: enddate; datetime; end date to query
-     @param: subject; string; what data to query
-     @param: fields; [str]; fields to return
-     @param: library; where to store it
+    Mongo_feed parameter will be used to pull realtime data from anything that is not in arctic. Recommended usage is to have enddate
+    cover up until the end of arctic store so there is no gap in the timeseries. Used for ticker sentiment data. Must be used in conjunction with keyword.
 
-     @return: data of 'subject' from 'daterange' with timezones converted to local
-     '''
+    @param: startdate; datetime; start date to query
+    @param: enddate; datetime; end date to query
+    @param: subject; string; what data to query
+    @param: fields; [str]; fields to return
+    @param: library; where to store it
+    @param: mongo_feed; where to search for realtime data
+    @param: keyword; keyword for mongo realtime data
+
+    @return: data of 'subject' from 'daterange' with timezones converted to local
+    '''
      
-     startdate = addTZ(startdate)
-     enddate = addTZ(enddate)
+    startdate = addTZ(startdate)
+    enddate = addTZ(enddate)
 
-     date_range = DateRange(startdate, enddate)
+    date_range = DateRange(startdate, enddate)
 
-     df = library.read(subject, date_range, fields)
+    df = library.read(subject, date_range, fields)
 
-     df.index = df.index.tz_localize(pytz.utc).tz_convert(tzlocal.get_localzone())
+    df.index = df.index.tz_localize(pytz.utc).tz_convert(tzlocal.get_localzone())
 
-     return df
+    if mongo_feed and keyword:
+        
+        cursor = mongo_feed.find({'in_arctic':{"$exists": False}, 'keyword': keyword}, 
+                {"received_time":1, "raw_sentiment":1, "keyword":1})
+ 
+        new_data = pd.DataFrame(list(cursor))
+
+        if len(new_data) > 0:
+            new_data['received_time'] = new_data['received_time'].astype('datetime64[ms]', copy=False)
+            new_data = new_data[['received_time', 'raw_sentiment']]
+            new_data  = new_data.sort('received_time')
+            new_data.set_index('received_time', inplace=True)
+            new_data.index = new_data.index.tz_localize('UTC').tz_convert(tzlocal.get_localzone())
+
+            df = df.append(new_data)
+
+
+    return df
