@@ -666,9 +666,9 @@ class VersionStore(object):
         # Create the audit entry
         mongo_retry(self._audit.insert_one)(audit)
 
-    def snapshot(self, snap_name, metadata=None, skip_symbols=None):
+    def snapshot(self, snap_name, metadata=None, skip_symbols=None, versions=None):
         """
-        Snapshot the current versions of symbols in the library.  Can be used like:
+        Snapshot versions of symbols in the library.  Can be used like:
 
         Parameters
         ----------
@@ -678,6 +678,8 @@ class VersionStore(object):
             an optional dictionary of metadata to persist along with the symbol.
         skip_symbols : `collections.Iterable`
             optional symbols to be excluded from the snapshot
+        versions: `dict`
+            an optional dictionary of versions of the symbols to be snapshot
         """
         # Ensure the user doesn't insert duplicates
         snapshot = self._snapshots.find_one({'name': snap_name})
@@ -688,22 +690,23 @@ class VersionStore(object):
         snapshot = {'_id': bson.ObjectId()}
         snapshot['name'] = snap_name
         snapshot['metadata'] = metadata
+        
+        skip_symbols = set() if skip_symbols is None else set(skip_symbols) 
 
-        if skip_symbols is None:
-            skip_symbols = set()
-        else:
-            skip_symbols = set(skip_symbols)
+        if versions is None:
+            versions = {sym: None for sym in set(self.list_symbols()) - skip_symbols}
 
         # Loop over, and snapshot all versions except those we've been asked to skip
-        for sym in set(self.list_symbols()) - skip_symbols:
+        for sym in versions:
             try:
-                sym = self._read_metadata(sym, read_preference=ReadPreference.PRIMARY)
+                sym = self._read_metadata(sym, read_preference=ReadPreference.PRIMARY, as_of=versions[sym])
                 # Update the parents field of the version document
                 mongo_retry(self._versions.update_one)({'_id': sym['_id']},
                                                        {'$addToSet': {'parent': snapshot['_id']}})
             except NoDataFoundException:
                 # Version has been deleted, not included in the snapshot
                 pass
+
         mongo_retry(self._snapshots.insert_one)(snapshot)
 
     def delete_snapshot(self, snap_name):

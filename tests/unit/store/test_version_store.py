@@ -11,7 +11,7 @@ from arctic.date import mktz
 from arctic.store import version_store
 from arctic.store.version_store import VersionStore, VersionedItem
 from arctic.arctic import ArcticLibraryBinding, Arctic
-from arctic.exceptions import ConcurrentModificationException
+from arctic.exceptions import ConcurrentModificationException, DuplicateSnapshotException
 from pymongo.errors import OperationFailure
 from pymongo.collection import Collection
 
@@ -202,3 +202,24 @@ def test_read_reports_random_errors():
             VersionStore.read(self, sentinel.symbol, sentinel.as_of, sentinel.from_version)
     assert 'bad' in str(e)
     assert le.call_count == 1
+
+
+def test_snapshot():
+    vs = create_autospec(VersionStore, _snapshots=Mock(),
+                                       _collection=Mock(),
+                                       _versions=Mock())
+    vs._snapshots.find_one.return_value = False
+    vs._versions.update_one.__name__ = 'name'
+    vs._snapshots.insert_one.__name__ = 'name'
+    vs.list_symbols.return_value = ['foo', 'bar']
+    VersionStore.snapshot(vs, "symbol")
+    assert vs._read_metadata.call_args_list == [call('foo', as_of=None, read_preference=ReadPreference.PRIMARY),
+                                                call('bar', as_of=None, read_preference=ReadPreference.PRIMARY)]
+
+
+def test_snapshot_duplicate_raises_exception():
+    vs = create_autospec(VersionStore, _snapshots=Mock())
+    with pytest.raises(DuplicateSnapshotException) as e:
+        vs._snapshots.find_one.return_value = True
+        VersionStore.snapshot(vs, 'symbol')
+        assert "Snapshot 'symbol' already exists" in str(e.value)
