@@ -1,4 +1,4 @@
-# ![arctic](logo/arctic_50.png) [Arctic TimeSeries and Tick store](https://github.com/manahl/arctic)
+# [![arctic](logo/arctic_50.png)](https://github.com/manahl/arctic) [Arctic TimeSeries and Tick store](https://github.com/manahl/arctic)
 
 
 [![Circle CI](https://circleci.com/gh/manahl/arctic.svg?style=shield)](https://circleci.com/gh/manahl/arctic)
