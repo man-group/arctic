@@ -678,6 +678,8 @@ class VersionStore(object):
             an optional dictionary of metadata to persist along with the symbol.
         skip_symbols : `collections.Iterable`
             optional symbols to be excluded from the snapshot
+        versions: `dict`
+            an optional dictionary of versions of the symbols to be snapshot
         """
         # Ensure the user doesn't insert duplicates
         snapshot = self._snapshots.find_one({'name': snap_name})

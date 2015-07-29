@@ -491,6 +491,46 @@ def test_snapshot(library):
     assert versions[2]['snapshots'] == ['current']
 
 
+def test_snapshot_with_versions(library):
+    """ Test snapshot of write versions consistency """
+    library.write(symbol, ts1)
+    library.write(symbol, ts2)
+
+    # ensure snapshot of previous version is taken
+    library.snapshot('previous', versions={symbol: 1})
+    versions = library.list_versions(symbol)
+    assert versions[0]['snapshots'] == []
+    assert versions[1]['snapshots'] == ['previous']
+    assert_frame_equal(library.read(symbol, as_of='previous').data, ts1)
+
+    # ensure new snapshots are ordered after previous ones
+    library.snapshot('new')
+    versions = library.list_versions(symbol)
+    assert versions[0]['snapshots'] == ['new']
+    assert versions[0]['version'] == 2
+    assert_frame_equal(library.read(symbol, as_of='new').data, ts2)
+
+    assert versions[1]['snapshots'] == ['previous']
+    assert versions[1]['version'] == 1
+    assert_frame_equal(library.read(symbol, as_of='previous').data, ts1)
+
+    # ensure snapshot of previous version doesn't overwrite current version
+    library.write(symbol, ts1, prune_previous_version=True)
+    library.snapshot('another', versions={symbol: 1})
+    versions = library.list_versions(symbol)
+
+    assert versions[0]['snapshots'] == []
+    assert versions[0]['version'] == 3
+    assert_frame_equal(library.read(symbol).data, ts1)
+
+    assert versions[1]['snapshots'] == ['new']
+    assert versions[1]['version'] == 2
+
+    assert versions[2]['snapshots'] == ['previous', 'another']
+    assert versions[2]['version'] == 1
+    assert_frame_equal(library.read(symbol, as_of='another').data, ts1)
+
+
 def test_snapshot_exclusion(library):
     library.write(symbol, ts1)
     library.snapshot('current', skip_symbols=[symbol])
