@@ -1,18 +1,20 @@
-from bson.binary import Binary
+import logging
 import hashlib
-import numpy as np
 import pprint
-from pymongo import ReadPreference
+
+from bson.binary import Binary
+import numpy as np
 import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
-from ..logging import logger
 from ..decorators import mongo_retry, dump_bad_documents
 from ..exceptions import UnhandledDtypeException
 from ._version_store_utils import checksum
 
 from .._compression import compress_array, decompress
 from ..exceptions import ConcurrentModificationException
+
+logger = logging.getLogger(__name__)
 
 _CHUNK_SIZE = 2 * 1024 * 1024 - 2048  # ~2 MB (a bit less for usePowerOf2Sizes)
 _APPEND_SIZE = 1 * 1024 * 1024  # 1MB
@@ -56,7 +58,6 @@ class NdarrayStore(object):
                 return
             raise
 
-
     @mongo_retry
     def can_delete(self, version, symbol):
         return self.can_read(version, symbol)
@@ -73,7 +74,6 @@ class NdarrayStore(object):
         if string.startswith('['):
             return np.dtype(eval(string), metadata=metadata)
         return np.dtype(string, metadata=metadata)
-
 
     def _index_range(self, version, symbol, from_version=None, **kwargs):
         """
@@ -108,7 +108,6 @@ Data size: %s bytes
 
 Version document:
 %s""" % (self.__class__.__name__, dtype, length, n_segments, est_size, pprint.pformat(version))
-
 
     def read(self, arctic_lib, version, symbol, read_preference=None, **kwargs):
         index_range = self._index_range(version, symbol, **kwargs)
@@ -285,7 +284,8 @@ Version document:
         else:
             logger.debug("Rewrite and compress/chunk %s, np.concatenate %s to %s" % (symbol,
                                                                                      item.dtype, old_arr.dtype))
-            self._do_write(collection, version, symbol, np.concatenate([old_arr, item]), previous_version, segment_offset=read_index_range[0])
+            self._do_write(collection, version, symbol, np.concatenate([old_arr, item]), previous_version,
+                           segment_offset=read_index_range[0])
         if unchanged_segment_ids:
             collection.update_many({'symbol': symbol, '_id': {'$in': [x['_id'] for x in unchanged_segment_ids]}},
                                    {'$addToSet': {'parent': version['_id']}})
@@ -365,7 +365,7 @@ Version document:
         # Write
         bulk = collection.initialize_unordered_bulk_op()
         for i, chunk in zip(idxs, compressed_chunks):
-            segment = {'data': Binary(chunk), 'compressed':True}
+            segment = {'data': Binary(chunk), 'compressed': True}
             segment['segment'] = min((i + 1) * chunk_size - 1, length - 1) + segment_offset
             segment_index.append(segment['segment'])
             sha = checksum(symbol, segment)
@@ -379,7 +379,8 @@ Version document:
         if i != -1:
             bulk.execute()
 
-        segment_index = self._segment_index(item, existing_index=existing_index, start=segment_offset, new_segments=segment_index)
+        segment_index = self._segment_index(item, existing_index=existing_index, start=segment_offset,
+                                            new_segments=segment_index)
         if segment_index:
             version['segment_index'] = segment_index
         version['segment_count'] = i + 1
@@ -390,4 +391,3 @@ Version document:
 
     def _segment_index(self, item, existing_index, start, new_segments):
         pass
-

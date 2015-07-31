@@ -1,12 +1,15 @@
 from datetime import datetime
 from functools import wraps
 import os
-from pymongo.errors import AutoReconnect, OperationFailure, DuplicateKeyError, ServerSelectionTimeoutError
 import sys
 from time import sleep
+import logging
 
-from .logging import logger
+from pymongo.errors import AutoReconnect, OperationFailure, DuplicateKeyError, ServerSelectionTimeoutError
+
 from .hooks import _log_exception_hook as _log_exception
+
+logger = logging.getLogger(__name__)
 
 _MAX_RETRIES = 15
 
@@ -67,8 +70,8 @@ def dump_bad_documents(*document):
     """
     Dump bad documents to disk
     """
-    id = str(document[0]['_id'])
-    with open('/tmp/mongo_debug_' + str(os.getpid()) + '_' + id + '_' + str(datetime.now()), 'a') as f:
+    _id = str(document[0]['_id'])
+    with open('/tmp/mongo_debug_' + str(os.getpid()) + '_' + _id + '_' + str(datetime.now()), 'a') as f:
         for d in document:
             f.write(str(d) + '\n')
 

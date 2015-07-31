@@ -1,8 +1,5 @@
 import datetime
-from datetime import timedelta
-from dateutil.tz import tzlocal
 
-from ..logging import logger
 from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN, GeneralSlice
 from ._parse import parse
 

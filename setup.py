@@ -16,7 +16,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 # USA
 
-import os
+import logging
 from setuptools import setup, Extension
 from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
@@ -43,13 +43,16 @@ class PyTest(TestCommand):
         self.test_suite = True
 
     def run_tests(self):
+        logging.basicConfig(format='%(asctime)s %(levelname)s %(name)s %(message)s', level='DEBUG')
+
         # import here, cause outside the eggs aren't loaded
         import pytest
+
         args = [self.pytest_args] if isinstance(self.pytest_args, basestring) else list(self.pytest_args)
         args.extend(['--cov', 'arctic',
                      '--cov-report', 'xml',
                      '--cov-report', 'html',
-                     '--junitxml', 'junit.xml'
+                     '--junitxml', 'junit.xml',
                      ])
         errno = pytest.main(args)
         sys.exit(errno)

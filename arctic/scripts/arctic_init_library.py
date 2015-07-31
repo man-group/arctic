@@ -1,11 +1,13 @@
 import argparse
 import pymongo
+import logging
 
-from ..logging import logger
 from ..hooks import get_mongodb_uri
 from ..arctic import Arctic, VERSION_STORE, LIBRARY_TYPES, \
     ArcticLibraryBinding
-from .utils import do_db_auth
+from .utils import do_db_auth, setup_logging
+
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -15,6 +17,7 @@ def main():
     Example:
         arctic_init_library --host=hostname --library=arctic_jblackburn.my_library
     """
+    setup_logging()
 
     parser = argparse.ArgumentParser(usage=usage)
     parser.add_argument("--host", default='localhost', help="Hostname, or clustername. Default: localhost")

@@ -1,5 +1,6 @@
 from datetime import datetime as dt, timedelta
 import pprint
+import logging
 
 import bson
 from pymongo import ReadPreference
@@ -13,11 +14,11 @@ from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
     OptimisticLockException, ArcticException
 from ..hooks import log_exception
-from ..logging import logger
 from ._pickle_store import PickleStore
 from ._version_store_utils import cleanup
 from .versioned_item import VersionedItem
 
+logger = logging.getLogger(__name__)
 
 VERSION_STORE_TYPE = 'VersionStore'
 _TYPE_HANDLERS = []
@@ -31,7 +32,6 @@ def register_versioned_storage(storageClass):
     else:
         _TYPE_HANDLERS.append(storageClass())
     return storageClass
-
 
 
 class VersionStore(object):
@@ -722,9 +722,6 @@ class VersionStore(object):
         if not snapshot:
             raise NoDataFoundException("Snapshot %s not found!" % snap_name)
 
-        # Find all the versions pointed at by the snapshot
-        versions = list(self._versions
-                            .find({'parent': snapshot['_id']}, projection=['symbol', 'version']))
         # Remove the snapshot Id as a parent of versions
         self._versions.update_many({'parent': snapshot['_id']},
                                    {'$pull': {'parent': snapshot['_id']}})

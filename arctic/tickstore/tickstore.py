@@ -1,3 +1,5 @@
+import logging
+
 from bson.binary import Binary
 from datetime import datetime as dt, timedelta
 import lz4
@@ -6,15 +8,13 @@ import pandas as pd
 from pandas.core.frame import _arrays_to_mgr
 import pymongo
 from pymongo.errors import OperationFailure
-import pytz
 
 from ..date import DateRange, to_pandas_closed_closed, mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
-from ..exceptions import OverlappingDataException, \
-        NoDataFoundException, UnhandledDtypeException, ArcticException
-from ..logging import logger
+from ..exceptions import OverlappingDataException, NoDataFoundException, UnhandledDtypeException, ArcticException
 from .._util import indent
 
+logger = logging.getLogger(__name__)
 
 # Example-Schema:
 # --------------

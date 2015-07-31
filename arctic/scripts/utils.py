@@ -1,5 +1,10 @@
-from ..logging import logger
+from __future__ import absolute_import
+
+import logging
+
 from ..auth import get_auth, authenticate
+
+logger = logging.getLogger(__name__)
 
 
 def do_db_auth(host, connection, db_name):
@@ -32,3 +37,9 @@ def do_db_auth(host, connection, db_name):
     # Ensure we attempt to auth against the user DB, for non-priviledged users to get access
     authenticate(connection[db_name], user_creds.user, user_creds.password)
     return True
+
+
+def setup_logging():
+    """ Logging setup for console scripts
+    """
+    logging.basicConfig(format='%(asctime)s %(message)s', level='INFO')

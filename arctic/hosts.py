@@ -1,17 +1,13 @@
 """
 Utilities to resolve a string to Mongo host, or a Arctic library.
 """
-import ConfigParser
-from ConfigParser import NoOptionError, NoSectionError
-import os
 import re
+import logging
 from weakref import WeakValueDictionary
-
-from .logging import logger
 
 __all__ = ['get_arctic_lib', 'get_arctic_for_library']
 
-
+logger = logging.getLogger(__name__)
 
 # Application environment variables
 arctic_cache = WeakValueDictionary()

@@ -1,16 +1,18 @@
+import logging
 import bisect
 from collections import namedtuple
 from datetime import datetime as dt, date, time, timedelta
-import pandas as pd
-import pymongo
 import re
 from timeit import itertools
 
-from ..date import mktz, DateRange, OPEN_OPEN, CLOSED_CLOSED
-from ..exceptions import NoDataFoundException, UnhandledDtypeException, OverlappingDataException, \
-                    LibraryNotFoundException
-from ..logging import logger
+import pandas as pd
+import pymongo
 
+from ..date import mktz, DateRange, OPEN_OPEN, CLOSED_CLOSED
+from ..exceptions import (NoDataFoundException, UnhandledDtypeException, OverlappingDataException,
+                          LibraryNotFoundException)
+
+logger = logging.getLogger(__name__)
 
 TickStoreLibrary = namedtuple("TickStoreLibrary", ["library", "date_range"])
 
@@ -41,7 +43,6 @@ class TopLevelTickStore(object):
         tl = TopLevelTickStore(arctic_lib)
         tl._add_libraries()
         tl._ensure_index()
-
 
     def _ensure_index(self):
         collection = self._collection
@@ -172,5 +173,5 @@ overlapping libraries: {}""".format(library_name, [l.library for l in library_me
         return [TickStoreLibrary(res['library_name'], DateRange(res['start'], res['end'], CLOSED_CLOSED))
                 for res in self._collection.find(query,
                                                  projection={'library_name': 1,
-                                                         'start': 1, 'end': 1},
+                                                             'start': 1, 'end': 1},
                                                  sort=[('start', pymongo.ASCENDING)])]
