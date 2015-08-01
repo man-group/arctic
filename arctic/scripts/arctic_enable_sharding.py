@@ -6,13 +6,15 @@ from ..auth import get_auth
 from ..hooks import get_mongodb_uri
 from .._util import enable_sharding
 from ..auth import authenticate
+from .utils import setup_logging
 
 
 def main():
     usage = """usage: %prog [options] arg1=value, arg2=value
-    
+
     Enables sharding on the specified arctic library.
     """
+    setup_logging()
 
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("--host", default='localhost', help="Hostname, or clustername. Default: localhost")

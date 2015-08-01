@@ -1,6 +1,8 @@
 import lz4
 import os
-from .logging import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     from . import _compress as clz4

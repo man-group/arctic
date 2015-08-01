@@ -1,9 +1,11 @@
+import logging
+
 from _ndarray_store import NdarrayStore
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Panel
 from pandas.tslib import Timestamp, get_timezone
 import numpy as np
 
-from ..logging import logger as log
+log = logging.getLogger(__name__)
 
 
 def _to_primitive(arr):
@@ -142,7 +144,6 @@ class PandasDataFrameStore(PandasStore):
         column_vals = [df[c].values for c in df.columns]
         return columns, column_vals
 
-
     def from_records(self, recarr):
         index = self._index_from_records(recarr)
         column_fields = [x for x in recarr.dtype.names if x not in recarr.dtype.metadata['index']]
@@ -171,6 +172,7 @@ class PandasDataFrameStore(PandasStore):
     def read(self, arctic_lib, version, symbol, **kwargs):
         item = super(PandasDataFrameStore, self).read(arctic_lib, version, symbol, **kwargs)
         return self.from_records(item)
+
 
 class PandasPanelStore(PandasDataFrameStore):
     TYPE = 'pandaspan'

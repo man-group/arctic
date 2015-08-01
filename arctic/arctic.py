@@ -1,10 +1,10 @@
+import logging
+
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect
-from pymongo.read_preferences import ReadPreference
 
 from .auth import authenticate, get_auth
 from .hooks import get_mongodb_uri
-from .logging import logger
 from .decorators import mongo_retry
 from ._util import indent
 
@@ -14,6 +14,8 @@ from .tickstore import tickstore
 from .tickstore import toplevel
 
 __all__ = ['Arctic', 'VERSION_STORE', 'TICK_STORE', 'register_library_type']
+
+logger = logging.getLogger(__name__)
 
 # Default Arctic application name: 'arctic'
 APPLICATION_NAME = 'arctic'
@@ -174,7 +176,7 @@ class Arctic(object):
         # Check that we don't create too many namespaces
         if len(self._conn[l.database_name].collection_names()) > 3000:
             raise ArcticException("Too many namespaces %s, not creating: %s" %
-                                        (len(self._conn[l.database_name].collection_names()), library))
+                                  (len(self._conn[l.database_name].collection_names()), library))
         l.set_library_type(lib_type)
         LIBRARY_TYPES[lib_type].initialize_library(l, **kwargs)
         # Add a 10G quota just in case the user is calling this with API.
@@ -224,7 +226,8 @@ class Arctic(object):
             error = e
 
         if error or not lib_type:
-            raise LibraryNotFoundException("Library %s was not correctly initialized in %s.\nReason: %s" % (library, self, error))
+            raise LibraryNotFoundException("Library %s was not correctly initialized in %s.\nReason: %s" %
+                                           (library, self, error))
         elif lib_type not in LIBRARY_TYPES:
             raise LibraryNotFoundException("Couldn't load LibraryType '%s' for '%s' (has the class been registered?)" %
                                            (lib_type, library))
@@ -249,7 +252,7 @@ class Arctic(object):
         ----------
         library : `str`
             The name of the library. e.g. 'library' or 'user.library'
-            
+
         quota : `int`
             Advisory quota for the library - in bytes
         """
@@ -398,9 +401,9 @@ class ArcticLibraryBinding(object):
         # Figure out whether the user has exceeded their quota
         library = self.arctic[self.get_name()]
         stats = library.stats()
-        
-        def to_gigabytes(bytes):
-            return bytes / 1024. / 1024. / 1024.
+
+        def to_gigabytes(bytes_):
+            return bytes_ / 1024. / 1024. / 1024.
 
         # Have we exceeded our quota?
         size = stats['totals']['size']

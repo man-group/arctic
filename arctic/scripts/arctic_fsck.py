@@ -1,16 +1,18 @@
 import logging
 import argparse
 
-from ..logging import logger
 from ..hooks import get_mongodb_uri
 from ..arctic import Arctic, ArcticLibraryBinding
-from .utils import do_db_auth
+from .utils import do_db_auth, setup_logging
+
+logger = logging.getLogger(__name__)
 
 
 def main():
     usage = """
     Check a Arctic Library for inconsistencies.
     """
+    setup_logging()
 
     parser = argparse.ArgumentParser(usage=usage)
     parser.add_argument("--host", default='localhost', help="Hostname, or clustername. Default: localhost")

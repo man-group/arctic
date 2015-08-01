@@ -1,6 +1,8 @@
 from collections import namedtuple
+import logging
 
-from .logging import logger
+logger = logging.getLogger(__name__)
+
 
 def authenticate(db, user, password):
     """
@@ -18,6 +20,7 @@ def authenticate(db, user, password):
 
 
 Credential = namedtuple("MongoCredentials", ['database', 'user', 'password'])
+
 
 def get_auth(host, app_name, database_name):
     """

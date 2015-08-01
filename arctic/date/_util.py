@@ -2,9 +2,8 @@ import calendar
 import datetime
 from datetime import timedelta
 
-from ..logging import logger
 from ._daterange import DateRange
-from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN, GeneralSlice
+from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN
 from ._parse import parse
 from ._mktz import mktz
 

@@ -134,7 +134,7 @@ def test_quota(arctic, library, library_name):
 
 
 def test_check_quota(arctic, library, library_name):
-    with patch('arctic.logging.logger.info') as info:
+    with patch('arctic.arctic.logger.info') as info:
         arctic.check_quota(library_name)
     assert info.call_count == 1
 

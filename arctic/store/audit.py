@@ -1,6 +1,7 @@
 """
 Handle audited data changes.
 """
+import logging
 from functools import partial
 
 from pymongo.errors import OperationFailure
@@ -8,8 +9,9 @@ from pymongo.errors import OperationFailure
 from .._util import are_equals
 from ..decorators import _get_host
 from ..exceptions import NoDataFoundException, ConcurrentModificationException
-from ..logging import logger
 from .versioned_item import VersionedItem, ChangedItem
+
+logger = logging.getLogger(__name__)
 
 
 class DataChange(object):
@@ -115,7 +117,7 @@ class ArcticTransaction(object):
             if self.base_ts.data is None or not are_equals(data, self.base_ts.data) or metadata != self.base_ts.metadata:
                 self._do_write = True
         self._write = partial(self._version_store.write, symbol, data, prune_previous_version=prune_previous_version,
-                                        metadata=metadata, **kwargs)
+                              metadata=metadata, **kwargs)
 
     def __enter__(self):
         return self

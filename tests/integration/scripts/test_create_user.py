@@ -5,6 +5,7 @@ from arctic.auth import Credential
 from arctic.scripts import arctic_create_user as mcu
 
 from ...util import run_as_main
+import pytest
 
 
 def test_create_user(mongo_host, mongodb):
@@ -90,19 +91,15 @@ def test_create_user_no_passwd(mongo_host, mongodb):
 
 
 def test_create_user_no_creds(mongo_host, mongodb):
-    stderr = StringIO()
-    with patch('arctic.scripts.arctic_create_user.get_auth', return_value=None), \
-         patch('sys.stderr', stderr):
-        run_as_main(mcu.main, '--host', mongo_host)
-    err = stderr.getvalue()
-    assert 'You have no admin credentials' in err
+    with patch('arctic.scripts.arctic_create_user.get_auth', return_value=None):
+        with pytest.raises(ValueError) as e:
+            run_as_main(mcu.main, '--host', mongo_host)
+    assert 'You have no admin credentials' in str(e)
 
 
 def test_create_user_auth_fail(mongo_host):
-    stderr = StringIO()
     with patch('arctic.scripts.arctic_create_user.get_auth', return_value=Credential('admin', 'user', 'pass')), \
-         patch('pymongo.database.Database.authenticate', return_value=False), \
-         patch('sys.stderr', stderr):
-        run_as_main(mcu.main, '--host', mongo_host)
-    err = stderr.getvalue()
-    assert 'Failed to authenticate' in err
+         patch('pymongo.database.Database.authenticate', return_value=False):
+        with pytest.raises(ValueError) as e:
+            run_as_main(mcu.main, '--host', mongo_host)
+    assert 'Failed to authenticate' in str(e)

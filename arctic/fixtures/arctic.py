@@ -1,12 +1,14 @@
 import getpass
+import logging
+
 import pytest as pytest
 
 from .. import arctic as m
-from ..logging import logger
-from ..decorators import mongo_retry
 from ..tickstore.tickstore import TICK_STORE_TYPE
 
 from .mongo import mongo_proc, mongodb
+
+logger = logging.getLogger(__name__)
 
 mongo_proc2 = mongo_proc(executable="mongod", port="?",
                          params='--nojournal '

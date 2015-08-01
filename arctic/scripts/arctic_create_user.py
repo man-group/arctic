@@ -2,10 +2,10 @@ import optparse
 import pymongo
 import uuid
 import base64
-import sys
 
 from ..auth import get_auth, authenticate
 from ..hooks import get_mongodb_uri
+from .utils import setup_logging
 
 
 def main():
@@ -14,10 +14,10 @@ def main():
     Create the user's personal Arctic database, and adds them, read-only
     to the central admin database.
     """
-
+    setup_logging()
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("--host", default='localhost', help="Hostname, or clustername. Default: localhost")
-    parser.add_option("--password",dest="password", default=None, help="Password. Default: random")
+    parser.add_option("--password", dest="password", default=None, help="Password. Default: random")
     parser.add_option("--admin-write", dest="admin", action='store_false', default=True,
                       help="Give write access to the admin DB. Default: False")
     parser.add_option("--dryrun", "-n", dest="dryrun", action="store_true", help="Don't really do anything", default=False)
@@ -29,12 +29,10 @@ def main():
     c = pymongo.MongoClient(get_mongodb_uri(opts.host))
     credentials = get_auth(opts.host, 'admin', 'admin')
     if not credentials:
-        print >>sys.stderr, "You have no admin credentials for instance '%s'" % (opts.host)
-        return
+        raise ValueError("You have no admin credentials for instance '%s'" % (opts.host))
 
     if not authenticate(c.admin, credentials.user, credentials.password):
-        print >>sys.stderr, "Failed to authenticate to '%s' as '%s'" % (opts.host, credentials.user)
-        return
+        raise ValueError("Failed to authenticate to '%s' as '%s'" % (opts.host, credentials.user))
 
     for user in args:
 
