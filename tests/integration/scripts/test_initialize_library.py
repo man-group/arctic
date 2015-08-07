@@ -21,6 +21,19 @@ def test_init_library(mongo_host):
     assert store['user.library'].read('key').data == {'a': 'b'}
 
 
+def test_init_library_no_arctic_prefix(mongo_host):
+    # Create the user agains the current mongo database
+    with patch('arctic.scripts.arctic_init_library.do_db_auth', return_value=True), \
+         patch('pymongo.database.Database.authenticate', return_value=True):
+        run_as_main(mil.main, '--host', mongo_host, '--library', 'user.library')
+
+    # Should be able to write something to the library now
+    store = Arctic(mongo_host)
+    assert store['user.library']._arctic_lib.get_library_metadata('QUOTA') == 10240 * 1024 * 1024
+    store['user.library'].write('key', {'a': 'b'})
+    assert store['user.library'].read('key').data == {'a': 'b'}
+
+
 def test_init_library_quota(mongo_host):
     # Create the user agains the current mongo database
     with patch('arctic.scripts.arctic_init_library.do_db_auth', return_value=True), \

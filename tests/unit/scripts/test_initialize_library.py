@@ -73,15 +73,10 @@ def test_init_library_no_admin_no_user_creds():
 def test_bad_library_name():
     with pytest.raises(Exception):
         with patch('argparse.ArgumentParser.error', side_effect=Exception) as error:
-            run_as_main(mil.main, '--library', 'user.library')
-    error.assert_called_once_with('Must specify the full path of the library e.g. arctic_jblackburn.library!')
-
-    with pytest.raises(Exception):
-        with patch('argparse.ArgumentParser.error', side_effect=Exception) as error:
             run_as_main(mil.main, '--library', 'arctic_jblackburn')
-    error.assert_called_once_with('Must specify the full path of the library e.g. arctic_jblackburn.library!')
+    error.assert_called_once_with('Must specify the full path of the library e.g. user.library!')
 
     with pytest.raises(Exception):
         with patch('argparse.ArgumentParser.error', side_effect=Exception) as error:
             run_as_main(mil.main)
-    error.assert_called_once_with('Must specify the full path of the library e.g. arctic_jblackburn.library!')
+    error.assert_called_once_with('Must specify the full path of the library e.g. user.library!')
