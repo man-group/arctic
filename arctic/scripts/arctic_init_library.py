@@ -32,9 +32,8 @@ def main():
 
     opts = parser.parse_args()
 
-    if not opts.library or '.' not in opts.library \
-            or not opts.library.startswith('arctic'):
-        parser.error('Must specify the full path of the library e.g. arctic_jblackburn.library!')
+    if not opts.library or '.' not in opts.library:
+        parser.error('Must specify the full path of the library e.g. user.library!')
     db_name, _ = ArcticLibraryBinding._parse_db_lib(opts.library)
 
     print "Initializing: %s on mongo %s" % (opts.library, opts.host)
