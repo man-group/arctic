@@ -130,7 +130,12 @@ class Arctic(object):
         return str(self)
 
     def __getstate__(self):
-        return {'mongo_host': self.mongo_host, 'allow_secondary': self._allow_secondary}
+        return {'mongo_host': self.mongo_host,
+                'app_name': self._application_name,
+                'allow_secondary': self._allow_secondary,
+                'socketTimeoutMS': self._socket_timeout,
+                'connectTimeoutMS': self._connect_timeout,
+                'serverSelectionTimeoutMS': self._server_selection_timeout}
 
     def __setstate__(self, state):
         return Arctic.__init__(self, **state)

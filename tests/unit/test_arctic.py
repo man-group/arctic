@@ -326,8 +326,13 @@ def test_mongo_host_get_set():
 
 def test_arctic_set_get_state():
     sentinel.mongo_host = Mock(nodes={("host", "port")})
-    store = Arctic(sentinel.mongo_host, allow_secondary="allow_secondary")
+    store = Arctic(sentinel.mongo_host, allow_secondary="allow_secondary", app_name="app_name", 
+                   socketTimeoutMS=1234, connectTimeoutMS=2345, serverSelectionTimeoutMS=3456)
     buff = pickle.dumps(store)
     mnew = pickle.loads(buff)
     assert mnew.mongo_host == "host:port"
     assert mnew._allow_secondary == "allow_secondary"
+    assert mnew._application_name == "app_name"
+    assert mnew._socket_timeout == 1234
+    assert mnew._connect_timeout == 2345
+    assert mnew._server_selection_timeout == 3456
