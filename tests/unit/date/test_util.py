@@ -53,3 +53,13 @@ def test_daterange_closedclosed():
                          CLOSED_CLOSED)
     act = to_pandas_closed_closed(date_range)
     assert act == expected
+
+
+def test_daterange_closedclosed_no_tz():
+    date_range = DateRange(dt(2013, 1, 1),
+                           dt(2014, 2, 1), OPEN_OPEN)
+    expected = DateRange(dt(2013, 1, 1, 0, 0, 0, 1000, tzinfo=mktz()),
+                         dt(2014, 1, 31, 23, 59, 59, 999000, tzinfo=mktz()),
+                         CLOSED_CLOSED)
+    act = to_pandas_closed_closed(date_range)
+    assert act == expected

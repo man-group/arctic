@@ -230,25 +230,39 @@ def test_date_range_end_not_in_range(tickstore_lib):
         assert tickstore_lib._collection.find(f.call_args_list[-1][0][0]).count() == 1
 
 
-def test_date_range_no_timezone(tickstore_lib):
+@pytest.mark.parametrize('tz_name', ['UTC',
+                                     'Europe/London',  # Sometimes ahead of UTC
+                                     'America/New_York',  # Behind UTC
+                                      ])
+def test_date_range_default_timezone(tickstore_lib, tz_name):
+    """
+    We assume naive datetimes are user-local
+    """
     DUMMY_DATA = [
                   {'a': 1.,
                    'b': 2.,
-                   'index': dt(2013, 1, 1, tzinfo=mktz('Europe/London'))
+                   'index': dt(2013, 1, 1, tzinfo=mktz(tz_name))
                    },
                   # Half-way through the year
                   {'b': 3.,
                    'c': 4.,
-                   'index': dt(2013, 7, 1, tzinfo=mktz('Europe/London'))
+                   'index': dt(2013, 7, 1, tzinfo=mktz(tz_name))
                    },
                   ]
 
-    tickstore_lib.chunk_size = 1
-    tickstore_lib.write('SYM', DUMMY_DATA)
-    df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130701), columns=None)
-    assert len(df) == 2
-    assert df.index[1] == dt(2013, 7, 1, tzinfo=mktz('Europe/London'))
-    assert df.index.tz == mktz()
+    with patch('arctic.date._mktz.DEFAULT_TIME_ZONE_NAME', tz_name):
+        tickstore_lib.chunk_size = 1
+        tickstore_lib.write('SYM', DUMMY_DATA)
+        df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130701), columns=None)
+        assert len(df) == 2
+        assert df.index[1] == dt(2013, 7, 1, tzinfo=mktz(tz_name))
+        assert df.index.tz == mktz(tz_name)
+
+        df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130101), columns=None)
+        assert len(df) == 1
+
+        df = tickstore_lib.read('SYM', date_range=DateRange(20130701, 20130701), columns=None)
+        assert len(df) == 1
 
 
 def test_date_range_no_bounds(tickstore_lib):
