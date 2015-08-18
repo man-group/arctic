@@ -98,9 +98,10 @@ overlapping libraries: {}""".format(library_name, [l.library for l in library_me
         self._collection.update_one({'library_name': library_name},
                                     {'$set': {'start': start, 'end': end}}, upsert=True)
 
-    def read(self, symbol, date_range, columns=['BID', 'ASK', 'TRDPRC_1', 'BIDSIZE', 'ASKSIZE', 'TRDVOL_1'], **kwargs):
+    def read(self, symbol, date_range, columns=['BID', 'ASK', 'TRDPRC_1', 'BIDSIZE', 'ASKSIZE', 'TRDVOL_1'], include_images=False):
         libraries = self._get_libraries(date_range)
-        dfs = [l.library.read(symbol, l.date_range.intersection(date_range), columns) for l in libraries]
+        dfs = [l.library.read(symbol, l.date_range.intersection(date_range), columns,
+                              include_images=include_images) for l in libraries]
         return pd.concat(dfs)
 
     def write(self, symbol, data):
