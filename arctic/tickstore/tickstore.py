@@ -126,12 +126,8 @@ class TickStore(object):
         date_range = to_pandas_closed_closed(date_range)
         if date_range is not None:
             assert date_range.start and date_range.end
-            if date_range.start:
-                start = to_dt(date_range.start)
-            if date_range.end:
-                end = to_dt(date_range.end)
-            query[START] = {'$gte': start}
-            query[END] = {'$lte': end}
+            query[START] = {'$gte': date_range.start}
+            query[END] = {'$lte': date_range.end}
         self._collection.delete_many(query)
 
     def list_symbols(self, date_range=None):
