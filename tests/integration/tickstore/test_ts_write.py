@@ -29,7 +29,7 @@ DUMMY_DATA = [
                },
               {'b': 9.,
                'c': 10.,
-               'index': dt(2013, 1, 5, tzinfo=mktz('Europe/London'))
+               'index': dt(2013, 7, 5, tzinfo=mktz('Europe/London'))
                },
               ]
 
@@ -69,9 +69,12 @@ def test_ts_write_pandas(tickstore_lib):
     data = DUMMY_DATA
     tickstore_lib.write('SYM', data)
 
-    data = tickstore_lib.read('SYM', columns=None).tz_localize(mktz('Europe/London'))
+    data = tickstore_lib.read('SYM', columns=None)
+    print data
+    assert data.index[0] == dt(2013, 1, 1, tzinfo=mktz('Europe/London'))
+    assert data.a[0] == 1
     tickstore_lib.delete('SYM')
     tickstore_lib.write('SYM', data)
 
-    read = tickstore_lib.read('SYM', columns=None).tz_localize(mktz('Europe/London'))
+    read = tickstore_lib.read('SYM', columns=None)
     assert_frame_equal(read, data, check_names=False)
