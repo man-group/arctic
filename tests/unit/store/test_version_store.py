@@ -37,7 +37,7 @@ def test_list_versions_localTime():
                                        'symbol': 's', 'version': 10}]
 
     version = list(VersionStore.list_versions(vs, "symbol"))[0]
-    local_date = date.replace(tzinfo=mktz("UTC")).astimezone(mktz()).replace(tzinfo=None)
+    local_date = date.replace(tzinfo=mktz("UTC"))
     assert version == {'symbol': version['symbol'], 'version': version['version'],
                        # We return naive datetimes in 'default' time, which is London for us
                        'date': local_date,

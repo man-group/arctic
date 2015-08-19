@@ -14,6 +14,7 @@ import pytest
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException
 
 from ...util import read_str_as_pandas
+from arctic.date._mktz import mktz
 
 
 ts1 = read_str_as_pandas("""         times | near
@@ -285,7 +286,7 @@ def test_query_version_as_of_int(library):
 def test_list_version(library):
     assert len(list(library.list_versions(symbol))) == 0
     dates = [None, None, None]
-    now = dt.utcnow()
+    now = dt.utcnow().replace(tzinfo=mktz('UTC'))
     for x in xrange(len(dates)):
         dates[x] = now - dtd(minutes=130 - x)
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(dates[x])):
@@ -305,7 +306,7 @@ def test_list_version(library):
 def test_list_version_latest_only(library):
     assert len(list(library.list_versions(symbol))) == 0
     dates = [None, None, None]
-    now = dt.utcnow()
+    now = dt.utcnow().replace(tzinfo=mktz('UTC'))
     for x in xrange(len(dates)):
         dates[x] = now - dtd(minutes=20 - x)
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(dates[x])):
