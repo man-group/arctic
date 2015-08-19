@@ -1,4 +1,4 @@
-from mock import Mock, patch, MagicMock, create_autospec, sentinel
+from mock import Mock, patch, MagicMock, create_autospec, sentinel, call
 import pytest
 from datetime import datetime as dt
 import pandas as pd
@@ -10,6 +10,7 @@ from arctic.date import DateRange, mktz
 from arctic.exceptions import OverlappingDataException
 from arctic.tickstore.toplevel import TopLevelTickStore, TickStoreLibrary
 from dateutil.rrule import rrule, DAILY
+from arctic.tickstore.tickstore import TickStore
 
 
 def test_raise_exception_if_daterange_is_not_provided():
@@ -145,3 +146,21 @@ def test_write_pandas_data_to_right_libraries():
     TopLevelTickStore.write(self, 'blah', sentinel.data)
     mock_lib1.write.assert_called_once_with('blah', slice1)
     mock_lib2.write.assert_called_once_with('blah', slice2)
+
+
+def test_read():
+    self = create_autospec(TopLevelTickStore)
+    tsl = TickStoreLibrary(create_autospec(TickStore), create_autospec(DateRange))
+    self._get_libraries.return_value = [tsl, tsl]
+    dr = create_autospec(DateRange)
+    with patch('pandas.concat') as concat:
+        res = TopLevelTickStore.read(self, sentinel.symbol, dr,
+                                     columns=sentinel.include_columns,
+                                     include_images=sentinel.include_images)
+    assert concat.call_args_list == [call([tsl.library.read.return_value,
+                                           tsl.library.read.return_value])]
+    assert res == concat.return_value
+    assert tsl.library.read.call_args_list == [call(sentinel.symbol, tsl.date_range.intersection.return_value,
+                                                    sentinel.include_columns, include_images=sentinel.include_images),
+                                               call(sentinel.symbol, tsl.date_range.intersection.return_value,
+                                                    sentinel.include_columns, include_images=sentinel.include_images)]
