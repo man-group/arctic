@@ -89,7 +89,7 @@ def to_dt(date, default_tz=None):
     date : `int` or `datetime.datetime`
         The datetime to convert
 
-    default_tz : tz_info
+    default_tz : tzinfo
         The TimeZone to use if none is found.  If not supplied, and the
         datetime doesn't have a timezone, then we raise ValueError
 
@@ -98,7 +98,7 @@ def to_dt(date, default_tz=None):
     Non-naive datetime
     """
     if isinstance(date, (int, long)):
-        return ms_to_datetime(date, mktz())
+        return ms_to_datetime(date, default_tz)
     elif date.tzinfo is None:
         if default_tz is None:
             raise ValueError("Must specify a TimeZone on incoming data")

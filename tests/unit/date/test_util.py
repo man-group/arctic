@@ -4,6 +4,7 @@ import pytz
 from datetime import datetime as dt
 from arctic.date import datetime_to_ms, ms_to_datetime, mktz, to_pandas_closed_closed, DateRange, OPEN_OPEN, CLOSED_CLOSED
 from arctic.date._mktz import DEFAULT_TIME_ZONE_NAME
+from arctic.date._util import to_dt
 
 
 @pytest.mark.parametrize('pdt', [
@@ -60,3 +61,28 @@ def test_daterange_closedclosed_no_tz():
                          CLOSED_CLOSED)
     act = to_pandas_closed_closed(date_range)
     assert act == expected
+
+
+def test_to_dt_0():
+    assert to_dt(0) == dt(1970, 1, 1, 1, tzinfo=mktz())
+
+
+def test_to_dt_0_default():
+    assert to_dt(0, mktz('UTC')) == dt(1970, 1, 1, tzinfo=mktz('UTC'))
+
+
+def test_to_dt_dt_no_tz():
+    with pytest.raises(ValueError):
+        assert to_dt(dt(1970, 1, 1)) == dt(1970, 1, 1, tzinfo=mktz())
+
+
+def test_to_dt_dt_no_tz_default():
+    assert to_dt(dt(1970, 1, 1), mktz('UTC')) == dt(1970, 1, 1, tzinfo=mktz('UTC'))
+
+
+def test_to_dt_dt_tz():
+    assert to_dt(dt(1970, 1, 1, tzinfo=mktz('UTC'))) == dt(1970, 1, 1, tzinfo=mktz('UTC'))
+
+
+def test_to_dt_dt_tz_default():
+    assert to_dt(dt(1970, 1, 1, tzinfo=mktz('UTC')), mktz('Europe/London')) == dt(1970, 1, 1, tzinfo=mktz('UTC'))
