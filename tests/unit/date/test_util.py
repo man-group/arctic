@@ -18,7 +18,6 @@ from arctic.date._mktz import DEFAULT_TIME_ZONE_NAME
 def test_datetime_to_ms_and_back(pdt):
     i = datetime_to_ms(pdt)
     pdt = pdt.astimezone(mktz())
-    pdt = pdt.replace(tzinfo=None)
     pdt2 = ms_to_datetime(i)
     assert pdt == pdt2
 
@@ -26,7 +25,6 @@ def test_datetime_to_ms_and_back(pdt):
 def test_datetime_to_ms_and_back_microseconds():
     pdt = dt(2012, 8, 1, 12, 34, 56, 999999, tzinfo=mktz(DEFAULT_TIME_ZONE_NAME))
     i = datetime_to_ms(pdt)
-    pdt = pdt.replace(tzinfo=None)
     pdt2 = ms_to_datetime(i)
 
     assert pdt != pdt2
@@ -38,7 +36,6 @@ def test_datetime_to_ms_and_back_microseconds():
     assert pdt.second == pdt2.second
     #   Microsecond precision loss inevitable.
     assert pdt.microsecond // 1000 == pdt2.microsecond // 1000
-    assert pdt.tzinfo is None
 
 
 def test_daterange_closedclosed_None():

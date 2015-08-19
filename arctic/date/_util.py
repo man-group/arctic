@@ -134,8 +134,8 @@ def ms_to_datetime(ms, tzinfo=None):
     if not isinstance(ms, (int, long)):
         raise TypeError('expected integer, not %s' % type(ms))
 
-    if tzinfo in (None, mktz()):
-        return datetime.datetime.fromtimestamp(ms * 1e-3, mktz()).replace(tzinfo=None)
+    if tzinfo is None:
+        tzinfo = mktz()
 
     return datetime.datetime.fromtimestamp(ms * 1e-3, tzinfo)
 
