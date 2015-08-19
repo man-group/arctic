@@ -78,6 +78,34 @@ def string_to_daterange(str_range, delimiter='-', as_dates=False, interval=CLOSE
     return DateRange(d[0], d[1], oc)
 
 
+def to_dt(date, default_tz=None):
+    """
+    Returns a non-naive datetime.datetime.
+    
+    Interprets numbers as ms-since-epoch.
+
+    Parameters
+    ----------
+    date : `int` or `datetime.datetime`
+        The datetime to convert
+
+    default_tz : tzinfo
+        The TimeZone to use if none is found.  If not supplied, and the
+        datetime doesn't have a timezone, then we raise ValueError
+
+    Returns
+    -------
+    Non-naive datetime
+    """
+    if isinstance(date, (int, long)):
+        return ms_to_datetime(date, default_tz)
+    elif date.tzinfo is None:
+        if default_tz is None:
+            raise ValueError("Must specify a TimeZone on incoming data")
+        return date.replace(tzinfo=default_tz)
+    return date
+
+
 def to_pandas_closed_closed(date_range):
     """
     Pandas DateRange slicing is CLOSED-CLOSED inclusive at both ends.
@@ -86,12 +114,16 @@ def to_pandas_closed_closed(date_range):
     """
     if not date_range:
         return None
+
     start = date_range.start
     end = date_range.end
     if start:
+        start = to_dt(start, mktz())  # Ensure they have timezones
         if date_range.startopen:
             start += timedelta(milliseconds=1)
+
     if end:
+        end = to_dt(end, mktz())  # Ensure they have timezones
         if date_range.endopen:
             end -= timedelta(milliseconds=1)
     return DateRange(start, end)
@@ -102,8 +134,8 @@ def ms_to_datetime(ms, tzinfo=None):
     if not isinstance(ms, (int, long)):
         raise TypeError('expected integer, not %s' % type(ms))
 
-    if tzinfo in (None, mktz()):
-        return datetime.datetime.fromtimestamp(ms * 1e-3, mktz()).replace(tzinfo=None)
+    if tzinfo is None:
+        tzinfo = mktz()
 
     return datetime.datetime.fromtimestamp(ms * 1e-3, tzinfo)
 

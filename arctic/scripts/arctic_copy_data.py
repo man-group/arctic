@@ -8,7 +8,7 @@ from arctic.decorators import _get_host
 from arctic.store.audit import ArcticTransaction
 
 from ..hosts import get_arctic_lib
-from ..date import DateRange, to_pandas_closed_closed, CLOSED_OPEN, OPEN_CLOSED
+from ..date import DateRange, to_pandas_closed_closed, CLOSED_OPEN, OPEN_CLOSED, mktz
 from .utils import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -38,12 +38,17 @@ def copy_symbols_helper(src, dest, log, force, splice):
 
                 if existing_data and splice:
                     original_data = dest.read(symbol).data
-                    before = original_data.ix[:to_pandas_closed_closed(DateRange(None,
-                                                                                 new_data.index[0].to_pydatetime(),
-                                                                                 interval=CLOSED_OPEN)).end]
-                    after = original_data.ix[to_pandas_closed_closed(DateRange(new_data.index[-1].to_pydatetime(),
-                                                                               None,
-                                                                               interval=OPEN_CLOSED)).start:]
+                    preserve_start = to_pandas_closed_closed(DateRange(None, new_data.index[0].to_pydatetime(),
+                                                                       interval=CLOSED_OPEN)).end
+                    preserve_end = to_pandas_closed_closed(DateRange(new_data.index[-1].to_pydatetime(),
+                                                                     None,
+                                                                     interval=OPEN_CLOSED)).start
+                    if not original_data.index.tz:
+                        # No timezone on the original, should we even allow this?
+                        preserve_start = preserve_start.replace(tzinfo=None)
+                        preserve_end = preserve_end.replace(tzinfo=None)
+                    before = original_data.ix[:preserve_start]
+                    after = original_data.ix[preserve_end:]
                     new_data = before.append(new_data).append(after)
 
                 mt.write(symbol, new_data, metadata=version.metadata)

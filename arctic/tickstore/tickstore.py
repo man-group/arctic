@@ -9,10 +9,9 @@ from pandas.core.frame import _arrays_to_mgr
 import pymongo
 from pymongo.errors import OperationFailure
 
-from ..date import DateRange, to_pandas_closed_closed, mktz, datetime_to_ms, ms_to_datetime
+from ..date import DateRange, to_pandas_closed_closed, mktz, datetime_to_ms, CLOSED_CLOSED, to_dt
 from ..decorators import mongo_retry
 from ..exceptions import OverlappingDataException, NoDataFoundException, UnhandledDtypeException, ArcticException
-from .._util import indent
 
 logger = logging.getLogger(__name__)
 
@@ -127,12 +126,8 @@ class TickStore(object):
         date_range = to_pandas_closed_closed(date_range)
         if date_range is not None:
             assert date_range.start and date_range.end
-            if date_range.start:
-                start = self._to_dt(date_range.start)
-            if date_range.end:
-                end = self._to_dt(date_range.end)
-            query[START] = {'$gte': start}
-            query[END] = {'$lte': end}
+            query[START] = {'$gte': date_range.start}
+            query[END] = {'$lte': date_range.end}
         self._collection.delete_many(query)
 
     def list_symbols(self, date_range=None):
@@ -143,10 +138,14 @@ class TickStore(object):
         if not date_range:
             date_range = DateRange()
 
+        # We're assuming CLOSED_CLOSED on these Mongo queries
+        assert date_range.interval == CLOSED_CLOSED
+
         # Find the start bound
         start_range = {}
         first = last = None
         if date_range.start:
+            assert date_range.start.tzinfo
             start = date_range.start
             startq = self._symbol_query(symbol)
             startq.update({START: {'$lte': start}})
@@ -159,6 +158,7 @@ class TickStore(object):
 
         # Find the end bound
         if date_range.end:
+            assert date_range.end.tzinfo
             end = date_range.end
             endq = self._symbol_query(symbol)
             endq.update({START: {'$gt': end}})
@@ -258,7 +258,7 @@ class TickStore(object):
             raise NoDataFoundException("No Data found for {} in range: {}".format(symbol, date_range))
         rtn = self._pad_and_fix_dtypes(rtn, column_dtypes)
 
-        index = pd.to_datetime(np.concatenate(rtn[INDEX]), unit='ms')
+        index = pd.to_datetime(np.concatenate(rtn[INDEX]), utc=True, unit='ms')
         if columns is None:
             columns = [x for x in rtn.keys() if x not in (INDEX, 'SYMBOL')]
         if multiple_symbols and 'SYMBOL' not in columns:
@@ -278,6 +278,8 @@ class TickStore(object):
         logger.info("Got data in %s secs, creating DataFrame..." % t)
         mgr = _arrays_to_mgr(arrays, columns, index, columns, dtype=None)
         rtn = pd.DataFrame(mgr)
+        # Present data in the user's default TimeZone
+        rtn.index.tz = mktz()
 
         t = (dt.now() - perf_start).total_seconds()
         ticks = len(rtn)
@@ -465,7 +467,7 @@ class TickStore(object):
             pandas = True
         else:
             raise UnhandledDtypeException("Can't persist type %s to tickstore" % type(data))
-        self._assert_nonoverlapping_data(symbol, self._to_dt(start), self._to_dt(end))
+        self._assert_nonoverlapping_data(symbol, to_dt(start), to_dt(end))
 
         if pandas:
             buckets = self._pandas_to_buckets(data, symbol)
@@ -496,15 +498,6 @@ class TickStore(object):
         if isinstance(date, dt):
             logger.warn('WARNING: treating naive datetime as London in write path')
             return datetime_to_ms(date)
-        return date
-
-    def _to_dt(self, date, default_tz=None):
-        if isinstance(date, (int, long)):
-            return ms_to_datetime(date, mktz('UTC'))
-        elif date.tzinfo is None:
-            if default_tz is None:
-                raise ValueError("Must specify a TimeZone on incoming data")
-            return date.replace(tzinfo=default_tz)
         return date
 
     def _str_dtype(self, dtype):
@@ -540,8 +533,8 @@ class TickStore(object):
         return array
 
     def _pandas_to_bucket(self, df, symbol):
-        start = self._to_dt(df.index[0].to_datetime())
-        end = self._to_dt(df.index[0].to_datetime())
+        start = to_dt(df.index[0].to_datetime())
+        end = to_dt(df.index[0].to_datetime())
         rtn = {START: start, END: end, SYMBOL: symbol}
         rtn[VERSION] = CHUNK_VERSION_NUMBER
         rtn[COUNT] = len(df)
@@ -566,8 +559,8 @@ class TickStore(object):
     def _to_bucket(self, ticks, symbol):
         data = {}
         rowmask = {}
-        start = self._to_dt(ticks[0]['index'])
-        end = self._to_dt(ticks[-1]['index'])
+        start = to_dt(ticks[0]['index'])
+        end = to_dt(ticks[-1]['index'])
         for i, t in enumerate(ticks):
             for k, v in t.iteritems():
                 try:
