@@ -64,7 +64,7 @@ def test_daterange_closedclosed_no_tz():
 
 
 def test_to_dt_0():
-    assert to_dt(0) == dt(1970, 1, 1, 1, tzinfo=mktz())
+    assert to_dt(0) == dt(1970, 1, 1, tzinfo=mktz('UTC'))
 
 
 def test_to_dt_0_default():
