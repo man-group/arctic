@@ -70,7 +70,6 @@ def test_ts_write_pandas(tickstore_lib):
     tickstore_lib.write('SYM', data)
 
     data = tickstore_lib.read('SYM', columns=None)
-    print data
     assert data.index[0] == dt(2013, 1, 1, tzinfo=mktz('Europe/London'))
     assert data.a[0] == 1
     tickstore_lib.delete('SYM')
