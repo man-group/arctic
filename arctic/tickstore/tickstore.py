@@ -496,7 +496,8 @@ class TickStore(object):
 
     def _to_ms(self, date):
         if isinstance(date, dt):
-            logger.warn('WARNING: treating naive datetime as London in write path')
+            if not date.tzinfo:
+                logger.warn('WARNING: treating naive datetime as London in write path')
             return datetime_to_ms(date)
         return date
 
