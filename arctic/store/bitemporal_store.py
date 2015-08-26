@@ -19,11 +19,11 @@ class BitemporalStore(VersionStore):
         self.observe_column = observe_column
         self.sample_column = sample_column
 
-    def read(self, symbol, as_of=None, from_version=None, **kwargs):
-        item = super(BitemporalStore, self).read(symbol, from_version=from_version, **kwargs)
+    def read(self, symbol, as_of=None, **kwargs):
+        # TODO: shall we block from_version from getting into super.read?
+        item = super(BitemporalStore, self).read(symbol, **kwargs)
 
-        result = BitemporalItem(symbol=symbol,
-                                library=self._arctic_lib.get_name(),
+        result = BitemporalItem(symbol=symbol, library=self._arctic_lib.get_name(),
                                 data=fancy_group_by(item.data, grouping_level=self.observe_column,
                                                     aggregate_level=self.sample_column, max_=as_of),
                                 metadata=item.metadata)
