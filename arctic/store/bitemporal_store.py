@@ -24,8 +24,8 @@ class BitemporalStore(VersionStore):
         item = super(BitemporalStore, self).read(symbol, **kwargs)
 
         result = BitemporalItem(symbol=symbol, library=self._arctic_lib.get_name(),
-                                data=fancy_group_by(item.data, grouping_level=self.observe_column,
-                                                    aggregate_level=self.sample_column, max_=as_of),
+                                data=fancy_group_by(item.data, grouping_level=self.sample_column,
+                                                    aggregate_level=self.observe_column, max_=as_of),
                                 metadata=item.metadata)
         return result
 
@@ -43,10 +43,10 @@ class BitemporalStore(VersionStore):
                                   'to add / modify timeseries.')
 
     def _preprocess_incoming_data(self, df, as_of):
-        if self.sample_column not in df:
+        if self.observe_column not in df:
             # TODO: Move this to multi_index
             if not as_of:
                 as_of = dt.now()
-            df = pd.concat([df, pd.DataFrame([as_of] * len(df), index=df.index, columns=[self.sample_column])], axis=1)
-            df.set_index(self.sample_column, append=True, inplace=True)
+            df = pd.concat([df, pd.DataFrame([as_of] * len(df), index=df.index, columns=[self.observe_column])], axis=1)
+            df.set_index(self.observe_column, append=True, inplace=True)
         return df

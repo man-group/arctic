@@ -12,13 +12,13 @@ import pytest
 from tests.util import read_str_as_pandas
 
 
-ts1 = read_str_as_pandas("""         observed_dt | near
+ts1 = read_str_as_pandas("""           sample_dt | near
                          2012-09-08 17:06:11.040 |  1.0
                          2012-10-08 17:06:11.040 |  2.0
                          2012-10-09 17:06:11.040 |  2.5
                          2012-11-08 17:06:11.040 |  3.0""")
 
-ts1_append = read_str_as_pandas("""         observed_dt | near
+ts1_append = read_str_as_pandas("""           sample_dt | near
                                 2012-09-08 17:06:11.040 |  1.0
                                 2012-10-08 17:06:11.040 |  2.0
                                 2012-10-09 17:06:11.040 |  2.5
@@ -39,9 +39,9 @@ def test_existing_ts_append_and_read(bitemporal_library):
 
 def test_existing_ts_update_existing_data_and_read(bitemporal_library):
     bitemporal_library.append('spam', ts1)
-    bitemporal_library.append('spam', read_str_as_pandas("""         observed_dt | near
+    bitemporal_library.append('spam', read_str_as_pandas("""         sample_dt | near
                                                          2012-10-09 17:06:11.040 |  4.2"""))
-    expected_ts = read_str_as_pandas("""         observed_dt | near
+    expected_ts = read_str_as_pandas("""         sample_dt | near
                                      2012-09-08 17:06:11.040 |  1.0
                                      2012-10-08 17:06:11.040 |  2.0
                                      2012-10-09 17:06:11.040 |  4.2
@@ -55,26 +55,25 @@ def test_read_ts_with_historical_update(bitemporal_library):
         mock_dt.side_effect = lambda *args, **kwargs: dt(*args, **kwargs)
         bitemporal_library.append('spam', ts1)
 
-    bitemporal_library.append('spam', read_str_as_pandas("""         observed_dt | near
+    bitemporal_library.append('spam', read_str_as_pandas("""         sample_dt | near
                                                          2012-10-09 17:06:11.040 | 4.2"""),
                               as_of=dt(2015, 5, 2))
 
-    bitemporal_library.append('spam', read_str_as_pandas("""         observed_dt | near
+    bitemporal_library.append('spam', read_str_as_pandas("""         sample_dt | near
                                                          2012-10-09 17:06:11.040 | 6.6"""),
                               as_of=dt(2015, 5, 3))
 
     assert_frame_equal(bitemporal_library.read('spam', as_of=dt(2015, 5, 2, 10)).data, read_str_as_pandas(
-                                                                                    """observed_dt | near
+                                                                                    """sample_dt   | near
                                                                            2012-09-08 17:06:11.040 |  1.0
                                                                            2012-10-08 17:06:11.040 |  2.0
                                                                            2012-10-09 17:06:11.040 |  4.2
                                                                            2012-11-08 17:06:11.040 |  3.0"""))
 
-    assert_frame_equal(bitemporal_library.read('spam').data, read_str_as_pandas("""observed_dt | near
+    assert_frame_equal(bitemporal_library.read('spam').data, read_str_as_pandas("""  sample_dt | near
                                                                        2012-09-08 17:06:11.040 |  1.0
                                                                        2012-10-08 17:06:11.040 |  2.0
                                                                        2012-10-09 17:06:11.040 |  6.6
                                                                        2012-11-08 17:06:11.040 |  3.0"""))
 
     assert_frame_equal(bitemporal_library.read('spam', as_of=dt(2015, 5, 1, 10)).data, ts1)
-
