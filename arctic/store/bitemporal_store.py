@@ -9,7 +9,7 @@ from .version_store import VersionStore
 
 BITEMPORAL_STORE_TYPE = 'BitemporalStore'
 
-BitemporalItem = namedtuple('BitemporalItem', 'data, metadata')
+BitemporalItem = namedtuple('BitemporalItem', 'symbol, library, data, metadata')
 
 
 class BitemporalStore(VersionStore):
@@ -22,13 +22,15 @@ class BitemporalStore(VersionStore):
     def read(self, symbol, as_of=None, from_version=None, **kwargs):
         item = super(BitemporalStore, self).read(symbol, from_version=from_version, **kwargs)
 
-        result = BitemporalItem(data=fancy_group_by(item.data, grouping_level=self.observe_column,
+        result = BitemporalItem(symbol=symbol,
+                                library=self._arctic_lib.get_name(),
+                                data=fancy_group_by(item.data, grouping_level=self.observe_column,
                                                     aggregate_level=self.sample_column, max_=as_of),
                                 metadata=item.metadata)
         return result
 
-    def append(self, symbol, data, metadata=None, upsert=True, **kwargs):
-        data = self._preprocess_incoming_data(data)
+    def append(self, symbol, data, metadata=None, upsert=True, as_of=None, **kwargs):
+        data = self._preprocess_incoming_data(data, as_of)
         if upsert and not self.has_symbol(symbol):
             df = data
         else:
@@ -40,12 +42,11 @@ class BitemporalStore(VersionStore):
         raise NotImplementedError('Direct write for BitemporalStore is not supported. Use append instead'
                                   'to add / modify timeseries.')
 
-    def _preprocess_incoming_data(self, df):
+    def _preprocess_incoming_data(self, df, as_of):
         if self.sample_column not in df:
             # TODO: Move this to multi_index
-            now = dt.now()
-            df = pd.concat([df, pd.DataFrame([now] * len(df), index=df.index, columns=[self.sample_column])], axis=1)
+            if not as_of:
+                as_of = dt.now()
+            df = pd.concat([df, pd.DataFrame([as_of] * len(df), index=df.index, columns=[self.sample_column])], axis=1)
             df.set_index(self.sample_column, append=True, inplace=True)
         return df
-            
-        
