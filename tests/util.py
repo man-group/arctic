@@ -1,20 +1,22 @@
-from contextlib import contextmanager
 from cStringIO import StringIO
-from dateutil.rrule import rrule, DAILY
-import dateutil
+from contextlib import contextmanager
 from datetime import datetime as dt
-import pandas
-import numpy as np
 import sys
 
+import dateutil
+from dateutil.rrule import rrule, DAILY
+import pandas
 
-def read_str_as_pandas(ts_str):
+import numpy as np
+
+
+def read_str_as_pandas(ts_str, num_index=1):
     labels = [x.strip() for x in ts_str.split('\n')[0].split('|')]
-    pd = pandas.read_csv(StringIO(ts_str), sep='|', index_col=0,
+    pd = pandas.read_csv(StringIO(ts_str), sep='|', index_col=range(num_index),
                          date_parser=dateutil.parser.parse)
     # Trim the whitespace on the column names
-    pd.columns = labels[1:]
-    pd.index.name = labels[0]
+    pd.columns = labels[num_index:]
+    pd.index.names = labels[0:num_index]
     return pd
 
 

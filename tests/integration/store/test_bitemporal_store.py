@@ -7,7 +7,6 @@ from datetime import datetime as dt
 
 from mock import patch
 from pandas.util.testing import assert_frame_equal
-import pytest
 
 from tests.util import read_str_as_pandas
 
@@ -29,6 +28,16 @@ ts1_append = read_str_as_pandas("""           sample_dt | near
 def test_new_ts_read_write(bitemporal_library):
     bitemporal_library.append('spam', ts1)
     assert_frame_equal(ts1, bitemporal_library.read('spam').data)
+
+
+def test_read_ts_raw(bitemporal_library):
+    bitemporal_library.append('spam', ts1, as_of=dt(2015, 5, 1))
+    assert_frame_equal(bitemporal_library.read('spam', raw=True).data, read_str_as_pandas(
+                                             """                    sample_dt | observed_dt | near
+                                                      2012-09-08 17:06:11.040 |  2015-05-01 |  1.0
+                                                      2012-10-08 17:06:11.040 |  2015-05-01 |  2.0
+                                                      2012-10-09 17:06:11.040 |  2015-05-01 |  2.5
+                                                      2012-11-08 17:06:11.040 |  2015-05-01 |  3.0""", num_index=2))
 
 
 def test_existing_ts_append_and_read(bitemporal_library):
@@ -139,3 +148,28 @@ def test_insert_versions_inbetween_works_ok(bitemporal_library):
                                                                      2012-10-09 17:06:11.040 |  2.5
                                                                      2012-11-08 17:06:11.040 |  3.0
                                                                      2012-12-01 17:06:11.040 |  25"""))
+
+
+def test_read_ts_raw_all_version_ok(bitemporal_library):
+    bitemporal_library.append('spam', ts1, as_of=dt(2015, 5, 1))
+    bitemporal_library.append('spam', read_str_as_pandas("""           sample_dt | near
+                                                         2012-12-01 17:06:11.040 | 25"""),
+                              as_of=dt(2015, 5, 5))
+    bitemporal_library.append('spam', read_str_as_pandas("""           sample_dt | near
+                                                         2012-11-08 17:06:11.040 | 42"""),
+                              as_of=dt(2015, 5, 3))
+    bitemporal_library.append('spam', read_str_as_pandas("""           sample_dt | near
+                                                         2012-10-08 17:06:11.040 | 42
+                                                         2013-01-01 17:06:11.040 | 100"""),
+                              as_of=dt(2015, 5, 10,))
+    assert_frame_equal(bitemporal_library.read('spam', raw=True).data, read_str_as_pandas(
+                                             """                    sample_dt | observed_dt | near
+                                                      2012-09-08 17:06:11.040 |  2015-05-01 |  1.0
+                                                      2012-10-08 17:06:11.040 |  2015-05-01 |  2.0
+                                                      2012-10-09 17:06:11.040 |  2015-05-01 |  2.5
+                                                      2012-11-08 17:06:11.040 |  2015-05-01 |  3.0
+                                                      2012-11-08 17:06:11.040 |  2015-05-03 |  42
+                                                      2012-12-01 17:06:11.040 |  2015-05-05 |  25
+                                                      2012-10-08 17:06:11.040 |  2015-05-10 |  42
+                                                      2013-01-01 17:06:11.040 |  2015-05-10 |  100""", num_index=2))
+
