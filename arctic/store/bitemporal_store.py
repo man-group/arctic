@@ -30,11 +30,17 @@ class BitemporalStore(VersionStore):
         return result
 
     def append(self, symbol, data, metadata=None, upsert=True, as_of=None, **kwargs):
-        data = self._preprocess_incoming_data(data, as_of)
+        assert self.observe_column not in data
+        if not as_of:
+            as_of = dt.now()
+        data = self._add_observe_dt_index(data, as_of)
         if upsert and not self.has_symbol(symbol):
             df = data
         else:
-            df = super(BitemporalStore, self).read(symbol, **kwargs).data.append(data)
+            existing_item = super(BitemporalStore, self).read(symbol, **kwargs)
+            if metadata is None:
+                metadata = existing_item.metadata
+            df = existing_item.data.append(data)
         super(BitemporalStore, self).write(symbol, df, metadata=metadata, prune_previous_version=True)
 
     def write(self, *args, **kwargs):
@@ -42,11 +48,8 @@ class BitemporalStore(VersionStore):
         raise NotImplementedError('Direct write for BitemporalStore is not supported. Use append instead'
                                   'to add / modify timeseries.')
 
-    def _preprocess_incoming_data(self, df, as_of):
-        if self.observe_column not in df:
-            # TODO: Move this to multi_index
-            if not as_of:
-                as_of = dt.now()
-            df = pd.concat([df, pd.DataFrame([as_of] * len(df), index=df.index, columns=[self.observe_column])], axis=1)
-            df.set_index(self.observe_column, append=True, inplace=True)
+    def _add_observe_dt_index(self, df, as_of):
+        df = df.set_index(pd.MultiIndex.from_product([df.index, as_of],
+                                                     names=[self.sample_column, self.observe_column]),
+                          inplace=False)
         return df
