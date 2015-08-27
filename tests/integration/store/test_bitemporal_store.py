@@ -113,3 +113,29 @@ def test_insert_new_rows_in_middle_remains_sorted(bitemporal_library):
                                                                        2012-10-09 17:06:11.040 |  2.5
                                                                        2012-11-08 17:06:11.040 |  3.0
                                                                        2012-12-01 17:06:11.040 |  100"""))
+
+
+def test_insert_versions_inbetween_works_ok(bitemporal_library):
+    bitemporal_library.append('spam', ts1, as_of=dt(2015, 5, 1))
+    bitemporal_library.append('spam', read_str_as_pandas("""           sample_dt | near
+                                                         2012-12-01 17:06:11.040 | 100"""),
+                              as_of=dt(2015, 5, 10))
+
+    bitemporal_library.append('spam', read_str_as_pandas("""           sample_dt | near
+                                                         2012-12-01 17:06:11.040 | 25"""),
+                              as_of=dt(2015, 5, 8))
+
+    assert_frame_equal(bitemporal_library.read('spam').data, read_str_as_pandas("""  sample_dt | near
+                                                                       2012-09-08 17:06:11.040 |  1.0
+                                                                       2012-10-08 17:06:11.040 |  2.0
+                                                                       2012-10-09 17:06:11.040 |  2.5
+                                                                       2012-11-08 17:06:11.040 |  3.0
+                                                                       2012-12-01 17:06:11.040 |  100"""))
+
+    assert_frame_equal(bitemporal_library.read('spam', as_of=dt(2015, 5, 9)).data, read_str_as_pandas(
+                                                                              """  sample_dt | near
+                                                                     2012-09-08 17:06:11.040 |  1.0
+                                                                     2012-10-08 17:06:11.040 |  2.0
+                                                                     2012-10-09 17:06:11.040 |  2.5
+                                                                     2012-11-08 17:06:11.040 |  3.0
+                                                                     2012-12-01 17:06:11.040 |  25"""))
