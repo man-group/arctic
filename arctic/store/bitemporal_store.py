@@ -55,7 +55,7 @@ class BitemporalStore(VersionStore):
         item = super(BitemporalStore, self).read(symbol, **kwargs)
         if raw:
             return BitemporalItem(symbol=symbol, library=self._arctic_lib.get_name(), data=item.data,
-                                    metadata=item.metadata)
+                                    metadata=item.metadata).sort(self.observe_column)
         else:
             return BitemporalItem(symbol=symbol, library=self._arctic_lib.get_name(),
                                   data=fancy_group_by(item.data, grouping_level=self.sample_column,
