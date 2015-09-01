@@ -44,31 +44,52 @@ def test_list_versions_localTime():
                        'snapshots': 'snap'}
 
 
+def test__read_preference__allow_secondary_true():
+    self = create_autospec(VersionStore)
+    assert VersionStore._read_preference(self, True) == ReadPreference.NEAREST
+
+
+def test__read_preference__allow_secondary_false():
+    self = create_autospec(VersionStore)
+    assert VersionStore._read_preference(self, False) == ReadPreference.PRIMARY
+
+
+def test__read_preference__default_true():
+    self = create_autospec(VersionStore, _allow_secondary=True)
+    assert VersionStore._read_preference(self, None) == ReadPreference.NEAREST
+
+
+def test__read_preference__default_false():
+    self = create_autospec(VersionStore, _allow_secondary=False)
+    assert VersionStore._read_preference(self, None) == ReadPreference.PRIMARY
+
+
 def test_get_version_allow_secondary_True():
     vs = create_autospec(VersionStore, instance=True,
                          _versions=Mock())
-    vs._allow_secondary = True
+    vs._read_preference.return_value = sentinel.read_preference
     vs._find_snapshots.return_value = 'snap'
     vs._versions.find.return_value = [{'_id': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0)),
                        'symbol': 's', 'version': 10}]
 
     VersionStore.read(vs, "symbol")
-    assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, read_preference=ReadPreference.NEAREST)]
-    assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None, read_preference=ReadPreference.NEAREST)]
+    assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, read_preference=sentinel.read_preference)]
+    assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None, read_preference=sentinel.read_preference)]
 
 
 def test_get_version_allow_secondary_user_override_False():
     """Ensure user can override read preference when calling read"""
     vs = create_autospec(VersionStore, instance=True,
                          _versions=Mock())
-    vs._allow_secondary = True
+    vs._read_preference.return_value = sentinel.read_preference
     vs._find_snapshots.return_value = 'snap'
     vs._versions.find.return_value = [{'_id': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0)),
                        'symbol': 's', 'version': 10}]
 
     VersionStore.read(vs, "symbol", allow_secondary=False)
-    assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, read_preference=ReadPreference.PRIMARY)]
-    assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None, read_preference=ReadPreference.PRIMARY)]
+    assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, read_preference=sentinel.read_preference)]
+    assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None, read_preference=sentinel.read_preference)]
+    vs._read_preference.assert_called_once_with(False)
 
 
 def test_read_as_of_LondonTime():
@@ -176,17 +197,17 @@ def test_prune_previous_versions_0_timeout():
 
 
 def test_read_handles_operation_failure():
-    self = create_autospec(VersionStore, _versions=Mock(), _arctic_lib=Mock(),
-                           _allow_secondary=True)
+    self = create_autospec(VersionStore, _versions=Mock(), _arctic_lib=Mock())
+    self._read_preference.return_value = sentinel.read_preference
     self._collection = create_autospec(Collection)
     self._read_metadata.side_effect = [sentinel.meta1, sentinel.meta2]
     self._read_metadata.__name__ = 'name'
     self._do_read.__name__ = 'name'  # feh: mongo_retry decorator cares about this
     self._do_read.side_effect = [OperationFailure('error'), sentinel.read]
     VersionStore.read(self, sentinel.symbol, sentinel.as_of, sentinel.from_version)
-    # Assert that, for the two read calls, the second uses the new metadata
+    # Assert that, for the two read calls, the second uses the new metadata and forces a read from primary
     assert self._do_read.call_args_list == [call(sentinel.symbol, sentinel.meta1, sentinel.from_version,
-                                                 read_preference=ReadPreference.NEAREST)]
+                                                 read_preference=sentinel.read_preference)]
     assert self._do_read_retry.call_args_list == [call(sentinel.symbol, sentinel.meta2, sentinel.from_version,
                                                        read_preference=ReadPreference.PRIMARY)]
 
