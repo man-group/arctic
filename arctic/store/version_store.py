@@ -172,7 +172,7 @@ class VersionStore(object):
         return sorted([x['symbol'] for x in results])
 
     @mongo_retry
-    def has_symbol(self, symbol, as_of=None, allow_secondary=None):
+    def has_symbol(self, symbol, as_of=None):
         """
         Return True if the 'symbol' exists in this library AND the symbol
         isn't deleted in the specified as_of.
@@ -188,14 +188,10 @@ class VersionStore(object):
             `int` : specific version number
             `str` : snapshot name which contains the version
             `datetime.datetime` : the version of the data that existed as_of the requested point in time
-        allow_secondary : `bool` or `None`
-            Override the default behavior for allowing reads from secondary members of a cluster:
-            `None` : use the settings from the top-level `Arctic` object used to query this version store.
-            `True` : allow reads from secondary members
-            `False` : only allow reads from primary members
         """
         try:
-            self._read_metadata(symbol, as_of=as_of, read_preference=self._read_preference(allow_secondary))
+            # Always use the primary for has_symbol, it's safer
+            self._read_metadata(symbol, as_of=as_of, read_preference=ReadPreference.PRIMARY)
             return True
         except NoDataFoundException:
             return False
@@ -667,7 +663,7 @@ class VersionStore(object):
                                                    'metadata.deleted': {'$ne': True}})
         if not snapped_version:
             self._delete_version(symbol, sentinel.version)
-        assert not self.has_symbol(symbol, allow_secondary=False)
+        assert not self.has_symbol(symbol)
 
     def _write_audit(self, user, message, changed_version):
         """
