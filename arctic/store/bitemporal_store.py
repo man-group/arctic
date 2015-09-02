@@ -1,7 +1,7 @@
 from collections import namedtuple
 from datetime import datetime as dt
 
-from arctic.multi_index import fancy_group_by
+from arctic.multi_index import groupby_asof
 import pandas as pd
 
 from .version_store import VersionStore
@@ -24,7 +24,7 @@ class BitemporalStore(VersionStore):
         ----------
         arctic_lib : `ArcticLibraryBinding`
         sample_column : `str`
-            Column name for the datetime index that represents that samaple time of the data.
+            Column name for the datetime index that represents that sample time of the data.
         observe_column : `str`
             Column name for the datetime index that represents the insertion time of a row of data. This column is
             internal to this store.
@@ -58,9 +58,9 @@ class BitemporalStore(VersionStore):
                                     metadata=item.metadata).sort(self.observe_column)
         else:
             return BitemporalItem(symbol=symbol, library=self._arctic_lib.get_name(),
-                                  data=fancy_group_by(item.data, grouping_level=self.sample_column,
-                                                      aggregate_level=self.observe_column, max_=as_of),
-                                  metadata=item.metadata)
+                                  data=groupby_asof(item.data, as_of=as_of, dt_col=self.sample_column,
+                                                    asof_col=self.observe_column),
+                                  metadata=item.metadata, last_updated=max(item.data.index, key=lambda x: x[1]))
 
     def append(self, symbol, data, metadata=None, upsert=True, as_of=None, **kwargs):
         """ Append 'data' under the specified 'symbol' name to this library.
@@ -77,7 +77,7 @@ class BitemporalStore(VersionStore):
         upsert : `bool`
             Write 'data' if no previous version exists.
         as_of : `datetime.datetime`
-            The "insert time". Default to datetime.now()t
+            The "insert time". Default to datetime.now()
         """
         assert self.observe_column not in data
         if not as_of:

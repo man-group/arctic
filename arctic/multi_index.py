@@ -1,13 +1,15 @@
 '''
 Utility functions for multi-index dataframes. Useful for creating bi-temporal timeseries.
 '''
+from datetime import datetime
 import logging
 import types
-from datetime import datetime
+
+from pandas.tseries.tools import to_datetime as dt
 
 import numpy as np
 import pandas as pd
-from pandas.tseries.tools import to_datetime as dt
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +29,7 @@ def fancy_group_by(df, grouping_level=0, aggregate_level=1, method='last', max_=
         Index level to aggregate by. Defaults to 1.
     method: ``str``
         Aggregation method. One of
-            last: Use the last (lexigraphically) value from each group
+            last: Use the last (lexicographically) value from each group
             first: Use the first value from each group
     within: Any type supported by the index, or ``DateOffset``/timedelta-like for ``DatetimeIndex``.
         If set, will limit results to those having aggregate level values within this range of the group value
@@ -39,7 +41,7 @@ def fancy_group_by(df, grouping_level=0, aggregate_level=1, method='last', max_=
     if method not in ('first', 'last'):
         raise ValueError('Invalid method')
 
-    if isinstance(aggregate_level, types.StringType):
+    if isinstance(aggregate_level, basestring):
         aggregate_level = df.index.names.index(aggregate_level)
 
     agg_idx = df.index.get_level_values(aggregate_level)
