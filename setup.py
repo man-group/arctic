@@ -83,7 +83,7 @@ setup(
     keywords=["ahl", "keyvalue", "tickstore", "mongo", "timeseries", ],
     url="https://github.com/manahl/arctic",
     packages=find_packages(),
-    long_description=long_description + changelog,
+    long_description='\n'.join((long_description, changelog)),
     cmdclass={'test': PyTest},
     ext_modules=[compress],
     setup_requires=["setuptools_cython",
