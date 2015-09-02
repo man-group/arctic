@@ -26,8 +26,10 @@ from setuptools.command.test import test as TestCommand
 try:
     import pypandoc
     long_description = pypandoc.convert('README.md', 'rst')
+    changelog = pypandoc.convert('CHANGES.md', 'rst')
 except (IOError, ImportError, OSError):
     long_description = open('README.md').read()
+    changelog = open('CHANGES.md').read()
 
 
 class PyTest(TestCommand):
@@ -73,7 +75,7 @@ compress = Extension('arctic._compress',
 
 setup(
     name="arctic",
-    version="1.5.0",
+    version="1.6.0",
     author="Man AHL Technology",
     author_email="ManAHLTech@ahl.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
@@ -81,7 +83,7 @@ setup(
     keywords=["ahl", "keyvalue", "tickstore", "mongo", "timeseries", ],
     url="https://github.com/manahl/arctic",
     packages=find_packages(),
-    long_description=long_description,
+    long_description=long_description + changelog,
     cmdclass={'test': PyTest},
     ext_modules=[compress],
     setup_requires=["setuptools_cython",
