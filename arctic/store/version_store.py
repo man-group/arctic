@@ -105,6 +105,12 @@ class VersionStore(object):
 
     def __repr__(self):
         return str(self)
+    
+    def _read_preference(self, allow_secondary):
+        """ Return the mongo read preference given an 'allow_secondary' argument
+        """
+        allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
+        return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
 
     @mongo_retry
     def list_symbols(self, all_symbols=False, snapshot=None, regex=None, **kwargs):
@@ -177,9 +183,15 @@ class VersionStore(object):
         ----------
         symbol : `str`
             symbol name for the item
+        as_of : `str` or int or `datetime.datetime`
+            Return the data as it was as_of the point in time.
+            `int` : specific version number
+            `str` : snapshot name which contains the version
+            `datetime.datetime` : the version of the data that existed as_of the requested point in time
         """
         try:
-            self._read_metadata(symbol, as_of=as_of)
+            # Always use the primary for has_symbol, it's safer
+            self._read_metadata(symbol, as_of=as_of, read_preference=ReadPreference.PRIMARY)
             return True
         except NoDataFoundException:
             return False
@@ -287,14 +299,18 @@ class VersionStore(object):
             `int` : specific version number
             `str` : snapshot name which contains the version
             `datetime.datetime` : the version of the data that existed as_of the requested point in time
+        allow_secondary : `bool` or `None`
+            Override the default behavior for allowing reads from secondary members of a cluster:
+            `None` : use the settings from the top-level `Arctic` object used to query this version store.
+            `True` : allow reads from secondary members
+            `False` : only allow reads from primary members
 
         Returns
         -------
         VersionedItem namedtuple which contains a .data and .metadata element
         """
-        allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
         try:
-            read_preference = ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
+            read_preference = self._read_preference(allow_secondary)
             _version = self._read_metadata(symbol, as_of=as_of, read_preference=read_preference)
             return self._do_read(symbol, _version, from_version, read_preference=read_preference, **kwargs)
         except (OperationFailure, AutoReconnect) as e:
@@ -347,7 +363,7 @@ class VersionStore(object):
     _do_read_retry = mongo_retry(_do_read)
 
     @mongo_retry
-    def read_metadata(self, symbol, as_of=None):
+    def read_metadata(self, symbol, as_of=None, allow_secondary=None):
         """
         Return the metadata saved for a symbol.  This method is fast as it doesn't
         actually load the data.
@@ -361,8 +377,13 @@ class VersionStore(object):
             `int` : specific version number
             `str` : snapshot name which contains the version
             `datetime.datetime` : the version of the data that existed as_of the requested point in time
+        allow_secondary : `bool` or `None`
+            Override the default behavior for allowing reads from secondary members of a cluster:
+            `None` : use the settings from the top-level `Arctic` object used to query this version store.
+            `True` : allow reads from secondary members
+            `False` : only allow reads from primary members
         """
-        _version = self._read_metadata(symbol, as_of=as_of)
+        _version = self._read_metadata(symbol, as_of=as_of, read_preference=self._read_preference(allow_secondary))
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=_version['version'],
                              metadata=_version.pop('metadata', None), data=None)
 
