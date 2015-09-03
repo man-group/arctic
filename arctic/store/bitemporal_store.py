@@ -4,32 +4,29 @@ from datetime import datetime as dt
 from arctic.multi_index import groupby_asof
 import pandas as pd
 
-from .version_store import VersionStore
-
-
-BITEMPORAL_STORE_TYPE = 'BitemporalStore'
 
 BitemporalItem = namedtuple('BitemporalItem', 'symbol, library, data, metadata, last_updated')
 
 
-class BitemporalStore(VersionStore):
+class BitemporalStore(object):
     """ A versioned pandas DataFrame store. (currently only supports single index df)
 
     As the name hinted, this holds versions of DataFrame by maintaining an extra 'insert time' index internally.
     """
 
-    def __init__(self, arctic_lib, sample_column='sample_dt', observe_column='observed_dt'):
+    def __init__(self, version_store, sample_column='sample_dt', observe_column='observed_dt'):
         """
         Parameters
         ----------
-        arctic_lib : `ArcticLibraryBinding`
+        version_store : `VersionStore`
+            The version store that keeps the underlying data frames
         sample_column : `str`
             Column name for the datetime index that represents that sample time of the data.
         observe_column : `str`
             Column name for the datetime index that represents the insertion time of a row of data. This column is
             internal to this store.
         """
-        super(BitemporalStore, self).__init__(arctic_lib)
+        self._store = version_store
         self.observe_column = observe_column
         self.sample_column = sample_column
 
@@ -52,13 +49,13 @@ class BitemporalStore(VersionStore):
         -------
         BitemporalItem namedtuple which contains a .data and .metadata element
         """
-        item = super(BitemporalStore, self).read(symbol, **kwargs)
+        item = self._store.read(symbol, **kwargs)
         if raw:
-            return BitemporalItem(symbol=symbol, library=self._arctic_lib.get_name(), data=item.data,
+            return BitemporalItem(symbol=symbol, library=self._store._arctic_lib.get_name(), data=item.data,
                                   metadata=item.metadata,
                                   last_updated=max(item.data.index, key=lambda x: x[1]))
         else:
-            return BitemporalItem(symbol=symbol, library=self._arctic_lib.get_name(),
+            return BitemporalItem(symbol=symbol, library=self._store._arctic_lib.get_name(),
                                   data=groupby_asof(item.data, as_of=as_of, dt_col=self.sample_column,
                                                     asof_col=self.observe_column),
                                   metadata=item.metadata, last_updated=max(item.data.index, key=lambda x: x[1]))
@@ -84,14 +81,14 @@ class BitemporalStore(VersionStore):
         if not as_of:
             as_of = dt.now()
         data = self._add_observe_dt_index(data, as_of)
-        if upsert and not self.has_symbol(symbol):
+        if upsert and not self._store.has_symbol(symbol):
             df = data
         else:
-            existing_item = super(BitemporalStore, self).read(symbol, **kwargs)
+            existing_item = self._store.read(symbol, **kwargs)
             if metadata is None:
                 metadata = existing_item.metadata
             df = existing_item.data.append(data).sort()
-        super(BitemporalStore, self).write(symbol, df, metadata=metadata, prune_previous_version=True)
+        self._store.write(symbol, df, metadata=metadata, prune_previous_version=True)
 
     def write(self, *args, **kwargs):
         # TODO: may be diff + append?

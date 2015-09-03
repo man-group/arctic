@@ -8,7 +8,7 @@ from .auth import authenticate, get_auth
 from .decorators import mongo_retry
 from .exceptions import LibraryNotFoundException, ArcticException, QuotaExceededException
 from .hooks import get_mongodb_uri
-from .store import version_store, bitemporal_store
+from .store import version_store
 from .tickstore import tickstore, toplevel
 
 
@@ -19,12 +19,10 @@ logger = logging.getLogger(__name__)
 # Default Arctic application name: 'arctic'
 APPLICATION_NAME = 'arctic'
 VERSION_STORE = version_store.VERSION_STORE_TYPE
-BITEMPORAL_STORE = bitemporal_store.BITEMPORAL_STORE_TYPE
 TICK_STORE = tickstore.TICK_STORE_TYPE
 LIBRARY_TYPES = {version_store.VERSION_STORE_TYPE: version_store.VersionStore,
                  tickstore.TICK_STORE_TYPE: tickstore.TickStore,
                  toplevel.TICK_STORE_TYPE: toplevel.TopLevelTickStore,
-                 bitemporal_store.BITEMPORAL_STORE_TYPE: bitemporal_store.BitemporalStore
                  }
 
 
