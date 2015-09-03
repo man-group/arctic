@@ -9,7 +9,7 @@ from .version_store import VersionStore
 
 BITEMPORAL_STORE_TYPE = 'BitemporalStore'
 
-BitemporalItem = namedtuple('BitemporalItem', 'symbol, library, data, metadata')
+BitemporalItem = namedtuple('BitemporalItem', 'symbol, library, data, metadata, last_updated')
 
 
 class BitemporalStore(VersionStore):
@@ -55,7 +55,8 @@ class BitemporalStore(VersionStore):
         item = super(BitemporalStore, self).read(symbol, **kwargs)
         if raw:
             return BitemporalItem(symbol=symbol, library=self._arctic_lib.get_name(), data=item.data,
-                                    metadata=item.metadata).sort(self.observe_column)
+                                  metadata=item.metadata,
+                                  last_updated=max(item.data.index, key=lambda x: x[1]))
         else:
             return BitemporalItem(symbol=symbol, library=self._arctic_lib.get_name(),
                                   data=groupby_asof(item.data, as_of=as_of, dt_col=self.sample_column,
@@ -89,7 +90,7 @@ class BitemporalStore(VersionStore):
             existing_item = super(BitemporalStore, self).read(symbol, **kwargs)
             if metadata is None:
                 metadata = existing_item.metadata
-            df = existing_item.data.append(data)
+            df = existing_item.data.append(data).sort()
         super(BitemporalStore, self).write(symbol, df, metadata=metadata, prune_previous_version=True)
 
     def write(self, *args, **kwargs):
