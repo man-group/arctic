@@ -1,6 +1,7 @@
 from collections import namedtuple
 from datetime import datetime as dt
 
+from arctic.date._mktz import mktz
 from arctic.multi_index import groupby_asof
 import pandas as pd
 
@@ -78,8 +79,11 @@ class BitemporalStore(object):
             The "insert time". Default to datetime.now()
         """
         assert self.observe_column not in data
+        local_tz = mktz()
         if not as_of:
             as_of = dt.now()
+        if as_of.tzinfo is None:
+            as_of = as_of.replace(tzinfo=local_tz)
         data = self._add_observe_dt_index(data, as_of)
         if upsert and not self._store.has_symbol(symbol):
             df = data

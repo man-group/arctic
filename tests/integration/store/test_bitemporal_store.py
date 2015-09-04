@@ -8,6 +8,9 @@ from datetime import datetime as dt
 from mock import patch
 from pandas.util.testing import assert_frame_equal
 
+from arctic.date._mktz import mktz
+from arctic.fixtures.arctic import bitemporal_library
+import pandas as pd
 from tests.util import read_str_as_pandas
 
 
@@ -31,7 +34,7 @@ def test_new_ts_read_write(bitemporal_library):
 
 
 def test_read_ts_raw(bitemporal_library):
-    bitemporal_library.append('spam', ts1, as_of=dt(2015, 5, 1))
+    bitemporal_library.append('spam', ts1, as_of=dt(2015, 5, 1, tzinfo=mktz('UTC')))
     assert_frame_equal(bitemporal_library.read('spam', raw=True).data, read_str_as_pandas(
                                              """                    sample_dt | observed_dt | near
                                                       2012-09-08 17:06:11.040 |  2015-05-01 |  1.0
@@ -151,17 +154,17 @@ def test_insert_versions_inbetween_works_ok(bitemporal_library):
 
 
 def test_read_ts_raw_all_version_ok(bitemporal_library):
-    bitemporal_library.append('spam', ts1, as_of=dt(2015, 5, 1))
+    bitemporal_library.append('spam', ts1, as_of=dt(2015, 5, 1, tzinfo=mktz('UTC')))
     bitemporal_library.append('spam', read_str_as_pandas("""           sample_dt | near
                                                          2012-12-01 17:06:11.040 | 25"""),
-                              as_of=dt(2015, 5, 5))
+                              as_of=dt(2015, 5, 5, tzinfo=mktz('UTC')))
     bitemporal_library.append('spam', read_str_as_pandas("""           sample_dt | near
                                                          2012-11-08 17:06:11.040 | 42"""),
-                              as_of=dt(2015, 5, 3))
+                              as_of=dt(2015, 5, 3, tzinfo=mktz('UTC')))
     bitemporal_library.append('spam', read_str_as_pandas("""           sample_dt | near
                                                          2012-10-08 17:06:11.040 | 42
                                                          2013-01-01 17:06:11.040 | 100"""),
-                              as_of=dt(2015, 5, 10,))
+                              as_of=dt(2015, 5, 10, tzinfo=mktz('UTC')))
     assert_frame_equal(bitemporal_library.read('spam', raw=True).data, read_str_as_pandas(
                                              """                    sample_dt | observed_dt | near
                                                       2012-09-08 17:06:11.040 |  2015-05-01 |  1.0
@@ -173,3 +176,18 @@ def test_read_ts_raw_all_version_ok(bitemporal_library):
                                                       2012-12-01 17:06:11.040 |  2015-05-05 |  25
                                                       2013-01-01 17:06:11.040 |  2015-05-10 |  100""", num_index=2))
 
+
+def test_bitemporal_store_saves_as_of_with_timezone(bitemporal_library):
+    local_tz = mktz()
+    bitemporal_library.append('spam', ts1, as_of=dt(2015, 5, 1))
+    df = bitemporal_library.read('spam', raw=True).data
+    assert all([x[1].replace(tzinfo=mktz('UTC')) == dt(2015, 5, 1, tzinfo=local_tz) for x in df.index])
+
+
+def test_bitemporal_store_read_as_of_timezone(bitemporal_library):
+    bitemporal_library.append('spam', ts1, as_of=dt(2015, 5, 1, tzinfo=mktz('Europe/London')))
+    bitemporal_library.append('spam', read_str_as_pandas("""           sample_dt | near
+                                                         2012-12-01 17:06:11.040 | 25"""),
+                              as_of=dt(2015, 5, 2, tzinfo=mktz('Europe/London')))
+    df = bitemporal_library.read('spam', as_of=dt(2015, 5, 2, tzinfo=mktz('Asia/Hong_Kong'))).data
+    assert_frame_equal(df, ts1)
