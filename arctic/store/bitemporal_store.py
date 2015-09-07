@@ -61,7 +61,7 @@ class BitemporalStore(object):
                                                     asof_col=self.observe_column),
                                   metadata=item.metadata, last_updated=max(item.data.index, key=lambda x: x[1]))
 
-    def append(self, symbol, data, metadata=None, upsert=True, as_of=None, **kwargs):
+    def update(self, symbol, data, metadata=None, upsert=True, as_of=None, **kwargs):
         """ Append 'data' under the specified 'symbol' name to this library.
 
         Parameters
