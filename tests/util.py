@@ -10,10 +10,16 @@ import pandas
 import numpy as np
 
 
+def dt_or_str_parser(string):
+    try:
+        return dateutil.parser.parse(string)
+    except ValueError:
+        return string.strip()
+
+
 def read_str_as_pandas(ts_str, num_index=1):
     labels = [x.strip() for x in ts_str.split('\n')[0].split('|')]
-    pd = pandas.read_csv(StringIO(ts_str), sep='|', index_col=range(num_index),
-                         date_parser=dateutil.parser.parse)
+    pd = pandas.read_csv(StringIO(ts_str), sep='|', index_col=range(num_index), date_parser=dt_or_str_parser)
     # Trim the whitespace on the column names
     pd.columns = labels[num_index:]
     pd.index.names = labels[0:num_index]
