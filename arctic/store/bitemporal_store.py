@@ -10,7 +10,7 @@ BitemporalItem = namedtuple('BitemporalItem', 'symbol, library, data, metadata, 
 
 
 class BitemporalStore(object):
-    """ A versioned pandas DataFrame store. (currently only supports single index df)
+    """ A versioned pandas DataFrame store.
 
     As the name hinted, this holds versions of DataFrame by maintaining an extra 'insert time' index internally.
     """
@@ -22,8 +22,8 @@ class BitemporalStore(object):
         version_store : `VersionStore`
             The version store that keeps the underlying data frames
         observe_column : `str`
-            Column name for the datetime index that represents the insertion time of a row of data. This column is
-            internal to this store.
+            Column name for the datetime index that represents the insertion time of a row of data. Unless you intent to
+            read raw data out, this column is internal to this store.
         """
         self._store = version_store
         self.observe_column = observe_column
@@ -48,16 +48,17 @@ class BitemporalStore(object):
         BitemporalItem namedtuple which contains a .data and .metadata element
         """
         item = self._store.read(symbol, **kwargs)
+        last_updated = max(item.data.index.get_level_values(self.observe_column))
         if raw:
             return BitemporalItem(symbol=symbol, library=self._store._arctic_lib.get_name(), data=item.data,
                                   metadata=item.metadata,
-                                  last_updated=max(item.data.index, key=lambda x: x[1]))
+                                  last_updated=last_updated)
         else:
             index_names = list(item.data.index.names)
             index_names.remove(self.observe_column)
             return BitemporalItem(symbol=symbol, library=self._store._arctic_lib.get_name(),
                                   data=groupby_asof(item.data, as_of=as_of, dt_col=index_names, asof_col=self.observe_column),
-                                  metadata=item.metadata, last_updated=max(item.data.index, key=lambda x: x[1]))
+                                  metadata=item.metadata, last_updated=last_updated)
 
     def update(self, symbol, data, metadata=None, upsert=True, as_of=None, **kwargs):
         """ Append 'data' under the specified 'symbol' name to this library.

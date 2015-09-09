@@ -44,6 +44,12 @@ def test_read_ts_raw(bitemporal_library):
                                                       2012-11-08 17:06:11.040 |  2015-05-01 |  3.0""", num_index=2))
 
 
+def test_last_update(bitemporal_library):
+    bitemporal_library.update('spam', ts1, as_of=dt(2015, 1, 1))
+    bitemporal_library.update('spam', ts1, as_of=dt(2015, 1, 2))
+    assert bitemporal_library.read('spam').last_updated == dt(2015, 1, 2)
+
+
 def test_existing_ts_update_and_read(bitemporal_library):
     bitemporal_library.update('spam', ts1)
     bitemporal_library.update('spam', ts1_update[-1:])
@@ -245,6 +251,7 @@ def test_multi_index_update(bitemporal_library):
                           2012-11-08 17:06:11.040 | SPAM Index |  3.0
                           2012-12-08 17:06:11.040 |  EGG Index |
                           2012-12-08 17:06:11.040 | SPAM Index |  4.0""", num_index=2)
-    bitemporal_library.update('spam', ts)
-    bitemporal_library.update('spam', ts2)
+    bitemporal_library.update('spam', ts, as_of=dt(2015, 1, 1))
+    bitemporal_library.update('spam', ts2, as_of=dt(2015, 1, 2))
     assert_frame_equal(expected_ts, bitemporal_library.read('spam').data)
+    assert bitemporal_library.read('spam').last_updated == dt(2015, 1, 2)
