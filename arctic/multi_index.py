@@ -23,7 +23,7 @@ def fancy_group_by(df, grouping_level=0, aggregate_level=1, method='last', max_=
     ----------
     df: ``DataFrame``
         Pandas dataframe with a MultiIndex
-    grouping_level: ``int`` or ``str``
+    grouping_level: ``int`` or ``str`` or ``list`` of ``str``
         Index level to group by. Defaults to 0.
     aggregate_level: ``int`` or ``str``
         Index level to aggregate by. Defaults to 1.
@@ -31,12 +31,13 @@ def fancy_group_by(df, grouping_level=0, aggregate_level=1, method='last', max_=
         Aggregation method. One of
             last: Use the last (lexicographically) value from each group
             first: Use the first value from each group
-    within: Any type supported by the index, or ``DateOffset``/timedelta-like for ``DatetimeIndex``.
-        If set, will limit results to those having aggregate level values within this range of the group value
     max_: <any>
         If set, will limit results to those having aggregate level values <= this value
     min_: <any>
         If set, will limit results to those having aggregate level values >= this value
+    within: Any type supported by the index, or ``DateOffset``/timedelta-like for ``DatetimeIndex``.
+        If set, will limit results to those having aggregate level values within this range of the group value.
+        Note that this is currently unsupported for Multi-index of depth > 2
     """
     if method not in ('first', 'last'):
         raise ValueError('Invalid method')
@@ -44,17 +45,16 @@ def fancy_group_by(df, grouping_level=0, aggregate_level=1, method='last', max_=
     if isinstance(aggregate_level, basestring):
         aggregate_level = df.index.names.index(aggregate_level)
 
-    agg_idx = df.index.get_level_values(aggregate_level)
-    group_idx = df.index.get_level_values(grouping_level)
-
     # Trim any rows outside the aggregate value bounds
     if max_ is not None or min_ is not None or within is not None:
+        agg_idx = df.index.get_level_values(aggregate_level)
         mask = np.full(len(agg_idx), True, dtype='b1')
         if max_ is not None:
             mask &= (agg_idx <= max_)
         if min_ is not None:
             mask &= (agg_idx >= min_)
         if within is not None:
+            group_idx = df.index.get_level_values(grouping_level)
             if isinstance(agg_idx, pd.DatetimeIndex):
                 mask &= (group_idx >= agg_idx.shift(-1, freq=within))
             else:
@@ -121,4 +121,3 @@ def insert_at(df, sample_date, values):
     """
     observed_dt = dt(datetime.now())
     return multi_index_insert_row(df, [sample_date, observed_dt], values)
-

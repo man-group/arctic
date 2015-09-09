@@ -15,21 +15,18 @@ class BitemporalStore(object):
     As the name hinted, this holds versions of DataFrame by maintaining an extra 'insert time' index internally.
     """
 
-    def __init__(self, version_store, sample_column='sample_dt', observe_column='observed_dt'):
+    def __init__(self, version_store, observe_column='observed_dt'):
         """
         Parameters
         ----------
         version_store : `VersionStore`
             The version store that keeps the underlying data frames
-        sample_column : `str`
-            Column name for the datetime index that represents that sample time of the data.
         observe_column : `str`
             Column name for the datetime index that represents the insertion time of a row of data. This column is
             internal to this store.
         """
         self._store = version_store
         self.observe_column = observe_column
-        self.sample_column = sample_column
 
     def read(self, symbol, as_of=None, raw=False, **kwargs):
         # TODO: shall we block from_version from getting into super.read?
@@ -56,9 +53,10 @@ class BitemporalStore(object):
                                   metadata=item.metadata,
                                   last_updated=max(item.data.index, key=lambda x: x[1]))
         else:
+            index_names = list(item.data.index.names)
+            index_names.remove(self.observe_column)
             return BitemporalItem(symbol=symbol, library=self._store._arctic_lib.get_name(),
-                                  data=groupby_asof(item.data, as_of=as_of, dt_col=self.sample_column,
-                                                    asof_col=self.observe_column),
+                                  data=groupby_asof(item.data, as_of=as_of, dt_col=index_names, asof_col=self.observe_column),
                                   metadata=item.metadata, last_updated=max(item.data.index, key=lambda x: x[1]))
 
     def update(self, symbol, data, metadata=None, upsert=True, as_of=None, **kwargs):
@@ -100,7 +98,8 @@ class BitemporalStore(object):
                                   'to add / modify timeseries.')
 
     def _add_observe_dt_index(self, df, as_of):
-        df = df.set_index(pd.MultiIndex.from_product([df.index, as_of],
-                                                     names=[self.sample_column, self.observe_column]),
-                          inplace=False)
+        index_names = list(df.index.names)
+        index_names.append(self.observe_column)
+        index = [x + (as_of,) if df.index.nlevels > 1 else (x, as_of) for x in df.index.tolist()]
+        df = df.set_index(pd.MultiIndex.from_tuples(index, names=index_names), inplace=False)
         return df

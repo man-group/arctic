@@ -1,11 +1,13 @@
 from datetime import timedelta
 import itertools
 
-import numpy as np
-import pandas as pd
 from pandas.tseries.tools import to_datetime as dt
+from pandas.util.testing import assert_frame_equal
 
 from arctic.multi_index import groupby_asof, fancy_group_by, insert_at
+import numpy as np
+import pandas as pd
+from tests.util import read_str_as_pandas
 
 
 def get_bitemporal_test_data():
@@ -91,6 +93,28 @@ def test__get_ts__unsorted_index():
     assert len(df) == 4
     assert all(df['OPEN'] == [1.1, 2.1, 3.1, 4.1])
     assert all(df['CLOSE'] == [10.1, 20.1, 30.1, 40.1])
+
+
+def test_fancy_group_by_multi_index():
+    ts = read_str_as_pandas("""      index 1 |    index 2 | observed_dt | near
+                     2012-09-08 17:06:11.040 | SPAM Index | 2015-01-01 |  1.0
+                     2012-09-08 17:06:11.040 |  EGG Index | 2015-01-01 |  1.6
+                     2012-10-08 17:06:11.040 | SPAM Index | 2015-01-01 |  2.0
+                     2012-10-08 17:06:11.040 | SPAM Index | 2015-01-05 |  4.2
+                     2012-10-08 17:06:11.040 |  EGG Index | 2015-01-01 |  2.1
+                     2012-10-09 17:06:11.040 | SPAM Index | 2015-01-01 |  2.5
+                     2012-10-09 17:06:11.040 |  EGG Index | 2015-01-01 |  2.6
+                     2012-11-08 17:06:11.040 | SPAM Index | 2015-01-01 |  3.0""", num_index=3)
+    expected_ts = read_str_as_pandas("""  index 1 |    index 2 | near
+                          2012-09-08 17:06:11.040 |  EGG Index |  1.6
+                          2012-09-08 17:06:11.040 | SPAM Index |  1.0
+                          2012-10-08 17:06:11.040 |  EGG Index |  2.1
+                          2012-10-08 17:06:11.040 | SPAM Index |  4.2
+                          2012-10-09 17:06:11.040 |  EGG Index |  2.6
+                          2012-10-09 17:06:11.040 | SPAM Index |  2.5
+                          2012-11-08 17:06:11.040 |  EGG Index |
+                          2012-11-08 17:06:11.040 | SPAM Index |  3.0""", num_index=2)
+    assert_frame_equal(expected_ts, groupby_asof(ts, dt_col=['index 1', 'index 2'], asof_col='observed_dt'))
 
 
 # --------- Min/Max using numeric index ----------- #

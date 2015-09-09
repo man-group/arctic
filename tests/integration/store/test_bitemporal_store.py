@@ -9,9 +9,10 @@ from mock import patch
 from pandas.util.testing import assert_frame_equal
 
 from arctic.date._mktz import mktz
-from arctic.fixtures.arctic import bitemporal_library
 import pandas as pd
 from tests.util import read_str_as_pandas
+
+pytest_plugins = ['arctic.fixtures.arctic']
 
 
 ts1 = read_str_as_pandas("""           sample_dt | near
@@ -191,3 +192,59 @@ def test_bitemporal_store_read_as_of_timezone(bitemporal_library):
                               as_of=dt(2015, 5, 2, tzinfo=mktz('Europe/London')))
     df = bitemporal_library.read('spam', as_of=dt(2015, 5, 2, tzinfo=mktz('Asia/Hong_Kong'))).data
     assert_frame_equal(df, ts1)
+
+
+def test_multi_index_ts_read_write(bitemporal_library):
+    ts = read_str_as_pandas("""          index 1 |    index 2 | near
+                         2012-09-08 17:06:11.040 | SPAM Index |  1.0
+                         2012-10-08 17:06:11.040 | SPAM Index |  2.0
+                         2012-10-09 17:06:11.040 | SPAM Index |  2.5
+                         2012-11-08 17:06:11.040 | SPAM Index |  3.0""", num_index=2)
+    bitemporal_library.update('spam', ts)
+    assert_frame_equal(ts, bitemporal_library.read('spam').data)
+
+
+def test_multi_index_ts_read_raw(bitemporal_library):
+    ts = read_str_as_pandas("""          index 1 |    index 2 | near
+                         2012-09-08 17:06:11.040 | SPAM Index |  1.0
+                         2012-10-08 17:06:11.040 | SPAM Index |  2.0
+                         2012-10-09 17:06:11.040 | SPAM Index |  2.5
+                         2012-11-08 17:06:11.040 | SPAM Index |  3.0""", num_index=2)
+
+    expected_ts = read_str_as_pandas(""" index 1 |    index 2 | observed_dt | near
+                         2012-09-08 17:06:11.040 | SPAM Index |  2015-01-01 |  1.0
+                         2012-10-08 17:06:11.040 | SPAM Index |  2015-01-01 |  2.0
+                         2012-10-09 17:06:11.040 | SPAM Index |  2015-01-01 |  2.5
+                         2012-11-08 17:06:11.040 | SPAM Index |  2015-01-01 |  3.0""", num_index=3)
+    bitemporal_library.update('spam', ts, as_of=dt(2015, 1, 1))
+    assert_frame_equal(expected_ts, bitemporal_library.read('spam', raw=True).data)
+
+
+def test_multi_index_update(bitemporal_library):
+    ts = read_str_as_pandas("""          index 1 |    index 2 | near
+                         2012-09-08 17:06:11.040 | SPAM Index |  1.0
+                         2012-09-08 17:06:11.040 |  EGG Index |  1.1
+                         2012-10-08 17:06:11.040 | SPAM Index |  2.0
+                         2012-10-08 17:06:11.040 |  EGG Index |  2.1
+                         2012-10-09 17:06:11.040 | SPAM Index |  2.5
+                         2012-10-09 17:06:11.040 |  EGG Index |  2.6
+                         2012-11-08 17:06:11.040 | SPAM Index |  3.0
+                         2012-11-08 17:06:11.040 |  EGG Index |  3.1""", num_index=2)
+    ts2 = read_str_as_pandas("""          index 1 |    index 2 | near
+                          2012-09-08 17:06:11.040 | SPAM Index |  1.2
+                          2012-09-08 17:06:11.040 |  EGG Index |  1.6
+                          2012-12-08 17:06:11.040 | SPAM Index |  4.0""", num_index=2)
+    expected_ts = read_str_as_pandas("""  index 1 |    index 2 | near
+                          2012-09-08 17:06:11.040 |  EGG Index |  1.6
+                          2012-09-08 17:06:11.040 | SPAM Index |  1.2
+                          2012-10-08 17:06:11.040 |  EGG Index |  2.1
+                          2012-10-08 17:06:11.040 | SPAM Index |  2.0
+                          2012-10-09 17:06:11.040 |  EGG Index |  2.6
+                          2012-10-09 17:06:11.040 | SPAM Index |  2.5
+                          2012-11-08 17:06:11.040 |  EGG Index |  3.1
+                          2012-11-08 17:06:11.040 | SPAM Index |  3.0
+                          2012-12-08 17:06:11.040 |  EGG Index |
+                          2012-12-08 17:06:11.040 | SPAM Index |  4.0""", num_index=2)
+    bitemporal_library.update('spam', ts)
+    bitemporal_library.update('spam', ts2)
+    assert_frame_equal(expected_ts, bitemporal_library.read('spam').data)
