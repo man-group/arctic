@@ -78,7 +78,7 @@ class BitemporalStore(object):
         as_of : `datetime.datetime`
             The "insert time". Default to datetime.now()
         """
-        if self.observe_column in data:
+        if self.observe_column in data.index.names:
             raise ValueError("Column {} is not allowed as it is being used by bitemporal store interally.".format(self.observe_column))
         local_tz = mktz()
         if not as_of:
