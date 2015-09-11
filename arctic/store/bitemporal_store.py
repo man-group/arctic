@@ -22,7 +22,7 @@ class BitemporalStore(object):
         version_store : `VersionStore`
             The version store that keeps the underlying data frames
         observe_column : `str`
-            Column name for the datetime index that represents the insertion time of a row of data. Unless you intent to
+            Column name for the datetime index that represents the insertion time of a row of data. Unless you intend to
             read raw data out, this column is internal to this store.
         """
         self._store = version_store
@@ -57,7 +57,8 @@ class BitemporalStore(object):
             index_names = list(item.data.index.names)
             index_names.remove(self.observe_column)
             return BitemporalItem(symbol=symbol, library=self._store._arctic_lib.get_name(),
-                                  data=groupby_asof(item.data, as_of=as_of, dt_col=index_names, asof_col=self.observe_column),
+                                  data=groupby_asof(item.data, as_of=as_of, dt_col=index_names,
+                                                    asof_col=self.observe_column),
                                   metadata=item.metadata, last_updated=last_updated)
 
     def update(self, symbol, data, metadata=None, upsert=True, as_of=None, **kwargs):
@@ -77,7 +78,8 @@ class BitemporalStore(object):
         as_of : `datetime.datetime`
             The "insert time". Default to datetime.now()
         """
-        assert self.observe_column not in data
+        if self.observe_column in data:
+            raise ValueError("Column {} is not allowed as it is being used by bitemporal store interally.".format(self.observe_column))
         local_tz = mktz()
         if not as_of:
             as_of = dt.now()
