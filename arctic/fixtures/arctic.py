@@ -76,7 +76,7 @@ def library(arctic, library_name):
 
 @pytest.fixture(scope="function")
 def bitemporal_library(arctic, library_name):
-    arctic.initialize_library(library_name, m.VERSION_STORE, segment='month')  # TODO: segment=month??
+    arctic.initialize_library(library_name, m.VERSION_STORE, segment='month')
     return BitemporalStore(arctic.get_library(library_name))
 
 

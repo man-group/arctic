@@ -44,6 +44,16 @@ def test_read_ts_raw(bitemporal_library):
                                                       2012-11-08 17:06:11.040 |  2015-05-01 |  3.0""", num_index=2))
 
 
+def test_write_ts_with_column_name_same_as_observed_dt_ok(bitemporal_library):
+    ts1 = read_str_as_pandas("""       sample_dt | observed_dt | near
+                         2012-09-08 17:06:11.040 |    2015-1-1 |  1.0
+                         2012-10-08 17:06:11.040 |    2015-1-1 |  2.0
+                         2012-10-09 17:06:11.040 |    2015-1-1 |  2.5
+                         2012-11-08 17:06:11.040 |    2015-1-1 |  3.0""")
+    bitemporal_library.update('spam', ts1)
+    assert_frame_equal(ts1, bitemporal_library.read('spam').data)
+
+
 def test_last_update(bitemporal_library):
     bitemporal_library.update('spam', ts1, as_of=dt(2015, 1, 1))
     bitemporal_library.update('spam', ts1, as_of=dt(2015, 1, 2))
