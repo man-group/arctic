@@ -112,7 +112,6 @@ def test_fancy_group_by_multi_index():
                           2012-10-08 17:06:11.040 | SPAM Index |  4.2
                           2012-10-09 17:06:11.040 |  EGG Index |  2.6
                           2012-10-09 17:06:11.040 | SPAM Index |  2.5
-                          2012-11-08 17:06:11.040 |  EGG Index |
                           2012-11-08 17:06:11.040 | SPAM Index |  3.0""", num_index=2)
     assert_frame_equal(expected_ts, groupby_asof(ts, dt_col=['index 1', 'index 2'], asof_col='observed_dt'))
 
