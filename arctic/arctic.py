@@ -3,15 +3,14 @@ import logging
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect
 
-from .auth import authenticate, get_auth
-from .hooks import get_mongodb_uri
-from .decorators import mongo_retry
 from ._util import indent
-
+from .auth import authenticate, get_auth
+from .decorators import mongo_retry
 from .exceptions import LibraryNotFoundException, ArcticException, QuotaExceededException
+from .hooks import get_mongodb_uri
 from .store import version_store
-from .tickstore import tickstore
-from .tickstore import toplevel
+from .tickstore import tickstore, toplevel
+
 
 __all__ = ['Arctic', 'VERSION_STORE', 'TICK_STORE', 'register_library_type']
 
@@ -23,7 +22,7 @@ VERSION_STORE = version_store.VERSION_STORE_TYPE
 TICK_STORE = tickstore.TICK_STORE_TYPE
 LIBRARY_TYPES = {version_store.VERSION_STORE_TYPE: version_store.VersionStore,
                  tickstore.TICK_STORE_TYPE: tickstore.TickStore,
-                 toplevel.TICK_STORE_TYPE: toplevel.TopLevelTickStore
+                 toplevel.TICK_STORE_TYPE: toplevel.TopLevelTickStore,
                  }
 
 
