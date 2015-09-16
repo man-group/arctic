@@ -1,6 +1,13 @@
 
 ## Changelog
 
+### 1.6 (2015-09-16)
+
+  * Feature: Add support for multi-index Bitemporal DataFrame storage.
+    This allows persisting data and changes within the DataFrame making it
+    easier to see how old data has been revised over time.
+  * Bugfix: Ensure we call the error logging hook when exceptions occur
+
 ### 1.5 (2015-09-02)
 
   * Always use the primary cluster node for 'has_symbol()', it's safer
