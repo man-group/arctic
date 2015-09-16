@@ -6,6 +6,7 @@ from pymongo.read_preferences import ReadPreference
 from arctic import decorators
 from arctic.decorators import mongo_retry, _get_host
 from pymongo.collection import Collection
+from arctic.hooks import register_log_exception_hook
 
 
 def test_mongo_retry():
@@ -33,6 +34,29 @@ def test_mongo_retry():
                                        'l': sentinel.lib_name}
     assert isinstance(he.call_args_list[1][0][1], AutoReconnect)
     assert he.call_args_list[1][0][2] == 2
+
+
+def test_mongo_retry_hook_changes():
+    retries = [2]
+    self = MagicMock()
+    hook1 = Mock()
+    register_log_exception_hook(hook1)
+    hook2 = Mock()
+
+    @mongo_retry
+    def foo(self):
+        if retries[0] == 2:
+            retries[0] -= 1
+            raise OperationFailure('error')
+        elif retries[0] == 1:
+            register_log_exception_hook(hook2)
+            retries[0] -= 1
+            raise AutoReconnect('error')
+        return "success"
+    foo(self)
+
+    assert hook1.call_count == 1
+    assert hook2.call_count == 1
 
 
 def test_mongo_retry_fails():

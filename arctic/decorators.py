@@ -7,7 +7,7 @@ import logging
 
 from pymongo.errors import AutoReconnect, OperationFailure, DuplicateKeyError, ServerSelectionTimeoutError
 
-from .hooks import _log_exception_hook as _log_exception
+from .hooks import log_exception as _log_exception
 
 logger = logging.getLogger(__name__)
 
