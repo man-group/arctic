@@ -713,7 +713,7 @@ def test_daterange(library, df, assert_equal):
     assert_equal(df[df.index[-1] + DateOffset(days=1):],
                  library.read('MYARR', date_range=DateRange(df.index[-1] + DateOffset(days=1))).data)
     assert len(library.read('MYARR', date_range=DateRange(dt(1950, 1, 1), dt(1951, 1, 1))).data) == 0
-    assert len(library.read('MYARR', date_range=DateRange(dt(3000, 1, 1), dt(3000, 1, 1))).data) == 0
+    assert len(library.read('MYARR', date_range=DateRange(dt(2091, 1, 1), dt(2091, 1, 1))).data) == 0
 
     
 def test_daterange_append(library):
