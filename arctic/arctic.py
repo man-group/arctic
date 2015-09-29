@@ -333,6 +333,14 @@ class ArcticLibraryBinding(object):
         self.database_name = database_name
         self._db = self.arctic._conn[database_name]
         self._auth(self._db)
+
+        auth_users = self._db.command({'connectionStatus': 1})['authInfo']['authenticatedUsers']
+        if all((r['userSource'] != self._db.name for r in auth_users)):
+            # We're not authenticated to the database,
+            # ensure we are authed to admin so that we can at least read from it
+            if all((r['userSource'] != 'admin' for r in auth_users)):
+                self._auth(self.arctic._adminDB)
+
         self._library_coll = self._db[library]
 
     def __str__(self):
@@ -356,7 +364,7 @@ class ArcticLibraryBinding(object):
 
         auth = get_auth(self.arctic.mongo_host, self.arctic._application_name, database.name)
         if auth:
-            authenticate(self._db, auth.user, auth.password)
+            authenticate(database, auth.user, auth.password)
             self.arctic._conn.close()
 
     def get_name(self):
