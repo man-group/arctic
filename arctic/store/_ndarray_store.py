@@ -37,7 +37,70 @@ def _promote_struct_dtypes(dtype1, dtype2):
 
 
 class NdarrayStore(object):
-    """Chunked store for arbitrary ndarrays, supporting append."""
+    """Chunked store for arbitrary ndarrays, supporting append.
+    
+    for the simple example:
+    dat = np.empty(10)
+    library.write('test', dat) #version 1
+    library.append('test', dat) #version 2
+    
+    version documents:
+    
+    [
+     {u'_id': ObjectId('55fa9a7781f12654382e58b8'),
+      u'symbol': u'test',
+      u'version': 1
+      u'type': u'ndarray',
+      u'up_to': 10,  # no. of rows included in the data for this version
+      u'append_count': 0,
+      u'append_size': 0,
+      u'base_sha': Binary('........', 0),
+      u'dtype': u'float64',
+      u'dtype_metadata': {},
+      u'segment_count': 1, #only 1 segment included in this version
+      u'sha': Binary('.........', 0),
+      u'shape': [-1],
+      },
+      
+     {u'_id': ObjectId('55fa9aa981f12654382e58ba'),
+      u'symbol': u'test',
+      u'version': 2
+      u'type': u'ndarray',
+      u'up_to': 20, # no. of rows included in the data for this version
+      u'append_count': 1, # 1 append operation so far
+      u'append_size': 80, # 80 bytes appended
+      u'base_sha': Binary('.........', 0), # equal to sha for version 1
+      u'base_version_id': ObjectId('55fa9a7781f12654382e58b8'), # _id of version 1
+      u'dtype': u'float64',
+      u'dtype_metadata': {},
+      u'segment_count': 2, #2 segments included in this version
+      }
+      ]
+    
+
+    segment documents:
+    
+    [
+     #first chunk written:
+     {u'_id': ObjectId('55fa9a778b376a68efdd10e3'),
+      u'compressed': True, #data is lz4 compressed on write()
+      u'data': Binary('...........', 0),
+      u'parent': [ObjectId('55fa9a7781f12654382e58b8')],
+      u'segment': 9, #10 rows in the data up to this segment, so last row is 9
+      u'sha': Binary('.............', 0), # checksum of (symbol, {'data':.., 'compressed':.., 'segment':...})
+      u'symbol': u'test'},
+
+     #second chunk appended:
+     {u'_id': ObjectId('55fa9aa98b376a68efdd10e6'),
+      u'compressed': False, # no initial compression for append()
+      u'data': Binary('...........', 0),
+      u'parent': [ObjectId('55fa9a7781f12654382e58b8')],
+      u'segment': 19, #20 rows in the data up to this segment, so last row is 19
+      u'sha': Binary('............', 0), # checksum of (symbol, {'data':.., 'compressed':.., 'segment':...})
+      u'symbol': u'test'},
+      ]
+
+    """
     TYPE = 'ndarray'
 
     @classmethod
@@ -117,16 +180,22 @@ Version document:
         return self._do_read(collection, version, symbol, index_range=index_range)
 
     def _do_read(self, collection, version, symbol, index_range=None):
+        '''
+        index_range is a 2-tuple of integers - a [from, to) range of segments to be read. 
+            Either from or to can be None, indicating no bound. 
+        '''
         from_index = index_range[0] if index_range else None
-        to_index = index_range[1] if index_range and index_range[1] is not None \
-            and index_range[1] < version['up_to'] else version['up_to']
+        to_index = version['up_to']
+        if index_range and index_range[1] and index_range[1] < version['up_to']:
+            to_index = index_range[1]
         segment_count = None
 
         spec = {'symbol': symbol,
                 'parent': version.get('base_version_id', version['_id']),
-                'segment': {'$lt': to_index}}
+                'segment': {'$lt': to_index}
+                }
         if from_index:
-            spec['segment'] = {'$lt': version['up_to'], '$gte': from_index}
+            spec['segment']['$gte'] = from_index
         else:
             segment_count = version.get('segment_count', None)
 
@@ -389,5 +458,22 @@ Version document:
 
         self.check_written(collection, symbol, version)
 
-    def _segment_index(self, item, existing_index, start, new_segments):
-        pass
+    def _segment_index(self, new_data, existing_index, start, new_segments):
+        """
+        Generate a segment index which can be used in subselect data in _index_range.
+        This function must handle both generation of the index and appending to an existing index
+
+        Parameters:
+        -----------
+        new_data: new data being written (or appended)
+        existing_index: index field from the versions document of the previous version
+        start: first (0-based) offset of the new data
+        segments: list of offsets. Each offset is the row index of the
+                  the last row of a particular chunk relative to the start of the _original_ item.
+                  array(new_data) - segments = array(offsets in item)
+        
+        Returns:
+        --------
+        Library specific index metadata to be stored in the version document.
+        """
+        pass  # numpy arrays have no index

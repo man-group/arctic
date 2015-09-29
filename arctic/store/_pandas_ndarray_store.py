@@ -1,18 +1,27 @@
 import logging
 
-from _ndarray_store import NdarrayStore
+from bson.binary import Binary
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Panel
 from pandas.tslib import Timestamp, get_timezone
 import numpy as np
 
+from .._compression import compress, decompress
+from ..exceptions import ArcticException
+from ._ndarray_store import NdarrayStore
+from ..date._util import to_pandas_closed_closed
+
 log = logging.getLogger(__name__)
+
+DTN64_DTYPE = 'datetime64[ns]'
+
+INDEX_DTYPE = [('datetime', DTN64_DTYPE), ('index', 'i8')]
 
 
 def _to_primitive(arr):
     if arr.dtype.hasobject:
         if len(arr) > 0:
             if isinstance(arr[0], Timestamp):
-                return arr.astype('datetime64[ns]')
+                return arr.astype(DTN64_DTYPE)
         return np.array(list(arr))
     return arr
 
@@ -101,6 +110,103 @@ class PandasStore(NdarrayStore):
                 return False
             else:
                 return True
+
+    def _segment_index(self, recarr, existing_index, start, new_segments):
+        """
+        Generate index of datetime64 -> item offset.
+
+        Parameters:
+        -----------
+        new_data: new data being written (or appended)
+        existing_index: index field from the versions document of the previous version
+        start: first (0-based) offset of the new data
+        segments: list of offsets. Each offset is the row index of the
+                  the last row of a particular chunk relative to the start of the _original_ item.
+                  array(new_data) - segments = array(offsets in item)
+
+        Returns:
+        --------
+        Binary(compress(array([(index, datetime)]))
+            Where index is the 0-based index of the datetime in the DataFrame
+        """
+        # find the index of the first datetime64 column
+        idx_col = self._datetime64_index(recarr)
+        # if one exists let's create the index on it
+        if idx_col is not None:
+            new_segments = np.array(new_segments, dtype='i8')
+            last_rows = recarr[new_segments - start]
+            # create numpy index
+            index = np.core.records.fromarrays([last_rows[idx_col]]
+                                               + [new_segments, ],
+                                               dtype=INDEX_DTYPE)
+            # append to existing index if exists
+            if existing_index:
+                existing_index_arr = np.fromstring(decompress(existing_index), dtype=INDEX_DTYPE)
+                if start > 0:
+                    existing_index_arr = existing_index_arr[existing_index_arr['index'] < start]
+                index = np.concatenate((existing_index_arr, index))
+            return Binary(compress(index.tostring()))
+        elif existing_index:
+            raise ArcticException("Could not find datetime64 index in item but existing data contains one")
+        return None
+
+    def _datetime64_index(self, recarr):
+        """ Given a np.recarray find the first datetime64 column """
+        # TODO: Handle multi-indexes
+        names = recarr.dtype.names
+        for name in names:
+            if recarr[name].dtype == DTN64_DTYPE:
+                return name
+        return None
+
+    def _index_range(self, version, symbol, date_range=None, **kwargs):
+        """ Given a version, read the segment_index and return the chunks associated
+        with the date_range. As the segment index is (id -> last datetime)
+        we need to take care in choosing the correct chunks. """
+        if date_range and 'segment_index' in version:
+            index = np.fromstring(decompress(version['segment_index']), dtype=INDEX_DTYPE)
+            dtcol = self._datetime64_index(index)
+            if dtcol and len(index):
+                dts = index[dtcol]
+                start, end = _start_end(date_range, dts)
+                if start > dts[-1]:
+                    return -1, -1
+                idxstart = min(np.searchsorted(dts, start), len(dts))
+                idxend = min(np.searchsorted(dts, end), len(dts))
+                return index['index'][idxstart], index['index'][idxend] + 1
+        return super(PandasStore, self)._index_range(version, symbol, **kwargs)
+
+    def _daterange(self, recarr, date_range):
+        """ Given a recarr, slice out the given artic.date.DateRange if a
+        datetime64 index exists """
+        idx = self._datetime64_index(recarr)
+        if idx and len(recarr):
+            dts = recarr[idx]
+            mask = Series(np.zeros(len(dts)), index=dts)
+            start, end = _start_end(date_range, dts)
+            mask[start:end] = 1.0
+            return recarr[mask.values.astype(bool)]
+        return recarr
+
+    def read(self, arctic_lib, version, symbol, read_preference=None, date_range=None, **kwargs):
+        item = super(PandasStore, self).read(arctic_lib, version, symbol, read_preference,
+                                             date_range=date_range, **kwargs)
+        if date_range:
+            item = self._daterange(item, date_range)
+        return item
+
+
+def _start_end(date_range, dts):
+    """
+    Return tuple: [start, end] of np.datetime64 dates that are inclusive of the passed
+    in datetimes.
+    """
+    # FIXME: timezones
+    assert len(dts)
+    date_range = to_pandas_closed_closed(date_range)
+    start = np.datetime64(date_range.start) if date_range.start else dts[0]
+    end = np.datetime64(date_range.end) if date_range.end else dts[-1]
+    return start, end
 
 
 class PandasSeriesStore(PandasStore):

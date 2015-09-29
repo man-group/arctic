@@ -1,17 +1,20 @@
 from StringIO import StringIO
 from datetime import datetime as dt, timedelta as dtd
 from dateutil.rrule import rrule, DAILY
-from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel
-from pandas.util.testing import assert_frame_equal
+from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 import numpy as np
 import pytest
 import io
 import itertools
-from mock import Mock
+from mock import Mock, patch
 import string
 
-from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore
+from arctic.date import DateRange
+from arctic._compression import decompress
+from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasStore
 from arctic.store.version_store import register_versioned_storage
+from pandas.tseries.offsets import DateOffset
 
 register_versioned_storage(PandasDataFrameStore)
 
@@ -40,7 +43,7 @@ def test_save_read_pandas_series_with_multiindex(library):
 
 
 def test_save_read_pandas_series_with_multiindex_and_name(library):
-    df = Series(data=['A', 'BC', 'DEF'], 
+    df = Series(data=['A', 'BC', 'DEF'],
                 index=MultiIndex.from_tuples([(1, 2), (1, 3), (2, 2)]),
                 name='Foo')
     library.write('pandas', df)
@@ -596,6 +599,149 @@ def test_not_unique(library):
     d = dt.now()
     ts = DataFrame(index=[d, d], data={'near': [1., 2.]})
     ts.index.name = 'index'
-    library.write('ts' , ts)
+    library.write('ts', ts)
     ts2 = library.read('ts').data
     assert_frame_equal(ts, ts2)
+
+    
+def test_daterange_end(library):
+    df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=30 * 1024),
+                   data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)))
+    df.columns = [str(c) for c in df.columns]
+    library.write('MYARR', df)
+    mdecompressALL = Mock(side_effect=decompress)
+    with patch('arctic.store._ndarray_store.decompress', mdecompressALL):
+        library.read('MYARR').data
+    mdecompressLR = Mock(side_effect=decompress)
+    with patch('arctic.store._ndarray_store.decompress', mdecompressLR):
+        result = library.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1])).data
+    assert len(result) == 1
+    assert mdecompressLR.call_count < mdecompressALL.call_count
+
+
+def test_daterange_start(library):
+    df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=30 * 1024),
+                   data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)))
+    df.columns = [str(c) for c in df.columns]
+    library.write('MYARR', df)
+    mdecompressALL = Mock(side_effect=decompress)
+    with patch('arctic.store._ndarray_store.decompress', mdecompressALL):
+        library.read('MYARR').data
+    mdecompressLR = Mock(side_effect=decompress)
+    with patch('arctic.store._ndarray_store.decompress', mdecompressLR):
+        result = library.read('MYARR', date_range=DateRange(end=df.index[0])).data
+    assert len(result) == 1
+    assert mdecompressLR.call_count < mdecompressALL.call_count
+    end = df.index[0] + dtd(milliseconds=1)
+    result = library.read('MYARR', date_range=DateRange(end=end)).data
+    assert len(result) == 1
+
+
+def test_daterange_large_DataFrame(library):
+    df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=30 * 1024),
+                   data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)))
+    df.columns = [str(c) for c in df.columns]
+    library.write('MYARR', df)
+    # assert saved
+    saved_arr = library.read('MYARR').data
+    assert_frame_equal(df, saved_arr, check_names=False)
+    # first 100
+    result = library.read('MYARR', date_range=DateRange(df.index[0], df.index[100])).data
+    assert_frame_equal(df[df.index[0]:df.index[100]], result, check_names=False)
+    # second 100
+    result = library.read('MYARR', date_range=DateRange(df.index[100], df.index[200])).data
+    assert_frame_equal(df[df.index[100]:df.index[200]], result, check_names=False)
+    # first row
+    result = library.read('MYARR', date_range=DateRange(df.index[0], df.index[0])).data
+    assert_frame_equal(df[df.index[0]:df.index[0]], result, check_names=False)
+    # last 100
+    result = library.read('MYARR', date_range=DateRange(df.index[-100])).data
+    assert_frame_equal(df[df.index[-100]:], result, check_names=False)
+    # last 200-100
+    result = library.read('MYARR', date_range=DateRange(df.index[-200], df.index[-100])).data
+    assert_frame_equal(df[df.index[-200]:df.index[-100]], result, check_names=False)
+    # last row
+    result = library.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1])).data
+    assert_frame_equal(df[df.index[-1]:df.index[-1]], result, check_names=False)
+    # somewhere in time
+    result = library.read('MYARR', date_range=DateRange(dt(2020, 1, 1), dt(2031, 9, 1))).data
+    assert_frame_equal(df[dt(2020, 1, 1):dt(2031, 9, 1)], result, check_names=False)
+
+
+def test_daterange_large_DataFrame_middle(library):
+    df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=30 * 1024),
+                   data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)))
+    df.columns = [str(c) for c in df.columns]
+    library.write('MYARR', df)
+    # middle
+    start = 100
+    for end in np.arange(200, 30000, 1000):
+        result = library.read('MYARR', date_range=DateRange(df.index[start], df.index[end])).data
+        assert_frame_equal(df[df.index[start]:df.index[end]], result, check_names=False)
+    # middle following
+    for start in np.arange(200, 30000, 1000):
+        for offset in (100, 300, 500):
+            end = start + offset
+            result = library.read('MYARR', date_range=DateRange(df.index[start], df.index[end])).data
+            assert_frame_equal(df[df.index[start]:df.index[end]], result, check_names=False)
+
+
+@pytest.mark.parametrize("df,assert_equal", [
+    (DataFrame(index=date_range(dt(2001, 1, 1), freq='D', periods=30000),
+               data=range(30000), columns=['A']), assert_frame_equal),
+    (Series(index=date_range(dt(2001, 1, 1), freq='D', periods=30000),
+            data=range(30000)), assert_series_equal),
+])
+def test_daterange(library, df, assert_equal):
+    df.index.name = 'idx'
+    df.name = 'FOO'
+    library.write('MYARR', df)
+    # whole array
+    saved_arr = library.read('MYARR').data
+    assert_equal(df, saved_arr)
+    assert_equal(df, library.read('MYARR', date_range=DateRange(df.index[0])).data)
+    assert_equal(df, library.read('MYARR', date_range=DateRange(df.index[0], df.index[-1])).data)
+    assert_equal(df, library.read('MYARR', date_range=DateRange()).data)
+    assert_equal(df[df.index[10]:], library.read('MYARR', date_range=DateRange(df.index[10])).data)
+    assert_equal(df[:df.index[10]], library.read('MYARR', date_range=DateRange(end=df.index[10])).data)
+    assert_equal(df[df.index[-1]:], library.read('MYARR', date_range=DateRange(df.index[-1])).data)
+    assert_equal(df[df.index[-1]:], library.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1])).data)
+    assert_equal(df[df.index[0]:df.index[0]], library.read('MYARR', date_range=DateRange(df.index[0], df.index[0])).data)
+    assert_equal(df[:df.index[0]], library.read('MYARR', date_range=DateRange(end=df.index[0])).data)
+    assert_equal(df[df.index[0] - DateOffset(days=1):],
+                 library.read('MYARR', date_range=DateRange(df.index[0] - DateOffset(days=1))).data)
+    assert_equal(df[df.index[-1] + DateOffset(days=1):],
+                 library.read('MYARR', date_range=DateRange(df.index[-1] + DateOffset(days=1))).data)
+    assert len(library.read('MYARR', date_range=DateRange(dt(1950, 1, 1), dt(1951, 1, 1))).data) == 0
+    assert len(library.read('MYARR', date_range=DateRange(dt(2091, 1, 1), dt(2091, 1, 1))).data) == 0
+
+    
+def test_daterange_append(library):
+    df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=30 * 1024),
+                   data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)))
+    df.columns = [str(c) for c in df.columns]
+    df.index.name = 'idx'
+    library.write('MYARR', df)
+    # assert saved
+    saved_arr = library.read('MYARR').data
+    assert_frame_equal(df, saved_arr, check_names=False)
+    # append two more rows
+    rows = df.ix[-2:].copy()
+    rows.index = rows.index + dtd(days=1)
+    library.append('MYARR', rows)
+    # assert we can rows back out
+    assert_frame_equal(rows, library.read('MYARR', date_range=DateRange(rows.index[0])).data)
+    # assert we can read back the first array
+    assert_frame_equal(df, library.read('MYARR', date_range=DateRange(df.index[0], df.index[-1])).data)
+    # append two more rows
+    rows1 = df.ix[-2:].copy()
+    rows1.index = rows1.index + dtd(days=2)
+    library.append('MYARR', rows1)
+    # assert we can read a mix of data
+    assert_frame_equal(rows1, library.read('MYARR', date_range=DateRange(rows1.index[0])).data)
+    assert_frame_equal(concat((df, rows, rows1)), library.read('MYARR').data)
+    assert_frame_equal(concat((rows, rows1)), library.read('MYARR', date_range=DateRange(start=rows.index[0])).data)
+    assert_frame_equal(concat((df, rows, rows1))[df.index[50]:rows1.index[-2]],
+                       library.read('MYARR', date_range=DateRange(start=df.index[50], end=rows1.index[-2])).data)
+
+
