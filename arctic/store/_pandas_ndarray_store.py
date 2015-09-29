@@ -112,9 +112,9 @@ class PandasStore(NdarrayStore):
                 return True
 
     def _segment_index(self, recarr, existing_index, start, new_segments):
-        """ 
+        """
         Generate index of datetime64 -> item offset.
-        
+
         Parameters:
         -----------
         new_data: new data being written (or appended)
@@ -122,11 +122,11 @@ class PandasStore(NdarrayStore):
         start: first (0-based) offset of the new data
         segments: list of offsets. Each offset is the row index of the
                   the last row of a particular chunk relative to the start of the _original_ item.
-                  array(new_data) - segments = array(offsets in item) 
+                  array(new_data) - segments = array(offsets in item)
 
         Returns:
         --------
-        Binary(compress(array([(index, datetime)])) 
+        Binary(compress(array([(index, datetime)]))
             Where index is the 0-based index of the datetime in the DataFrame
         """
         # find the index of the first datetime64 column
@@ -152,6 +152,7 @@ class PandasStore(NdarrayStore):
 
     def _datetime64_index(self, recarr):
         """ Given a np.recarray find the first datetime64 column """
+        # TODO: Handle multi-indexes
         names = recarr.dtype.names
         for name in names:
             if recarr[name].dtype == DTN64_DTYPE:
@@ -174,7 +175,7 @@ class PandasStore(NdarrayStore):
                 idxend = min(np.searchsorted(dts, end), len(dts))
                 return index['index'][idxstart], index['index'][idxend] + 1
         return super(PandasStore, self)._index_range(version, symbol, **kwargs)
-    
+
     def _daterange(self, recarr, date_range):
         """ Given a recarr, slice out the given artic.date.DateRange if a
         datetime64 index exists """
@@ -188,13 +189,19 @@ class PandasStore(NdarrayStore):
         return recarr
 
     def read(self, arctic_lib, version, symbol, read_preference=None, date_range=None, **kwargs):
-        item = super(PandasStore, self).read(arctic_lib, version, symbol, read_preference, date_range=date_range, **kwargs)
+        item = super(PandasStore, self).read(arctic_lib, version, symbol, read_preference,
+                                             date_range=date_range, **kwargs)
         if date_range:
             item = self._daterange(item, date_range)
         return item
 
 
 def _start_end(date_range, dts):
+    """
+    Return tuple: [start, end] of np.datetime64 dates that are inclusive of the passed
+    in datetimes.
+    """
+    # FIXME: timezones
     assert len(dts)
     date_range = to_pandas_closed_closed(date_range)
     start = np.datetime64(date_range.start) if date_range.start else dts[0]
