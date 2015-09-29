@@ -5,6 +5,9 @@
 
   * Feature: Add support for reading a subset of a pandas DataFrame
     in VersionStore.read by passing in an arctic.date.DateRange
+  * Bugfix: Reauth against admin if not auth'd against a library a
+    specific library's DB.  Sometimes we appear to miss admin DB auths.
+    This is to workaround that until we work out what the issue is.
 
 ### 1.6 (2015-09-16)
 
