@@ -120,7 +120,7 @@ It wouldn't be possible without the work of the AHL Data Engineering Team includ
  * [Richard Bounds](https://github.com/richardbounds)
  * [James Blackburn](https://github.com/jamesblackburn)
  * [Vlad Mereuta](https://github.com/vmereuta)
- * Tom Taylor
+ * [Tom Taylor](https://github.com/TomTaylorLondon)
  * Tope Olukemi
  * Drake Siard
  * [Slavi Marinov](https://github.com/slavi)

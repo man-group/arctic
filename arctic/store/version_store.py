@@ -285,7 +285,7 @@ class VersionStore(object):
             handler = self._bson_handler
         return handler
 
-    def read(self, symbol, as_of=None, from_version=None, allow_secondary=None, **kwargs):
+    def read(self, symbol, as_of=None, date_range=None, from_version=None, allow_secondary=None, **kwargs):
         """
         Read data for the named symbol.  Returns a VersionedItem object with
         a data and metdata element (as passed into write).
@@ -299,6 +299,9 @@ class VersionStore(object):
             `int` : specific version number
             `str` : snapshot name which contains the version
             `datetime.datetime` : the version of the data that existed as_of the requested point in time
+        date_range: `arctic.date.DateRange`
+            DateRange to read data for.  Applies to Pandas data, with a DateTime index
+            returns only the part of the data that falls in the DateRange.
         allow_secondary : `bool` or `None`
             Override the default behavior for allowing reads from secondary members of a cluster:
             `None` : use the settings from the top-level `Arctic` object used to query this version store.
@@ -312,7 +315,8 @@ class VersionStore(object):
         try:
             read_preference = self._read_preference(allow_secondary)
             _version = self._read_metadata(symbol, as_of=as_of, read_preference=read_preference)
-            return self._do_read(symbol, _version, from_version, read_preference=read_preference, **kwargs)
+            return self._do_read(symbol, _version, from_version,
+                                 date_range=date_range, read_preference=read_preference, **kwargs)
         except (OperationFailure, AutoReconnect) as e:
             # Log the exception so we know how often this is happening
             log_exception('read', e, 1)
@@ -321,6 +325,7 @@ class VersionStore(object):
             _version = mongo_retry(self._read_metadata)(symbol, as_of=as_of,
                                                         read_preference=ReadPreference.PRIMARY)
             return self._do_read_retry(symbol, _version, from_version,
+                                       date_range=date_range,
                                        read_preference=ReadPreference.PRIMARY,
                                        **kwargs)
         except Exception, e:

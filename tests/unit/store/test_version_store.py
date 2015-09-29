@@ -74,7 +74,9 @@ def test_get_version_allow_secondary_True():
 
     VersionStore.read(vs, "symbol")
     assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, read_preference=sentinel.read_preference)]
-    assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None, read_preference=sentinel.read_preference)]
+    assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None, 
+                                               date_range=None,
+                                               read_preference=sentinel.read_preference)]
 
 
 def test_get_version_allow_secondary_user_override_False():
@@ -88,7 +90,9 @@ def test_get_version_allow_secondary_user_override_False():
 
     VersionStore.read(vs, "symbol", allow_secondary=False)
     assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, read_preference=sentinel.read_preference)]
-    assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None, read_preference=sentinel.read_preference)]
+    assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None,
+                                               date_range=None, 
+                                               read_preference=sentinel.read_preference)]
     vs._read_preference.assert_called_once_with(False)
 
 
@@ -204,11 +208,20 @@ def test_read_handles_operation_failure():
     self._read_metadata.__name__ = 'name'
     self._do_read.__name__ = 'name'  # feh: mongo_retry decorator cares about this
     self._do_read.side_effect = [OperationFailure('error'), sentinel.read]
-    VersionStore.read(self, sentinel.symbol, sentinel.as_of, sentinel.from_version)
-    # Assert that, for the two read calls, the second uses the new metadata and forces a read from primary
-    assert self._do_read.call_args_list == [call(sentinel.symbol, sentinel.meta1, sentinel.from_version,
+    VersionStore.read(self, sentinel.symbol, sentinel.as_of,
+                      from_version=sentinel.from_version,
+                      date_range=sentinel.date_range,
+                      other_kwarg=sentinel.other_kwarg)
+    # Assert that, for the two read calls, the second uses the new metadata
+    assert self._do_read.call_args_list == [call(sentinel.symbol, sentinel.meta1, 
+                                                 sentinel.from_version,
+                                                 date_range=sentinel.date_range,
+                                                 other_kwarg=sentinel.other_kwarg,
                                                  read_preference=sentinel.read_preference)]
-    assert self._do_read_retry.call_args_list == [call(sentinel.symbol, sentinel.meta2, sentinel.from_version,
+    assert self._do_read_retry.call_args_list == [call(sentinel.symbol, sentinel.meta2,
+                                                       sentinel.from_version,
+                                                       date_range=sentinel.date_range,
+                                                       other_kwarg=sentinel.other_kwarg,
                                                        read_preference=ReadPreference.PRIMARY)]
 
 

@@ -1,6 +1,11 @@
 
 ## Changelog
 
+### 1.7 (2015-09-18)
+
+  * Feature: Add support for reading a subset of a pandas DataFrame
+    in VersionStore.read by passing in an arctic.date.DateRange
+
 ### 1.6 (2015-09-16)
 
   * Feature: Add support for multi-index Bitemporal DataFrame storage.
