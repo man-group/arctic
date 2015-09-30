@@ -21,8 +21,12 @@ def test_arctic_lazy_init():
             store.list_libraries()
             assert mc.called
             
-mock_conn_info = {u'authInfo': 
+mock_conn_info_mongo2 = {u'authInfo':
                   {u'authenticatedUsers': [{u'user': u'research', u'userSource': u'admin'}]},
+                  u'ok': 1.0}
+
+mock_conn_info_mongo3 = {u'authInfo':
+                  {u'authenticatedUsers': [{u'user': u'research', u'db': u'admin'}]},
                   u'ok': 1.0}
 
 mock_conn_info_empty = {u'authInfo':
@@ -46,7 +50,7 @@ def test_arctic_auth():
                 with patch('arctic.arctic.ArcticLibraryBinding.get_library_type', return_value=None, autospec=True):
                     ga.return_value = Credential('db', 'user', 'pass')
                     store._conn['arctic_jblackburn'].name = 'arctic_jblackburn'
-                    store._conn['arctic_jblackburn'].command.return_value = mock_conn_info
+                    store._conn['arctic_jblackburn'].command.return_value = mock_conn_info_mongo2
                     store['jblackburn.library']
 
             # Creating the library will have attempted to auth against it
@@ -70,7 +74,7 @@ def test_arctic_auth_custom_app_name():
                 with patch('arctic.arctic.ArcticLibraryBinding.get_library_type', return_value=None, autospec=True):
                     ga.return_value = Credential('db', 'user', 'pass')
                     store._conn['arctic_jblackburn'].name = 'arctic_jblackburn'
-                    store._conn['arctic_jblackburn'].command.return_value = mock_conn_info
+                    store._conn['arctic_jblackburn'].command.return_value = mock_conn_info_mongo2
                     store['jblackburn.library']
 
             # Creating the library will have attempted to auth against it
@@ -100,6 +104,13 @@ def test_arctic_auth_admin_reauth():
             assert store._conn['arctic_jblackburn'].command.call_args_list == [call({'connectionStatus': 1})]
             assert ga.call_args_list == [call('cluster', 'arctic', 'arctic_jblackburn'),
                                          call('cluster', 'arctic', store._adminDB.name)]
+
+
+def test_arctic_is_authenticated_to():
+    self = create_autospec(ArcticLibraryBinding)
+    assert ArcticLibraryBinding._is_authenticated_to(self, 'admin', mock_conn_info_mongo2['authInfo']['authenticatedUsers'])
+    assert ArcticLibraryBinding._is_authenticated_to(self, 'admin', mock_conn_info_mongo3['authInfo']['authenticatedUsers'])
+    assert not ArcticLibraryBinding._is_authenticated_to(self, 'admin', mock_conn_info_empty['authInfo']['authenticatedUsers'])
 
 
 def test_arctic_connect_hostname():

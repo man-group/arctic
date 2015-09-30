@@ -1,6 +1,11 @@
 
 ## Changelog
 
+### 1.8 (2015-09-29)
+
+  * Bugfix: compatibility with both 3.0 and pre-3.0 MongoDB for
+    querying current authentications
+
 ### 1.7 (2015-09-18)
 
   * Feature: Add support for reading a subset of a pandas DataFrame
