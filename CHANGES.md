@@ -1,6 +1,11 @@
 
 ## Changelog
 
+### 1.9 (2015-10-06)
+
+  * Bugfix: fix authentication race condition when sharing an Arctic
+    instance between multiple threads.
+
 ### 1.8 (2015-09-29)
 
   * Bugfix: compatibility with both 3.0 and pre-3.0 MongoDB for
