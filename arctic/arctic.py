@@ -361,7 +361,6 @@ class ArcticLibraryBinding(object):
         auth = get_auth(self.arctic.mongo_host, self.arctic._application_name, database.name)
         if auth:
             authenticate(database, auth.user, auth.password)
-            self.arctic._conn.close()
 
     def get_name(self):
         return self._db.name + '.' + self._library_coll.name
