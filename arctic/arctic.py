@@ -329,10 +329,6 @@ class ArcticLibraryBinding(object):
             database_name = clz.DB_PREFIX
         return database_name, library
 
-    def _is_authenticated_to(self, db_name, auth_users_doc):
-        # First try userSource to find the database (mongo 2.4), then db (later mongos)
-        return any(r.get('userSource', r.get('db')) == db_name for r in auth_users_doc)
-
     def __init__(self, arctic, library):
         self.arctic = arctic
         database_name, library = self._parse_db_lib(library)
@@ -340,13 +336,6 @@ class ArcticLibraryBinding(object):
         self.database_name = database_name
         self._db = self.arctic._conn[database_name]
         self._auth(self._db)
-
-        auth_users_doc = self._db.command({'connectionStatus': 1})['authInfo']['authenticatedUsers']
-        if not self._is_authenticated_to(self._db.name, auth_users_doc):
-            # We're not authenticated to the database,
-            # ensure we are authed to admin so that we can at least read from it
-            if not self._is_authenticated_to('admin', auth_users_doc):
-                self._auth(self.arctic._adminDB)
 
         self._library_coll = self._db[library]
 
