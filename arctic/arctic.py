@@ -2,6 +2,7 @@ import logging
 
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect
+import threading
 
 from ._util import indent
 from .auth import authenticate, get_auth
@@ -89,6 +90,7 @@ class Arctic(object):
         self._socket_timeout = socketTimeoutMS
         self._connect_timeout = connectTimeoutMS
         self._server_selection_timeout = serverSelectionTimeoutMS
+        self._lock = threading.Lock()
 
         if isinstance(mongo_host, basestring):
             self.mongo_host = mongo_host
@@ -101,26 +103,27 @@ class Arctic(object):
 
     @property
     def _conn(self):
-        if self.__conn is None:
-            host = get_mongodb_uri(self.mongo_host)
-            logger.info("Connecting to mongo: {0} ({1})".format(self.mongo_host, host))
-            self.__conn = mongo_retry(pymongo.MongoClient)(host=host,
-                                                           maxPoolSize=self._MAX_CONNS,
-                                                           socketTimeoutMS=self._socket_timeout,
-                                                           connectTimeoutMS=self._connect_timeout,
-                                                           serverSelectionTimeoutMS=self._server_selection_timeout)
-            self._adminDB = self.__conn.admin
+        with self._lock:
+            if self.__conn is None:
+                host = get_mongodb_uri(self.mongo_host)
+                logger.info("Connecting to mongo: {0} ({1})".format(self.mongo_host, host))
+                self.__conn = mongo_retry(pymongo.MongoClient)(host=host,
+                                                               maxPoolSize=self._MAX_CONNS,
+                                                               socketTimeoutMS=self._socket_timeout,
+                                                               connectTimeoutMS=self._connect_timeout,
+                                                               serverSelectionTimeoutMS=self._server_selection_timeout)
+                self._adminDB = self.__conn.admin
 
-            # Authenticate against admin for the user
-            auth = get_auth(self.mongo_host, self._application_name, 'admin')
-            if auth:
-                authenticate(self._adminDB, auth.user, auth.password)
+                # Authenticate against admin for the user
+                auth = get_auth(self.mongo_host, self._application_name, 'admin')
+                if auth:
+                    authenticate(self._adminDB, auth.user, auth.password)
 
-            # Accessing _conn is synchronous. The new PyMongo driver may be lazier than the previous.
-            # Force a connection.
-            self.__conn.server_info()
+                # Accessing _conn is synchronous. The new PyMongo driver may be lazier than the previous.
+                # Force a connection.
+                self.__conn.server_info()
 
-        return self.__conn
+            return self.__conn
 
     def __str__(self):
         return "<Arctic at %s, connected to %s>" % (hex(id(self)), str(self._conn))
@@ -326,10 +329,6 @@ class ArcticLibraryBinding(object):
             database_name = clz.DB_PREFIX
         return database_name, library
 
-    def _is_authenticated_to(self, db_name, auth_users_doc):
-        # First try userSource to find the database (mongo 2.4), then db (later mongos)
-        return any(r.get('userSource', r.get('db')) == db_name for r in auth_users_doc)
-
     def __init__(self, arctic, library):
         self.arctic = arctic
         database_name, library = self._parse_db_lib(library)
@@ -337,14 +336,6 @@ class ArcticLibraryBinding(object):
         self.database_name = database_name
         self._db = self.arctic._conn[database_name]
         self._auth(self._db)
-
-        auth_users_doc = self._db.command({'connectionStatus': 1})['authInfo']['authenticatedUsers']
-        if not self._is_authenticated_to(self._db.name, auth_users_doc):
-            # We're not authenticated to the database,
-            # ensure we are authed to admin so that we can at least read from it
-            if not self._is_authenticated_to('admin', auth_users_doc):
-                self._auth(self.arctic._adminDB)
-
         self._library_coll = self._db[library]
 
     def __str__(self):
@@ -369,7 +360,6 @@ class ArcticLibraryBinding(object):
         auth = get_auth(self.arctic.mongo_host, self.arctic._application_name, database.name)
         if auth:
             authenticate(database, auth.user, auth.password)
-            self.arctic._conn.close()
 
     def get_name(self):
         return self._db.name + '.' + self._library_coll.name
