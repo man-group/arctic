@@ -249,7 +249,7 @@ class VersionStore(object):
                     continue
                 seen_symbols.add(version['symbol'])
                 versions.append({'symbol': version['symbol'], 'version': version['version'],
-                       # We return naive datetimes in Local Time.
+                       # We return offset-aware datetimes in Local Time.
                        'date': ms_to_datetime(datetime_to_ms(version['_id'].generation_time)),
                        'snapshots': self._find_snapshots(version.get('parent', []))})
         return versions
