@@ -663,6 +663,9 @@ def test_daterange_large_DataFrame(library):
     # last row
     result = library.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1])).data
     assert_frame_equal(df[df.index[-1]:df.index[-1]], result, check_names=False)
+    # beyond last row
+    result = library.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1] + dtd(days=1))).data
+    assert_frame_equal(df[df.index[-1]:df.index[-1]], result, check_names=False)
     # somewhere in time
     result = library.read('MYARR', date_range=DateRange(dt(2020, 1, 1), dt(2031, 9, 1))).data
     assert_frame_equal(df[dt(2020, 1, 1):dt(2031, 9, 1)], result, check_names=False)
