@@ -203,10 +203,17 @@ def _start_end(date_range, dts):
     """
     # FIXME: timezones
     assert len(dts)
-    date_range = to_pandas_closed_closed(date_range)
+    _assert_no_timezone(date_range)
+    date_range = to_pandas_closed_closed(date_range, add_tz=False)
     start = np.datetime64(date_range.start) if date_range.start else dts[0]
     end = np.datetime64(date_range.end) if date_range.end else dts[-1]
     return start, end
+
+
+def _assert_no_timezone(date_range):
+    for _dt in (date_range.start, date_range.end):
+        if _dt and _dt.tzinfo is not None:
+            raise ValueError("DateRange with timezone not supported")
 
 
 class PandasSeriesStore(PandasStore):
