@@ -10,7 +10,7 @@ import itertools
 from mock import Mock, patch
 import string
 
-from arctic.date import DateRange
+from arctic.date import DateRange, mktz
 from arctic._compression import decompress
 from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasStore
 from arctic.store.version_store import register_versioned_storage
@@ -603,7 +603,7 @@ def test_not_unique(library):
     ts2 = library.read('ts').data
     assert_frame_equal(ts, ts2)
 
-    
+
 def test_daterange_end(library):
     df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=30 * 1024),
                    data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)))
@@ -663,6 +663,9 @@ def test_daterange_large_DataFrame(library):
     # last row
     result = library.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1])).data
     assert_frame_equal(df[df.index[-1]:df.index[-1]], result, check_names=False)
+    # beyond last row
+    result = library.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1] + dtd(days=1))).data
+    assert_frame_equal(df[df.index[-1]:df.index[-1]], result, check_names=False)
     # somewhere in time
     result = library.read('MYARR', date_range=DateRange(dt(2020, 1, 1), dt(2031, 9, 1))).data
     assert_frame_equal(df[dt(2020, 1, 1):dt(2031, 9, 1)], result, check_names=False)
@@ -715,7 +718,7 @@ def test_daterange(library, df, assert_equal):
     assert len(library.read('MYARR', date_range=DateRange(dt(1950, 1, 1), dt(1951, 1, 1))).data) == 0
     assert len(library.read('MYARR', date_range=DateRange(dt(2091, 1, 1), dt(2091, 1, 1))).data) == 0
 
-    
+
 def test_daterange_append(library):
     df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=30 * 1024),
                    data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)))
@@ -744,4 +747,53 @@ def test_daterange_append(library):
     assert_frame_equal(concat((df, rows, rows1))[df.index[50]:rows1.index[-2]],
                        library.read('MYARR', date_range=DateRange(start=df.index[50], end=rows1.index[-2])).data)
 
+
+def assert_range_slice(library, expected, date_range, **kwargs):
+    assert_equals = assert_series_equal if isinstance(expected, Series) else assert_frame_equal
+    assert_equals(expected, library.read('MYARR', date_range=date_range).data, **kwargs)
+
+
+def test_daterange_single_chunk(library):
+    df = read_csv(StringIO("""2015-08-10 00:00:00,200005,1.0
+                              2015-08-10 00:00:00,200012,2.0
+                              2015-08-10 00:00:00,200016,3.0
+                              2015-08-11 00:00:00,200005,1.0
+                              2015-08-11 00:00:00,200012,2,0
+                              2015-08-11 00:00:00,200016,3.0"""), parse_dates=[0],
+                  names=['date', 'security_id', 'value']).set_index(['date', 'security_id'])
+    library.write('MYARR', df)
+    assert_range_slice(library, df[dt(2015, 8, 11):], DateRange(dt(2015, 8, 11), dt(2015, 8, 11)))
+
+
+def test_daterange_when_end_beyond_chunk_index(library):
+    df = read_csv(StringIO("""2015-08-10 00:00:00,200005,1.0
+                              2015-08-10 00:00:00,200012,2.0
+                              2015-08-10 00:00:00,200016,3.0
+                              2015-08-11 00:00:00,200005,1.0
+                              2015-08-11 00:00:00,200012,2,0
+                              2015-08-11 00:00:00,200016,3.0"""), parse_dates=[0],
+                  names=['date', 'security_id', 'value']).set_index(['date', 'security_id'])
+    library.write('MYARR', df)
+    assert_range_slice(library, df[dt(2015, 8, 11):], DateRange(dt(2015, 8, 11), dt(2015, 8, 12)))
+
+
+def test_daterange_when_end_beyond_chunk_index_no_start(library):
+    df = read_csv(StringIO("""2015-08-10 00:00:00,200005,1.0
+                              2015-08-10 00:00:00,200012,2.0
+                              2015-08-10 00:00:00,200016,3.0
+                              2015-08-11 00:00:00,200005,1.0
+                              2015-08-11 00:00:00,200012,2,0
+                              2015-08-11 00:00:00,200016,3.0"""), parse_dates=[0],
+                  names=['date', 'security_id', 'value']).set_index(['date', 'security_id'])
+    library.write('MYARR', df)
+    assert_range_slice(library, df, DateRange(end=dt(2015, 8, 12)))
+
+
+def test_daterange_fails_with_timezone_start(library):
+    df = read_csv(StringIO("""2015-08-10 00:00:00,200005,1.0
+                              2015-08-11 00:00:00,200016,3.0"""), parse_dates=[0],
+                  names=['date', 'security_id', 'value']).set_index(['date', 'security_id'])
+    library.write('MYARR', df)
+    with pytest.raises(ValueError):
+        library.read('MYARR', date_range=DateRange(start=dt(2015, 1, 1, tzinfo=mktz())))
 
