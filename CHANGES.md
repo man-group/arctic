@@ -5,6 +5,8 @@
 
   * Bugfix: Improve performance of saving multi-index Pandas DataFrames
     by 9x
+  * Bugfix: authenticate should propagate non-OperationFailure exceptions
+    (e.g. ConnectionFailure) as this might be indicative of socket failures
 
 ### 1.10 (2015-10-28)
 
