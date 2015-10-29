@@ -21,7 +21,7 @@ def _to_primitive(arr):
     if arr.dtype.hasobject:
         if len(arr) > 0:
             if isinstance(arr[0], Timestamp):
-                return arr.astype(DTN64_DTYPE)
+                return np.array([t.value for t in arr], dtype=DTN64_DTYPE)
         return np.array(list(arr))
     return arr
 
@@ -35,7 +35,7 @@ class PandasStore(NdarrayStore):
         if isinstance(index, MultiIndex):
             # array of tuples to numpy cols. copy copy copy
             if len(df) > 0:
-                ix_vals = map(np.array, zip(*index.values))
+                ix_vals = map(np.array, [index.get_level_values(i) for i in range(index.nlevels)])
             else:
                 # empty multi index has no size, create empty arrays for recarry..
                 ix_vals = [np.array([]) for n in index.names]
