@@ -34,14 +34,15 @@ def test_list_versions_localTime():
     vs._find_snapshots.return_value = 'snap'
     date = dt(2013, 4, 1, 9, 0)
     vs._versions.find.return_value = [{'_id': bson.ObjectId.from_datetime(date),
-                                       'symbol': 's', 'version': 10}]
+                                       'symbol': 's', 'version': 10, 'metadata': None}]
 
     version = list(VersionStore.list_versions(vs, "symbol"))[0]
     local_date = date.replace(tzinfo=mktz("UTC"))
     assert version == {'symbol': version['symbol'], 'version': version['version'],
                        # We return naive datetimes in 'default' time, which is London for us
                        'date': local_date,
-                       'snapshots': 'snap'}
+                       'snapshots': 'snap',
+                       'deleted': False}
 
 
 def test__read_preference__allow_secondary_true():

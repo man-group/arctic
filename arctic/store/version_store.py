@@ -244,14 +244,16 @@ class VersionStore(object):
         for symbol in symbols:
             query['symbol'] = symbol
             seen_symbols = set()
-            for version in self._versions.find(query, projection=['symbol', 'version', 'parent'], sort=[('version', -1)]):
+            for version in self._versions.find(query, projection=['symbol', 'version', 'parent', 'metadata.deleted'], sort=[('version', -1)]):
                 if latest_only and version['symbol'] in seen_symbols:
                     continue
                 seen_symbols.add(version['symbol'])
+                meta = version.get('metadata')
                 versions.append({'symbol': version['symbol'], 'version': version['version'],
-                       # We return offset-aware datetimes in Local Time.
-                       'date': ms_to_datetime(datetime_to_ms(version['_id'].generation_time)),
-                       'snapshots': self._find_snapshots(version.get('parent', []))})
+                                 'deleted': meta.get('deleted', False) if meta else False,
+                                 # We return offset-aware datetimes in Local Time.
+                                 'date': ms_to_datetime(datetime_to_ms(version['_id'].generation_time)),
+                                 'snapshots': self._find_snapshots(version.get('parent', []))})
         return versions
 
     def _find_snapshots(self, parent_ids):
