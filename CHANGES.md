@@ -1,6 +1,16 @@
 
 ## Changelog
 
+### 1.11 (2015-10-29)
+
+  * Bugfix: Improve performance of saving multi-index Pandas DataFrames
+    by 9x
+
+### 1.10 (2015-10-28)
+
+  * Bugfix: VersionStore.read(date_range=...) could do the wrong thing with
+    TimeZones (which aren't yet supported for date_range slicing.).
+
 ### 1.9 (2015-10-06)
 
   * Bugfix: fix authentication race condition when sharing an Arctic
