@@ -1,5 +1,6 @@
 from collections import namedtuple
 import logging
+from pymongo.errors import OperationFailure
 
 logger = logging.getLogger(__name__)
 
@@ -10,11 +11,10 @@ def authenticate(db, user, password):
 
     PyMongo 2.6 changed the auth API to raise on Auth failure.
     """
-    from pymongo.errors import PyMongoError
     try:
         logger.debug("Authenticating {} with {}".format(db, user))
         return db.authenticate(user, password)
-    except PyMongoError, e:
+    except OperationFailure as e:
         logger.debug("Auth Error %s" % e)
     return False
 
