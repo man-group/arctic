@@ -303,6 +303,26 @@ def test_list_version(library):
         assert versions[i]['version'] == x
 
 
+def test_list_version_deleted(library):
+    assert len(library.list_versions(symbol)) == 0
+    library.write(symbol, ts1, prune_previous_version=False)
+    assert len(library.list_versions(symbol)) == 1
+    # Snapshot the library so we keep the sentinel version
+    library.snapshot('xxx', versions={symbol: 1})
+    library.delete(symbol)
+    versions = library.list_versions(symbol)
+    assert len(versions) == 2
+    assert versions[0]['symbol'] == symbol
+    assert versions[0]['version'] == 2
+    assert versions[0]['snapshots'] == []
+    assert versions[0]['deleted'] == True
+
+    assert versions[1]['symbol'] == symbol
+    assert versions[1]['version'] == 1
+    assert versions[1]['deleted'] == False
+    assert versions[1]['snapshots'] == ['xxx']
+
+
 def test_list_version_latest_only(library):
     assert len(list(library.list_versions(symbol))) == 0
     dates = [None, None, None]
