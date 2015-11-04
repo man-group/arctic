@@ -100,7 +100,7 @@ setup(
                       "pytz",
                       "tzlocal",
                       ],
-    tests_require=["mock<=1.0.1",
+    tests_require=["mock",
                    "mockextras",
                    "pytest",
                    "pytest-cov",
