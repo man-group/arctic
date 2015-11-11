@@ -247,7 +247,7 @@ Version document:
             logger.debug('Converting %s from %s to %s' % (symbol, previous_version['dtype'], str(dtype)))
             if item.dtype.hasobject:
                 raise UnhandledDtypeException()
-            version['dtype'] = str(item.dtype)
+            version['dtype'] = str(item.dtype.descr)
             version['dtype_metadata'] = dict(item.dtype.metadata or {})
             version['type'] = self.TYPE
 
@@ -383,7 +383,7 @@ Version document:
         if item.dtype.hasobject:
             raise UnhandledDtypeException()
 
-        version['dtype'] = str(item.dtype)
+        version['dtype'] = str(item.dtype.descr)
         version['shape'] = (-1,) + item.shape[1:]
         version['dtype_metadata'] = dict(item.dtype.metadata or {})
         version['type'] = self.TYPE
