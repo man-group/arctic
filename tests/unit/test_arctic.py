@@ -341,7 +341,7 @@ def test_arctic_set_get_state():
 def test__conn_auth_issue():
     auth_timeout = [0]
     
-    a = Arctic("host:0000")
+    a = Arctic("host:12345")
     sentinel.creds = Mock()
 
     def flaky_auth(*args, **kwargs):
