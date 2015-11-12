@@ -75,7 +75,7 @@ compress = Extension('arctic._compress',
 
 setup(
     name="arctic",
-    version="1.12.0",
+    version="1.13.0",
     author="Man AHL Technology",
     author_email="ManAHLTech@ahl.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
