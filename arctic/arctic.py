@@ -100,18 +100,19 @@ class Arctic(object):
             mongo_host.server_info()
             self.mongo_host = ",".join(["{}:{}".format(x[0], x[1]) for x in mongo_host.nodes])
             self._adminDB = self._conn.admin
-
+    
     @property
+    @mongo_retry
     def _conn(self):
         with self._lock:
             if self.__conn is None:
                 host = get_mongodb_uri(self.mongo_host)
                 logger.info("Connecting to mongo: {0} ({1})".format(self.mongo_host, host))
-                self.__conn = mongo_retry(pymongo.MongoClient)(host=host,
-                                                               maxPoolSize=self._MAX_CONNS,
-                                                               socketTimeoutMS=self._socket_timeout,
-                                                               connectTimeoutMS=self._connect_timeout,
-                                                               serverSelectionTimeoutMS=self._server_selection_timeout)
+                self.__conn = pymongo.MongoClient(host=host,
+                                                   maxPoolSize=self._MAX_CONNS,
+                                                   socketTimeoutMS=self._socket_timeout,
+                                                   connectTimeoutMS=self._connect_timeout,
+                                                   serverSelectionTimeoutMS=self._server_selection_timeout)
                 self._adminDB = self.__conn.admin
 
                 # Authenticate against admin for the user
@@ -232,9 +233,12 @@ class Arctic(object):
         except (OperationFailure, AutoReconnect), e:
             error = e
 
-        if error or not lib_type:
-            raise LibraryNotFoundException("Library %s was not correctly initialized in %s.\nReason: %s" %
+        if error:
+            raise LibraryNotFoundException("Library %s was not correctly initialized in %s.\nReason: %r)" %
                                            (library, self, error))
+        elif not lib_type:
+            raise LibraryNotFoundException("Library %s was not correctly initialized in %s." %
+                                           (library, self))
         elif lib_type not in LIBRARY_TYPES:
             raise LibraryNotFoundException("Couldn't load LibraryType '%s' for '%s' (has the class been registered?)" %
                                            (lib_type, library))

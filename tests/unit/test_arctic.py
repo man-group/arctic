@@ -1,7 +1,7 @@
 import cPickle as pickle
 from mock import patch, MagicMock, sentinel, create_autospec, Mock, call
 import pytest
-from pymongo.errors import OperationFailure
+from pymongo.errors import OperationFailure, ServerSelectionTimeoutError, AutoReconnect
 from pymongo.mongo_client import MongoClient
 
 from arctic.auth import Credential
@@ -77,10 +77,10 @@ def test_arctic_connect_hostname():
                                          serverSelectionTimeoutMS=sentinel.select_timeout)
                 # do something to trigger lazy arctic init
                 store.list_libraries()
-                ar(mc).assert_called_once_with(host=gmu('hostname'), maxPoolSize=4,
-                                               socketTimeoutMS=sentinel.socket_timeout,
-                                               connectTimeoutMS=sentinel.connect_timeout,
-                                               serverSelectionTimeoutMS=sentinel.select_timeout)
+                mc.assert_called_once_with(host=gmu('hostname'), maxPoolSize=4,
+                                           socketTimeoutMS=sentinel.socket_timeout,
+                                           connectTimeoutMS=sentinel.connect_timeout,
+                                           serverSelectionTimeoutMS=sentinel.select_timeout)
                 
                 
 def test_arctic_connect_with_environment_name():
@@ -94,10 +94,10 @@ def test_arctic_connect_with_environment_name():
             # do something to trigger lazy arctic init
             store.list_libraries()
     assert gmfe.call_args_list == [call('live')]
-    assert ar(mc).call_args_list == [call(host=gmfe.return_value, maxPoolSize=4,
-                                          socketTimeoutMS=sentinel.socket_timeout,
-                                          connectTimeoutMS=sentinel.connect_timeout,
-                                          serverSelectionTimeoutMS=sentinel.select_timeout)]
+    assert mc.call_args_list == [call(host=gmfe.return_value, maxPoolSize=4,
+                                      socketTimeoutMS=sentinel.socket_timeout,
+                                      connectTimeoutMS=sentinel.connect_timeout,
+                                      serverSelectionTimeoutMS=sentinel.select_timeout)]
 
 
 @pytest.mark.parametrize(
@@ -336,3 +336,22 @@ def test_arctic_set_get_state():
     assert mnew._socket_timeout == 1234
     assert mnew._connect_timeout == 2345
     assert mnew._server_selection_timeout == 3456
+
+
+def test__conn_auth_issue():
+    auth_timeout = [0]
+    
+    a = Arctic("host:12345")
+    sentinel.creds = Mock()
+
+    def flaky_auth(*args, **kwargs):
+        if not auth_timeout[0]:
+            auth_timeout[0] = 1
+            raise AutoReconnect()
+
+    with patch('arctic.arctic.authenticate', flaky_auth), \
+    patch('arctic.arctic.get_auth', return_value=sentinel.creds), \
+    patch('arctic.decorators._handle_error') as he:
+        a._conn
+        assert he.call_count == 1
+        assert auth_timeout[0]
