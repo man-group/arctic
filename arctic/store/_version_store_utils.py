@@ -63,7 +63,7 @@ def _define_compat_pickle_load():
     """Factory function to initialise the correct Pickle load function based on
     the Pandas version.
     """
-    if pd.version.version.startswith("0.14"):
+    if pd.__version__.startswith("0.14"):
         return pickle.load
     return functools.partial(pickle_compat.load, compat=True)
 
