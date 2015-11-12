@@ -233,9 +233,12 @@ class Arctic(object):
         except (OperationFailure, AutoReconnect), e:
             error = e
 
-        if error or not lib_type:
-            raise LibraryNotFoundException("Library %s was not correctly initialized in %s.\nReason: %s" %
+        if error:
+            raise LibraryNotFoundException("Library %s was not correctly initialized in %s.\nReason: %r)" %
                                            (library, self, error))
+        elif not lib_type:
+            raise LibraryNotFoundException("Library %s was not correctly initialized in %s." %
+                                           (library, self))
         elif lib_type not in LIBRARY_TYPES:
             raise LibraryNotFoundException("Couldn't load LibraryType '%s' for '%s' (has the class been registered?)" %
                                            (lib_type, library))
