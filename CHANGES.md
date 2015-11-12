@@ -1,6 +1,11 @@
 
 ## Changelog
 
+### 1.12 (2015-11-12)
+
+  * Bugfix: correct version detection for Pandas >= 0.18.
+  * Bugfix: retrying connection initialisation in case of an AutoReconnect failure.
+
 ### 1.11 (2015-10-29)
 
   * Bugfix: Improve performance of saving multi-index Pandas DataFrames
