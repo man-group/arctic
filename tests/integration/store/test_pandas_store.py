@@ -211,7 +211,6 @@ def test_append_pandas_dataframe(library):
 def test_empty_dataframe_multindex(library):
     df = DataFrame({'a': [], 'b': [], 'c': []})
     df = df.groupby(['a', 'b']).sum()
-    print df
     library.write('pandas', df)
     saved_df = library.read('pandas').data
     assert np.all(df.values == saved_df.values)
@@ -797,3 +796,27 @@ def test_daterange_fails_with_timezone_start(library):
     with pytest.raises(ValueError):
         library.read('MYARR', date_range=DateRange(start=dt(2015, 1, 1, tzinfo=mktz())))
 
+def test_data_info_series(library):
+    s = Series(data=[1, 2, 3], index=[4, 5, 6])
+    library.write('pandas', s)
+    md = library.read('pandas').data_info
+    assert md == library.read_metadata('pandas').data_info
+    assert md['type'] == 'pandasseries'
+
+
+def test_data_info_df(library):
+    s = DataFrame(data=[1, 2, 3], index=[4, 5, 6])
+    library.write('pandas', s)
+    md = library.read('pandas').data_info
+    assert md == library.read_metadata('pandas').data_info
+    assert md['type'] == 'pandasdf'
+
+
+def test_data_info_cols(library):
+    i = MultiIndex.from_tuples([(1, "ab"), (2, "bb"), (3, "cb")])
+    s = DataFrame(data=[100, 200, 300], index=i)    
+    library.write('test_data', s)
+    md = library.read_metadata('test_data').data_info
+    for type in md['col_names']:
+        for col in md['col_names'][type]:
+            assert col in md['col_dtypes']

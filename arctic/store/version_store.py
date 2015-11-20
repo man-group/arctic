@@ -108,7 +108,7 @@ class VersionStore(object):
     
     def _get_data_info(self, version):
         ret = {}
-        if type in version:
+        if 'type' in version:
             ret['type'] = version['type']
         if 'dtype_metadata' in version:
             ret['col_names'] = version['dtype_metadata']
