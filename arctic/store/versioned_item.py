@@ -1,12 +1,13 @@
 from collections import namedtuple
 
 
-class VersionedItem(namedtuple('VersionedItem', ['symbol', 'library', 'data', 'version', 'metadata'])):
+class VersionedItem(namedtuple('VersionedItem', ['symbol', 'library', 'data', 'version', 'metadata', 'data_info'])):
     """
     Class representing a Versioned object in VersionStore.
     """
     def metadata_dict(self):
-        return {'symbol': self.symbol, 'library': self.library, 'version': self.version}
+        return {'symbol': self.symbol, 'library': self.library, 'version': self.version,
+                'data_info': self.data_info}
 
     def __repr__(self):
         return str(self)
