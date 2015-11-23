@@ -801,7 +801,7 @@ def test_data_info_series(library):
     library.write('pandas', s)
     md = library.read('pandas').data_info
     assert md == library.read_metadata('pandas').data_info
-    assert md['type'] == 'pandasseries'
+    assert md == {'col_dtypes': "[('index', '<i8'), ('values', '<i8')]", 'col_names': {'columns': ['values'], 'index': ['index']}, 'type': 'pandasseries'}
 
 
 def test_data_info_df(library):
@@ -809,7 +809,7 @@ def test_data_info_df(library):
     library.write('pandas', s)
     md = library.read('pandas').data_info
     assert md == library.read_metadata('pandas').data_info
-    assert md['type'] == 'pandasdf'
+    assert md  == {'col_dtypes': "[('index', '<i8'), ('0', '<i8')]", 'col_names': {'columns': ['0'], 'index': ['index']}, 'type': 'pandasdf'}
 
 
 def test_data_info_cols(library):
@@ -818,6 +818,4 @@ def test_data_info_cols(library):
     library.write('test_data', s)
     library.read("test_data")
     md = library.read_metadata('test_data').data_info
-    for type in md['col_names']:
-        for col in md['col_names'][type]:
-            assert col in md['col_dtypes']
+    assert md == {'col_dtypes': "[('level_0', '<i8'), ('level_1', 'S2'), ('0', '<i8')]", 'col_names': {'columns': ['0'], 'index': ['level_0', 'level_1']}, 'type': 'pandasdf'}
