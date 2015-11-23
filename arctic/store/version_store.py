@@ -106,16 +106,6 @@ class VersionStore(object):
     def __repr__(self):
         return str(self)
     
-    def _get_data_info(self, version):
-        ret = {}
-        if 'type' in version:
-            ret['type'] = version['type']
-        if 'dtype_metadata' in version:
-            ret['col_names'] = version['dtype_metadata']
-        if 'dtype' in version:
-            ret['col_dtypes'] = version['dtype']
-        return ret
-
     def _read_preference(self, allow_secondary):
         """ Return the mongo read preference given an 'allow_secondary' argument
         """
@@ -376,7 +366,7 @@ class VersionStore(object):
         if data is None:
             raise NoDataFoundException("No data found for %s in library %s" % (symbol, self._arctic_lib.get_name()))
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=data, data_info=self._get_data_info(version))
+                             metadata=version.pop('metadata', None), data=data, data_info=handler.get_data_info(version))
     _do_read_retry = mongo_retry(_do_read)
 
     @mongo_retry
@@ -401,8 +391,9 @@ class VersionStore(object):
             `False` : only allow reads from primary members
         """
         _version = self._read_metadata(symbol, as_of=as_of, read_preference=self._read_preference(allow_secondary))
+        handler = self._read_handler(_version, symbol)
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=_version['version'],
-                             metadata=_version.pop('metadata', None), data=None, data_info=self._get_data_info(_version))
+                             metadata=_version.pop('metadata', None), data=None, data_info=handler.get_data_info(_version))
 
     def _read_metadata(self, symbol, as_of=None, read_preference=None):
         if read_preference is None:
@@ -471,8 +462,9 @@ class VersionStore(object):
                                                    sort=[('version', pymongo.DESCENDING)])
 
         if len(data) == 0 and previous_version is not None:
+            handler = self._read_handler(previous_version, symbol)
             return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=previous_version,
-                                 metadata=version.pop('metadata', None), data=None, data_info=self._get_data_info(previous_version))
+                                 metadata=version.pop('metadata', None), data=None, data_info=handler.get_data_info(previous_version))
 
         if upsert and previous_version is None:
             return self.write(symbol=symbol, data=data, prune_previous_version=prune_previous_version, metadata=metadata)
@@ -521,9 +513,10 @@ class VersionStore(object):
 
         if prune_previous_version and previous_version:
             self._prune_previous_versions(symbol)
+            handler = self._read_handler(version, symbol)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=None, data_info=self._get_data_info(version))
+                             metadata=version.pop('metadata', None), data=None, data_info=handler.get_data_info(version))
 
     def _publish_change(self, symbol, version):
         if self._publish_changes:
@@ -581,7 +574,7 @@ class VersionStore(object):
         self._publish_change(symbol, version)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=None, data_info=self._get_data_info(version))
+                             metadata=version.pop('metadata', None), data=None, data_info=handler.get_data_info(version))
 
     def _prune_previous_versions(self, symbol, keep_mins=120):
         """

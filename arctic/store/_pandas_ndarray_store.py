@@ -194,6 +194,13 @@ class PandasStore(NdarrayStore):
         if date_range:
             item = self._daterange(item, date_range)
         return item
+    
+    def get_data_info(self, version):
+        ret = {}
+        ret['type'] = version['type']
+        ret['col_names'] = version['dtype_metadata']
+        ret['col_dtypes'] = version['dtype']
+        return ret
 
 
 def _start_end(date_range, dts):

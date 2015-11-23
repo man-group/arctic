@@ -816,6 +816,7 @@ def test_data_info_cols(library):
     i = MultiIndex.from_tuples([(1, "ab"), (2, "bb"), (3, "cb")])
     s = DataFrame(data=[100, 200, 300], index=i)    
     library.write('test_data', s)
+    library.read("test_data")
     md = library.read_metadata('test_data').data_info
     for type in md['col_names']:
         for col in md['col_names'][type]:

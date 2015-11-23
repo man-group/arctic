@@ -7,6 +7,7 @@ import numpy as np
 import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
+from ._base_store import BaseStore
 from ..decorators import mongo_retry, dump_bad_documents
 from ..exceptions import UnhandledDtypeException
 from ._version_store_utils import checksum
@@ -36,7 +37,7 @@ def _promote_struct_dtypes(dtype1, dtype2):
     return np.dtype([(n, _promote(dtype1.fields[n][0], dtype2.fields.get(n, (None,))[0])) for n in dtype1.names])
 
 
-class NdarrayStore(object):
+class NdarrayStore(BaseStore):
     """Chunked store for arbitrary ndarrays, supporting append.
     
     for the simple example:
