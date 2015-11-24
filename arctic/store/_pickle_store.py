@@ -8,24 +8,28 @@ import pymongo
 import pprint
 
 from arctic.store._version_store_utils import checksum, pickle_compat_load
+from ._base_store import BaseStore
 
 _MAGIC_CHUNKED = '__chunked__'
 _CHUNK_SIZE = 15 * 1024 * 1024  # 15MB
 _MAX_BSON_ENCODE = 256 * 1024  # 256K - don't fill up the version document with encoded bson
 
 
-class PickleStore(object):
+class PickleStore(BaseStore):
 
     @classmethod
     def initialize_library(cls, *args, **kwargs):
         pass
 
     def get_info(self, arctic_lib, version, symbol, **kwargs):
+        ret = {}
         if 'blob' in version:
             if version['blob'] != _MAGIC_CHUNKED:
                 version['blob'] = "<Compressed pickle.....>"
 
-        return """Handler: %s\n\nVersion document:\n%s""" % (self.__class__.__name__, pprint.pformat(version))
+        ret['handler'] = self.__class__.__name__
+        ret['type'] = 'blob'
+        return ret
 
     def read(self, mongoose_lib, version, symbol, **kwargs):
         blob = version.get("blob")
