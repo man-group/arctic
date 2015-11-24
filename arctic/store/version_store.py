@@ -353,7 +353,7 @@ class VersionStore(object):
         print self._get_info(symbol, as_of)
 
     def _get_info(self, symbol, as_of=None, version=None):
-	if not version:
+        if not version:
             version = self._read_metadata(symbol, as_of=as_of)
         handler = self._read_handler(version, symbol)
         return handler.get_info(self._arctic_lib, version, symbol)
@@ -389,7 +389,6 @@ class VersionStore(object):
             `False` : only allow reads from primary members
         """
         _version = self._read_metadata(symbol, as_of=as_of, read_preference=self._read_preference(allow_secondary))
-        handler = self._read_handler(_version, symbol)
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=_version['version'],
                              metadata=_version.pop('metadata', None), data=None, info=self._get_info(symbol, version=_version))
 
@@ -460,7 +459,6 @@ class VersionStore(object):
                                                    sort=[('version', pymongo.DESCENDING)])
 
         if len(data) == 0 and previous_version is not None:
-            handler = self._read_handler(previous_version, symbol)
             return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=previous_version,
                                  metadata=version.pop('metadata', None), data=None, info=self._get_info(symbol, version=previous_version))
 
@@ -511,7 +509,6 @@ class VersionStore(object):
 
         if prune_previous_version and previous_version:
             self._prune_previous_versions(symbol)
-            handler = self._read_handler(version, symbol)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
                              metadata=version.pop('metadata', None), data=None, info=self._get_info(symbol, version=version))
