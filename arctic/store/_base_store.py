@@ -8,5 +8,3 @@ class BaseStore(object):
     def get_info(self, lib, version, symbol, **kwargs):
         pass
 
-    def get_data_info(self, version):
-        pass

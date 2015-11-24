@@ -195,11 +195,10 @@ class PandasStore(NdarrayStore):
             item = self._daterange(item, date_range)
         return item
     
-    def get_data_info(self, version):
-        ret = {}
+    def get_info(self, arctic_lib, version, symbol, **kwargs):
+        ret = super(PandasStore, self).get_info(arctic_lib, version, symbol, **kwargs)
         ret['type'] = version['type']
         ret['col_names'] = version['dtype_metadata']
-        ret['col_dtypes'] = version['dtype']
         return ret
 
 

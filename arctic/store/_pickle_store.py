@@ -22,11 +22,14 @@ class PickleStore(BaseStore):
         pass
 
     def get_info(self, arctic_lib, version, symbol, **kwargs):
+        ret = {}
         if 'blob' in version:
             if version['blob'] != _MAGIC_CHUNKED:
                 version['blob'] = "<Compressed pickle.....>"
 
-        return """Handler: %s\n\nVersion document:\n%s""" % (self.__class__.__name__, pprint.pformat(version))
+        ret['handler'] = self.__class__.__name__
+        ret['type'] = 'blob'
+        return ret
 
     def read(self, mongoose_lib, version, symbol, **kwargs):
         blob = version.get("blob")

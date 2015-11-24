@@ -152,26 +152,20 @@ class NdarrayStore(BaseStore):
         return from_index, None
 
     def get_info(self, arctic_lib, version, symbol, **kwargs):
+        ret = {} 
         collection = arctic_lib.get_top_level_collection()
-        dtype = self._dtype(version['dtype'], version.get('dtype_metadata', {}))
-        length = int(version['up_to'])
+        ret['dtype'] = self._dtype(version['dtype'], version.get('dtype_metadata', {}))
+        ret['length'] = int(version['up_to'])
 
         spec = {'symbol': symbol,
                 'parent': version.get('base_version_id', version['_id']),
-                'segment': {'$lt': length}}
+                'segment': {'$lt': ret['length']}}
 
-        n_segments = collection.find(spec).count()
+        ret['n_segments'] = collection.find(spec).count()
 
-        est_size = dtype.itemsize * length
-        return """Handler: %s
-
-dtype: %s
-
-%d rows in %d segments
-Data size: %s bytes
-
-Version document:
-%s""" % (self.__class__.__name__, dtype, length, n_segments, est_size, pprint.pformat(version))
+        ret['est_size'] = ret['dtype'].itemsize * ret['length']
+        ret['handler'] = self.__class__.__name__
+	return ret
 
     def read(self, arctic_lib, version, symbol, read_preference=None, **kwargs):
         index_range = self._index_range(version, symbol, **kwargs)

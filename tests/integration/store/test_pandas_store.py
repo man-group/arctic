@@ -9,6 +9,7 @@ import io
 import itertools
 from mock import Mock, patch
 import string
+from numpy import dtype as dtype
 
 from arctic.date import DateRange, mktz
 from arctic._compression import decompress
@@ -799,23 +800,22 @@ def test_daterange_fails_with_timezone_start(library):
 def test_data_info_series(library):
     s = Series(data=[1, 2, 3], index=[4, 5, 6])
     library.write('pandas', s)
-    md = library.read('pandas').data_info
-    assert md == library.read_metadata('pandas').data_info
-    assert md == {'col_dtypes': "[('index', '<i8'), ('values', '<i8')]", 'col_names': {'columns': ['values'], 'index': ['index']}, 'type': 'pandasseries'}
+    md = library.read('pandas').info
+    assert md == library.read_metadata('pandas').info
+    assert md == {'dtype': dtype([('index', '<i8'), ('values', '<i8')]), 'length': 3, 'handler': 'PandasSeriesStore', 'est_size': 48, 'col_names': {u'index': [u'index'], u'columns': [u'values']}, 'n_segments': 1, 'type': u'pandasseries'}
 
 
 def test_data_info_df(library):
     s = DataFrame(data=[1, 2, 3], index=[4, 5, 6])
     library.write('pandas', s)
-    md = library.read('pandas').data_info
-    assert md == library.read_metadata('pandas').data_info
-    assert md  == {'col_dtypes': "[('index', '<i8'), ('0', '<i8')]", 'col_names': {'columns': ['0'], 'index': ['index']}, 'type': 'pandasdf'}
+    md = library.read('pandas').info
+    assert md == library.read_metadata('pandas').info
+    assert md  == {'dtype': dtype([('index', '<i8'), ('0', '<i8')]), 'length': 3, 'handler': 'PandasDataFrameStore', 'est_size': 48, 'col_names': {u'index': [u'index'], u'columns': [u'0']}, 'n_segments': 1, 'type': u'pandasdf'}
 
 
 def test_data_info_cols(library):
     i = MultiIndex.from_tuples([(1, "ab"), (2, "bb"), (3, "cb")])
     s = DataFrame(data=[100, 200, 300], index=i)    
     library.write('test_data', s)
-    library.read("test_data")
-    md = library.read_metadata('test_data').data_info
-    assert md == {'col_dtypes': "[('level_0', '<i8'), ('level_1', 'S2'), ('0', '<i8')]", 'col_names': {'columns': ['0'], 'index': ['level_0', 'level_1']}, 'type': 'pandasdf'}
+    md = library.read_metadata('test_data').info
+    assert md == {'dtype': dtype([('level_0', '<i8'), ('level_1', 'S2'), ('0', '<i8')]), 'length': 3, 'handler': 'PandasDataFrameStore', 'est_size': 54, 'col_names': {u'index': [u'level_0', u'level_1'], u'columns': [u'0']}, 'n_segments': 1, 'type': u'pandasdf'}
