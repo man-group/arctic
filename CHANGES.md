@@ -1,6 +1,7 @@
 
 ## Changelog
 
+### 1.14 (2015-11-25)
 ### 1.12 (2015-11-12)
 
   * Bugfix: correct version detection for Pandas >= 0.18.
