@@ -84,7 +84,7 @@ class ArcticTransaction(object):
             versions = [x['version'] for x in self._version_store.list_versions(self._symbol, latest_only=True)]
             versions.append(0)
             self.base_ts = VersionedItem(symbol=self._symbol, library=None,
-                                         version=versions[0], metadata=None, data=None, info=None)
+                                         version=versions[0], metadata=None, data=None)
         except OperationFailure:
             #TODO: Current errors in mongo "Incorrect Number of Segments Returned"
             # This workaround should be removed once underlying problem is resolved.

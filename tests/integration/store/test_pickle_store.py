@@ -31,7 +31,7 @@ def test_save_read_bson_object(library):
 def test_get_info_bson_object(library):
     blob = {'foo': dt(2015, 1, 1), 'object': Arctic}
     library.write('BLOB', blob)
-    assert library._get_info('BLOB')['handler'] == 'PickleStore'
+    assert library._get_info('BLOB').startswith('Handler: PickleStore')
 
 
 def test_bson_large_object(library):

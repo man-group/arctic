@@ -79,7 +79,7 @@ def test_save_read_big_2darray(library):
 def test_get_info_bson_object(library):
     ndarr = np.ones(1000)
     library.write('MYARR', ndarr)
-    assert library._get_info('MYARR')['handler'] == 'NdarrayStore'
+    assert library._get_info('MYARR').startswith('''Handler: NdarrayStore''')
 
 
 def test_save_read_ndarray_with_array_field(library):

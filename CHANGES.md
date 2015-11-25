@@ -1,10 +1,6 @@
 
 ## Changelog
 
-### 1.13 (2015-11-24)
-
-  * Feature: add info member to VersionedItem.
-
 ### 1.12 (2015-11-12)
 
   * Bugfix: correct version detection for Pandas >= 0.18.

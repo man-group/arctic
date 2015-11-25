@@ -352,11 +352,13 @@ class VersionStore(object):
         """
         print self._get_info(symbol, as_of)
 
-    def _get_info(self, symbol, as_of=None, version=None):
-        if not version:
-            version = self._read_metadata(symbol, as_of=as_of)
-        handler = self._read_handler(version, symbol)
-        return handler.get_info(self._arctic_lib, version, symbol)
+    def _get_info(self, symbol, as_of=None):
+        _version = self._read_metadata(symbol, as_of=as_of)
+        handler = self._read_handler(_version, symbol)
+        if hasattr(handler, "get_info"):
+            return handler.get_info(self._arctic_lib, _version, symbol)
+        else:
+            return """Handler: %s\n\nVersion document:\n%s""" % (handler.__class__.__name__, pprint.pformat(_version))
 
     def _do_read(self, symbol, version, from_version=None, **kwargs):
         handler = self._read_handler(version, symbol)
@@ -364,7 +366,7 @@ class VersionStore(object):
         if data is None:
             raise NoDataFoundException("No data found for %s in library %s" % (symbol, self._arctic_lib.get_name()))
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=data, info=self._get_info(symbol, version=version))
+                             metadata=version.pop('metadata', None), data=data)
     _do_read_retry = mongo_retry(_do_read)
 
     @mongo_retry
@@ -390,7 +392,7 @@ class VersionStore(object):
         """
         _version = self._read_metadata(symbol, as_of=as_of, read_preference=self._read_preference(allow_secondary))
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=_version['version'],
-                             metadata=_version.pop('metadata', None), data=None, info=self._get_info(symbol, version=_version))
+                             metadata=_version.pop('metadata', None), data=None)
 
     def _read_metadata(self, symbol, as_of=None, read_preference=None):
         if read_preference is None:
@@ -460,7 +462,7 @@ class VersionStore(object):
 
         if len(data) == 0 and previous_version is not None:
             return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=previous_version,
-                                 metadata=version.pop('metadata', None), data=None, info=self._get_info(symbol, version=previous_version))
+                                 metadata=version.pop('metadata', None), data=None)
 
         if upsert and previous_version is None:
             return self.write(symbol=symbol, data=data, prune_previous_version=prune_previous_version, metadata=metadata)
@@ -511,7 +513,7 @@ class VersionStore(object):
             self._prune_previous_versions(symbol)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=None, info=self._get_info(symbol, version=version))
+                             metadata=version.pop('metadata', None), data=None)
 
     def _publish_change(self, symbol, version):
         if self._publish_changes:
@@ -569,7 +571,7 @@ class VersionStore(object):
         self._publish_change(symbol, version)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=None, info=self._get_info(symbol, version=version))
+                             metadata=version.pop('metadata', None), data=None)
 
     def _prune_previous_versions(self, symbol, keep_mins=120):
         """

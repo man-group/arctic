@@ -8,11 +8,10 @@ def test_versioned_item_str():
                          library="ONEMINUTE",
                          data=pd.DataFrame(),
                          version=1.0,
-                         metadata={'metadata': 'foo'},
-                         info=None)
+                         metadata={'metadata': 'foo'})
 
     expected = "VersionedItem(symbol=sym,library=ONEMINUTE," + \
-               "data=<class 'pandas.core.frame.DataFrame'>,version=1.0,metadata={'metadata': 'foo'},info=None"
+               "data=<class 'pandas.core.frame.DataFrame'>,version=1.0,metadata={'metadata': 'foo'}"
     assert str(item) == expected
     assert repr(item) == expected
 
@@ -22,7 +21,6 @@ def test_versioned_item_str_handles_none():
                          library=None,
                          data=None,
                          version=None,
-                         metadata=None,
-                         info=None)
+                         metadata=None)
 
     assert str(item)
