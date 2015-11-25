@@ -335,10 +335,9 @@ class VersionStore(object):
             raise
 
     @mongo_retry
-    def _show_info(self, symbol, as_of=None):
+    def get_info(self, symbol, as_of=None):
         """
-        Print details on the stored symbol: the underlying storage handler
-        and the version_document corresponding to the specified version.
+        Reads and returns information about the data stored for symbol
 
         Parameters
         ----------
@@ -349,16 +348,19 @@ class VersionStore(object):
             `int` : specific version number
             `str` : snapshot name which contains the version
             `datetime.datetime` : the version of the data that existed as_of the requested point in time
-        """
-        print self._get_info(symbol, as_of)
 
-    def _get_info(self, symbol, as_of=None):
-        _version = self._read_metadata(symbol, as_of=as_of)
-        handler = self._read_handler(_version, symbol)
-        if hasattr(handler, "get_info"):
-            return handler.get_info(self._arctic_lib, _version, symbol)
-        else:
-            return """Handler: %s\n\nVersion document:\n%s""" % (handler.__class__.__name__, pprint.pformat(_version))
+        Returns
+        -------
+        dictionary of the information (specific to the type of data)
+        """
+        version = self._read_metadata(symbol, as_of=as_of, read_preference=None)
+        print version
+        handler = self._read_handler(version, symbol)
+        if handler and hasattr(handler, 'get_info'):
+            return handler.get_info(version)
+        return {}
+
+
 
     def _do_read(self, symbol, version, from_version=None, **kwargs):
         handler = self._read_handler(version, symbol)

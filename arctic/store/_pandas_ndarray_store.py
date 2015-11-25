@@ -4,6 +4,7 @@ from bson.binary import Binary
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Panel
 from pandas.tslib import Timestamp, get_timezone
 import numpy as np
+import ast
 
 from .._compression import compress, decompress
 from ..exceptions import ArcticException
@@ -194,6 +195,17 @@ class PandasStore(NdarrayStore):
         if date_range:
             item = self._daterange(item, date_range)
         return item
+
+    def get_info(self, version):
+        """
+        parses out the relevant information in version
+        and returns it to the user in a dictionary
+        """
+        ret = super(PandasStore, self).get_info(version)
+        ret['col_names'] = version['dtype_metadata']
+        ret['handler'] = self.__class__.__name__
+        ret['dtype'] = ast.literal_eval(version['dtype'])
+        return ret
 
 
 def _start_end(date_range, dts):
