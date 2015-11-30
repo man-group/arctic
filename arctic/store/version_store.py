@@ -354,7 +354,6 @@ class VersionStore(object):
         dictionary of the information (specific to the type of data)
         """
         version = self._read_metadata(symbol, as_of=as_of, read_preference=None)
-        print version
         handler = self._read_handler(version, symbol)
         if handler and hasattr(handler, 'get_info'):
             return handler.get_info(version)
