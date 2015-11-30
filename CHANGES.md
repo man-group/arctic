@@ -3,7 +3,7 @@
 
 ### 1.15 (2015-11-25)
 
-  * Feature: get_data_info API added to version_store. 
+  * Feature: get_info API added to version_store. 
   
 ### 1.14 (2015-11-25)
 ### 1.12 (2015-11-12)
