@@ -16,6 +16,7 @@ from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSerie
 from arctic.store.version_store import register_versioned_storage
 from pandas.tseries.offsets import DateOffset
 
+
 register_versioned_storage(PandasDataFrameStore)
 
 
@@ -797,3 +798,42 @@ def test_daterange_fails_with_timezone_start(library):
     with pytest.raises(ValueError):
         library.read('MYARR', date_range=DateRange(start=dt(2015, 1, 1, tzinfo=mktz())))
 
+
+def test_data_info_series(library):
+    s = Series(data=[1, 2, 3], index=[4, 5, 6])
+    library.write('pandas', s)
+    md = library.get_info('pandas')
+    assert md == {'dtype': [('index', '<i8'), ('values', '<i8')],
+                  'col_names': {u'index': [u'index'], u'columns': [u'values']},
+                  'type': u'pandasseries',
+                  'handler': 'PandasSeriesStore',
+                  'rows': 3,
+                  'segment_count': 1,
+                  'size': 48}
+
+
+def test_data_info_df(library):
+    s = DataFrame(data=[1, 2, 3], index=[4, 5, 6])
+    library.write('pandas', s)
+    md = library.get_info('pandas')
+    assert md == {'dtype': [('index', '<i8'), ('0', '<i8')],
+                  'col_names': {u'index': [u'index'], u'columns': [u'0']},
+                  'type': u'pandasdf',
+                  'handler': 'PandasDataFrameStore',
+                  'rows': 3,
+                  'segment_count': 1,
+                  'size': 48}
+
+
+def test_data_info_cols(library):
+    i = MultiIndex.from_tuples([(1, "ab"), (2, "bb"), (3, "cb")])
+    s = DataFrame(data=[100, 200, 300], index=i)
+    library.write('test_data', s)
+    md = library.get_info('test_data')
+    assert md == {'dtype': [('level_0', '<i8'), ('level_1', 'S2'), ('0', '<i8')],
+                  'col_names': {u'index': [u'level_0', u'level_1'], u'columns': [u'0']},
+                  'type': u'pandasdf',
+                  'handler': 'PandasDataFrameStore',
+                  'rows': 3,
+                  'segment_count': 1,
+                  'size': 54}
