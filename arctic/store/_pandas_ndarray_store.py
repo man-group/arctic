@@ -87,15 +87,18 @@ class PandasStore(NdarrayStore):
         arrays = map(_to_primitive, arrays)
         dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
                          metadata=metadata)
+
         rtn = np.rec.fromarrays(arrays, dtype=dtype, names=names)
-        #For some reason the dtype metadata is lost in the line above.
-        rtn.dtype = dtype
-        return rtn
+        # For some reason the dtype metadata is lost in the line above
+        # and setting rtn.dtype to dtype does not preserve the metadata
+        # see https://github.com/numpy/numpy/issues/6771
+
+        return (rtn, dtype)
 
     def can_convert_to_records_without_objects(self, df, symbol):
         # We can't easily distinguish string columns from objects
         try:
-            arr = self.to_records(df)
+            arr,_ = self.to_records(df)
         except Exception as e:
             # This exception will also occur when we try to write the object so we fall-back to saving using Pickle
             log.info('Pandas dataframe %s caused exception "%s" when attempting to convert to records. Saving as Blob.'
@@ -249,12 +252,12 @@ class PandasSeriesStore(PandasStore):
         return False
 
     def write(self, arctic_lib, version, symbol, item, previous_version):
-        item = self.to_records(item)
-        super(PandasSeriesStore, self).write(arctic_lib, version, symbol, item, previous_version)
+        item, md = self.to_records(item)
+        super(PandasSeriesStore, self).write(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
     def append(self, arctic_lib, version, symbol, item, previous_version):
-        item = self.to_records(item)
-        super(PandasSeriesStore, self).append(arctic_lib, version, symbol, item, previous_version)
+        item, md = self.to_records(item)
+        super(PandasSeriesStore, self).append(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
     def read(self, arctic_lib, version, symbol, **kwargs):
         item = super(PandasSeriesStore, self).read(arctic_lib, version, symbol, **kwargs)
@@ -287,12 +290,12 @@ class PandasDataFrameStore(PandasStore):
         return False
 
     def write(self, arctic_lib, version, symbol, item, previous_version):
-        item = self.to_records(item)
-        super(PandasDataFrameStore, self).write(arctic_lib, version, symbol, item, previous_version)
+        item, md = self.to_records(item)
+        super(PandasDataFrameStore, self).write(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
     def append(self, arctic_lib, version, symbol, item, previous_version):
-        item = self.to_records(item)
-        super(PandasDataFrameStore, self).append(arctic_lib, version, symbol, item, previous_version)
+        item, md = self.to_records(item)
+        super(PandasDataFrameStore, self).append(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
     def read(self, arctic_lib, version, symbol, **kwargs):
         item = super(PandasDataFrameStore, self).read(arctic_lib, version, symbol, **kwargs)
