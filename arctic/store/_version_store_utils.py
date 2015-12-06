@@ -28,9 +28,9 @@ def checksum(symbol, doc):
     Checksum the passed in dictionary
     """
     sha = hashlib.sha1()
-    sha.update(symbol)
-    for k in sorted(doc.iterkeys(), reverse=True):
-        sha.update(str(doc[k]))
+    sha.update(symbol.encode('utf-8'))
+    for k in sorted(iter(doc.keys()), reverse=True):
+        sha.update(str(doc[k]).encode('utf-8'))
     return Binary(sha.digest())
 
 

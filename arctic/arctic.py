@@ -11,6 +11,7 @@ from .exceptions import LibraryNotFoundException, ArcticException, QuotaExceeded
 from .hooks import get_mongodb_uri
 from .store import version_store
 from .tickstore import tickstore, toplevel
+from six import string_types
 
 
 __all__ = ['Arctic', 'VERSION_STORE', 'TICK_STORE', 'register_library_type']
@@ -92,7 +93,7 @@ class Arctic(object):
         self._server_selection_timeout = serverSelectionTimeoutMS
         self._lock = threading.Lock()
 
-        if isinstance(mongo_host, basestring):
+        if isinstance(mongo_host, string_types):
             self.mongo_host = mongo_host
         else:
             self.__conn = mongo_host
@@ -230,7 +231,7 @@ class Arctic(object):
             error = None
             l = ArcticLibraryBinding(self, library)
             lib_type = l.get_library_type()
-        except (OperationFailure, AutoReconnect), e:
+        except (OperationFailure, AutoReconnect) as e:
             error = e
 
         if error:
@@ -249,7 +250,7 @@ class Arctic(object):
         return self._library_cache[library]
 
     def __getitem__(self, key):
-        if isinstance(key, basestring):
+        if isinstance(key, string_types):
             return self.get_library(key)
         else:
             raise ArcticException("Unrecognised library specification - use [libraryName]")

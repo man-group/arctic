@@ -480,7 +480,7 @@ class TickStore(object):
         mongo_retry(self._collection.insert_many)(buckets)
         t = (dt.now() - start).total_seconds()
         ticks = len(buckets) * self.chunk_size
-        print "%d buckets in %s: approx %s ticks/sec" % (len(buckets), t, int(ticks / t))
+        print("%d buckets in %s: approx %s ticks/sec" % (len(buckets), t, int(ticks / t)))
 
     def _pandas_to_buckets(self, x, symbol):
         rtn = []

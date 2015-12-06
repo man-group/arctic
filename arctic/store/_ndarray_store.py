@@ -1,6 +1,5 @@
 import logging
 import hashlib
-import pprint
 
 from bson.binary import Binary
 import numpy as np
@@ -19,6 +18,11 @@ logger = logging.getLogger(__name__)
 _CHUNK_SIZE = 2 * 1024 * 1024 - 2048  # ~2 MB (a bit less for usePowerOf2Sizes)
 _APPEND_SIZE = 1 * 1024 * 1024  # 1MB
 _APPEND_COUNT = 60  # 1 hour of 1 min data
+
+try:
+    xrange
+except NameError:
+    xrange = range
 
 
 def _promote_struct_dtypes(dtype1, dtype2):
@@ -116,7 +120,7 @@ class NdarrayStore(object):
             collection.create_index([('symbol', pymongo.ASCENDING),
                                      ('parent', pymongo.ASCENDING),
                                      ('segment', pymongo.ASCENDING)], unique=True, background=True)
-        except OperationFailure, e:
+        except OperationFailure as e:
             if "can't use unique indexes" in str(e):
                 return
             raise
@@ -199,7 +203,7 @@ class NdarrayStore(object):
                                       collection.find_one({'_id': x['_id']}),
                                       collection.find_one({'_id': x['_id']}))
                 raise
-        data = ''.join(segments)
+        data = ''.join(str(segments))
 
         # Check that the correct number of segments has been returned
         if segment_count is not None and i + 1 != segment_count:

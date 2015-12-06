@@ -84,7 +84,7 @@ class PandasStore(NdarrayStore):
         metadata['columns'] = columns
         names = index_names + columns
         arrays = ix_vals + column_vals
-        arrays = map(_to_primitive, arrays)
+        arrays = list(map(_to_primitive, arrays))
         dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
                          metadata=metadata)
 

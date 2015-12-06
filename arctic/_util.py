@@ -31,7 +31,7 @@ def enable_sharding(arctic, library_name, hashed=False):
     library_name = lib.get_top_level_collection().name
     try:
         c.admin.command('enablesharding', dbname)
-    except OperationFailure, e:
+    except OperationFailure as e:
         if not 'failed: already enabled' in str(e):
             raise
     if not hashed:
