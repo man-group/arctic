@@ -21,7 +21,7 @@ def test_can_convert_to_records_without_objects_returns_false_on_exception_in_to
 
 def test_can_convert_to_records_without_objects_returns_false_when_records_have_object_dtype():
     store = PandasStore()
-    store.to_records = Mock(return_value=np.array(['a', 'b', None, 'd']))
+    store.to_records = Mock(return_value=(np.array(['a', 'b', None, 'd']), None))
 
     with patch('arctic.store._pandas_ndarray_store.log') as mock_log:
         assert store.can_convert_to_records_without_objects(sentinel.df, 'my_symbol') is False
@@ -32,8 +32,8 @@ def test_can_convert_to_records_without_objects_returns_false_when_records_have_
 
 def test_can_convert_to_records_without_objects_returns_false_when_records_have_arrays_in_them():
     store = PandasStore()
-    store.to_records = Mock(return_value=np.rec.array([(1356998400000000000L, ['A', 'BC'])],
-                                                      dtype=[('index', '<M8[ns]'), ('values', 'S2', (2,))]))
+    store.to_records = Mock(return_value=(np.rec.array([(1356998400000000000L, ['A', 'BC'])],
+                                                       dtype=[('index', '<M8[ns]'), ('values', 'S2', (2,))]), None))
 
     with patch('arctic.store._pandas_ndarray_store.log') as mock_log:
         assert store.can_convert_to_records_without_objects(sentinel.df, 'my_symbol') is False
@@ -44,23 +44,14 @@ def test_can_convert_to_records_without_objects_returns_false_when_records_have_
 
 def test_can_convert_to_records_without_objects_returns_true_otherwise():
     store = PandasStore()
-    store.to_records = Mock(return_value=np.rec.array([(1356998400000000000L, 'a')],
-                                                      dtype=[('index', '<M8[ns]'), ('values', 'S2')]))
+    store.to_records = Mock(return_value=(np.rec.array([(1356998400000000000L, 'a')],
+                                                       dtype=[('index', '<M8[ns]'), ('values', 'S2')]), None))
 
     with patch('arctic.store._pandas_ndarray_store.log') as mock_log:
         assert store.can_convert_to_records_without_objects(sentinel.df, 'my_symbol') is True
 
     assert mock_log.info.call_count == 0
     store.to_records.assert_called_once_with(sentinel.df)
-
-
-def test_to_records_raises_when_object_dtypes_present():
-    store = PandasDataFrameStore()
-    df = pd.DataFrame(data=dict(A=['a', 'b', None, 'c'], B=[1., 2., 3., 4.]), index=range(4))
-    with raises(TypeError) as e:
-        store.to_records(df)
-
-    assert "Cannot change data-type for object array." in str(e)
 
 
 def test_panel_converted_to_dataframe_and_stacked_to_write():
