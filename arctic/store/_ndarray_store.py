@@ -210,35 +210,38 @@ class NdarrayStore(object):
         rtn = np.fromstring(data, dtype=dtype).reshape(version.get('shape', (-1)))
         return rtn
 
-    def _promote_types(self, item, dtype_str):
-        if dtype_str == str(item.dtype):
-            return item.dtype
+    def _promote_types(self, dtype, dtype_str):
+        if dtype_str == str(dtype):
+            return dtype
         prev_dtype = self._dtype(dtype_str)
-        if item.dtype.names is None:
-            rtn = np.promote_types(item.dtype, prev_dtype)
+        if dtype.names is None:
+            rtn = np.promote_types(dtype, prev_dtype)
         else:
-            rtn = _promote_struct_dtypes(item.dtype, prev_dtype)
-        rtn = np.dtype(rtn, metadata=dict(item.dtype.metadata or {}))
+            rtn = _promote_struct_dtypes(dtype, prev_dtype)
+        rtn = np.dtype(rtn, metadata=dict(dtype.metadata or {}))
         return rtn
 
-    def append(self, arctic_lib, version, symbol, item, previous_version):
+    def append(self, arctic_lib, version, symbol, item, previous_version, dtype=None):
         collection = arctic_lib.get_top_level_collection()
         if previous_version.get('shape', [-1]) != [-1, ] + list(item.shape)[1:]:
             raise UnhandledDtypeException()
 
-        if previous_version['up_to'] == 0:
+        if not dtype:
             dtype = item.dtype
+        
+        if previous_version['up_to'] == 0:
+            dtype = dtype
         elif len(item) == 0:
             dtype = self._dtype(previous_version['dtype'])
         else:
-            dtype = self._promote_types(item, previous_version['dtype'])
+            dtype = self._promote_types(dtype, previous_version['dtype'])
         item = item.astype(dtype)
         if str(dtype) != previous_version['dtype']:
             logger.debug('Converting %s from %s to %s' % (symbol, previous_version['dtype'], str(dtype)))
             if item.dtype.hasobject:
                 raise UnhandledDtypeException()
-            version['dtype'] = str(item.dtype)
-            version['dtype_metadata'] = dict(item.dtype.metadata or {})
+            version['dtype'] = str(dtype)
+            version['dtype_metadata'] = dict(dtype.metadata or {})
             version['type'] = self.TYPE
 
             old_arr = self._do_read(collection, previous_version, symbol).astype(dtype)
@@ -368,20 +371,22 @@ class NdarrayStore(object):
         sha.update(item.tostring())
         return Binary(sha.digest())
 
-    def write(self, arctic_lib, version, symbol, item, previous_version):
+    def write(self, arctic_lib, version, symbol, item, previous_version, dtype=None):
         collection = arctic_lib.get_top_level_collection()
         if item.dtype.hasobject:
             raise UnhandledDtypeException()
 
-        version['dtype'] = str(item.dtype)
+        if not dtype:
+            dtype = item.dtype
+        version['dtype'] = str(dtype)
         version['shape'] = (-1,) + item.shape[1:]
-        version['dtype_metadata'] = dict(item.dtype.metadata or {})
+        version['dtype_metadata'] = dict(dtype.metadata or {})
         version['type'] = self.TYPE
         version['up_to'] = len(item)
         version['sha'] = self.checksum(item)
-
+        
         if previous_version:
-            if version['dtype'] == str(item.dtype) \
+            if version['dtype'] == str(dtype) \
                     and 'sha' in previous_version \
                     and self.checksum(item[:previous_version['up_to']]) == previous_version['sha']:
                 #The first n rows are identical to the previous version, so just append.
