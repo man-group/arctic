@@ -31,7 +31,7 @@ class ArcticTransaction(object):
     call the `write` method of the context manager to output changes. The changes will only be written when the block
     exits.
 
-    NB changes are audited.
+    NB changes may be audited.
 
     Example:
     -------
@@ -44,7 +44,8 @@ class ArcticTransaction(object):
     retry the whole block should that happens, as the assumption is that you need to base your changes on a different
     starting timeseries.
     '''
-    def __init__(self, version_store, symbol, user, log, modify_timeseries=None, *args, **kwargs):
+    def __init__(self, version_store, symbol, user, log, modify_timeseries=None, audit=True,
+                 *args, **kwargs):
         '''
         Parameters
         ----------
@@ -67,6 +68,12 @@ class ArcticTransaction(object):
             interacting with code that read in the data already and for some reason you cannot refactor the read-write
             operation to be contained within this context manager
 
+        audit: `bool`
+            should we 'audit' the transaction. An audited write transaction is equivalent to a snapshot
+            before and after the data change - i.e. we won't prune versions of the data involved in an
+            audited transaction.  This can be used to ensure that the history of certain data changes is
+            preserved indefinitely.
+
         all other args:
             Will be passed into the initial read
         '''
@@ -74,6 +81,7 @@ class ArcticTransaction(object):
         self._symbol = symbol
         self._user = user
         self._log = log
+        self._audit = audit
         logger.info("MT: {}@{}: [{}] {}: {}".format(_get_host(version_store).get('l'),
                                                     _get_host(version_store).get('mhost'),
                                                        user, log, symbol)
@@ -136,4 +144,5 @@ class ArcticTransaction(object):
                                                       self._symbol, self.base_ts.version, written_ver.version))
 
             changed = ChangedItem(self._symbol, self.base_ts, written_ver, None)
-            self._version_store._write_audit(self._user, self._log, changed)
+            if self._audit:
+                self._version_store._write_audit(self._user, self._log, changed)
