@@ -20,8 +20,24 @@ def test_ConcurrentWriteBlock_simple():
         cwb.write(sentinel.symbol, pd.DataFrame(index=[3, 4], data={'a': [1.0, 2.0]}), metadata=sentinel.meta)
 
     assert not vs._delete_version.called
-    vs.write.assert_called_once_with(sentinel.symbol, ANY, prune_previous_version=True, metadata=sentinel.meta)
-    vs.list_versions.assert_called_once_with(sentinel.symbol)
+    assert vs.write.call_args_list == [call(sentinel.symbol, ANY, prune_previous_version=True, metadata=sentinel.meta)]
+    assert vs.list_versions.call_args_list == [call(sentinel.symbol)]
+    assert vs._write_audit.call_args_list == [call(sentinel.user, sentinel.log, ANY)]
+
+
+def test_ArticTransaction_no_audit():
+    vs = create_autospec(VersionStore, _collection=Mock())
+    ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
+    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
+    vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2,
+                            metadata=None, data=None)
+    vs.list_versions.return_value = [{'version': 2}, {'version': 1}]
+
+    with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log, audit=False) as cwb:
+        cwb.write(sentinel.symbol, pd.DataFrame(index=[3, 4], data={'a': [1.0, 2.0]}), metadata=sentinel.meta)
+
+    assert vs.write.call_count == 1
+    assert vs._write_audit.call_count == 0
 
 
 def test_ConcurrentWriteBlock_writes_if_metadata_changed():
