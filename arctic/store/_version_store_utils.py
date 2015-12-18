@@ -6,6 +6,9 @@ import pandas as pd
 import functools
 from pandas.compat import pickle_compat
 
+from ..decorators import mongo_retry
+
+
 def _split_arrs(array_2d, slices):
     """
     Equivalent to numpy.split(array_2d, slices),
@@ -34,6 +37,7 @@ def checksum(symbol, doc):
     return Binary(sha.digest())
 
 
+@mongo_retry
 def cleanup(arctic_lib, symbol, version_ids):
     """
     Helper method for cleaning up chunks from a version store
