@@ -1,6 +1,7 @@
 from datetime import datetime
 from functools import wraps
 import os
+import threading
 import sys
 from time import sleep
 import logging
@@ -28,8 +29,11 @@ def _get_host(store):
             pass
     return ret
 
-_in_retry = False
-_retry_count = 0
+
+class _Local(threading.local):
+    _in_retry = False
+    _retry_count = 0
+_local = _Local()
 
 
 def mongo_retry(f):
@@ -41,28 +45,27 @@ def mongo_retry(f):
 
     @wraps(f)
     def f_retry(*args, **kwargs):
-        global _retry_count, _in_retry
-        top_level = not _in_retry
-        _in_retry = True
+        top_level = not _local._retry_count
+        _local._in_retry = True
         try:
             while True:
                 try:
                     return f(*args, **kwargs)
                 except (DuplicateKeyError, ServerSelectionTimeoutError) as e:
                     # Re-raise errors that won't go away.
-                    _handle_error(f, e, _retry_count, **_get_host(args))
+                    _handle_error(f, e, _local._retry_count, **_get_host(args))
                     raise
                 except (OperationFailure, AutoReconnect) as e:
-                    _retry_count += 1
-                    _handle_error(f, e, _retry_count, **_get_host(args))
+                    _local._retry_count += 1
+                    _handle_error(f, e, _local._retry_count, **_get_host(args))
                 except Exception as e:
                     if log_all_exceptions:
-                        _log_exception(f.__name__, e, _retry_count, **_get_host(args))
+                        _log_exception(f.__name__, e, _local._retry_count, **_get_host(args))
                     raise
         finally:
             if top_level:
-                _in_retry = False
-                _retry_count = 0
+                _local._in_retry = False
+                _local._retry_count = 0
     return f_retry
 
 
