@@ -1,4 +1,7 @@
-from StringIO import StringIO
+try:
+    import cStringIO as stringio
+except ImportError:
+    import io as stringio
 from datetime import datetime as dt, timedelta as dtd
 from dateutil.rrule import rrule, DAILY
 from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat
@@ -212,7 +215,6 @@ def test_append_pandas_dataframe(library):
 def test_empty_dataframe_multindex(library):
     df = DataFrame({'a': [], 'b': [], 'c': []})
     df = df.groupby(['a', 'b']).sum()
-    print df
     library.write('pandas', df)
     saved_df = library.read('pandas').data
     assert np.all(df.values == saved_df.values)
@@ -421,7 +423,7 @@ def test_large_dataframe_append_rewrite_same_item(library):
 37, 201401, 2013 - 12 - 20 16:15:00, -108.0, GEE1, PUT, STRAT, 140.0, 140.345, 0.07231398622706062, 0.008813407863715872, 0.2318116692147143, -0.357200149447554, 0.391592427081917, 4.915801583071703, -20.16670499598669, 38.577616140335834, -42.29198212484704, -530.9065709717439, 2178.0041395665626, -34460.58494238685, 74523.96059955555, -114660.94716715509, -7307.7165867976655, 11530.52145364535, -34460.58494238685, -20863362.0996, 1.37646, SYM
 38, 201401, 2013 - 12 - 20 16:15:00, -83.0, GEE1, PUT, STRAT, 141.0, 140.345, 0.07172143045750252, 0.008813407863715872, 0.7922715181315709, -0.7543151841866509, 0.333159035321538, 4.147995696473539, -16.876460506586433, 62.608160287492026, -27.652199931687655, -344.28364280730375, 1400.746222046674, -90513.99446933273, 120945.99245071695, -74969.94172708844, -4738.926629785414, 7415.658249224481, -15682.746569332587, -16033880.132100001, 1.37646, SYM
 39, 201401, 2013 - 12 - 20 16:15:00, -56.0, GEE1, PUT, STRAT, 141.5, 140.345, 0.0739452718231504, 0.008813407863715872, 1.212080035129219, -0.88042603375236, 0.20479158314197934, 2.628816497069195, -11.026098543797652, 49.30385789013216, -11.468328655950843, -147.21372383587493, 617.4615184526685, -93429.26236862202, 95244.83704343032, -31092.641206404707, -2026.3380231112837, 3268.888775728308, -4399.8295686219335, -10818039.607199999, 1.37646, SYM"""
-    csv = StringIO(csv)
+    csv = stringio.StringIO(csv)
     df = read_csv(csv).set_index(['index'])
     for _ in range(10):
         library.write('pandas', df[:-2])
@@ -486,7 +488,7 @@ def test_large_dataframe_rewrite_same_item(library):
 37, 201401, 2013 - 12 - 20 16:15:00, -108.0, GEE1, PUT, STRAT, 140.0, 140.345, 0.07231398622706062, 0.008813407863715872, 0.2318116692147143, -0.357200149447554, 0.391592427081917, 4.915801583071703, -20.16670499598669, 38.577616140335834, -42.29198212484704, -530.9065709717439, 2178.0041395665626, -34460.58494238685, 74523.96059955555, -114660.94716715509, -7307.7165867976655, 11530.52145364535, -34460.58494238685, -20863362.0996, 1.37646, SYM
 38, 201401, 2013 - 12 - 20 16:15:00, -83.0, GEE1, PUT, STRAT, 141.0, 140.345, 0.07172143045750252, 0.008813407863715872, 0.7922715181315709, -0.7543151841866509, 0.333159035321538, 4.147995696473539, -16.876460506586433, 62.608160287492026, -27.652199931687655, -344.28364280730375, 1400.746222046674, -90513.99446933273, 120945.99245071695, -74969.94172708844, -4738.926629785414, 7415.658249224481, -15682.746569332587, -16033880.132100001, 1.37646, SYM
 39, 201401, 2013 - 12 - 20 16:15:00, -56.0, GEE1, PUT, STRAT, 141.5, 140.345, 0.0739452718231504, 0.008813407863715872, 1.212080035129219, -0.88042603375236, 0.20479158314197934, 2.628816497069195, -11.026098543797652, 49.30385789013216, -11.468328655950843, -147.21372383587493, 617.4615184526685, -93429.26236862202, 95244.83704343032, -31092.641206404707, -2026.3380231112837, 3268.888775728308, -4399.8295686219335, -10818039.607199999, 1.37646, SYM"""
-    csv = StringIO(csv)
+    csv = stringio.StringIO(csv)
     df = read_csv(csv).set_index(['index'])
     for _ in range(100):
         library.write('pandas', df)
@@ -692,7 +694,7 @@ def test_daterange_large_DataFrame_middle(library):
 
 @pytest.mark.parametrize("df,assert_equal", [
     (DataFrame(index=date_range(dt(2001, 1, 1), freq='D', periods=30000),
-               data=range(30000), columns=['A']), assert_frame_equal),
+               data=list(range(30000)), columns=['A']), assert_frame_equal),
     (Series(index=date_range(dt(2001, 1, 1), freq='D', periods=30000),
             data=range(30000)), assert_series_equal),
 ])
@@ -755,7 +757,7 @@ def assert_range_slice(library, expected, date_range, **kwargs):
 
 
 def test_daterange_single_chunk(library):
-    df = read_csv(StringIO("""2015-08-10 00:00:00,200005,1.0
+    df = read_csv(stringio.StringIO("""2015-08-10 00:00:00,200005,1.0
                               2015-08-10 00:00:00,200012,2.0
                               2015-08-10 00:00:00,200016,3.0
                               2015-08-11 00:00:00,200005,1.0
@@ -767,7 +769,7 @@ def test_daterange_single_chunk(library):
 
 
 def test_daterange_when_end_beyond_chunk_index(library):
-    df = read_csv(StringIO("""2015-08-10 00:00:00,200005,1.0
+    df = read_csv(stringio.StringIO("""2015-08-10 00:00:00,200005,1.0
                               2015-08-10 00:00:00,200012,2.0
                               2015-08-10 00:00:00,200016,3.0
                               2015-08-11 00:00:00,200005,1.0
@@ -779,7 +781,7 @@ def test_daterange_when_end_beyond_chunk_index(library):
 
 
 def test_daterange_when_end_beyond_chunk_index_no_start(library):
-    df = read_csv(StringIO("""2015-08-10 00:00:00,200005,1.0
+    df = read_csv(stringio.StringIO("""2015-08-10 00:00:00,200005,1.0
                               2015-08-10 00:00:00,200012,2.0
                               2015-08-10 00:00:00,200016,3.0
                               2015-08-11 00:00:00,200005,1.0
@@ -791,7 +793,7 @@ def test_daterange_when_end_beyond_chunk_index_no_start(library):
 
 
 def test_daterange_fails_with_timezone_start(library):
-    df = read_csv(StringIO("""2015-08-10 00:00:00,200005,1.0
+    df = read_csv(stringio.StringIO("""2015-08-10 00:00:00,200005,1.0
                               2015-08-11 00:00:00,200016,3.0"""), parse_dates=[0],
                   names=['date', 'security_id', 'value']).set_index(['date', 'security_id'])
     library.write('MYARR', df)

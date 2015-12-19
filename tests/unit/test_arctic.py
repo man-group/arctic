@@ -1,4 +1,7 @@
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 from mock import patch, MagicMock, sentinel, create_autospec, Mock, call
 import pytest
 from pymongo.errors import OperationFailure, ServerSelectionTimeoutError, AutoReconnect

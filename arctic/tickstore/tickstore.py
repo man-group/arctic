@@ -12,6 +12,7 @@ from pymongo.errors import OperationFailure
 from ..date import DateRange, to_pandas_closed_closed, mktz, datetime_to_ms, CLOSED_CLOSED, to_dt
 from ..decorators import mongo_retry
 from ..exceptions import OverlappingDataException, NoDataFoundException, UnhandledDtypeException, ArcticException
+from six import string_types
 
 logger = logging.getLogger(__name__)
 
@@ -185,7 +186,7 @@ class TickStore(object):
         return {START: start_range}
 
     def _symbol_query(self, symbol):
-        if isinstance(symbol, basestring):
+        if isinstance(symbol, string_types):
             query = {SYMBOL: symbol}
         elif symbol is not None:
             query = {SYMBOL: {'$in': symbol}}
@@ -216,7 +217,7 @@ class TickStore(object):
         rtn = {}
         column_set = set()
 
-        multiple_symbols = not isinstance(symbol, basestring)
+        multiple_symbols = not isinstance(symbol, string_types)
 
         date_range = to_pandas_closed_closed(date_range)
         query = self._symbol_query(symbol)
@@ -339,7 +340,7 @@ class TickStore(object):
             if columns and field not in columns:
                 continue
             if field not in document or document[field] is None:
-                col_dtype = np.dtype(str if isinstance(image[field], basestring) else 'f8')
+                col_dtype = np.dtype(str if isinstance(image[field], string_types) else 'f8')
                 document[field] = self._empty(rtn_length, dtype=col_dtype)
                 column_dtypes[field] = col_dtype
                 column_set.add(field)

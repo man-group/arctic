@@ -97,19 +97,19 @@ def load_all_stock_history_NYSE():
     # 
     nyse = pd.read_csv('/users/is/jblackburn/git/arctic/howtos/nyse.csv')
     stocks = [x.split('/')[0] for x in nyse['Ticker']]
-    print len(stocks), " symbols"
+    print(len(stocks), " symbols")
     for i, stock in enumerate(stocks):
         try:
             now = datetime.now()
             data = get_stock_history('aapl', '1980-01-01', '2015-07-07')
             lib.write(stock, data)
-            print "loaded data for: ", stock, datetime.now() - now
+            print("loaded data for: ", stock, datetime.now() - now)
         except Exception as e:
-            print "Failed for ", stock, str(e)
+            print("Failed for ", stock, str(e))
 
 
 # load_all_stock_history_NYSE()
-print len(lib.list_symbols()), " NYSE symbols loaded"
+print(len(lib.list_symbols()), " NYSE symbols loaded")
 
 
 def read_all_data_from_lib(lib):
@@ -117,10 +117,10 @@ def read_all_data_from_lib(lib):
     rows_read = 0
     for s in lib.list_symbols():
         rows_read += len(lib.read(s).data)
-    print "Symbols: %s Rows: %s  Time: %s  Rows/s: %s" % (len(lib.list_symbols()),
+    print("Symbols: %s Rows: %s  Time: %s  Rows/s: %s" % (len(lib.list_symbols()),
                                                           rows_read,
                                                           (time.time() - start),
-                                                          rows_read / (time.time() - start))
+                                                          rows_read / (time.time() - start)))
 
 
 read_all_data_from_lib(lib)

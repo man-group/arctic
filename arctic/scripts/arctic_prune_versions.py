@@ -36,8 +36,8 @@ def main():
         parser.error('Must specify the Arctic library e.g. arctic_jblackburn.library!')
     db_name, _ = ArcticLibraryBinding._parse_db_lib(opts.library)
 
-    print "Pruning (old) versions in : %s on mongo %s" % (opts.library, opts.host)
-    print "Keeping all versions <= %s mins old" % (opts.keep_mins)
+    print("Pruning (old) versions in : %s on mongo %s" % (opts.library, opts.host))
+    print("Keeping all versions <= %s mins old" % (opts.keep_mins))
     c = pymongo.MongoClient(get_mongodb_uri(opts.host))
 
     if not do_db_auth(opts.host, c, db_name):

@@ -62,7 +62,7 @@ class VersionStore(object):
         try:
             enable_sharding(arctic_lib.arctic, arctic_lib.get_name(), hashed=hashed)
         except OperationFailure as e:
-            logger.warn("Library created, but couldn't enable sharding: %s. This is OK if you're not 'admin'" % str(e))
+            logger.warning("Library created, but couldn't enable sharding: %s. This is OK if you're not 'admin'" % str(e))
 
     @mongo_retry
     def _ensure_index(self):
@@ -661,7 +661,7 @@ class VersionStore(object):
         symbol : `str`
             symbol name to delete
         """
-        logger.warn("Deleting data item: %r from %r" % (symbol, self._arctic_lib.get_name()))
+        logger.warning("Deleting data item: %r from %r" % (symbol, self._arctic_lib.get_name()))
         # None is the magic sentinel value that indicates an item has been deleted.
         sentinel = self.write(symbol, None, prune_previous_version=False, metadata={'deleted': True})
         self._prune_previous_versions(symbol, 0)
