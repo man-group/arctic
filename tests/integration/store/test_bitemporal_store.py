@@ -28,6 +28,8 @@ ts1_update = read_str_as_pandas("""           sample_dt | near
                                 2012-11-08 17:06:11.040 |  3.0
                                 2012-11-09 17:06:11.040 |  3.5""")
 
+LOCAL_TZ = mktz()
+
 
 def test_new_ts_read_write(bitemporal_library):
     bitemporal_library.update('spam', ts1)
@@ -57,7 +59,7 @@ def test_write_ts_with_column_name_same_as_observed_dt_ok(bitemporal_library):
 def test_last_update(bitemporal_library):
     bitemporal_library.update('spam', ts1, as_of=dt(2015, 1, 1))
     bitemporal_library.update('spam', ts1, as_of=dt(2015, 1, 2))
-    assert bitemporal_library.read('spam').last_updated == dt(2015, 1, 2)
+    assert bitemporal_library.read('spam').last_updated == dt(2015, 1, 2, tzinfo=LOCAL_TZ)
 
 
 def test_existing_ts_update_and_read(bitemporal_library):
@@ -195,10 +197,9 @@ def test_read_ts_raw_all_version_ok(bitemporal_library):
 
 
 def test_bitemporal_store_saves_as_of_with_timezone(bitemporal_library):
-    local_tz = mktz()
     bitemporal_library.update('spam', ts1, as_of=dt(2015, 5, 1))
     df = bitemporal_library.read('spam', raw=True).data
-    assert all([x[1].replace(tzinfo=mktz('UTC')) == dt(2015, 5, 1, tzinfo=local_tz) for x in df.index])
+    assert all([x[1] == dt(2015, 5, 1, tzinfo=LOCAL_TZ) for x in df.index])
 
 
 def test_bitemporal_store_read_as_of_timezone(bitemporal_library):
@@ -263,4 +264,4 @@ def test_multi_index_update(bitemporal_library):
     bitemporal_library.update('spam', ts, as_of=dt(2015, 1, 1))
     bitemporal_library.update('spam', ts2, as_of=dt(2015, 1, 2))
     assert_frame_equal(expected_ts, bitemporal_library.read('spam').data)
-    assert bitemporal_library.read('spam').last_updated == dt(2015, 1, 2)
+    assert bitemporal_library.read('spam').last_updated == dt(2015, 1, 2, tzinfo=LOCAL_TZ)
