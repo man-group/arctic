@@ -1,4 +1,5 @@
 # cython: profile=True
+# cython: c_string_type=str, c_string_encoding=ascii
 
 #
 # LZ4 code was copied from: https://github.com/steeve/python-lz4/ r8ac9cf9df8fb8d51f40a3065fa538f8df1c8a62a 22/4/2015 [tt]
@@ -20,8 +21,6 @@ cimport openmp
 from libc.stdlib cimport malloc, free, realloc
 from libc.stdint cimport uint8_t, uint32_t
 from libc.stdio cimport printf
-from cpython.bytes cimport PyBytes_AsString
-from cpython.unicode cimport PyUnicode_AsASCIIString
 from cython.view cimport array as cvarray
 from cython.parallel import prange
 from cython.parallel import threadid
@@ -46,7 +45,7 @@ cdef char ** to_cstring_array(list_str):
     """ 
     cdef char **ret = <char **>malloc(len(list_str) * sizeof(char *))
     for i in xrange(len(list_str)):
-        ret[i] = PyBytes_AsString(PyUnicode_AsASCIIString(list_str[i]))
+        ret[i] = list_str[i]
     return ret
 
 
@@ -119,7 +118,7 @@ def decompress(pString):
     pyResult = result[:original_size]
 
     free(result)
-    return pyResult
+    return pyResult[:original_size].decode('UTF-8')
 
 
 @cython.boundscheck(False)
@@ -239,7 +238,7 @@ def decompressarr(pStrList):
     for i in range(n):
         pyResult = cResult[i][:lengths[i]]
         free(cResult[i])
-        result_list.append(pyResult)
+        result_list.append(pyResult[:lengths[i]].decode('UTF-8'))
 
     free(cResult)
     free(cStrList)

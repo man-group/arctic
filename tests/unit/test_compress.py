@@ -34,7 +34,7 @@ def test_roundtripLZ4():
 def test_roundtripLZ4Back():
     _str = "hello world"
     cstr = c.compress(_str)
-    assert _str == lz4.decompress(cstr)
+    assert _str == lz4.decompress(cstr).decode('utf8')
 
 
 def test_roundtripLZ4HC():
@@ -46,7 +46,7 @@ def test_roundtripLZ4HC():
 def test_roundtripLZ4HCBack():
     _str = "hello world"
     cstr = c.compressHC(_str)
-    assert _str == lz4.decompress(cstr)
+    assert _str == lz4.decompress(cstr).decode('utf8')
 
 
 @pytest.mark.parametrize("n, length", [(1, 10), (100, 10), (1000, 10)])

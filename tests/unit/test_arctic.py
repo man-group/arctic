@@ -12,6 +12,7 @@ from arctic.arctic import Arctic, ArcticLibraryBinding, \
     register_library_type, LIBRARY_TYPES
 from arctic.exceptions import LibraryNotFoundException, \
     ArcticException, QuotaExceededException
+import six
 
 
 def test_arctic_lazy_init():
@@ -141,7 +142,7 @@ def test_register_library_type():
 
     with pytest.raises(ArcticException) as e:
         register_library_type("new_dummy_type", DummyType)
-    assert "ArcticException: Library new_dummy_type already registered as <class 'tests.unit.test_arctic.DummyType'>" in str(e)
+    assert "ArcticException: Library new_dummy_type already registered" in str(e)
 
 
 def test_set_quota():
@@ -222,7 +223,7 @@ def test_check_quota_info():
         ArcticLibraryBinding.check_quota(self)
     self.arctic.__getitem__.assert_called_once_with(self.get_name.return_value)
     info.assert_called_once_with('Mongo Quota: 0.001 / 1 GB used')
-    assert self.quota_countdown == 51153
+    assert self.quota_countdown == 51150
 
 
 def test_check_quota_exceeded():
@@ -261,7 +262,7 @@ def test_initialize_library_too_many_ns():
     self._conn = create_autospec(MongoClient)
     lib = create_autospec(ArcticLibraryBinding)
     lib.database_name = sentinel.db_name
-    self._conn.__getitem__.return_value.collection_names.return_value = [x for x in xrange(3001)]
+    self._conn.__getitem__.return_value.collection_names.return_value = [x for x in six.moves.xrange(3001)]
     lib_type = Mock()
     with pytest.raises(ArcticException) as e:
         with patch.dict('arctic.arctic.LIBRARY_TYPES', {sentinel.lib_type: lib_type}), \

@@ -436,7 +436,7 @@ class ArcticLibraryBinding(object):
                                                               to_gigabytes(self.quota)))
 
         # Set-up a timer to prevent us for checking for a few writes.
-        self.quota_countdown = max(remaining_count / 2, 1)
+        self.quota_countdown = int(max(remaining_count / 2, 1))
 
     def get_library_type(self):
         return self.get_library_metadata(ArcticLibraryBinding.TYPE_FIELD)

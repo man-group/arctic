@@ -11,6 +11,7 @@ except ImportError:
     import io as stringio
 import lz4
 import pymongo
+import six
 
 from arctic.store._version_store_utils import checksum, pickle_compat_load
 
@@ -62,7 +63,7 @@ class PickleStore(object):
         version['blob'] = _MAGIC_CHUNKED
         pickled = lz4.compressHC(pickle.dumps(item, protocol=pickle.HIGHEST_PROTOCOL))
 
-        for i in xrange(len(pickled) / _CHUNK_SIZE + 1):
+        for i in six.moves.xrange(len(pickled) / _CHUNK_SIZE + 1):
             segment = {'data': Binary(pickled[i * _CHUNK_SIZE : (i + 1) * _CHUNK_SIZE])}
             sha = checksum(symbol, segment)
             segment['segment'] = i

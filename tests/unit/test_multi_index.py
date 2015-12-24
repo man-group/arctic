@@ -119,8 +119,8 @@ def test_fancy_group_by_multi_index():
 # --------- Min/Max using numeric index ----------- #
 
 def get_numeric_index_test_data():
-    group_idx = sorted(4 * range(4))
-    agg_idx = range(16)
+    group_idx = sorted(4 * list(range(4)))
+    agg_idx = list(range(16))
     prices = np.arange(32).reshape(16, 2) * 10
     df = pd.DataFrame(prices, index=[group_idx, agg_idx], columns=['OPEN', 'CLOSE'])
     #           OPEN  CLOSE
