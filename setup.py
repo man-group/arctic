@@ -89,6 +89,7 @@ setup(
     setup_requires=["setuptools_cython",
                     "Cython",
                     "numpy",
+                    "setuptools-git",
                     ],
     install_requires=["decorator",
                       "enum34",

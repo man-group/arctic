@@ -1,6 +1,11 @@
 
 ## Changelog
 
+### 1.17 (2015-12-24)
+
+  * Feature: Add timezone suppport to store multi-index dataframes
+  * Bugfix:  Fixed broken sdist releases
+
 ### 1.16 (2015-12-15)
 
   * Feature: ArticTransaction now supports non-audited 'transactions': `audit=False`
