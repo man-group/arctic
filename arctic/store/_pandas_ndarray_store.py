@@ -1,15 +1,18 @@
+import ast
 import logging
 
 from bson.binary import Binary
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Panel
+from pandas.tseries.index import DatetimeIndex
 from pandas.tslib import Timestamp, get_timezone
+
 import numpy as np
-import ast
 
 from .._compression import compress, decompress
+from ..date._util import to_pandas_closed_closed
 from ..exceptions import ArcticException
 from ._ndarray_store import NdarrayStore
-from ..date._util import to_pandas_closed_closed
+
 
 log = logging.getLogger(__name__)
 
@@ -57,6 +60,8 @@ class PandasStore(NdarrayStore):
 
         if isinstance(index, DatetimeIndex) and index.tz is not None:
             metadata['index_tz'] = get_timezone(index.tz)
+        elif isinstance(index, MultiIndex):
+            metadata['index_tz'] = [get_timezone(i.tz) if isinstance(i, DatetimeIndex) else None for i in index.levels]
 
         return index_names, ix_vals, metadata
 
@@ -66,6 +71,10 @@ class PandasStore(NdarrayStore):
 
         if isinstance(rtn, DatetimeIndex) and 'index_tz' in recarr.dtype.metadata:
             rtn = rtn.tz_localize('UTC').tz_convert(recarr.dtype.metadata['index_tz'])
+        elif isinstance(rtn, MultiIndex):
+            for i, tz in enumerate(recarr.dtype.metadata.get('index_tz')):
+                if tz is not None:
+                    rtn.set_levels(rtn.levels[i].tz_localize('UTC').tz_convert(tz), i, inplace=True)
 
         return rtn
 

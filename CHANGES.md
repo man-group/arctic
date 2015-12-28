@@ -1,6 +1,21 @@
 
 ## Changelog
 
+### 1.17 (2015-12-24)
+
+  * Feature: Add timezone suppport to store multi-index dataframes
+  * Bugfix:  Fixed broken sdist releases
+
+### 1.16 (2015-12-15)
+
+  * Feature: ArticTransaction now supports non-audited 'transactions': `audit=False`
+             ```
+             with ArcticTransaction(Arctic('hostname')['some_library'], 'symbol', audit=False) as at:
+                   ...
+             ```
+             This is useful for batch jobs which read-modify-write and don't want to clash with
+             concurrent writers, and which don't require keeping all versions of a symbol. 
+
 ### 1.15 (2015-11-25)
 
   * Feature: get_info API added to version_store. 

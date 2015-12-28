@@ -3,21 +3,23 @@ try:
 except ImportError:
     import io as stringio
 from datetime import datetime as dt, timedelta as dtd
-from dateutil.rrule import rrule, DAILY
-from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat
-from pandas.util.testing import assert_frame_equal, assert_series_equal
-import numpy as np
-import pytest
 import io
 import itertools
-from mock import Mock, patch
 import string
 
-from arctic.date import DateRange, mktz
+from dateutil.rrule import rrule, DAILY
+from mock import Mock, patch
+from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat
+from pandas.tseries.offsets import DateOffset
+from pandas.util.testing import assert_frame_equal, assert_series_equal
+import pytest
+
 from arctic._compression import decompress
+from arctic.date import DateRange, mktz
 from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasStore
 from arctic.store.version_store import register_versioned_storage
-from pandas.tseries.offsets import DateOffset
+import numpy as np
+from tests.util import read_str_as_pandas
 
 
 register_versioned_storage(PandasDataFrameStore)
@@ -833,7 +835,7 @@ def test_data_info_cols(library):
     library.write('test_data', s)
     md = library.get_info('test_data')
     # {'dtype': [('level_0', '<i8'), ('level_1', 'S2'), ('0', '<i8')],
-    #                  'col_names': {u'index': [u'level_0', u'level_1'], u'columns': [u'0']},
+    #                  'col_names': {u'index': [u'level_0', u'level_1'], u'columns': [u'0'], 'index_tz': [None, None]},
     #                  'type': u'pandasdf',
     #                  'handler': 'PandasDataFrameStore',
     #                  'rows': 3,
@@ -844,9 +846,21 @@ def test_data_info_cols(library):
     assert md['rows'] == 3
     assert md['handler'] == 'PandasDataFrameStore'
     assert md['type'] == 'pandasdf'
-    assert md['col_names']['index'] == [u'level_0', u'level_1']
-    assert md['col_names']['columns'] == [u'0']
+    assert md['col_names'] == {'index': ['level_0', u'level_1'], 'columns': [u'0'], 'index_tz': [None, None]}
     assert len(md['dtype']) == 3
     assert md['dtype'][0][0] == 'level_0'
     assert md['dtype'][1][0] == 'level_1'
     assert md['dtype'][2][0] == '0'
+
+
+def test_read_write_multiindex_store_keeps_timezone(library):
+    """If I write a multi-index dataframe and reads it, the timezone of the index shouldn't change, right?"""
+    hk, ny, ldn = mktz('Asia/Hong_Kong'), mktz('America/New_York'), mktz('Europe/London')
+    row0 = [dt(2015, 1, 1, tzinfo=hk), dt(2015, 1, 1, tzinfo=ny), dt(2015, 1, 1, tzinfo=ldn), 0, 42]
+    row1 = [dt(2015, 1, 2, tzinfo=hk), dt(2015, 1, 2, tzinfo=ny), dt(2015, 1, 2, tzinfo=ldn), 1, 43]
+    df = DataFrame([row0, row1], columns=['dt_a', 'dt_b', 'dt_c', 'index_0', 'data'])
+    df = df.set_index(['dt_a', 'dt_b', 'dt_c', 'index_0'])
+    library.write('spam', df)
+    assert list(library.read('spam').data.index[0]) == row0[:-1]
+    assert list(library.read('spam').data.index[1]) == row1[:-1]
+

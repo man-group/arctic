@@ -78,7 +78,7 @@ compress = Extension('arctic._compress',
 
 setup(
     name="arctic",
-    version="1.16.0",
+    version="1.18.0",
     author="Man AHL Technology",
     author_email="ManAHLTech@ahl.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
@@ -92,6 +92,7 @@ setup(
     setup_requires=["setuptools_cython",
                     "Cython",
                     "numpy",
+                    "setuptools-git",
                     ],
     install_requires=["decorator",
                       "enum34",
