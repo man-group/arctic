@@ -117,7 +117,7 @@ def decompress(pString):
     pyResult = result[:original_size]
 
     free(result)
-    return pyResult[:original_size]
+    return pyResult
 
 
 @cython.boundscheck(False)
@@ -237,7 +237,7 @@ def decompressarr(pStrList):
     for i in range(n):
         pyResult = cResult[i][:lengths[i]]
         free(cResult[i])
-        result_list.append(pyResult[:lengths[i]])
+        result_list.append(pyResult)
 
     free(cResult)
     free(cStrList)
