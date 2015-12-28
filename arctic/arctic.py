@@ -429,7 +429,7 @@ class ArcticLibraryBinding(object):
         remaining = self.quota - size
         remaining_count = remaining / avg_size
         if remaining_count < 100:
-            logger.warn("Mongo Quota: %.3f / %.0f GB used" % (to_gigabytes(size),
+            logger.warning("Mongo Quota: %.3f / %.0f GB used" % (to_gigabytes(size),
                                                               to_gigabytes(self.quota)))
         else:
             logger.info("Mongo Quota: %.3f / %.0f GB used" % (to_gigabytes(size),

@@ -135,7 +135,9 @@ class CustomArcticLibType(object):
 register_library_type(CustomArcticLibType._LIBRARY_TYPE, CustomArcticLibType)
 
 # Create a Arctic instance pointed at a mongo host
-store = Arctic("localhost")
+if 'mongo_host' not in globals():
+    mongo_host = 'localhost'
+store = Arctic(mongo_host)
 
 ### Initialize the library
 # Map username.custom_lib -> CustomArcticLibType

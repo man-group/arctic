@@ -1,5 +1,6 @@
 import logging
 
+from six import iteritems
 from bson.binary import Binary
 from datetime import datetime as dt, timedelta
 import lz4
@@ -245,7 +246,7 @@ class TickStore(object):
             data = self._read_bucket(b, column_set, column_dtypes,
                                      multiple_symbols or (columns is not None and 'SYMBOL' in columns),
                                      include_images, columns)
-            for k, v in data.iteritems():
+            for k, v in iteritems(data):
                 try:
                     rtn[k].append(v)
                 except KeyError:
@@ -298,7 +299,7 @@ class TickStore(object):
         rtn = {}
         index = cols[INDEX]
         full_length = len(index)
-        for k, v in cols.iteritems():
+        for k, v in iteritems(cols):
             if k != INDEX and k != 'SYMBOL':
                 col_len = len(v)
                 if col_len < full_length:
@@ -370,10 +371,10 @@ class TickStore(object):
             try:
                 coldata = doc[COLUMNS][c]
                 dtype = np.dtype(coldata[DTYPE])
-                values = np.fromstring(lz4.decompress(str(coldata[DATA])), dtype=dtype)
+                values = np.fromstring(lz4.decompress(coldata[DATA]), dtype=dtype)
                 self._set_or_promote_dtype(column_dtypes, c, dtype)
                 rtn[c] = self._empty(rtn_length, dtype=column_dtypes[c])
-                rowmask = np.unpackbits(np.fromstring(lz4.decompress(str(coldata[ROWMASK])),
+                rowmask = np.unpackbits(np.fromstring(lz4.decompress(coldata[ROWMASK]),
                                                       dtype='uint8'))[:doc_length].astype('bool')
                 rtn[c][rowmask] = values
             except KeyError:
@@ -498,7 +499,7 @@ class TickStore(object):
     def _to_ms(self, date):
         if isinstance(date, dt):
             if not date.tzinfo:
-                logger.warn('WARNING: treating naive datetime as London in write path')
+                logger.warning('WARNING: treating naive datetime as London in write path')
             return datetime_to_ms(date)
         return date
 
@@ -542,7 +543,7 @@ class TickStore(object):
         rtn[COUNT] = len(df)
         rtn[COLUMNS] = {}
 
-        logger.warn("NB treating all values as 'exists' - no longer sparse")
+        logger.warning("NB treating all values as 'exists' - no longer sparse")
         rowmask = Binary(lz4.compressHC(np.packbits(np.ones(len(df), dtype='uint8'))))
 
         recs = df.to_records(convert_datetime64=False)
@@ -564,7 +565,7 @@ class TickStore(object):
         start = to_dt(ticks[0]['index'])
         end = to_dt(ticks[-1]['index'])
         for i, t in enumerate(ticks):
-            for k, v in t.iteritems():
+            for k, v in iteritems(t):
                 try:
                     if k != 'index':
                         rowmask[k][i] = 1
@@ -578,13 +579,13 @@ class TickStore(object):
                     data[k] = [v]
 
         rowmask = dict([(k, Binary(lz4.compressHC(np.packbits(v).tostring())))
-                        for k, v in rowmask.iteritems()])
+                        for k, v in iteritems(rowmask)])
 
         rtn = {START: start, END: end, SYMBOL: symbol}
         rtn[VERSION] = CHUNK_VERSION_NUMBER
         rtn[COUNT] = len(ticks)
         rtn[COLUMNS] = {}
-        for k, v in data.iteritems():
+        for k, v in iteritems(data):
             if k != 'index':
                 v = np.array(v)
                 v = self._ensure_supported_dtypes(v)

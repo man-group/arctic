@@ -203,7 +203,7 @@ class NdarrayStore(object):
                                       collection.find_one({'_id': x['_id']}),
                                       collection.find_one({'_id': x['_id']}))
                 raise
-        data = ''.join(str(segments))
+        data = b''.join(segments)
 
         # Check that the correct number of segments has been returned
         if segment_count is not None and i + 1 != segment_count:
@@ -405,7 +405,7 @@ class NdarrayStore(object):
         sze = int(item.dtype.itemsize * np.prod(item.shape[1:]))
 
         # chunk and store the data by (uncompressed) size
-        chunk_size = _CHUNK_SIZE / sze
+        chunk_size = int(_CHUNK_SIZE / sze)
 
         previous_shas = []
         if previous_version:

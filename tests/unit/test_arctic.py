@@ -202,7 +202,7 @@ def test_check_quota():
                                                                               'count': 100,
                                                                               }
                                                                              }))
-    with patch('arctic.arctic.logger.warn') as warn:
+    with patch('arctic.arctic.logger.warning') as warn:
         ArcticLibraryBinding.check_quota(self)
     self.arctic.__getitem__.assert_called_once_with(self.get_name.return_value)
     warn.assert_called_once_with('Mongo Quota: 0.879 / 1 GB used')

@@ -2,6 +2,7 @@ import random
 import lz4
 import string
 import pytest
+import six
 from datetime import datetime as dt
 
 import arctic._compress as c
@@ -32,4 +33,5 @@ def test_performance_sequential(n, length):
 
 
 def random_string(N):
-    return ''.join(random.choice(list(string.printable) + ['hello', 'world', 'hellworld', 'Hello', 'w0rld']) for _ in xrange(int(N)))
+    _str = ''.join(random.choice(list(string.printable) + ['hello', 'world', 'hellworld', 'Hello', 'w0rld']) for _ in six.moves.xrange(int(N)))
+    return _str.encode('ascii')

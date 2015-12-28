@@ -1,5 +1,4 @@
 # cython: profile=True
-# cython: c_string_type=str, c_string_encoding=ascii
 
 #
 # LZ4 code was copied from: https://github.com/steeve/python-lz4/ r8ac9cf9df8fb8d51f40a3065fa538f8df1c8a62a 22/4/2015 [tt]
@@ -118,7 +117,7 @@ def decompress(pString):
     pyResult = result[:original_size]
 
     free(result)
-    return pyResult[:original_size].decode('UTF-8')
+    return pyResult[:original_size]
 
 
 @cython.boundscheck(False)
@@ -238,7 +237,7 @@ def decompressarr(pStrList):
     for i in range(n):
         pyResult = cResult[i][:lengths[i]]
         free(cResult[i])
-        result_list.append(pyResult[:lengths[i]].decode('UTF-8'))
+        result_list.append(pyResult[:lengths[i]])
 
     free(cResult)
     free(cStrList)

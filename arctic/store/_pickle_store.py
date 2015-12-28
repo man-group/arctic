@@ -5,10 +5,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-try:
-    import cStringIO as stringio
-except ImportError:
-    import io as stringio
+import io
 import lz4
 import pymongo
 import six
@@ -37,14 +34,14 @@ class PickleStore(object):
         if blob is not None:
             if blob == _MAGIC_CHUNKED:
                 collection = mongoose_lib.get_top_level_collection()
-                data = ''.join(x['data'] for x in collection.find({'symbol': symbol,
+                data = b''.join(x['data'] for x in collection.find({'symbol': symbol,
                                                                    'parent': version['_id']},
                                                                    sort=[('segment', pymongo.ASCENDING)]))
             else:
                 data = blob
             # Backwards compatibility
             data = lz4.decompress(data)
-            return pickle_compat_load(stringio.StringIO(data))
+            return pickle_compat_load(io.BytesIO(data))
         return version['data']
 
     def write(self, arctic_lib, version, symbol, item, previous_version):
@@ -63,7 +60,7 @@ class PickleStore(object):
         version['blob'] = _MAGIC_CHUNKED
         pickled = lz4.compressHC(pickle.dumps(item, protocol=pickle.HIGHEST_PROTOCOL))
 
-        for i in six.moves.xrange(len(pickled) / _CHUNK_SIZE + 1):
+        for i in six.moves.xrange(int(len(pickled) / _CHUNK_SIZE + 1)):
             segment = {'data': Binary(pickled[i * _CHUNK_SIZE : (i + 1) * _CHUNK_SIZE])}
             sha = checksum(symbol, segment)
             segment['segment'] = i
