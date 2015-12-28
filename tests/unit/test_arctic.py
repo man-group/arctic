@@ -223,7 +223,7 @@ def test_check_quota_info():
         ArcticLibraryBinding.check_quota(self)
     self.arctic.__getitem__.assert_called_once_with(self.get_name.return_value)
     info.assert_called_once_with('Mongo Quota: 0.001 / 1 GB used')
-    assert self.quota_countdown == 51150
+    assert self.quota_countdown == 51153
 
 
 def test_check_quota_exceeded():
