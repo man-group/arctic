@@ -425,7 +425,7 @@ class ArcticLibraryBinding(object):
                                           to_gigabytes(self.quota)))
 
         # Quota not exceeded, print an informational message and return
-        avg_size = size / count if count > 1 else 100 * 1024
+        avg_size = size // count if count > 1 else 100 * 1024
         remaining = self.quota - size
         remaining_count = remaining / avg_size
         if remaining_count < 100:
@@ -436,7 +436,7 @@ class ArcticLibraryBinding(object):
                                                               to_gigabytes(self.quota)))
 
         # Set-up a timer to prevent us for checking for a few writes.
-        self.quota_countdown = int(max(remaining_count / 2, 1))
+        self.quota_countdown = int(max(remaining_count // 2, 1))
 
     def get_library_type(self):
         return self.get_library_metadata(ArcticLibraryBinding.TYPE_FIELD)
