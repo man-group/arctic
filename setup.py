@@ -17,9 +17,13 @@
 # USA
 
 import logging
-from setuptools import setup, Extension
+from setuptools import setup
+from setuptools.extension import Extension
 from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
+from Cython.Build import cythonize
+import six
+import sys
 
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672
@@ -50,7 +54,7 @@ class PyTest(TestCommand):
         # import here, cause outside the eggs aren't loaded
         import pytest
 
-        args = [self.pytest_args] if isinstance(self.pytest_args, basestring) else list(self.pytest_args)
+        args = [self.pytest_args] if isinstance(self.pytest_args, six.string_types) else list(self.pytest_args)
         args.extend(['--cov', 'arctic',
                      '--cov-report', 'xml',
                      '--cov-report', 'html',
@@ -58,17 +62,6 @@ class PyTest(TestCommand):
                      ])
         errno = pytest.main(args)
         sys.exit(errno)
-
-
-# setuptools_cython: setuptools DWIM monkey-patch madness
-# http://mail.python.org/pipermail/distutils-sig/2007-September/thread.html#8204
-import sys
-if 'setuptools.extension' in sys.modules:
-   try:
-       m = sys.modules['setuptools.extension']
-       m.Extension.__dict__ = m._Extension.__dict__
-   except:
-       print("Unable to patch setuptools")
 
 # Cython lz4
 compress = Extension('arctic._compress',
@@ -88,9 +81,8 @@ setup(
     packages=find_packages(),
     long_description='\n'.join((long_description, changelog)),
     cmdclass={'test': PyTest},
-    ext_modules=[compress],
-    setup_requires=["setuptools_cython",
-                    "Cython",
+    ext_modules=cythonize(compress),
+    setup_requires=["Cython",
                     "numpy",
                     "setuptools-git",
                     ],

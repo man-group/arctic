@@ -5,7 +5,7 @@ except ImportError:
     import pickle
 import lz4
 import pytest
-
+import sys
 from os import path
 from bson.binary import Binary
 from bson.objectid import ObjectId
@@ -69,7 +69,8 @@ def test_read_object_2():
     assert PickleStore.read(self, arctic_lib, version, sentinel.symbol) == object
     assert coll.find.call_args_list == [call({'symbol': sentinel.symbol, 'parent': sentinel._id}, sort=[('segment', 1)])]
 
-
+@pytest.mark.xfail(sys.version_info >= (3,),
+                   reason="lz4 data written with python2 not compatible with python3")
 def test_read_backward_compatibility():
     """Test backwards compatibility with a pickled file that's created with Python 2.7.3,
     Numpy 1.7.1_ahl2 and Pandas 0.14.1
@@ -78,8 +79,12 @@ def test_read_backward_compatibility():
 
     # For newer versions; verify that unpickling fails when using cPickle
     if PANDAS_VERSION >= LooseVersion("0.16.1"):
-        with pytest.raises(TypeError), open(fname) as fh:
-            pickle.load(fh)
+        if sys.version_info[0] >= 3:
+            with pytest.raises(UnicodeDecodeError), open(fname) as fh:
+                pickle.load(fh)
+        else:    
+            with pytest.raises(TypeError), open(fname) as fh:
+                pickle.load(fh)
 
     # Verify that PickleStore() uses a backwards compatible unpickler.
     store = PickleStore()

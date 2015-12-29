@@ -5,6 +5,7 @@ import pandas as pd
 from pandas.util.testing import assert_frame_equal
 import numpy as np
 from mockextras import when
+import sys
 
 from arctic.date import DateRange, mktz
 from arctic.exceptions import OverlappingDataException
@@ -131,6 +132,8 @@ def test_slice_list_of_dicts(start, end, expected_start_index, expected_end_inde
     assert expected == result
 
 
+@pytest.mark.xfail(sys.version_info >= (3,),
+                   reason="python3 issue with mock 1.0.1")
 def test_write_pandas_data_to_right_libraries():
     self = create_autospec(TopLevelTickStore, _arctic_lib=MagicMock(), _collection=MagicMock())
     self._collection.find.return_value = [{'library_name': sentinel.libname1, 'start': sentinel.st1, 'end': sentinel.end1},

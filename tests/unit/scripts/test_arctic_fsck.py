@@ -3,8 +3,12 @@ from mock import patch, sentinel, call
 from arctic.scripts.arctic_fsck import main
 
 from ...util import run_as_main
+import sys
+import pytest
 
 
+@pytest.mark.xfail(sys.version_info >= (3,),
+                   reason="python3 issue with mock 1.0.1")
 def test_main():
     with patch('arctic.scripts.arctic_fsck.Arctic') as Arctic, \
          patch('arctic.scripts.arctic_fsck.get_mongodb_uri') as get_mongodb_uri, \
@@ -23,6 +27,8 @@ def test_main():
                                                                                    call(False), ]
 
 
+@pytest.mark.xfail(sys.version_info >= (3,),
+                   reason="python3 issue with mock 1.0.1")
 def test_main_dry_run():
     with patch('arctic.scripts.arctic_fsck.Arctic') as Arctic, \
          patch('arctic.scripts.arctic_fsck.get_mongodb_uri') as get_mongodb_uri, \
