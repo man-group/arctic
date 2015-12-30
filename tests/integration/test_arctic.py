@@ -144,3 +144,9 @@ def test_default_mongo_retry_timout():
     with pytest.raises(LibraryNotFoundException):
         Arctic('unresolved-host', serverSelectionTimeoutMS=0)['some.lib']
     assert time.time() - now < 1.
+
+def test_stringify_tickstore_library(mongo_host):
+    # Fix GH issue 49 - str(tick library) fails in IPython
+    store = Arctic(mongo_host=mongo_host)
+    store.initialize_library('library_name', 'TickStoreV3')
+    assert 'arctic.library_name' in str(store['library_name'])
