@@ -36,3 +36,10 @@ def test_mongo_date_range_query_asserts():
 
     with pytest.raises(AssertionError):
         TickStore._mongo_date_range_query(self, 'sym', DateRange(None, dt(2014, 1, 1)))
+
+
+def test_strify_tickstore():
+    # Fix GH issue 49 - str(tick library) fails in IPython
+    self = create_autospec(TickStore)
+    self._arctic_lib = sentinel.library
+    assert 'sentinel.library' in TickStore.__str__(self)
