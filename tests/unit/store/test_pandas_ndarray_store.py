@@ -1,10 +1,12 @@
+from ahl.pandas._tsfuncs import allclose
 from mock import Mock, sentinel, patch
-import numpy as np
-import pandas as pd
 from pytest import raises
 
 from arctic.store._pandas_ndarray_store import PandasStore, \
     PandasDataFrameStore, PandasPanelStore
+import numpy as np
+import pandas as pd
+from tests.util import read_str_as_pandas
 
 
 def test_can_convert_to_records_without_objects_returns_false_on_exception_in_to_records():
@@ -87,3 +89,19 @@ def test_raises_upon_empty_panel_write():
     panel = Mock(shape=(1, 0, 3))
     with raises(ValueError):
         store.write(sentinel.mlib, sentinel.version, sentinel.symbol, panel, sentinel.prev)
+
+
+def test_read_multi_index_with_no_ts_info():
+    # github #81: old multi-index ts would not have tz info in metadata. Ensure read is not broken
+    df = read_str_as_pandas("""index 1 |    index 2 | SPAM
+                            2012-09-08 | 2015-01-01 |  1.0
+                            2012-09-09 | 2015-01-02 |  1.1
+                            2012-10-08 | 2015-01-03 |  2.0""", num_index=2)
+    store = PandasDataFrameStore()
+    record = store.to_records(df)[0]
+
+    # now take away timezone info from metadata
+    record = np.array(record.tolist(), dtype=np.dtype([('index 1', '<M8[ns]'), ('index 2', '<M8[ns]'), ('SPAM', '<f8')],
+                                                      metadata={'index': ['index 1', 'index 2'], 'columns': ['SPAM']}))
+    assert allclose(store._index_from_records(record), df.index)
+
