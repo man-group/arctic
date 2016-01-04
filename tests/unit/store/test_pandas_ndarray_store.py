@@ -1,5 +1,5 @@
-from ahl.pandas._tsfuncs import allclose
 from mock import Mock, sentinel, patch
+from pandas.util.testing import assert_frame_equal
 from pytest import raises
 
 from arctic.store._pandas_ndarray_store import PandasStore, \
@@ -103,5 +103,4 @@ def test_read_multi_index_with_no_ts_info():
     # now take away timezone info from metadata
     record = np.array(record.tolist(), dtype=np.dtype([('index 1', '<M8[ns]'), ('index 2', '<M8[ns]'), ('SPAM', '<f8')],
                                                       metadata={'index': ['index 1', 'index 2'], 'columns': ['SPAM']}))
-    assert allclose(store._index_from_records(record), df.index)
-
+    assert store._index_from_records(record).equals(df.index)
