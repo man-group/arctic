@@ -1,5 +1,9 @@
-
 ## Changelog
+
+### 1.18 (2016-01-05)
+
+  * Bugfix: #81 Fix broken read of multi-index DataFrame written by old version of Arctic
+  * Bugfix: #49 Fix strifying tickstore
 
 ### 1.17 (2015-12-24)
 
@@ -14,12 +18,12 @@
                    ...
              ```
              This is useful for batch jobs which read-modify-write and don't want to clash with
-             concurrent writers, and which don't require keeping all versions of a symbol. 
+             concurrent writers, and which don't require keeping all versions of a symbol.
 
 ### 1.15 (2015-11-25)
 
-  * Feature: get_info API added to version_store. 
-  
+  * Feature: get_info API added to version_store.
+
 ### 1.14 (2015-11-25)
 ### 1.12 (2015-11-12)
 
@@ -81,7 +85,7 @@
 
 ### 1.2 (2015-06-29)
 
-  * Allow snapshotting a range of versions in the VersionStore, and 
+  * Allow snapshotting a range of versions in the VersionStore, and
     snapshot all versions by default.
 
 ### 1.1 (2015-06-16)
