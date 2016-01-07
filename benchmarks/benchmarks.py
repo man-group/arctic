@@ -5,7 +5,7 @@ from datetime import datetime as dt
 class TimeSuite:
     def setup(self):
         self.store = Arctic("127.0.0.1")
-        self.store.initalize_library('test.lib')
+        self.store.initialize_library('test.lib')
         self.lib = self.store['test.lib']
 
     def time_add_data(self):

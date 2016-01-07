@@ -29,7 +29,7 @@
     // If missing or the empty string, the tool will be automatically
     // determined by looking for tools on the PATH environment
     // variable.
-    "environment_type": "conda",
+    "environment_type": "virtualenv",
 
     // the base URL to show a commit for the project.
     "show_commit_url": "http://github.com/manahl/arctic/commit/",
@@ -42,9 +42,19 @@
     // package (in PyPI) and the values are version numbers.  An empty
     // list indicates to just test against the default (latest)
     // version.
-    // "matrix": {
-    //     "numpy": ["1.6", "1.7"]
-    // },
+    "matrix": {
+        "numpy": [],
+        "Cython": [],
+        "pandas": [],
+        "pymongo": [],
+	"lz4": [],
+	"decorator": [],
+	"enum34": [],
+	"mockextras": [],
+	"python-dateutil": [],
+	"pytz": [],
+	"tzlocal": []
+    },
 
     // The directory (relative to the current directory) that benchmarks are
     // stored in.  If not provided, defaults to "benchmarks"
