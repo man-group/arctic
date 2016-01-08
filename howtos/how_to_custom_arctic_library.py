@@ -1,11 +1,6 @@
 from datetime import datetime as dt
 from bson.binary import Binary
-
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-    
+from six.moves import cPickle    
 from arctic import Arctic, register_library_type
 from arctic.decorators import mongo_retry
 
@@ -92,7 +87,7 @@ class CustomArcticLibType(object):
         http://api.mongodb.org/python/current/api/pymongo/collection.html
         """
         for x in self._collection.find(*args, **kwargs):
-            x['stuff'] = pickle.loads(x['stuff'])
+            x['stuff'] = cPickle.loads(x['stuff'])
             del x['_id'] # Remove default unique '_id' field from doc 
             yield Stuff(**x)
 
@@ -118,7 +113,7 @@ class CustomArcticLibType(object):
         to_store = {'field1': thing.field1,
                     'date_field': thing.date_field,
                     }
-        to_store['stuff'] = Binary(pickle.dumps(thing.stuff))
+        to_store['stuff'] = Binary(cPickle.dumps(thing.stuff))
         # Respect any soft-quota on write - raises if stats().totals.size > quota 
         self._arctic_lib.check_quota()
         self._collection.insert_one(to_store)

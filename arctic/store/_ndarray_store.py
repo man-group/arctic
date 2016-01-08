@@ -12,17 +12,14 @@ from ._version_store_utils import checksum
 
 from .._compression import compress_array, decompress
 from ..exceptions import ConcurrentModificationException
+from six.moves import xrange
+
 
 logger = logging.getLogger(__name__)
 
 _CHUNK_SIZE = 2 * 1024 * 1024 - 2048  # ~2 MB (a bit less for usePowerOf2Sizes)
 _APPEND_SIZE = 1 * 1024 * 1024  # 1MB
 _APPEND_COUNT = 60  # 1 hour of 1 min data
-
-try:
-    xrange
-except NameError:
-    xrange = range
 
 
 def _promote_struct_dtypes(dtype1, dtype2):
