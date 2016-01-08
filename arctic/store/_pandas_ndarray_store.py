@@ -72,7 +72,7 @@ class PandasStore(NdarrayStore):
         if isinstance(rtn, DatetimeIndex) and 'index_tz' in recarr.dtype.metadata:
             rtn = rtn.tz_localize('UTC').tz_convert(recarr.dtype.metadata['index_tz'])
         elif isinstance(rtn, MultiIndex):
-            for i, tz in enumerate(recarr.dtype.metadata.get('index_tz')):
+            for i, tz in enumerate(recarr.dtype.metadata.get('index_tz', [])):
                 if tz is not None:
                     rtn.set_levels(rtn.levels[i].tz_localize('UTC').tz_convert(tz), i, inplace=True)
 
