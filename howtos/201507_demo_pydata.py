@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 ################################################
 # Getting started
@@ -11,7 +12,6 @@
 #    $ mkdir /tmp/pydata-demo
 #    $ mongod --dbpath /tmp/pydata-demo
 
-
 from datetime import datetime
 import time
 import ystockquote
@@ -21,7 +21,6 @@ import collections
 import pandas
 import pandas as pd
 import pprint
-from __future__ import print_function
 
 
 ################################################

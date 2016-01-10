@@ -1,3 +1,4 @@
+from __future__ import print_function
 import argparse
 import pymongo
 import logging
@@ -6,7 +7,6 @@ from ..hooks import get_mongodb_uri
 from ..arctic import Arctic, VERSION_STORE, LIBRARY_TYPES, \
     ArcticLibraryBinding
 from .utils import do_db_auth, setup_logging
-from __future__ import print_function
 
 logger = logging.getLogger(__name__)
 

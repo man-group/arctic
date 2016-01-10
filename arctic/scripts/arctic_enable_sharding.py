@@ -1,3 +1,4 @@
+from __future__ import print_function
 import optparse
 import pymongo
 
@@ -7,7 +8,6 @@ from ..hooks import get_mongodb_uri
 from .._util import enable_sharding
 from ..auth import authenticate
 from .utils import setup_logging
-from __future__ import print_function
 
 
 def main():
