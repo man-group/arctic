@@ -15,6 +15,7 @@ from ..decorators import mongo_retry
 from ..exceptions import OverlappingDataException, NoDataFoundException, UnhandledDtypeException, ArcticException
 from six import string_types
 from .._util import indent
+from __future__ import print_function
 
 
 logger = logging.getLogger(__name__)

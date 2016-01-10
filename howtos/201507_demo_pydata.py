@@ -21,7 +21,7 @@ import collections
 import pandas
 import pandas as pd
 import pprint
-
+from __future__ import print_function
 
 
 ################################################

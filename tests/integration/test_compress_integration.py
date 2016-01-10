@@ -6,6 +6,7 @@ import six
 from datetime import datetime as dt
 
 import arctic._compress as c
+from __future__ import print_function
 
 
 @pytest.mark.parametrize("n, length", [(300, 5e4),  # micro TS
