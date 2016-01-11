@@ -71,7 +71,7 @@ shows how.](howtos/how_to_custom_arctic_library.py)
 
 Arctic provides namespaced *libraries* of data.  These libraries allow
 bucketing data by *source*, *user* or some other metric (for example frequency:
-End-Of-Day; Minute Bars; etc.).  
+End-Of-Day; Minute Bars; etc.).
 
 Arctic supports multiple data libraries per user.  A user (or namespace)
 maps to a MongoDB database (the granularity of mongo authentication).  The library
@@ -105,7 +105,7 @@ Arctic storage implementations are **pluggable**.  VersionStore is the default.
 
 Arctic currently works with:
 
- * Python 2.7
+ * Python 2.7 or 3.3
  * pymongo >= 3.0
  * Pandas
  * MongoDB >= 2.4.x
@@ -133,4 +133,3 @@ Contributions welcome!
 ## License
 
 Arctic is licensed under the GNU LGPL v2.1.  A copy of which is included in [LICENSE](LICENSE)
-
