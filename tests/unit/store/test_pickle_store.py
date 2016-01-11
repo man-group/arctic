@@ -15,10 +15,8 @@ from mock import create_autospec, sentinel, Mock, call
 from arctic.store._pickle_store import PickleStore
 from arctic.store._version_store_utils import checksum
 
-try:
-    PANDAS_VERSION = LooseVersion(pd.version.version)
-except:
-    PANDAS_VERSION = LooseVersion(pd.__version__)
+PANDAS_VERSION = LooseVersion(pd.__version__)
+
 
 def test_write():
     self = create_autospec(PickleStore)
