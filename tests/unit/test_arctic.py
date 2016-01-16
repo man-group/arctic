@@ -146,18 +146,18 @@ def test_register_library_type():
 
 
 def test_set_quota():
-    self = create_autospec(ArcticLibraryBinding)
-    ArcticLibraryBinding.set_quota(self, 10000)
-    self.set_library_metadata.assert_called_once_with('QUOTA', 10000)
-    assert self.quota_countdown == 0
-    assert self.quota == 10000
+    m = Mock(spec=ArcticLibraryBinding)
+    ArcticLibraryBinding.set_quota(m, 10000)
+    m.set_library_metadata.assert_called_once_with('QUOTA', 10000)
+    assert m.quota_countdown == 0
+    assert m.quota == 10000
 
 
 def test_get_quota():
-    self = create_autospec(ArcticLibraryBinding)
-    self.get_library_metadata.return_value = 42
-    assert ArcticLibraryBinding.get_quota(self) == 42
-    self.get_library_metadata.assert_called_once_with('QUOTA')
+    m = Mock(spec=ArcticLibraryBinding)
+    m.get_library_metadata.return_value = 42
+    assert ArcticLibraryBinding.get_quota(m) == 42
+    m.get_library_metadata.assert_called_once_with('QUOTA')
 
 
 def test_check_quota_Zero():
@@ -167,21 +167,21 @@ def test_check_quota_Zero():
 
 
 def test_check_quota_None():
-    self = create_autospec(ArcticLibraryBinding)
-    self.quota = None
-    self.get_library_metadata.return_value = None
-    ArcticLibraryBinding.check_quota(self)
-    self.get_library_metadata.assert_called_once_with('QUOTA')
-    assert self.quota == 0
+    m = Mock(spec=ArcticLibraryBinding)
+    m.quota = None
+    m.get_library_metadata.return_value = None
+    ArcticLibraryBinding.check_quota(m)
+    m.get_library_metadata.assert_called_once_with('QUOTA')
+    assert m.quota == 0
 
 
 def test_check_quota_Zero2():
-    self = create_autospec(ArcticLibraryBinding)
-    self.quota = None
-    self.get_library_metadata.return_value = 0
-    ArcticLibraryBinding.check_quota(self)
-    self.get_library_metadata.assert_called_once_with('QUOTA')
-    assert self.quota == 0
+    m = Mock(spec=ArcticLibraryBinding)
+    m.quota = None
+    m.get_library_metadata.return_value = 0
+    ArcticLibraryBinding.check_quota(m)
+    m.get_library_metadata.assert_called_once_with('QUOTA')
+    assert m.quota == 0
 
 
 def test_check_quota_countdown():
