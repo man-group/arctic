@@ -201,10 +201,8 @@ def test_prune_previous_versions_0_timeout():
                                                        projection=['_id', 'type'])]
 
 
-@pytest.mark.xfail(sys.version_info >= (3,),
-                   reason="python3 issue with mock 1.0.1")
 def test_read_handles_operation_failure():
-    self = create_autospec(VersionStore, _versions=Mock(), _arctic_lib=Mock())
+    self = Mock(spec=VersionStore)
     self._read_preference.return_value = sentinel.read_preference
     self._collection = create_autospec(Collection)
     self._read_metadata.side_effect = [sentinel.meta1, sentinel.meta2]
