@@ -1,3 +1,4 @@
+from __future__ import print_function
 import optparse
 import pymongo
 import logging
@@ -28,7 +29,7 @@ def main():
     if not opts.library:
         parser.error('Must specify the full path of the library e.g. arctic_jblackburn.lib!')
 
-    print "Deleting: %s on mongo %s" % (opts.library, opts.host)
+    print("Deleting: %s on mongo %s" % (opts.library, opts.host))
     c = pymongo.MongoClient(get_mongodb_uri(opts.host))
 
     db_name = opts.library[:opts.library.index('.')] if '.' in opts.library else None

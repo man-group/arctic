@@ -11,6 +11,7 @@ from .exceptions import LibraryNotFoundException, ArcticException, QuotaExceeded
 from .hooks import get_mongodb_uri
 from .store import version_store
 from .tickstore import tickstore, toplevel
+from six import string_types
 
 
 __all__ = ['Arctic', 'VERSION_STORE', 'TICK_STORE', 'register_library_type']
@@ -92,7 +93,7 @@ class Arctic(object):
         self._server_selection_timeout = serverSelectionTimeoutMS
         self._lock = threading.Lock()
 
-        if isinstance(mongo_host, basestring):
+        if isinstance(mongo_host, string_types):
             self.mongo_host = mongo_host
         else:
             self.__conn = mongo_host
@@ -230,7 +231,7 @@ class Arctic(object):
             error = None
             l = ArcticLibraryBinding(self, library)
             lib_type = l.get_library_type()
-        except (OperationFailure, AutoReconnect), e:
+        except (OperationFailure, AutoReconnect) as e:
             error = e
 
         if error:
@@ -249,7 +250,7 @@ class Arctic(object):
         return self._library_cache[library]
 
     def __getitem__(self, key):
-        if isinstance(key, basestring):
+        if isinstance(key, string_types):
             return self.get_library(key)
         else:
             raise ArcticException("Unrecognised library specification - use [libraryName]")
@@ -424,18 +425,18 @@ class ArcticLibraryBinding(object):
                                           to_gigabytes(self.quota)))
 
         # Quota not exceeded, print an informational message and return
-        avg_size = size / count if count > 1 else 100 * 1024
+        avg_size = size // count if count > 1 else 100 * 1024
         remaining = self.quota - size
         remaining_count = remaining / avg_size
         if remaining_count < 100:
-            logger.warn("Mongo Quota: %.3f / %.0f GB used" % (to_gigabytes(size),
+            logger.warning("Mongo Quota: %.3f / %.0f GB used" % (to_gigabytes(size),
                                                               to_gigabytes(self.quota)))
         else:
             logger.info("Mongo Quota: %.3f / %.0f GB used" % (to_gigabytes(size),
                                                               to_gigabytes(self.quota)))
 
         # Set-up a timer to prevent us for checking for a few writes.
-        self.quota_countdown = max(remaining_count / 2, 1)
+        self.quota_countdown = int(max(remaining_count // 2, 1))
 
     def get_library_type(self):
         return self.get_library_metadata(ArcticLibraryBinding.TYPE_FIELD)

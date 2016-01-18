@@ -17,9 +17,13 @@
 # USA
 
 import logging
-from setuptools import setup, Extension
+from setuptools import setup
+from setuptools.extension import Extension
 from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
+from Cython.Build import cythonize
+import six
+import sys
 
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672
@@ -50,7 +54,7 @@ class PyTest(TestCommand):
         # import here, cause outside the eggs aren't loaded
         import pytest
 
-        args = [self.pytest_args] if isinstance(self.pytest_args, basestring) else list(self.pytest_args)
+        args = [self.pytest_args] if isinstance(self.pytest_args, six.string_types) else list(self.pytest_args)
         args.extend(['--cov', 'arctic',
                      '--cov-report', 'xml',
                      '--cov-report', 'html',
@@ -58,14 +62,6 @@ class PyTest(TestCommand):
                      ])
         errno = pytest.main(args)
         sys.exit(errno)
-
-
-# setuptools_cython: setuptools DWIM monkey-patch madness
-# http://mail.python.org/pipermail/distutils-sig/2007-September/thread.html#8204
-import sys
-if 'setuptools.extension' in sys.modules:
-    m = sys.modules['setuptools.extension']
-    m.Extension.__dict__ = m._Extension.__dict__
 
 # Cython lz4
 compress = Extension('arctic._compress',
@@ -85,9 +81,8 @@ setup(
     packages=find_packages(),
     long_description='\n'.join((long_description, changelog)),
     cmdclass={'test': PyTest},
-    ext_modules=[compress],
-    setup_requires=["setuptools_cython",
-                    "Cython",
+    ext_modules=cythonize(compress),
+    setup_requires=["Cython",
                     "numpy",
                     "setuptools-git",
                     ],
@@ -101,7 +96,7 @@ setup(
                       "pytz",
                       "tzlocal",
                       ],
-    tests_require=["mock<=1.0.1",
+    tests_require=["mock",
                    "mockextras",
                    "pytest",
                    "pytest-cov",
@@ -124,8 +119,11 @@ setup(
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
         "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.3",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Cython",
+        "Operating System :: POSIX",
+        "Operating System :: MacOS",
         "Topic :: Database",
         "Topic :: Database :: Front-Ends",
         "Topic :: Software Development :: Libraries",

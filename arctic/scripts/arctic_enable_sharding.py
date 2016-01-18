@@ -1,3 +1,4 @@
+from __future__ import print_function
 import optparse
 import pymongo
 
@@ -25,7 +26,7 @@ def main():
     if not opts.library or '.' not in opts.library:
         parser.error('must specify the full path of the library e.g. arctic_jblackburn.lib!')
 
-    print "Enabling-sharding: %s on mongo %s" % (opts.library, opts.host)
+    print("Enabling-sharding: %s on mongo %s" % (opts.library, opts.host))
 
     c = pymongo.MongoClient(get_mongodb_uri(opts.host))
     credentials = get_auth(opts.host, 'admin', 'admin')

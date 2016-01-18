@@ -37,7 +37,7 @@ def main():
         write_access = args.write
         p = args.password
         if p is None:
-            p = base64.b64encode(uuid.uuid4().bytes).replace('/', '')[:12]
+            p = base64.b64encode(uuid.uuid4().bytes).replace(b'/', b'')[:12]
         db = args.db
         if not db:
             # Users always have write access to their database

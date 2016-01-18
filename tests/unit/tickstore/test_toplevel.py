@@ -1,4 +1,8 @@
-from mock import Mock, patch, MagicMock, create_autospec, sentinel, call
+try:
+    from unittest.mock import Mock, patch, MagicMock, create_autospec, sentinel, call
+except:    
+    from mock import Mock, patch, MagicMock, create_autospec, sentinel, call
+import sys
 import pytest
 from datetime import datetime as dt
 import pandas as pd

@@ -1,5 +1,7 @@
+from __future__ import print_function
 import logging
 
+from six import iteritems
 from bson.binary import Binary
 from datetime import datetime as dt, timedelta
 import lz4
@@ -12,7 +14,9 @@ from pymongo.errors import OperationFailure
 from ..date import DateRange, to_pandas_closed_closed, mktz, datetime_to_ms, CLOSED_CLOSED, to_dt
 from ..decorators import mongo_retry
 from ..exceptions import OverlappingDataException, NoDataFoundException, UnhandledDtypeException, ArcticException
+from six import string_types
 from .._util import indent
+
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +190,7 @@ class TickStore(object):
         return {START: start_range}
 
     def _symbol_query(self, symbol):
-        if isinstance(symbol, basestring):
+        if isinstance(symbol, string_types):
             query = {SYMBOL: symbol}
         elif symbol is not None:
             query = {SYMBOL: {'$in': symbol}}
@@ -217,7 +221,7 @@ class TickStore(object):
         rtn = {}
         column_set = set()
 
-        multiple_symbols = not isinstance(symbol, basestring)
+        multiple_symbols = not isinstance(symbol, string_types)
 
         date_range = to_pandas_closed_closed(date_range)
         query = self._symbol_query(symbol)
@@ -245,7 +249,7 @@ class TickStore(object):
             data = self._read_bucket(b, column_set, column_dtypes,
                                      multiple_symbols or (columns is not None and 'SYMBOL' in columns),
                                      include_images, columns)
-            for k, v in data.iteritems():
+            for k, v in iteritems(data):
                 try:
                     rtn[k].append(v)
                 except KeyError:
@@ -298,7 +302,7 @@ class TickStore(object):
         rtn = {}
         index = cols[INDEX]
         full_length = len(index)
-        for k, v in cols.iteritems():
+        for k, v in iteritems(cols):
             if k != INDEX and k != 'SYMBOL':
                 col_len = len(v)
                 if col_len < full_length:
@@ -340,7 +344,7 @@ class TickStore(object):
             if columns and field not in columns:
                 continue
             if field not in document or document[field] is None:
-                col_dtype = np.dtype(str if isinstance(image[field], basestring) else 'f8')
+                col_dtype = np.dtype(str if isinstance(image[field], string_types) else 'f8')
                 document[field] = self._empty(rtn_length, dtype=col_dtype)
                 column_dtypes[field] = col_dtype
                 column_set.add(field)
@@ -370,10 +374,10 @@ class TickStore(object):
             try:
                 coldata = doc[COLUMNS][c]
                 dtype = np.dtype(coldata[DTYPE])
-                values = np.fromstring(lz4.decompress(str(coldata[DATA])), dtype=dtype)
+                values = np.fromstring(lz4.decompress(coldata[DATA]), dtype=dtype)
                 self._set_or_promote_dtype(column_dtypes, c, dtype)
                 rtn[c] = self._empty(rtn_length, dtype=column_dtypes[c])
-                rowmask = np.unpackbits(np.fromstring(lz4.decompress(str(coldata[ROWMASK])),
+                rowmask = np.unpackbits(np.fromstring(lz4.decompress(coldata[ROWMASK]),
                                                       dtype='uint8'))[:doc_length].astype('bool')
                 rtn[c][rowmask] = values
             except KeyError:
@@ -481,7 +485,7 @@ class TickStore(object):
         mongo_retry(self._collection.insert_many)(buckets)
         t = (dt.now() - start).total_seconds()
         ticks = len(buckets) * self.chunk_size
-        print "%d buckets in %s: approx %s ticks/sec" % (len(buckets), t, int(ticks / t))
+        print("%d buckets in %s: approx %s ticks/sec" % (len(buckets), t, int(ticks / t)))
 
     def _pandas_to_buckets(self, x, symbol):
         rtn = []
@@ -498,7 +502,7 @@ class TickStore(object):
     def _to_ms(self, date):
         if isinstance(date, dt):
             if not date.tzinfo:
-                logger.warn('WARNING: treating naive datetime as London in write path')
+                logger.warning('WARNING: treating naive datetime as London in write path')
             return datetime_to_ms(date)
         return date
 
@@ -542,7 +546,7 @@ class TickStore(object):
         rtn[COUNT] = len(df)
         rtn[COLUMNS] = {}
 
-        logger.warn("NB treating all values as 'exists' - no longer sparse")
+        logger.warning("NB treating all values as 'exists' - no longer sparse")
         rowmask = Binary(lz4.compressHC(np.packbits(np.ones(len(df), dtype='uint8'))))
 
         recs = df.to_records(convert_datetime64=False)
@@ -564,7 +568,7 @@ class TickStore(object):
         start = to_dt(ticks[0]['index'])
         end = to_dt(ticks[-1]['index'])
         for i, t in enumerate(ticks):
-            for k, v in t.iteritems():
+            for k, v in iteritems(t):
                 try:
                     if k != 'index':
                         rowmask[k][i] = 1
@@ -578,13 +582,13 @@ class TickStore(object):
                     data[k] = [v]
 
         rowmask = dict([(k, Binary(lz4.compressHC(np.packbits(v).tostring())))
-                        for k, v in rowmask.iteritems()])
+                        for k, v in iteritems(rowmask)])
 
         rtn = {START: start, END: end, SYMBOL: symbol}
         rtn[VERSION] = CHUNK_VERSION_NUMBER
         rtn[COUNT] = len(ticks)
         rtn[COLUMNS] = {}
-        for k, v in data.iteritems():
+        for k, v in iteritems(data):
             if k != 'index':
                 v = np.array(v)
                 v = self._ensure_supported_dtypes(v)

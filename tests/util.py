@@ -1,4 +1,7 @@
-from cStringIO import StringIO
+try:
+    import cStringIO as stringio
+except ImportError:
+    import io as stringio
 from contextlib import contextmanager
 from datetime import datetime as dt
 import sys
@@ -19,7 +22,7 @@ def dt_or_str_parser(string):
 
 def read_str_as_pandas(ts_str, num_index=1):
     labels = [x.strip() for x in ts_str.split('\n')[0].split('|')]
-    pd = pandas.read_csv(StringIO(ts_str), sep='|', index_col=range(num_index), date_parser=dt_or_str_parser)
+    pd = pandas.read_csv(stringio.StringIO(ts_str), sep='|', index_col=list(range(num_index)), date_parser=dt_or_str_parser)
     # Trim the whitespace on the column names
     pd.columns = labels[num_index:]
     pd.index.names = labels[0:num_index]

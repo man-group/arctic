@@ -19,7 +19,7 @@
 import os
 import pytest
 
-from path import path
+from path import Path as path
 from tempfile import mkdtemp
 
 from pytest_dbfixtures.executors import TCPExecutor

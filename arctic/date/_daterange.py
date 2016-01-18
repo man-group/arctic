@@ -170,6 +170,13 @@ class DateRange(GeneralSlice):
             return False
         return self.end == rhs.end and self.start == rhs.start
 
+    def __lt__(self, other):
+        if self.start is None:
+            return True
+        if other.start is None:
+            return False
+        return self.start < other.start
+
     def __hash__(self):
         return hash((self.start, self.end, self.step, self.interval))
 

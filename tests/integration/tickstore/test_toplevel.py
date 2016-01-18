@@ -49,7 +49,6 @@ def test_should_raise_exceptions_if_no_libraries_are_found_in_the_date_range_whe
     assert "No underlying libraries exist for the given date range" in str(e)
 
 
-@pytest.mark.xfail
 def test_should_return_data_when_date_range_falls_in_a_single_underlying_library(toplevel_tickstore, arctic):
     arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
     tstore = arctic['FEED_2010.LEVEL1']
@@ -67,7 +66,6 @@ def test_should_return_data_when_date_range_falls_in_a_single_underlying_library
     assert_frame_equal(df, res.tz_convert(mktz('Europe/London')))
 
 
-@pytest.mark.xfail
 def test_should_return_data_when_date_range_spans_libraries(toplevel_tickstore, arctic):
     arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
     arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
@@ -96,7 +94,6 @@ def test_should_add_underlying_library_where_none_exists(toplevel_tickstore, arc
     assert toplevel_tickstore._collection.find_one({'library_name': 'FEED_2010.LEVEL1'})
 
 
-@pytest.mark.xfail
 def test_should_add_underlying_library_where_another_library_exists_in_a_non_overlapping_daterange(toplevel_tickstore, arctic):
     toplevel_tickstore._collection.insert_one({'library_name': 'FEED_2011.LEVEL1', 'start': dt(2011, 1, 1), 'end': dt(2011, 12, 31)})
     arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)

@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.19
+
+  * Feature: Add python 3.3 support
+
 ### 1.18 (2016-01-05)
 
   * Bugfix: #81 Fix broken read of multi-index DataFrame written by old version of Arctic
