@@ -9,10 +9,10 @@ from ...util import run_as_main
 def test_init_library():
     # Create the user agains the current mongo database
     with patch('pymongo.MongoClient') as MongoClient, \
-         patch('arctic.scripts.arctic_init_library.logger') as logger, \
-         patch('arctic.scripts.arctic_init_library.Arctic') as Arctic, \
-         patch('arctic.scripts.arctic_init_library.get_mongodb_uri') as get_mongodb_uri, \
-         patch('arctic.scripts.arctic_init_library.do_db_auth') as do_db_auth:
+         patch('arctic.scripts.arctic_init_library.logger', autospec=True) as logger, \
+         patch('arctic.scripts.arctic_init_library.Arctic', autospec=True) as Arctic, \
+         patch('arctic.scripts.arctic_init_library.get_mongodb_uri', autospec=True) as get_mongodb_uri, \
+         patch('arctic.scripts.arctic_init_library.do_db_auth', autospec=True) as do_db_auth:
         run_as_main(mil.main, '--host', 'hostname', '--library', 'arctic_user.library', '--type', 'VersionStore')
 
     get_mongodb_uri.assert_called_once_with('hostname')
