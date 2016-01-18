@@ -120,6 +120,7 @@ setup(
         "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.3",
+        "Programming LAnguage :: Python :: 3.4",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Cython",
         "Operating System :: POSIX",
