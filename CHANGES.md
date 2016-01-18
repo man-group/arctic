@@ -2,7 +2,7 @@
 
 ### 1.19
 
-  * Feature: Add python 3.3 support
+  * Feature: Add python 3.3/3.4 support
 
 ### 1.18 (2016-01-05)
 
