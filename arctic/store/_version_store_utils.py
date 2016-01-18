@@ -4,7 +4,9 @@ import numpy as np
 import pickle
 import pandas as pd
 import functools
+import six
 from pandas.compat import pickle_compat
+
 
 def _split_arrs(array_2d, slices):
     """
@@ -28,9 +30,13 @@ def checksum(symbol, doc):
     Checksum the passed in dictionary
     """
     sha = hashlib.sha1()
-    sha.update(symbol)
-    for k in sorted(doc.iterkeys(), reverse=True):
-        sha.update(str(doc[k]))
+    sha.update(symbol.encode('ascii'))
+    for k in sorted(iter(doc.keys()), reverse=True):
+        v = doc[k]
+        if isinstance(v, six.binary_type):
+            sha.update(doc[k])
+        else:
+            sha.update(str(doc[k]).encode('ascii'))
     return Binary(sha.digest())
 
 

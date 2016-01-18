@@ -17,6 +17,7 @@ from ..hooks import log_exception
 from ._pickle_store import PickleStore
 from ._version_store_utils import cleanup
 from .versioned_item import VersionedItem
+import six
 
 logger = logging.getLogger(__name__)
 
@@ -54,14 +55,14 @@ class VersionStore(object):
         logger.info("Trying to enable usePowerOf2Sizes...")
         try:
             enable_powerof2sizes(arctic_lib.arctic, arctic_lib.get_name())
-        except OperationFailure, e:
+        except OperationFailure as e:
             logger.error("Library created, but couldn't enable usePowerOf2Sizes: %s" % str(e))
 
         logger.info("Trying to enable sharding...")
         try:
             enable_sharding(arctic_lib.arctic, arctic_lib.get_name(), hashed=hashed)
-        except OperationFailure, e:
-            logger.warn("Library created, but couldn't enable sharding: %s. This is OK if you're not 'admin'" % str(e))
+        except OperationFailure as e:
+            logger.warning("Library created, but couldn't enable sharding: %s. This is OK if you're not 'admin'" % str(e))
 
     @mongo_retry
     def _ensure_index(self):
@@ -138,7 +139,7 @@ class VersionStore(object):
         if regex is not None:
             query ['symbol'] = {'$regex' : regex}
         if kwargs:
-            for k, v in kwargs.iteritems():
+            for k, v in six.iteritems(kwargs):
                 query['metadata.' + k] = v
         if snapshot is not None:
             try:
@@ -330,7 +331,7 @@ class VersionStore(object):
                                        date_range=date_range,
                                        read_preference=ReadPreference.PRIMARY,
                                        **kwargs)
-        except Exception, e:
+        except Exception as e:
             log_exception('read', e, 1)
             raise
 
@@ -407,7 +408,7 @@ class VersionStore(object):
         _version = None
         if as_of is None:
             _version = versions_coll.find_one({'symbol': symbol}, sort=[('version', pymongo.DESCENDING)])
-        elif isinstance(as_of, basestring):
+        elif isinstance(as_of, six.string_types):
             # as_of is a snapshot
             snapshot = self._snapshots.find_one({'name': as_of})
             if snapshot:
@@ -660,7 +661,7 @@ class VersionStore(object):
         symbol : `str`
             symbol name to delete
         """
-        logger.warn("Deleting data item: %r from %r" % (symbol, self._arctic_lib.get_name()))
+        logger.warning("Deleting data item: %r from %r" % (symbol, self._arctic_lib.get_name()))
         # None is the magic sentinel value that indicates an item has been deleted.
         sentinel = self.write(symbol, None, prune_previous_version=False, metadata={'deleted': True})
         self._prune_previous_versions(symbol, 0)

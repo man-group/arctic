@@ -39,7 +39,7 @@ class PandasStore(NdarrayStore):
         if isinstance(index, MultiIndex):
             # array of tuples to numpy cols. copy copy copy
             if len(df) > 0:
-                ix_vals = map(np.array, [index.get_level_values(i) for i in range(index.nlevels)])
+                ix_vals = list(map(np.array, [index.get_level_values(i) for i in range(index.nlevels)]))
             else:
                 # empty multi index has no size, create empty arrays for recarry..
                 ix_vals = [np.array([]) for n in index.names]
@@ -93,7 +93,7 @@ class PandasStore(NdarrayStore):
         metadata['columns'] = columns
         names = index_names + columns
         arrays = ix_vals + column_vals
-        arrays = map(_to_primitive, arrays)
+        arrays = list(map(_to_primitive, arrays))
         dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
                          metadata=metadata)
 
@@ -186,7 +186,7 @@ class PandasStore(NdarrayStore):
                     return -1, -1
                 idxstart = min(np.searchsorted(dts, start), len(dts) - 1)
                 idxend = min(np.searchsorted(dts, end), len(dts) - 1)
-                return index['index'][idxstart], index['index'][idxend] + 1
+                return int(index['index'][idxstart]), int(index['index'][idxend] + 1)
         return super(PandasStore, self)._index_range(version, symbol, **kwargs)
 
     def _daterange(self, recarr, date_range):

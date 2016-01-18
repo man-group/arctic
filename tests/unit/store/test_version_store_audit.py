@@ -9,7 +9,7 @@ from arctic.exceptions import ConcurrentModificationException, NoDataFoundExcept
 
 
 def test_ArcticTransaction_simple():
-    vs = create_autospec(VersionStore, _collection=Mock())
+    vs = Mock(spec=VersionStore)
     ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
     vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2,
@@ -26,7 +26,7 @@ def test_ArcticTransaction_simple():
 
 
 def test_ArticTransaction_no_audit():
-    vs = create_autospec(VersionStore, _collection=Mock())
+    vs = Mock(spec=VersionStore)
     ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
     vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2,
@@ -41,7 +41,7 @@ def test_ArticTransaction_no_audit():
 
 
 def test_ArcticTransaction_writes_if_metadata_changed():
-    vs = create_autospec(VersionStore, _collection=Mock())
+    vs = Mock(spec=VersionStore)
     ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
     vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata=None, data=None)
@@ -67,7 +67,7 @@ def test_ArcticTransaction_writes_if_metadata_changed():
 
 def test_ArcticTransaction_writes_if_base_data_corrupted():
 
-    vs = create_autospec(VersionStore, _collection=Mock())
+    vs = Mock(spec=VersionStore)
     ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
     vs.read.side_effect = OperationFailure('some failure')
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2,
@@ -84,7 +84,7 @@ def test_ArcticTransaction_writes_if_base_data_corrupted():
 
 
 def test_ArcticTransaction_writes_no_data_found():
-    vs = create_autospec(VersionStore, _collection=Mock())
+    vs = Mock(spec=VersionStore)
     ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
     vs.read.side_effect = NoDataFoundException('no data')
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1,
@@ -102,7 +102,7 @@ def test_ArcticTransaction_writes_no_data_found():
 
 
 def test_ArcticTransaction_writes_no_data_found_deleted():
-    vs = create_autospec(VersionStore, _collection=Mock())
+    vs = Mock(spec=VersionStore)
     ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
     vs.read.side_effect = NoDataFoundException('no data')
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=3,
@@ -120,7 +120,7 @@ def test_ArcticTransaction_writes_no_data_found_deleted():
 
 
 def test_ArcticTransaction_does_nothing_when_data_not_modified():
-    vs = create_autospec(VersionStore, _collection=Mock())
+    vs = Mock(spec=VersionStore)
     ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
     vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata=None, data=None)
@@ -134,7 +134,7 @@ def test_ArcticTransaction_does_nothing_when_data_not_modified():
 
 
 def test_ArcticTransaction_does_nothing_when_data_is_None():
-    vs = create_autospec(VersionStore, _collection=Mock())
+    vs = Mock(spec=VersionStore)
     ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
     vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2,
@@ -148,7 +148,7 @@ def test_ArcticTransaction_does_nothing_when_data_is_None():
 
 
 def test_ArcticTransaction_guards_against_inconsistent_ts():
-    vs = create_autospec(VersionStore, _collection=Mock())
+    vs = Mock(spec=VersionStore)
     ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
     vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata=None, data=None)
@@ -161,7 +161,7 @@ def test_ArcticTransaction_guards_against_inconsistent_ts():
 
 
 def test_ArcticTransaction_detects_concurrent_writes():
-    vs = create_autospec(VersionStore, _collection=Mock())
+    vs = Mock(spec=VersionStore)
     ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
     vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
     vs.write.side_effect = [VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata=None, data=None),

@@ -1,7 +1,7 @@
+from __future__ import print_function
 from datetime import datetime as dt
 from bson.binary import Binary
-import cPickle
-
+from six.moves import cPickle    
 from arctic import Arctic, register_library_type
 from arctic.decorators import mongo_retry
 
@@ -31,6 +31,9 @@ class Stuff(object):
         # Arbitrary other stuff
         self.stuff = stuff
 
+    def __str__(self):
+        return str(self.field1) + " " + str(self.date_field) + " " + str(self.stuff)
+
 
 class CustomArcticLibType(object):
     """
@@ -50,7 +53,7 @@ class CustomArcticLibType(object):
         self._sub_collection = self._collection.sub_collection
 
         # The name of this library
-        print "My name is %s" % arctic_lib.get_name()
+        print("My name is %s" % arctic_lib.get_name())
 
         # Fetch some per-library metadata for this library
         self.some_metadata = arctic_lib.get_library_metadata('some_metadata')
@@ -128,6 +131,8 @@ class CustomArcticLibType(object):
 register_library_type(CustomArcticLibType._LIBRARY_TYPE, CustomArcticLibType)
 
 # Create a Arctic instance pointed at a mongo host
+if 'mongo_host' not in globals():
+    mongo_host = 'localhost'
 store = Arctic(mongo_host)
 
 ### Initialize the library
@@ -151,7 +156,8 @@ lib.store(Stuff(['a', 'b', 'c'], dt(2014, 1, 1), object()))
 
 # Do some querying via our library's query method.
 # You would have your own methods for querying here... (which use your index(es), of course)
-list(lib.query())                    # Get everything
+for e in list(lib.query()): # list everything
+    print(e)
 list(lib.query({'field1': 'thing'})) # just get by name
 list(lib.query({'field1': 'a'}))     # Can query lists
 list(lib.query({'field1': 'b'}))

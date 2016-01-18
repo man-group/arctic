@@ -1,4 +1,5 @@
 import bson
+import six
 from bson.son import SON
 from datetime import datetime as dt, timedelta as dtd
 import pandas as pd
@@ -287,7 +288,7 @@ def test_list_version(library):
     assert len(list(library.list_versions(symbol))) == 0
     dates = [None, None, None]
     now = dt.utcnow().replace(tzinfo=mktz('UTC'))
-    for x in xrange(len(dates)):
+    for x in six.moves.xrange(len(dates)):
         dates[x] = now - dtd(minutes=130 - x)
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(dates[x])):
             library.write(symbol, ts1, prune_previous_version=False)
@@ -327,7 +328,7 @@ def test_list_version_latest_only(library):
     assert len(list(library.list_versions(symbol))) == 0
     dates = [None, None, None]
     now = dt.utcnow().replace(tzinfo=mktz('UTC'))
-    for x in xrange(len(dates)):
+    for x in six.moves.xrange(len(dates)):
         dates[x] = now - dtd(minutes=20 - x)
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(dates[x])):
             library.write(symbol, ts1, prune_previous_version=False)

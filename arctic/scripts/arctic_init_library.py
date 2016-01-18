@@ -1,3 +1,4 @@
+from __future__ import print_function
 import argparse
 import pymongo
 import logging
@@ -36,7 +37,7 @@ def main():
         parser.error('Must specify the full path of the library e.g. user.library!')
     db_name, _ = ArcticLibraryBinding._parse_db_lib(opts.library)
 
-    print "Initializing: %s on mongo %s" % (opts.library, opts.host)
+    print("Initializing: %s on mongo %s" % (opts.library, opts.host))
     c = pymongo.MongoClient(get_mongodb_uri(opts.host))
 
     if not do_db_auth(opts.host, c, db_name):

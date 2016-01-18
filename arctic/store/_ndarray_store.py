@@ -1,6 +1,5 @@
 import logging
 import hashlib
-import pprint
 
 from bson.binary import Binary
 import numpy as np
@@ -13,6 +12,8 @@ from ._version_store_utils import checksum
 
 from .._compression import compress_array, decompress
 from ..exceptions import ConcurrentModificationException
+from six.moves import xrange
+
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +117,7 @@ class NdarrayStore(object):
             collection.create_index([('symbol', pymongo.ASCENDING),
                                      ('parent', pymongo.ASCENDING),
                                      ('segment', pymongo.ASCENDING)], unique=True, background=True)
-        except OperationFailure, e:
+        except OperationFailure as e:
             if "can't use unique indexes" in str(e):
                 return
             raise
@@ -199,7 +200,7 @@ class NdarrayStore(object):
                                       collection.find_one({'_id': x['_id']}),
                                       collection.find_one({'_id': x['_id']}))
                 raise
-        data = ''.join(segments)
+        data = b''.join(segments)
 
         # Check that the correct number of segments has been returned
         if segment_count is not None and i + 1 != segment_count:
@@ -401,7 +402,7 @@ class NdarrayStore(object):
         sze = int(item.dtype.itemsize * np.prod(item.shape[1:]))
 
         # chunk and store the data by (uncompressed) size
-        chunk_size = _CHUNK_SIZE / sze
+        chunk_size = int(_CHUNK_SIZE / sze)
 
         previous_shas = []
         if previous_version:
