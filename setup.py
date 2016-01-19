@@ -16,7 +16,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 # USA
 
-import os
 import logging
 from setuptools import setup
 from setuptools.extension import Extension
