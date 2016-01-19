@@ -3,15 +3,15 @@ import datetime
 from datetime import datetime as dt, timedelta as dtd
 from mock import patch, MagicMock, sentinel, create_autospec, Mock, call, ANY
 import pytest
-
+import sys
 import pymongo
-from pymongo import ReadPreference
+from pymongo import ReadPreference, read_preferences
 
 from arctic.date import mktz
 from arctic.store import version_store
 from arctic.store.version_store import VersionStore, VersionedItem
 from arctic.arctic import ArcticLibraryBinding, Arctic
-from arctic.exceptions import ConcurrentModificationException
+from arctic.exceptions import ConcurrentModificationException, DuplicateSnapshotException
 from pymongo.errors import OperationFailure
 from pymongo.collection import Collection
 
@@ -34,14 +34,67 @@ def test_list_versions_localTime():
     vs._find_snapshots.return_value = 'snap'
     date = dt(2013, 4, 1, 9, 0)
     vs._versions.find.return_value = [{'_id': bson.ObjectId.from_datetime(date),
-                                       'symbol': 's', 'version': 10}]
+                                       'symbol': 's', 'version': 10, 'metadata': None}]
 
     version = list(VersionStore.list_versions(vs, "symbol"))[0]
-    local_date = date.replace(tzinfo=mktz("UTC")).astimezone(mktz()).replace(tzinfo=None)
+    local_date = date.replace(tzinfo=mktz("UTC"))
     assert version == {'symbol': version['symbol'], 'version': version['version'],
                        # We return naive datetimes in 'default' time, which is London for us
                        'date': local_date,
-                       'snapshots': 'snap'}
+                       'snapshots': 'snap',
+                       'deleted': False}
+
+
+def test__read_preference__allow_secondary_true():
+    self = create_autospec(VersionStore)
+    assert VersionStore._read_preference(self, True) == ReadPreference.NEAREST
+
+
+def test__read_preference__allow_secondary_false():
+    self = create_autospec(VersionStore)
+    assert VersionStore._read_preference(self, False) == ReadPreference.PRIMARY
+
+
+def test__read_preference__default_true():
+    self = create_autospec(VersionStore, _allow_secondary=True)
+    assert VersionStore._read_preference(self, None) == ReadPreference.NEAREST
+
+
+def test__read_preference__default_false():
+    self = create_autospec(VersionStore, _allow_secondary=False)
+    assert VersionStore._read_preference(self, None) == ReadPreference.PRIMARY
+
+
+def test_get_version_allow_secondary_True():
+    vs = create_autospec(VersionStore, instance=True,
+                         _versions=Mock())
+    vs._read_preference.return_value = sentinel.read_preference
+    vs._find_snapshots.return_value = 'snap'
+    vs._versions.find.return_value = [{'_id': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0)),
+                       'symbol': 's', 'version': 10}]
+
+    VersionStore.read(vs, "symbol")
+    assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, read_preference=sentinel.read_preference)]
+    assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None, 
+                                               date_range=None,
+                                               read_preference=sentinel.read_preference)]
+
+
+def test_get_version_allow_secondary_user_override_False():
+    """Ensure user can override read preference when calling read"""
+    vs = create_autospec(VersionStore, instance=True,
+                         _versions=Mock())
+    vs._read_preference.return_value = sentinel.read_preference
+    vs._find_snapshots.return_value = 'snap'
+    vs._versions.find.return_value = [{'_id': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0)),
+                       'symbol': 's', 'version': 10}]
+
+    VersionStore.read(vs, "symbol", allow_secondary=False)
+    assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, read_preference=sentinel.read_preference)]
+    assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None,
+                                               date_range=None, 
+                                               read_preference=sentinel.read_preference)]
+    vs._read_preference.assert_called_once_with(False)
 
 
 def test_read_as_of_LondonTime():
@@ -149,18 +202,27 @@ def test_prune_previous_versions_0_timeout():
 
 
 def test_read_handles_operation_failure():
-    self = create_autospec(VersionStore, _versions=Mock(), _arctic_lib=Mock(),
-                           _allow_secondary=True)
+    self = Mock(spec=VersionStore)
+    self._read_preference.return_value = sentinel.read_preference
     self._collection = create_autospec(Collection)
     self._read_metadata.side_effect = [sentinel.meta1, sentinel.meta2]
     self._read_metadata.__name__ = 'name'
     self._do_read.__name__ = 'name'  # feh: mongo_retry decorator cares about this
     self._do_read.side_effect = [OperationFailure('error'), sentinel.read]
-    VersionStore.read(self, sentinel.symbol, sentinel.as_of, sentinel.from_version)
+    VersionStore.read(self, sentinel.symbol, sentinel.as_of,
+                      from_version=sentinel.from_version,
+                      date_range=sentinel.date_range,
+                      other_kwarg=sentinel.other_kwarg)
     # Assert that, for the two read calls, the second uses the new metadata
-    assert self._do_read.call_args_list == [call(sentinel.symbol, sentinel.meta1, sentinel.from_version,
-                                                 read_preference=ReadPreference.NEAREST)]
-    assert self._do_read_retry.call_args_list == [call(sentinel.symbol, sentinel.meta2, sentinel.from_version,
+    assert self._do_read.call_args_list == [call(sentinel.symbol, sentinel.meta1, 
+                                                 sentinel.from_version,
+                                                 date_range=sentinel.date_range,
+                                                 other_kwarg=sentinel.other_kwarg,
+                                                 read_preference=sentinel.read_preference)]
+    assert self._do_read_retry.call_args_list == [call(sentinel.symbol, sentinel.meta2,
+                                                       sentinel.from_version,
+                                                       date_range=sentinel.date_range,
+                                                       other_kwarg=sentinel.other_kwarg,
                                                        read_preference=ReadPreference.PRIMARY)]
 
 
@@ -175,3 +237,26 @@ def test_read_reports_random_errors():
             VersionStore.read(self, sentinel.symbol, sentinel.as_of, sentinel.from_version)
     assert 'bad' in str(e)
     assert le.call_count == 1
+
+
+def test_snapshot():
+    vs = create_autospec(VersionStore, _snapshots=Mock(),
+                                       _collection=Mock(),
+                                       _versions=Mock())
+    vs._snapshots.find_one.return_value = False
+    vs._versions.update_one.__name__ = 'name'
+    vs._snapshots.insert_one.__name__ = 'name'
+    vs.list_symbols.return_value = ['foo', 'bar']
+    VersionStore.snapshot(vs, "symbol")
+    assert (vs._read_metadata.call_args_list == [call('foo', as_of=None, read_preference=ReadPreference.PRIMARY),
+                                                call('bar', as_of=None, read_preference=ReadPreference.PRIMARY)] or 
+                                                vs._read_metadata.call_args_list == [call('bar', as_of=None, read_preference=ReadPreference.PRIMARY),
+                                                call('foo', as_of=None, read_preference=ReadPreference.PRIMARY)])
+
+
+def test_snapshot_duplicate_raises_exception():
+    vs = create_autospec(VersionStore, _snapshots=Mock())
+    with pytest.raises(DuplicateSnapshotException) as e:
+        vs._snapshots.find_one.return_value = True
+        VersionStore.snapshot(vs, 'symbol')
+        assert "Snapshot 'symbol' already exists" in str(e.value)

@@ -1,5 +1,6 @@
 from datetime import datetime as dt, timedelta
 import pprint
+import logging
 
 import bson
 from pymongo import ReadPreference
@@ -13,11 +14,12 @@ from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
     OptimisticLockException, ArcticException
 from ..hooks import log_exception
-from ..logging import logger
 from ._pickle_store import PickleStore
 from ._version_store_utils import cleanup
 from .versioned_item import VersionedItem
+import six
 
+logger = logging.getLogger(__name__)
 
 VERSION_STORE_TYPE = 'VersionStore'
 _TYPE_HANDLERS = []
@@ -31,7 +33,6 @@ def register_versioned_storage(storageClass):
     else:
         _TYPE_HANDLERS.append(storageClass())
     return storageClass
-
 
 
 class VersionStore(object):
@@ -54,14 +55,14 @@ class VersionStore(object):
         logger.info("Trying to enable usePowerOf2Sizes...")
         try:
             enable_powerof2sizes(arctic_lib.arctic, arctic_lib.get_name())
-        except OperationFailure, e:
+        except OperationFailure as e:
             logger.error("Library created, but couldn't enable usePowerOf2Sizes: %s" % str(e))
 
         logger.info("Trying to enable sharding...")
         try:
             enable_sharding(arctic_lib.arctic, arctic_lib.get_name(), hashed=hashed)
-        except OperationFailure, e:
-            logger.warn("Library created, but couldn't enable sharding: %s. This is OK if you're not 'admin'" % str(e))
+        except OperationFailure as e:
+            logger.warning("Library created, but couldn't enable sharding: %s. This is OK if you're not 'admin'" % str(e))
 
     @mongo_retry
     def _ensure_index(self):
@@ -105,6 +106,12 @@ class VersionStore(object):
 
     def __repr__(self):
         return str(self)
+    
+    def _read_preference(self, allow_secondary):
+        """ Return the mongo read preference given an 'allow_secondary' argument
+        """
+        allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
+        return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
 
     @mongo_retry
     def list_symbols(self, all_symbols=False, snapshot=None, regex=None, **kwargs):
@@ -132,7 +139,7 @@ class VersionStore(object):
         if regex is not None:
             query ['symbol'] = {'$regex' : regex}
         if kwargs:
-            for k, v in kwargs.iteritems():
+            for k, v in six.iteritems(kwargs):
                 query['metadata.' + k] = v
         if snapshot is not None:
             try:
@@ -177,9 +184,15 @@ class VersionStore(object):
         ----------
         symbol : `str`
             symbol name for the item
+        as_of : `str` or int or `datetime.datetime`
+            Return the data as it was as_of the point in time.
+            `int` : specific version number
+            `str` : snapshot name which contains the version
+            `datetime.datetime` : the version of the data that existed as_of the requested point in time
         """
         try:
-            self._read_metadata(symbol, as_of=as_of)
+            # Always use the primary for has_symbol, it's safer
+            self._read_metadata(symbol, as_of=as_of, read_preference=ReadPreference.PRIMARY)
             return True
         except NoDataFoundException:
             return False
@@ -232,14 +245,16 @@ class VersionStore(object):
         for symbol in symbols:
             query['symbol'] = symbol
             seen_symbols = set()
-            for version in self._versions.find(query, projection=['symbol', 'version', 'parent'], sort=[('version', -1)]):
+            for version in self._versions.find(query, projection=['symbol', 'version', 'parent', 'metadata.deleted'], sort=[('version', -1)]):
                 if latest_only and version['symbol'] in seen_symbols:
                     continue
                 seen_symbols.add(version['symbol'])
+                meta = version.get('metadata')
                 versions.append({'symbol': version['symbol'], 'version': version['version'],
-                       # We return naive datetimes in London Time.
-                       'date': ms_to_datetime(datetime_to_ms(version['_id'].generation_time)),
-                       'snapshots': self._find_snapshots(version.get('parent', []))})
+                                 'deleted': meta.get('deleted', False) if meta else False,
+                                 # We return offset-aware datetimes in Local Time.
+                                 'date': ms_to_datetime(datetime_to_ms(version['_id'].generation_time)),
+                                 'snapshots': self._find_snapshots(version.get('parent', []))})
         return versions
 
     def _find_snapshots(self, parent_ids):
@@ -273,7 +288,7 @@ class VersionStore(object):
             handler = self._bson_handler
         return handler
 
-    def read(self, symbol, as_of=None, from_version=None, **kwargs):
+    def read(self, symbol, as_of=None, date_range=None, from_version=None, allow_secondary=None, **kwargs):
         """
         Read data for the named symbol.  Returns a VersionedItem object with
         a data and metdata element (as passed into write).
@@ -287,15 +302,24 @@ class VersionStore(object):
             `int` : specific version number
             `str` : snapshot name which contains the version
             `datetime.datetime` : the version of the data that existed as_of the requested point in time
+        date_range: `arctic.date.DateRange`
+            DateRange to read data for.  Applies to Pandas data, with a DateTime index
+            returns only the part of the data that falls in the DateRange.
+        allow_secondary : `bool` or `None`
+            Override the default behavior for allowing reads from secondary members of a cluster:
+            `None` : use the settings from the top-level `Arctic` object used to query this version store.
+            `True` : allow reads from secondary members
+            `False` : only allow reads from primary members
 
         Returns
         -------
         VersionedItem namedtuple which contains a .data and .metadata element
         """
         try:
-            _version = self._read_metadata(symbol, as_of=as_of)
-            read_preference = ReadPreference.NEAREST if self._allow_secondary else None
-            return self._do_read(symbol, _version, from_version, read_preference=read_preference, **kwargs)
+            read_preference = self._read_preference(allow_secondary)
+            _version = self._read_metadata(symbol, as_of=as_of, read_preference=read_preference)
+            return self._do_read(symbol, _version, from_version,
+                                 date_range=date_range, read_preference=read_preference, **kwargs)
         except (OperationFailure, AutoReconnect) as e:
             # Log the exception so we know how often this is happening
             log_exception('read', e, 1)
@@ -304,17 +328,17 @@ class VersionStore(object):
             _version = mongo_retry(self._read_metadata)(symbol, as_of=as_of,
                                                         read_preference=ReadPreference.PRIMARY)
             return self._do_read_retry(symbol, _version, from_version,
+                                       date_range=date_range,
                                        read_preference=ReadPreference.PRIMARY,
                                        **kwargs)
-        except Exception, e:
+        except Exception as e:
             log_exception('read', e, 1)
             raise
 
     @mongo_retry
-    def _show_info(self, symbol, as_of=None):
+    def get_info(self, symbol, as_of=None):
         """
-        Print details on the stored symbol: the underlying storage handler
-        and the version_document corresponding to the specified version.
+        Reads and returns information about the data stored for symbol
 
         Parameters
         ----------
@@ -325,16 +349,18 @@ class VersionStore(object):
             `int` : specific version number
             `str` : snapshot name which contains the version
             `datetime.datetime` : the version of the data that existed as_of the requested point in time
-        """
-        print self._get_info(symbol, as_of)
 
-    def _get_info(self, symbol, as_of=None):
-        _version = self._read_metadata(symbol, as_of=as_of)
-        handler = self._read_handler(_version, symbol)
-        if hasattr(handler, "get_info"):
-            return handler.get_info(self._arctic_lib, _version, symbol)
-        else:
-            return """Handler: %s\n\nVersion document:\n%s""" % (handler.__class__.__name__, pprint.pformat(_version))
+        Returns
+        -------
+        dictionary of the information (specific to the type of data)
+        """
+        version = self._read_metadata(symbol, as_of=as_of, read_preference=None)
+        handler = self._read_handler(version, symbol)
+        if handler and hasattr(handler, 'get_info'):
+            return handler.get_info(version)
+        return {}
+
+
 
     def _do_read(self, symbol, version, from_version=None, **kwargs):
         handler = self._read_handler(version, symbol)
@@ -346,7 +372,7 @@ class VersionStore(object):
     _do_read_retry = mongo_retry(_do_read)
 
     @mongo_retry
-    def read_metadata(self, symbol, as_of=None):
+    def read_metadata(self, symbol, as_of=None, allow_secondary=None):
         """
         Return the metadata saved for a symbol.  This method is fast as it doesn't
         actually load the data.
@@ -360,8 +386,13 @@ class VersionStore(object):
             `int` : specific version number
             `str` : snapshot name which contains the version
             `datetime.datetime` : the version of the data that existed as_of the requested point in time
+        allow_secondary : `bool` or `None`
+            Override the default behavior for allowing reads from secondary members of a cluster:
+            `None` : use the settings from the top-level `Arctic` object used to query this version store.
+            `True` : allow reads from secondary members
+            `False` : only allow reads from primary members
         """
-        _version = self._read_metadata(symbol, as_of=as_of)
+        _version = self._read_metadata(symbol, as_of=as_of, read_preference=self._read_preference(allow_secondary))
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=_version['version'],
                              metadata=_version.pop('metadata', None), data=None)
 
@@ -377,7 +408,7 @@ class VersionStore(object):
         _version = None
         if as_of is None:
             _version = versions_coll.find_one({'symbol': symbol}, sort=[('version', pymongo.DESCENDING)])
-        elif isinstance(as_of, basestring):
+        elif isinstance(as_of, six.string_types):
             # as_of is a snapshot
             snapshot = self._snapshots.find_one({'name': as_of})
             if snapshot:
@@ -630,7 +661,7 @@ class VersionStore(object):
         symbol : `str`
             symbol name to delete
         """
-        logger.warn("Deleting data item: %r from %r" % (symbol, self._arctic_lib.get_name()))
+        logger.warning("Deleting data item: %r from %r" % (symbol, self._arctic_lib.get_name()))
         # None is the magic sentinel value that indicates an item has been deleted.
         sentinel = self.write(symbol, None, prune_previous_version=False, metadata={'deleted': True})
         self._prune_previous_versions(symbol, 0)
@@ -665,9 +696,9 @@ class VersionStore(object):
         # Create the audit entry
         mongo_retry(self._audit.insert_one)(audit)
 
-    def snapshot(self, snap_name, metadata=None, skip_symbols=None):
+    def snapshot(self, snap_name, metadata=None, skip_symbols=None, versions=None):
         """
-        Snapshot the current versions of symbols in the library.  Can be used like:
+        Snapshot versions of symbols in the library.  Can be used like:
 
         Parameters
         ----------
@@ -677,6 +708,8 @@ class VersionStore(object):
             an optional dictionary of metadata to persist along with the symbol.
         skip_symbols : `collections.Iterable`
             optional symbols to be excluded from the snapshot
+        versions: `dict`
+            an optional dictionary of versions of the symbols to be snapshot
         """
         # Ensure the user doesn't insert duplicates
         snapshot = self._snapshots.find_one({'name': snap_name})
@@ -687,22 +720,23 @@ class VersionStore(object):
         snapshot = {'_id': bson.ObjectId()}
         snapshot['name'] = snap_name
         snapshot['metadata'] = metadata
+        
+        skip_symbols = set() if skip_symbols is None else set(skip_symbols) 
 
-        if skip_symbols is None:
-            skip_symbols = set()
-        else:
-            skip_symbols = set(skip_symbols)
+        if versions is None:
+            versions = {sym: None for sym in set(self.list_symbols()) - skip_symbols}
 
         # Loop over, and snapshot all versions except those we've been asked to skip
-        for sym in set(self.list_symbols()) - skip_symbols:
+        for sym in versions:
             try:
-                sym = self._read_metadata(sym, read_preference=ReadPreference.PRIMARY)
+                sym = self._read_metadata(sym, read_preference=ReadPreference.PRIMARY, as_of=versions[sym])
                 # Update the parents field of the version document
                 mongo_retry(self._versions.update_one)({'_id': sym['_id']},
                                                        {'$addToSet': {'parent': snapshot['_id']}})
             except NoDataFoundException:
                 # Version has been deleted, not included in the snapshot
                 pass
+
         mongo_retry(self._snapshots.insert_one)(snapshot)
 
     def delete_snapshot(self, snap_name):
@@ -718,9 +752,6 @@ class VersionStore(object):
         if not snapshot:
             raise NoDataFoundException("Snapshot %s not found!" % snap_name)
 
-        # Find all the versions pointed at by the snapshot
-        versions = list(self._versions
-                            .find({'parent': snapshot['_id']}, projection=['symbol', 'version']))
         # Remove the snapshot Id as a parent of versions
         self._versions.update_many({'parent': snapshot['_id']},
                                    {'$pull': {'parent': snapshot['_id']}})

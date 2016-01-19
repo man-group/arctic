@@ -19,7 +19,7 @@
 import os
 import pytest
 
-from path import path
+from path import Path as path
 from tempfile import mkdtemp
 
 from pytest_dbfixtures.executors import TCPExecutor
@@ -124,7 +124,7 @@ def mongodb(process_fixture_name):
         """
         proc_fixture = get_process_fixture(request, process_fixture_name)
 
-        pymongo, config = try_import('pymongo', request)
+        pymongo, _ = try_import('pymongo', request)
 
         mongo_host = proc_fixture.host
         mongo_port = proc_fixture.port

@@ -14,6 +14,13 @@ def test_save_read_bson(library):
     assert blob == saved_blob
 
 
+def test_save_read_big_encodable(library):
+    blob = {'foo': 'a' * 1024 * 1024 * 20}
+    library.write('BLOB', blob)
+    saved_blob = library.read('BLOB').data
+    assert blob == saved_blob
+    
+
 def test_save_read_bson_object(library):
     blob = {'foo': dt(2015, 1, 1), 'object': Arctic}
     library.write('BLOB', blob)
@@ -24,7 +31,7 @@ def test_save_read_bson_object(library):
 def test_get_info_bson_object(library):
     blob = {'foo': dt(2015, 1, 1), 'object': Arctic}
     library.write('BLOB', blob)
-    assert library._get_info('BLOB').startswith('Handler: PickleStore')
+    assert library.get_info('BLOB')['handler'] == 'PickleStore'
 
 
 def test_bson_large_object(library):

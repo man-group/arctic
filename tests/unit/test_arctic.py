@@ -1,7 +1,10 @@
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 from mock import patch, MagicMock, sentinel, create_autospec, Mock, call
 import pytest
-from pymongo.errors import OperationFailure
+from pymongo.errors import OperationFailure, ServerSelectionTimeoutError, AutoReconnect
 from pymongo.mongo_client import MongoClient
 
 from arctic.auth import Credential
@@ -9,6 +12,7 @@ from arctic.arctic import Arctic, ArcticLibraryBinding, \
     register_library_type, LIBRARY_TYPES
 from arctic.exceptions import LibraryNotFoundException, \
     ArcticException, QuotaExceededException
+import six
 
 
 def test_arctic_lazy_init():
@@ -77,10 +81,10 @@ def test_arctic_connect_hostname():
                                          serverSelectionTimeoutMS=sentinel.select_timeout)
                 # do something to trigger lazy arctic init
                 store.list_libraries()
-                ar(mc).assert_called_once_with(host=gmu('hostname'), maxPoolSize=4,
-                                               socketTimeoutMS=sentinel.socket_timeout,
-                                               connectTimeoutMS=sentinel.connect_timeout,
-                                               serverSelectionTimeoutMS=sentinel.select_timeout)
+                mc.assert_called_once_with(host=gmu('hostname'), maxPoolSize=4,
+                                           socketTimeoutMS=sentinel.socket_timeout,
+                                           connectTimeoutMS=sentinel.connect_timeout,
+                                           serverSelectionTimeoutMS=sentinel.select_timeout)
                 
                 
 def test_arctic_connect_with_environment_name():
@@ -94,10 +98,10 @@ def test_arctic_connect_with_environment_name():
             # do something to trigger lazy arctic init
             store.list_libraries()
     assert gmfe.call_args_list == [call('live')]
-    assert ar(mc).call_args_list == [call(host=gmfe.return_value, maxPoolSize=4,
-                                          socketTimeoutMS=sentinel.socket_timeout,
-                                          connectTimeoutMS=sentinel.connect_timeout,
-                                          serverSelectionTimeoutMS=sentinel.select_timeout)]
+    assert mc.call_args_list == [call(host=gmfe.return_value, maxPoolSize=4,
+                                      socketTimeoutMS=sentinel.socket_timeout,
+                                      connectTimeoutMS=sentinel.connect_timeout,
+                                      serverSelectionTimeoutMS=sentinel.select_timeout)]
 
 
 @pytest.mark.parametrize(
@@ -138,22 +142,22 @@ def test_register_library_type():
 
     with pytest.raises(ArcticException) as e:
         register_library_type("new_dummy_type", DummyType)
-    assert "ArcticException: Library new_dummy_type already registered as <class 'tests.unit.test_arctic.DummyType'>" in str(e)
+    assert "ArcticException: Library new_dummy_type already registered" in str(e)
 
 
 def test_set_quota():
-    self = create_autospec(ArcticLibraryBinding)
-    ArcticLibraryBinding.set_quota(self, 10000)
-    self.set_library_metadata.assert_called_once_with('QUOTA', 10000)
-    assert self.quota_countdown == 0
-    assert self.quota == 10000
+    m = Mock(spec=ArcticLibraryBinding)
+    ArcticLibraryBinding.set_quota(m, 10000)
+    m.set_library_metadata.assert_called_once_with('QUOTA', 10000)
+    assert m.quota_countdown == 0
+    assert m.quota == 10000
 
 
 def test_get_quota():
-    self = create_autospec(ArcticLibraryBinding)
-    self.get_library_metadata.return_value = 42
-    assert ArcticLibraryBinding.get_quota(self) == 42
-    self.get_library_metadata.assert_called_once_with('QUOTA')
+    m = Mock(spec=ArcticLibraryBinding)
+    m.get_library_metadata.return_value = 42
+    assert ArcticLibraryBinding.get_quota(m) == 42
+    m.get_library_metadata.assert_called_once_with('QUOTA')
 
 
 def test_check_quota_Zero():
@@ -163,21 +167,21 @@ def test_check_quota_Zero():
 
 
 def test_check_quota_None():
-    self = create_autospec(ArcticLibraryBinding)
-    self.quota = None
-    self.get_library_metadata.return_value = None
-    ArcticLibraryBinding.check_quota(self)
-    self.get_library_metadata.assert_called_once_with('QUOTA')
-    assert self.quota == 0
+    m = Mock(spec=ArcticLibraryBinding)
+    m.quota = None
+    m.get_library_metadata.return_value = None
+    ArcticLibraryBinding.check_quota(m)
+    m.get_library_metadata.assert_called_once_with('QUOTA')
+    assert m.quota == 0
 
 
 def test_check_quota_Zero2():
-    self = create_autospec(ArcticLibraryBinding)
-    self.quota = None
-    self.get_library_metadata.return_value = 0
-    ArcticLibraryBinding.check_quota(self)
-    self.get_library_metadata.assert_called_once_with('QUOTA')
-    assert self.quota == 0
+    m = Mock(spec=ArcticLibraryBinding)
+    m.quota = None
+    m.get_library_metadata.return_value = 0
+    ArcticLibraryBinding.check_quota(m)
+    m.get_library_metadata.assert_called_once_with('QUOTA')
+    assert m.quota == 0
 
 
 def test_check_quota_countdown():
@@ -198,7 +202,7 @@ def test_check_quota():
                                                                               'count': 100,
                                                                               }
                                                                              }))
-    with patch('arctic.logging.logger.warn') as warn:
+    with patch('arctic.arctic.logger.warning') as warn:
         ArcticLibraryBinding.check_quota(self)
     self.arctic.__getitem__.assert_called_once_with(self.get_name.return_value)
     warn.assert_called_once_with('Mongo Quota: 0.879 / 1 GB used')
@@ -215,7 +219,7 @@ def test_check_quota_info():
                                                                               'count': 100,
                                                                               }
                                                                              }))
-    with patch('arctic.logging.logger.info') as info:
+    with patch('arctic.arctic.logger.info') as info:
         ArcticLibraryBinding.check_quota(self)
     self.arctic.__getitem__.assert_called_once_with(self.get_name.return_value)
     info.assert_called_once_with('Mongo Quota: 0.001 / 1 GB used')
@@ -258,7 +262,7 @@ def test_initialize_library_too_many_ns():
     self._conn = create_autospec(MongoClient)
     lib = create_autospec(ArcticLibraryBinding)
     lib.database_name = sentinel.db_name
-    self._conn.__getitem__.return_value.collection_names.return_value = [x for x in xrange(3001)]
+    self._conn.__getitem__.return_value.collection_names.return_value = [x for x in six.moves.xrange(3001)]
     lib_type = Mock()
     with pytest.raises(ArcticException) as e:
         with patch.dict('arctic.arctic.LIBRARY_TYPES', {sentinel.lib_type: lib_type}), \
@@ -326,8 +330,32 @@ def test_mongo_host_get_set():
 
 def test_arctic_set_get_state():
     sentinel.mongo_host = Mock(nodes={("host", "port")})
-    store = Arctic(sentinel.mongo_host, allow_secondary="allow_secondary")
+    store = Arctic(sentinel.mongo_host, allow_secondary="allow_secondary", app_name="app_name", 
+                   socketTimeoutMS=1234, connectTimeoutMS=2345, serverSelectionTimeoutMS=3456)
     buff = pickle.dumps(store)
     mnew = pickle.loads(buff)
     assert mnew.mongo_host == "host:port"
     assert mnew._allow_secondary == "allow_secondary"
+    assert mnew._application_name == "app_name"
+    assert mnew._socket_timeout == 1234
+    assert mnew._connect_timeout == 2345
+    assert mnew._server_selection_timeout == 3456
+
+
+def test__conn_auth_issue():
+    auth_timeout = [0]
+    
+    a = Arctic("host:12345")
+    sentinel.creds = Mock()
+
+    def flaky_auth(*args, **kwargs):
+        if not auth_timeout[0]:
+            auth_timeout[0] = 1
+            raise AutoReconnect()
+
+    with patch('arctic.arctic.authenticate', flaky_auth), \
+    patch('arctic.arctic.get_auth', return_value=sentinel.creds), \
+    patch('arctic.decorators._handle_error') as he:
+        a._conn
+        assert he.call_count == 1
+        assert auth_timeout[0]

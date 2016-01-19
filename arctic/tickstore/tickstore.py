@@ -1,3 +1,7 @@
+from __future__ import print_function
+import logging
+
+from six import iteritems
 from bson.binary import Binary
 from datetime import datetime as dt, timedelta
 import lz4
@@ -6,15 +10,15 @@ import pandas as pd
 from pandas.core.frame import _arrays_to_mgr
 import pymongo
 from pymongo.errors import OperationFailure
-import pytz
 
-from ..date import DateRange, to_pandas_closed_closed, mktz, datetime_to_ms, ms_to_datetime
+from ..date import DateRange, to_pandas_closed_closed, mktz, datetime_to_ms, CLOSED_CLOSED, to_dt
 from ..decorators import mongo_retry
-from ..exceptions import OverlappingDataException, \
-        NoDataFoundException, UnhandledDtypeException, ArcticException
-from ..logging import logger
+from ..exceptions import OverlappingDataException, NoDataFoundException, UnhandledDtypeException, ArcticException
+from six import string_types
 from .._util import indent
 
+
+logger = logging.getLogger(__name__)
 
 # Example-Schema:
 # --------------
@@ -127,12 +131,8 @@ class TickStore(object):
         date_range = to_pandas_closed_closed(date_range)
         if date_range is not None:
             assert date_range.start and date_range.end
-            if date_range.start:
-                start = self._to_dt(date_range.start)
-            if date_range.end:
-                end = self._to_dt(date_range.end)
-            query[START] = {'$gte': start}
-            query[END] = {'$lte': end}
+            query[START] = {'$gte': date_range.start}
+            query[END] = {'$lte': date_range.end}
         self._collection.delete_many(query)
 
     def list_symbols(self, date_range=None):
@@ -143,10 +143,14 @@ class TickStore(object):
         if not date_range:
             date_range = DateRange()
 
+        # We're assuming CLOSED_CLOSED on these Mongo queries
+        assert date_range.interval == CLOSED_CLOSED
+
         # Find the start bound
         start_range = {}
         first = last = None
         if date_range.start:
+            assert date_range.start.tzinfo
             start = date_range.start
             startq = self._symbol_query(symbol)
             startq.update({START: {'$lte': start}})
@@ -159,6 +163,7 @@ class TickStore(object):
 
         # Find the end bound
         if date_range.end:
+            assert date_range.end.tzinfo
             end = date_range.end
             endq = self._symbol_query(symbol)
             endq.update({START: {'$gt': end}})
@@ -185,7 +190,7 @@ class TickStore(object):
         return {START: start_range}
 
     def _symbol_query(self, symbol):
-        if isinstance(symbol, basestring):
+        if isinstance(symbol, string_types):
             query = {SYMBOL: symbol}
         elif symbol is not None:
             query = {SYMBOL: {'$in': symbol}}
@@ -216,7 +221,7 @@ class TickStore(object):
         rtn = {}
         column_set = set()
 
-        multiple_symbols = not isinstance(symbol, basestring)
+        multiple_symbols = not isinstance(symbol, string_types)
 
         date_range = to_pandas_closed_closed(date_range)
         query = self._symbol_query(symbol)
@@ -243,8 +248,8 @@ class TickStore(object):
         for b in self._collection.find(query, projection=projection).sort([(START, pymongo.ASCENDING)],):
             data = self._read_bucket(b, column_set, column_dtypes,
                                      multiple_symbols or (columns is not None and 'SYMBOL' in columns),
-                                     include_images)
-            for k, v in data.iteritems():
+                                     include_images, columns)
+            for k, v in iteritems(data):
                 try:
                     rtn[k].append(v)
                 except KeyError:
@@ -258,7 +263,7 @@ class TickStore(object):
             raise NoDataFoundException("No Data found for {} in range: {}".format(symbol, date_range))
         rtn = self._pad_and_fix_dtypes(rtn, column_dtypes)
 
-        index = pd.to_datetime(np.concatenate(rtn[INDEX]), unit='ms')
+        index = pd.to_datetime(np.concatenate(rtn[INDEX]), utc=True, unit='ms')
         if columns is None:
             columns = [x for x in rtn.keys() if x not in (INDEX, 'SYMBOL')]
         if multiple_symbols and 'SYMBOL' not in columns:
@@ -278,6 +283,8 @@ class TickStore(object):
         logger.info("Got data in %s secs, creating DataFrame..." % t)
         mgr = _arrays_to_mgr(arrays, columns, index, columns, dtype=None)
         rtn = pd.DataFrame(mgr)
+        # Present data in the user's default TimeZone
+        rtn.index.tz = mktz()
 
         t = (dt.now() - perf_start).total_seconds()
         ticks = len(rtn)
@@ -389,7 +396,7 @@ class TickStore(object):
         rtn = {}
         index = cols[INDEX]
         full_length = len(index)
-        for k, v in cols.iteritems():
+        for k, v in iteritems(cols):
             if k != INDEX and k != 'SYMBOL':
                 col_len = len(v)
                 if col_len < full_length:
@@ -419,24 +426,35 @@ class TickStore(object):
                 dtype = np.dtype('f8')
             column_dtypes[c] = np.promote_types(column_dtypes.get(c, dtype), dtype)
 
-    def _prepend_image(self, document, im):
+    def _prepend_image(self, document, im, rtn_length, column_dtypes, column_set, columns):
         image = im[IMAGE]
         first_dt = im['t']
         if not first_dt.tzinfo:
             first_dt = first_dt.replace(tzinfo=mktz('UTC'))
         document[INDEX] = np.insert(document[INDEX], 0, np.uint64(datetime_to_ms(first_dt)))
-        for field in document:
-            if field == INDEX or document[field] is None:
+        for field in image:
+            if field == INDEX:
                 continue
-            if field in image:
-                val = image[field]
-            else:
-                logger.debug("Field %s is missing from image!", field)
-                val = np.nan
+            if columns and field not in columns:
+                continue
+            if field not in document or document[field] is None:
+                col_dtype = np.dtype(str if isinstance(image[field], string_types) else 'f8')
+                document[field] = self._empty(rtn_length, dtype=col_dtype)
+                column_dtypes[field] = col_dtype
+                column_set.add(field)
+            val = image[field]
             document[field] = np.insert(document[field], 0, document[field].dtype.type(val))
+        # Now insert rows for fields in document that are not in the image
+        for field in set(document).difference(set(image)):
+            if field == INDEX:
+                continue
+            logger.debug("Field %s is missing from image!", field)
+            if document[field] is not None:
+                val = np.nan
+                document[field] = np.insert(document[field], 0, document[field].dtype.type(val))
         return document
 
-    def _read_bucket(self, doc, columns, column_dtypes, include_symbol, include_images):
+    def _read_bucket(self, doc, column_set, column_dtypes, include_symbol, include_images, columns):
         rtn = {}
         if doc[VERSION] != 3:
             raise ArcticException("Unhandled document version: %s" % doc[VERSION])
@@ -445,22 +463,22 @@ class TickStore(object):
         rtn_length = len(rtn[INDEX])
         if include_symbol:
             rtn['SYMBOL'] = [doc[SYMBOL], ] * rtn_length
-        columns.update(doc[COLUMNS].keys())
-        for c in columns:
+        column_set.update(doc[COLUMNS].keys())
+        for c in column_set:
             try:
                 coldata = doc[COLUMNS][c]
                 dtype = np.dtype(coldata[DTYPE])
-                values = np.fromstring(lz4.decompress(str(coldata[DATA])), dtype=dtype)
+                values = np.fromstring(lz4.decompress(coldata[DATA]), dtype=dtype)
                 self._set_or_promote_dtype(column_dtypes, c, dtype)
                 rtn[c] = self._empty(rtn_length, dtype=column_dtypes[c])
-                rowmask = np.unpackbits(np.fromstring(lz4.decompress(str(coldata[ROWMASK])),
+                rowmask = np.unpackbits(np.fromstring(lz4.decompress(coldata[ROWMASK]),
                                                       dtype='uint8'))[:doc_length].astype('bool')
                 rtn[c][rowmask] = values
             except KeyError:
                 rtn[c] = None
 
         if include_images and doc.get(IMAGE_DOC, {}).get(IMAGE, {}):
-            rtn = self._prepend_image(rtn, doc[IMAGE_DOC])
+            rtn = self._prepend_image(rtn, doc[IMAGE_DOC], rtn_length, column_dtypes, column_set, columns)
         return rtn
 
     def _empty(self, length, dtype):
@@ -548,7 +566,7 @@ class TickStore(object):
             pandas = True
         else:
             raise UnhandledDtypeException("Can't persist type %s to tickstore" % type(data))
-        self._assert_nonoverlapping_data(symbol, self._to_dt(start), self._to_dt(end))
+        self._assert_nonoverlapping_data(symbol, to_dt(start), to_dt(end))
 
         if pandas:
             buckets = self._pandas_to_buckets(data, symbol)
@@ -561,7 +579,7 @@ class TickStore(object):
         mongo_retry(self._collection.insert_many)(buckets)
         t = (dt.now() - start).total_seconds()
         ticks = len(buckets) * self.chunk_size
-        print "%d buckets in %s: approx %s ticks/sec" % (len(buckets), t, int(ticks / t))
+        print("%d buckets in %s: approx %s ticks/sec" % (len(buckets), t, int(ticks / t)))
 
 
     def write_replace(self, symbol, data):
@@ -623,18 +641,9 @@ class TickStore(object):
 
     def _to_ms(self, date):
         if isinstance(date, dt):
-            logger.warn('WARNING: treating naive datetime as London in write path')
+            if not date.tzinfo:
+                logger.warning('WARNING: treating naive datetime as London in write path')
             return datetime_to_ms(date)
-        return date
-
-    def _to_dt(self, date, default_tz=None):
-        if isinstance(date, (int, long)):
-            return ms_to_datetime(date, mktz('UTC'))
-        elif date.tzinfo is None:
-            if default_tz is None:
-                raise ValueError("Must specify a TimeZone on incoming data")
-            # Treat naive datetimes as London
-            return date.replace(tzinfo=mktz())
         return date
 
     def _str_dtype(self, dtype):
@@ -670,14 +679,14 @@ class TickStore(object):
         return array
 
     def _pandas_to_bucket(self, df, symbol):
-        start = self._to_dt(df.index[0].to_datetime())
-        end = self._to_dt(df.index[-1].to_datetime())
+        start = to_dt(df.index[0].to_datetime())
+        end = to_dt(df.index[-1].to_datetime())
         rtn = {START: start, END: end, SYMBOL: symbol}
         rtn[VERSION] = CHUNK_VERSION_NUMBER
         rtn[COUNT] = len(df)
         rtn[COLUMNS] = {}
 
-        logger.warn("NB treating all values as 'exists' - no longer sparse")
+        logger.warning("NB treating all values as 'exists' - no longer sparse")
         rowmask = Binary(lz4.compressHC(np.packbits(np.ones(len(df), dtype='uint8'))))
 
         recs = df.to_records(convert_datetime64=False)
@@ -696,10 +705,10 @@ class TickStore(object):
     def _to_bucket(self, ticks, symbol):
         data = {}
         rowmask = {}
-        start = self._to_dt(ticks[0]['index'])
-        end = self._to_dt(ticks[-1]['index'])
+        start = to_dt(ticks[0]['index'])
+        end = to_dt(ticks[-1]['index'])
         for i, t in enumerate(ticks):
-            for k, v in t.iteritems():
+            for k, v in iteritems(t):
                 try:
                     if k != 'index':
                         rowmask[k][i] = 1
@@ -713,13 +722,13 @@ class TickStore(object):
                     data[k] = [v]
 
         rowmask = dict([(k, Binary(lz4.compressHC(np.packbits(v).tostring())))
-                        for k, v in rowmask.iteritems()])
+                        for k, v in iteritems(rowmask)])
 
         rtn = {START: start, END: end, SYMBOL: symbol}
         rtn[VERSION] = CHUNK_VERSION_NUMBER
         rtn[COUNT] = len(ticks)
         rtn[COLUMNS] = {}
-        for k, v in data.iteritems():
+        for k, v in iteritems(data):
             if k != 'index':
                 v = np.array(v)
                 v = self._ensure_supported_dtypes(v)

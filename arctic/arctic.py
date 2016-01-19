@@ -1,19 +1,22 @@
+import logging
+
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect
-from pymongo.read_preferences import ReadPreference
+import threading
 
-from .auth import authenticate, get_auth
-from .hooks import get_mongodb_uri
-from .logging import logger
-from .decorators import mongo_retry
 from ._util import indent
-
+from .auth import authenticate, get_auth
+from .decorators import mongo_retry
 from .exceptions import LibraryNotFoundException, ArcticException, QuotaExceededException
+from .hooks import get_mongodb_uri
 from .store import version_store
-from .tickstore import tickstore
-from .tickstore import toplevel
+from .tickstore import tickstore, toplevel
+from six import string_types
+
 
 __all__ = ['Arctic', 'VERSION_STORE', 'TICK_STORE', 'register_library_type']
+
+logger = logging.getLogger(__name__)
 
 # Default Arctic application name: 'arctic'
 APPLICATION_NAME = 'arctic'
@@ -21,7 +24,7 @@ VERSION_STORE = version_store.VERSION_STORE_TYPE
 TICK_STORE = tickstore.TICK_STORE_TYPE
 LIBRARY_TYPES = {version_store.VERSION_STORE_TYPE: version_store.VersionStore,
                  tickstore.TICK_STORE_TYPE: tickstore.TickStore,
-                 toplevel.TICK_STORE_TYPE: toplevel.TopLevelTickStore
+                 toplevel.TICK_STORE_TYPE: toplevel.TopLevelTickStore,
                  }
 
 
@@ -88,8 +91,9 @@ class Arctic(object):
         self._socket_timeout = socketTimeoutMS
         self._connect_timeout = connectTimeoutMS
         self._server_selection_timeout = serverSelectionTimeoutMS
+        self._lock = threading.Lock()
 
-        if isinstance(mongo_host, basestring):
+        if isinstance(mongo_host, string_types):
             self.mongo_host = mongo_host
         else:
             self.__conn = mongo_host
@@ -97,29 +101,31 @@ class Arctic(object):
             mongo_host.server_info()
             self.mongo_host = ",".join(["{}:{}".format(x[0], x[1]) for x in mongo_host.nodes])
             self._adminDB = self._conn.admin
-
+    
     @property
+    @mongo_retry
     def _conn(self):
-        if self.__conn is None:
-            host = get_mongodb_uri(self.mongo_host)
-            logger.info("Connecting to mongo: {0} ({1})".format(self.mongo_host, host))
-            self.__conn = mongo_retry(pymongo.MongoClient)(host=host,
-                                                           maxPoolSize=self._MAX_CONNS,
-                                                           socketTimeoutMS=self._socket_timeout,
-                                                           connectTimeoutMS=self._connect_timeout,
-                                                           serverSelectionTimeoutMS=self._server_selection_timeout)
-            self._adminDB = self.__conn.admin
+        with self._lock:
+            if self.__conn is None:
+                host = get_mongodb_uri(self.mongo_host)
+                logger.info("Connecting to mongo: {0} ({1})".format(self.mongo_host, host))
+                self.__conn = pymongo.MongoClient(host=host,
+                                                   maxPoolSize=self._MAX_CONNS,
+                                                   socketTimeoutMS=self._socket_timeout,
+                                                   connectTimeoutMS=self._connect_timeout,
+                                                   serverSelectionTimeoutMS=self._server_selection_timeout)
+                self._adminDB = self.__conn.admin
 
-            # Authenticate against admin for the user
-            auth = get_auth(self.mongo_host, self._application_name, 'admin')
-            if auth:
-                authenticate(self._adminDB, auth.user, auth.password)
+                # Authenticate against admin for the user
+                auth = get_auth(self.mongo_host, self._application_name, 'admin')
+                if auth:
+                    authenticate(self._adminDB, auth.user, auth.password)
 
-            # Accessing _conn is synchronous. The new PyMongo driver may be lazier than the previous.
-            # Force a connection.
-            self.__conn.server_info()
+                # Accessing _conn is synchronous. The new PyMongo driver may be lazier than the previous.
+                # Force a connection.
+                self.__conn.server_info()
 
-        return self.__conn
+            return self.__conn
 
     def __str__(self):
         return "<Arctic at %s, connected to %s>" % (hex(id(self)), str(self._conn))
@@ -128,7 +134,12 @@ class Arctic(object):
         return str(self)
 
     def __getstate__(self):
-        return {'mongo_host': self.mongo_host, 'allow_secondary': self._allow_secondary}
+        return {'mongo_host': self.mongo_host,
+                'app_name': self._application_name,
+                'allow_secondary': self._allow_secondary,
+                'socketTimeoutMS': self._socket_timeout,
+                'connectTimeoutMS': self._connect_timeout,
+                'serverSelectionTimeoutMS': self._server_selection_timeout}
 
     def __setstate__(self, state):
         return Arctic.__init__(self, **state)
@@ -174,7 +185,7 @@ class Arctic(object):
         # Check that we don't create too many namespaces
         if len(self._conn[l.database_name].collection_names()) > 3000:
             raise ArcticException("Too many namespaces %s, not creating: %s" %
-                                        (len(self._conn[l.database_name].collection_names()), library))
+                                  (len(self._conn[l.database_name].collection_names()), library))
         l.set_library_type(lib_type)
         LIBRARY_TYPES[lib_type].initialize_library(l, **kwargs)
         # Add a 10G quota just in case the user is calling this with API.
@@ -220,11 +231,15 @@ class Arctic(object):
             error = None
             l = ArcticLibraryBinding(self, library)
             lib_type = l.get_library_type()
-        except (OperationFailure, AutoReconnect), e:
+        except (OperationFailure, AutoReconnect) as e:
             error = e
 
-        if error or not lib_type:
-            raise LibraryNotFoundException("Library %s was not correctly initialized in %s.\nReason: %s" % (library, self, error))
+        if error:
+            raise LibraryNotFoundException("Library %s was not correctly initialized in %s.\nReason: %r)" %
+                                           (library, self, error))
+        elif not lib_type:
+            raise LibraryNotFoundException("Library %s was not correctly initialized in %s." %
+                                           (library, self))
         elif lib_type not in LIBRARY_TYPES:
             raise LibraryNotFoundException("Couldn't load LibraryType '%s' for '%s' (has the class been registered?)" %
                                            (lib_type, library))
@@ -235,7 +250,7 @@ class Arctic(object):
         return self._library_cache[library]
 
     def __getitem__(self, key):
-        if isinstance(key, basestring):
+        if isinstance(key, string_types):
             return self.get_library(key)
         else:
             raise ArcticException("Unrecognised library specification - use [libraryName]")
@@ -249,7 +264,7 @@ class Arctic(object):
         ----------
         library : `str`
             The name of the library. e.g. 'library' or 'user.library'
-            
+
         quota : `int`
             Advisory quota for the library - in bytes
         """
@@ -349,8 +364,7 @@ class ArcticLibraryBinding(object):
 
         auth = get_auth(self.arctic.mongo_host, self.arctic._application_name, database.name)
         if auth:
-            authenticate(self._db, auth.user, auth.password)
-            self.arctic._conn.close()
+            authenticate(database, auth.user, auth.password)
 
     def get_name(self):
         return self._db.name + '.' + self._library_coll.name
@@ -398,9 +412,9 @@ class ArcticLibraryBinding(object):
         # Figure out whether the user has exceeded their quota
         library = self.arctic[self.get_name()]
         stats = library.stats()
-        
-        def to_gigabytes(bytes):
-            return bytes / 1024. / 1024. / 1024.
+
+        def to_gigabytes(bytes_):
+            return bytes_ / 1024. / 1024. / 1024.
 
         # Have we exceeded our quota?
         size = stats['totals']['size']
@@ -411,18 +425,18 @@ class ArcticLibraryBinding(object):
                                           to_gigabytes(self.quota)))
 
         # Quota not exceeded, print an informational message and return
-        avg_size = size / count if count > 1 else 100 * 1024
+        avg_size = size // count if count > 1 else 100 * 1024
         remaining = self.quota - size
         remaining_count = remaining / avg_size
         if remaining_count < 100:
-            logger.warn("Mongo Quota: %.3f / %.0f GB used" % (to_gigabytes(size),
+            logger.warning("Mongo Quota: %.3f / %.0f GB used" % (to_gigabytes(size),
                                                               to_gigabytes(self.quota)))
         else:
             logger.info("Mongo Quota: %.3f / %.0f GB used" % (to_gigabytes(size),
                                                               to_gigabytes(self.quota)))
 
         # Set-up a timer to prevent us for checking for a few writes.
-        self.quota_countdown = max(remaining_count / 2, 1)
+        self.quota_countdown = int(max(remaining_count // 2, 1))
 
     def get_library_type(self):
         return self.get_library_metadata(ArcticLibraryBinding.TYPE_FIELD)

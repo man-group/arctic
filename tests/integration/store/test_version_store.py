@@ -1,4 +1,5 @@
 import bson
+import six
 from bson.son import SON
 from datetime import datetime as dt, timedelta as dtd
 import pandas as pd
@@ -14,6 +15,7 @@ import pytest
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException
 
 from ...util import read_str_as_pandas
+from arctic.date._mktz import mktz
 
 
 ts1 = read_str_as_pandas("""         times | near
@@ -285,8 +287,8 @@ def test_query_version_as_of_int(library):
 def test_list_version(library):
     assert len(list(library.list_versions(symbol))) == 0
     dates = [None, None, None]
-    now = dt.utcnow()
-    for x in xrange(len(dates)):
+    now = dt.utcnow().replace(tzinfo=mktz('UTC'))
+    for x in six.moves.xrange(len(dates)):
         dates[x] = now - dtd(minutes=130 - x)
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(dates[x])):
             library.write(symbol, ts1, prune_previous_version=False)
@@ -302,11 +304,31 @@ def test_list_version(library):
         assert versions[i]['version'] == x
 
 
+def test_list_version_deleted(library):
+    assert len(library.list_versions(symbol)) == 0
+    library.write(symbol, ts1, prune_previous_version=False)
+    assert len(library.list_versions(symbol)) == 1
+    # Snapshot the library so we keep the sentinel version
+    library.snapshot('xxx', versions={symbol: 1})
+    library.delete(symbol)
+    versions = library.list_versions(symbol)
+    assert len(versions) == 2
+    assert versions[0]['symbol'] == symbol
+    assert versions[0]['version'] == 2
+    assert versions[0]['snapshots'] == []
+    assert versions[0]['deleted'] == True
+
+    assert versions[1]['symbol'] == symbol
+    assert versions[1]['version'] == 1
+    assert versions[1]['deleted'] == False
+    assert versions[1]['snapshots'] == ['xxx']
+
+
 def test_list_version_latest_only(library):
     assert len(list(library.list_versions(symbol))) == 0
     dates = [None, None, None]
-    now = dt.utcnow()
-    for x in xrange(len(dates)):
+    now = dt.utcnow().replace(tzinfo=mktz('UTC'))
+    for x in six.moves.xrange(len(dates)):
         dates[x] = now - dtd(minutes=20 - x)
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(dates[x])):
             library.write(symbol, ts1, prune_previous_version=False)
@@ -489,6 +511,46 @@ def test_snapshot(library):
     assert versions[0]['snapshots'] == []
     assert versions[1]['snapshots'] == ['new']
     assert versions[2]['snapshots'] == ['current']
+
+
+def test_snapshot_with_versions(library):
+    """ Test snapshot of write versions consistency """
+    library.write(symbol, ts1)
+    library.write(symbol, ts2)
+
+    # ensure snapshot of previous version is taken
+    library.snapshot('previous', versions={symbol: 1})
+    versions = library.list_versions(symbol)
+    assert versions[0]['snapshots'] == []
+    assert versions[1]['snapshots'] == ['previous']
+    assert_frame_equal(library.read(symbol, as_of='previous').data, ts1)
+
+    # ensure new snapshots are ordered after previous ones
+    library.snapshot('new')
+    versions = library.list_versions(symbol)
+    assert versions[0]['snapshots'] == ['new']
+    assert versions[0]['version'] == 2
+    assert_frame_equal(library.read(symbol, as_of='new').data, ts2)
+
+    assert versions[1]['snapshots'] == ['previous']
+    assert versions[1]['version'] == 1
+    assert_frame_equal(library.read(symbol, as_of='previous').data, ts1)
+
+    # ensure snapshot of previous version doesn't overwrite current version
+    library.write(symbol, ts1, prune_previous_version=True)
+    library.snapshot('another', versions={symbol: 1})
+    versions = library.list_versions(symbol)
+
+    assert versions[0]['snapshots'] == []
+    assert versions[0]['version'] == 3
+    assert_frame_equal(library.read(symbol).data, ts1)
+
+    assert versions[1]['snapshots'] == ['new']
+    assert versions[1]['version'] == 2
+
+    assert versions[2]['snapshots'] == ['previous', 'another']
+    assert versions[2]['version'] == 1
+    assert_frame_equal(library.read(symbol, as_of='another').data, ts1)
 
 
 def test_snapshot_exclusion(library):

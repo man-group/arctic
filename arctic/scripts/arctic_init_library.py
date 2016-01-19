@@ -1,11 +1,14 @@
+from __future__ import print_function
 import argparse
 import pymongo
+import logging
 
-from ..logging import logger
 from ..hooks import get_mongodb_uri
 from ..arctic import Arctic, VERSION_STORE, LIBRARY_TYPES, \
     ArcticLibraryBinding
-from .utils import do_db_auth
+from .utils import do_db_auth, setup_logging
+
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -15,6 +18,7 @@ def main():
     Example:
         arctic_init_library --host=hostname --library=arctic_jblackburn.my_library
     """
+    setup_logging()
 
     parser = argparse.ArgumentParser(usage=usage)
     parser.add_argument("--host", default='localhost', help="Hostname, or clustername. Default: localhost")
@@ -29,12 +33,11 @@ def main():
 
     opts = parser.parse_args()
 
-    if not opts.library or '.' not in opts.library \
-            or not opts.library.startswith('arctic'):
-        parser.error('Must specify the full path of the library e.g. arctic_jblackburn.library!')
+    if not opts.library or '.' not in opts.library:
+        parser.error('Must specify the full path of the library e.g. user.library!')
     db_name, _ = ArcticLibraryBinding._parse_db_lib(opts.library)
 
-    print "Initializing: %s on mongo %s" % (opts.library, opts.host)
+    print("Initializing: %s on mongo %s" % (opts.library, opts.host))
     c = pymongo.MongoClient(get_mongodb_uri(opts.host))
 
     if not do_db_auth(opts.host, c, db_name):

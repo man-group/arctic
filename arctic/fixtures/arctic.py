@@ -1,12 +1,15 @@
 import getpass
+import logging
+
 import pytest as pytest
 
 from .. import arctic as m
-from ..logging import logger
-from ..decorators import mongo_retry
+from ..store.bitemporal_store import BitemporalStore
 from ..tickstore.tickstore import TICK_STORE_TYPE
-
 from .mongo import mongo_proc, mongodb
+
+
+logger = logging.getLogger(__name__)
 
 mongo_proc2 = mongo_proc(executable="mongod", port="?",
                          params='--nojournal '
@@ -69,6 +72,12 @@ def library(arctic, library_name):
     # Add a single test library
     arctic.initialize_library(library_name, m.VERSION_STORE, segment='month')
     return arctic.get_library(library_name)
+
+
+@pytest.fixture(scope="function")
+def bitemporal_library(arctic, library_name):
+    arctic.initialize_library(library_name, m.VERSION_STORE, segment='month')
+    return BitemporalStore(arctic.get_library(library_name))
 
 
 @pytest.fixture(scope="function")

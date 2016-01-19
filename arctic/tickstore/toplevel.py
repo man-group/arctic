@@ -1,16 +1,18 @@
+import logging
 import bisect
 from collections import namedtuple
 from datetime import datetime as dt, date, time, timedelta
-import pandas as pd
-import pymongo
 import re
 from timeit import itertools
 
-from ..date import mktz, DateRange, OPEN_OPEN, CLOSED_CLOSED
-from ..exceptions import NoDataFoundException, UnhandledDtypeException, OverlappingDataException, \
-                    LibraryNotFoundException
-from ..logging import logger
+import pandas as pd
+import pymongo
 
+from ..date import mktz, DateRange, OPEN_OPEN, CLOSED_CLOSED
+from ..exceptions import (NoDataFoundException, UnhandledDtypeException, OverlappingDataException,
+                          LibraryNotFoundException)
+
+logger = logging.getLogger(__name__)
 
 TickStoreLibrary = namedtuple("TickStoreLibrary", ["library", "date_range"])
 
@@ -41,7 +43,6 @@ class TopLevelTickStore(object):
         tl = TopLevelTickStore(arctic_lib)
         tl._add_libraries()
         tl._ensure_index()
-
 
     def _ensure_index(self):
         collection = self._collection
@@ -97,9 +98,10 @@ overlapping libraries: {}""".format(library_name, [l.library for l in library_me
         self._collection.update_one({'library_name': library_name},
                                     {'$set': {'start': start, 'end': end}}, upsert=True)
 
-    def read(self, symbol, date_range, columns=['BID', 'ASK', 'TRDPRC_1', 'BIDSIZE', 'ASKSIZE', 'TRDVOL_1'], **kwargs):
+    def read(self, symbol, date_range, columns=['BID', 'ASK', 'TRDPRC_1', 'BIDSIZE', 'ASKSIZE', 'TRDVOL_1'], include_images=False):
         libraries = self._get_libraries(date_range)
-        dfs = [l.library.read(symbol, l.date_range.intersection(date_range), columns) for l in libraries]
+        dfs = [l.library.read(symbol, l.date_range.intersection(date_range), columns,
+                              include_images=include_images) for l in libraries]
         return pd.concat(dfs)
 
     def write(self, symbol, data):
@@ -172,5 +174,5 @@ overlapping libraries: {}""".format(library_name, [l.library for l in library_me
         return [TickStoreLibrary(res['library_name'], DateRange(res['start'], res['end'], CLOSED_CLOSED))
                 for res in self._collection.find(query,
                                                  projection={'library_name': 1,
-                                                         'start': 1, 'end': 1},
+                                                             'start': 1, 'end': 1},
                                                  sort=[('start', pymongo.ASCENDING)])]

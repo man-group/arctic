@@ -2,6 +2,7 @@ from datetime import datetime as dt
 import operator
 import pytest
 import itertools
+import six
 
 from arctic.date import DateRange, string_to_daterange, CLOSED_CLOSED, CLOSED_OPEN, OPEN_CLOSED, OPEN_OPEN
 
@@ -24,7 +25,7 @@ test_ranges_for_bounding = {
     "open_open":         (DateRange('20110101', '20111231', OPEN_OPEN),
                           dt(2011, 1, 1), dt(2011, 12, 31), False, False, False),
 }
-test_ranges_for_bounding = sorted(test_ranges_for_bounding.iteritems(), key=operator.itemgetter(1))
+test_ranges_for_bounding = sorted(six.iteritems(test_ranges_for_bounding), key=operator.itemgetter(1))
 
 
 def eq_nan(*args):

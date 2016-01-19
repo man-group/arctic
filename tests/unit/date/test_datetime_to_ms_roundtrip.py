@@ -4,6 +4,7 @@ from datetime import datetime as dt
 import pytz
 from arctic.date import mktz, datetime_to_ms, ms_to_datetime
 from arctic.date._mktz import DEFAULT_TIME_ZONE_NAME
+import sys
 
 
 def assert_roundtrip(tz):
@@ -11,7 +12,6 @@ def assert_roundtrip(tz):
 
     ts1 = ts.replace(tzinfo=tz)
     ts2 = ms_to_datetime(datetime_to_ms(ts1.astimezone(mktz("UTC"))), tz)
-    ts1 = ts1.replace(tzinfo=None) if tz == mktz() else ts1
     #logger.info(ts2.tzinfo)
 
     assert(ts2.hour == ts1.hour)
@@ -46,6 +46,8 @@ def test_pytz_London():
     assert_roundtrip(tz)
 
 
+@pytest.mark.xfail(sys.version_info >= (3,),
+                   reason="known issue with dateutil and python3")
 def test_mktz_London():
     tz = mktz("Europe/London")
     assert_roundtrip(tz)
@@ -53,22 +55,22 @@ def test_mktz_London():
 
 def test_datetime_roundtrip_local_no_tz():
     pdt = datetime.datetime(2012, 6, 12, 12, 12, 12, 123000)
-    pdt2 = ms_to_datetime(datetime_to_ms(pdt))
+    pdt2 = ms_to_datetime(datetime_to_ms(pdt)).replace(tzinfo=None)
     assert pdt2 == pdt
 
     pdt = datetime.datetime(2012, 1, 12, 12, 12, 12, 123000)
-    pdt2 = ms_to_datetime(datetime_to_ms(pdt))
+    pdt2 = ms_to_datetime(datetime_to_ms(pdt)).replace(tzinfo=None)
     assert pdt2 == pdt
 
 
 def test_datetime_roundtrip_local_tz():
     pdt = datetime.datetime(2012, 6, 12, 12, 12, 12, 123000, tzinfo=mktz(DEFAULT_TIME_ZONE_NAME))
     pdt2 = ms_to_datetime(datetime_to_ms(pdt))
-    assert pdt2 == pdt.replace(tzinfo=None)
+    assert pdt2 == pdt
 
     pdt = datetime.datetime(2012, 1, 12, 12, 12, 12, 123000, tzinfo=mktz(DEFAULT_TIME_ZONE_NAME))
     pdt2 = ms_to_datetime(datetime_to_ms(pdt))
-    assert pdt2 == pdt.replace(tzinfo=None)
+    assert pdt2 == pdt
 
 
 def test_datetime_roundtrip_est_tz():

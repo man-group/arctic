@@ -4,12 +4,12 @@ import numpy as np
 from numpy.testing.utils import assert_array_equal
 from pandas.util.testing import assert_frame_equal
 import pandas as pd
+from pandas.tseries.index import DatetimeIndex
 import pytest
 import pytz
 
-from arctic import arctic as m
 from arctic.date import DateRange, mktz, CLOSED_CLOSED, CLOSED_OPEN, OPEN_CLOSED, OPEN_OPEN
-from arctic.exceptions import OverlappingDataException, NoDataFoundException
+from arctic.exceptions import NoDataFoundException
 
 
 def test_read(tickstore_lib):
@@ -124,11 +124,11 @@ def test_read_all_cols_all_dtypes(tickstore_lib, chunk_size):
     # Treat missing strings as None
     data[0]['ns'] = None
     data[1]['os'] = None
-    # Strip TZ from the data for the moment
-    data[0]['index'] = dt(1970, 1, 1)
-    data[1]['index'] = dt(1970, 1, 1, 0, 0, 1)
-    expected = pd.DataFrame(data)
-    expected = expected.set_index('index')
+    index = DatetimeIndex([dt(1970, 1, 1, tzinfo=mktz('UTC')),
+                         dt(1970, 1, 1, 0, 0, 1, tzinfo=mktz('UTC'))],
+                        )
+    index.tz = mktz()
+    expected = pd.DataFrame(data, index=index)
     expected = expected[df.columns]
     assert_frame_equal(expected, df, check_names=False)
 
@@ -228,6 +228,41 @@ def test_date_range_end_not_in_range(tickstore_lib):
         df = tickstore_lib.read('SYM', date_range=DateRange(20130101, dt(2013, 1, 2, 9, 0)), columns=None)
         assert_array_equal(df['b'].values, np.array([2.]))
         assert tickstore_lib._collection.find(f.call_args_list[-1][0][0]).count() == 1
+
+
+@pytest.mark.parametrize('tz_name', ['UTC',
+                                     'Europe/London',  # Sometimes ahead of UTC
+                                     'America/New_York',  # Behind UTC
+                                      ])
+def test_date_range_default_timezone(tickstore_lib, tz_name):
+    """
+    We assume naive datetimes are user-local
+    """
+    DUMMY_DATA = [
+                  {'a': 1.,
+                   'b': 2.,
+                   'index': dt(2013, 1, 1, tzinfo=mktz(tz_name))
+                   },
+                  # Half-way through the year
+                  {'b': 3.,
+                   'c': 4.,
+                   'index': dt(2013, 7, 1, tzinfo=mktz(tz_name))
+                   },
+                  ]
+
+    with patch('arctic.date._mktz.DEFAULT_TIME_ZONE_NAME', tz_name):
+        tickstore_lib.chunk_size = 1
+        tickstore_lib.write('SYM', DUMMY_DATA)
+        df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130701), columns=None)
+        assert len(df) == 2
+        assert df.index[1] == dt(2013, 7, 1, tzinfo=mktz(tz_name))
+        assert df.index.tz == mktz(tz_name)
+
+        df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130101), columns=None)
+        assert len(df) == 1
+
+        df = tickstore_lib.read('SYM', date_range=DateRange(20130701, 20130701), columns=None)
+        assert len(df) == 1
 
 
 def test_date_range_no_bounds(tickstore_lib):
@@ -356,11 +391,11 @@ def test_read_longs(tickstore_lib):
 def test_read_with_image(tickstore_lib):
     DUMMY_DATA = [
               {'a': 1.,
-               'index': dt(2013, 6, 1, 12, 00, tzinfo=mktz('Europe/London'))
+               'index': dt(2013, 1, 1, 11, 00, tzinfo=mktz('Europe/London'))
                },
               {
                'b': 4.,
-               'index': dt(2013, 6, 1, 13, 00, tzinfo=mktz('Europe/London'))
+               'index': dt(2013, 1, 1, 12, 00, tzinfo=mktz('Europe/London'))
                },
               ]
     # Add an image
@@ -371,21 +406,48 @@ def test_read_with_image(tickstore_lib):
                                               {'a': 37.,
                                                'c': 2.,
                                                },
-                                              't': dt(2013, 6, 1, 11, 0)
+                                              't': dt(2013, 1, 1, 10, tzinfo=mktz('Europe/London'))
                                               }
                                        }
                                       }
                                      )
 
-    tickstore_lib.read('SYM', columns=None)
-    read = tickstore_lib.read('SYM', columns=None, date_range=DateRange(dt(2013, 6, 1), dt(2013, 6, 2)))
-    assert read['a'][0] == 1
+    dr = DateRange(dt(2013, 1, 1), dt(2013, 1, 2))
+    # tickstore_lib.read('SYM', columns=None)
+    df = tickstore_lib.read('SYM', columns=None, date_range=dr)
+    assert df['a'][0] == 1
 
-    # Read with the image as well
-    read = tickstore_lib.read('SYM', columns=None, date_range=DateRange(dt(2013, 6, 1), dt(2013, 6, 2)),
-                              include_images=True)
-    assert read['a'][0] == 37
-    assert read['a'][1] == 1
-    assert np.isnan(read['b'][0])
-    assert read['b'][2] == 4
-    assert read.index[0] == dt(2013, 6, 1, 11)
+    # Read with the image as well - all columns
+    df = tickstore_lib.read('SYM', columns=None, date_range=dr, include_images=True)
+    assert set(df.columns) == set(('a', 'b', 'c'))
+    assert_array_equal(df['a'].values, np.array([37, 1, np.nan]))
+    assert_array_equal(df['b'].values, np.array([np.nan, np.nan, 4]))
+    assert_array_equal(df['c'].values, np.array([2, np.nan, np.nan]))
+    assert df.index[0] == dt(2013, 1, 1, 10, tzinfo=mktz('Europe/London'))
+    assert df.index[1] == dt(2013, 1, 1, 11, tzinfo=mktz('Europe/London'))
+    assert df.index[2] == dt(2013, 1, 1, 12, tzinfo=mktz('Europe/London'))
+
+    # Read just columns from the updates
+    df = tickstore_lib.read('SYM', columns=('a', 'b'), date_range=dr, include_images=True)
+    assert set(df.columns) == set(('a', 'b'))
+    assert_array_equal(df['a'].values, np.array([37, 1, np.nan]))
+    assert_array_equal(df['b'].values, np.array([np.nan, np.nan, 4]))
+    assert df.index[0] == dt(2013, 1, 1, 10, tzinfo=mktz('Europe/London'))
+    assert df.index[1] == dt(2013, 1, 1, 11, tzinfo=mktz('Europe/London'))
+    assert df.index[2] == dt(2013, 1, 1, 12, tzinfo=mktz('Europe/London'))
+    
+    # Read one column from the updates
+    df = tickstore_lib.read('SYM', columns=('a',), date_range=dr, include_images=True)
+    assert set(df.columns) == set(('a',))
+    assert_array_equal(df['a'].values, np.array([37, 1, np.nan]))
+    assert df.index[0] == dt(2013, 1, 1, 10, tzinfo=mktz('Europe/London'))
+    assert df.index[1] == dt(2013, 1, 1, 11, tzinfo=mktz('Europe/London'))
+    assert df.index[2] == dt(2013, 1, 1, 12, tzinfo=mktz('Europe/London'))
+
+    # Read just the image column
+    df = tickstore_lib.read('SYM', columns=['c'], date_range=dr, include_images=True)
+    assert set(df.columns) == set(['c'])
+    assert_array_equal(df['c'].values, np.array([2, np.nan, np.nan]))
+    assert df.index[0] == dt(2013, 1, 1, 10, tzinfo=mktz('Europe/London'))
+    assert df.index[1] == dt(2013, 1, 1, 11, tzinfo=mktz('Europe/London'))
+    assert df.index[2] == dt(2013, 1, 1, 12, tzinfo=mktz('Europe/London'))

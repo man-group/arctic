@@ -1,18 +1,21 @@
-from bson.binary import Binary
+import logging
 import hashlib
+
+from bson.binary import Binary
 import numpy as np
-import pprint
-from pymongo import ReadPreference
 import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
-from ..logging import logger
 from ..decorators import mongo_retry, dump_bad_documents
 from ..exceptions import UnhandledDtypeException
 from ._version_store_utils import checksum
 
 from .._compression import compress_array, decompress
 from ..exceptions import ConcurrentModificationException
+from six.moves import xrange
+
+
+logger = logging.getLogger(__name__)
 
 _CHUNK_SIZE = 2 * 1024 * 1024 - 2048  # ~2 MB (a bit less for usePowerOf2Sizes)
 _APPEND_SIZE = 1 * 1024 * 1024  # 1MB
@@ -35,7 +38,70 @@ def _promote_struct_dtypes(dtype1, dtype2):
 
 
 class NdarrayStore(object):
-    """Chunked store for arbitrary ndarrays, supporting append."""
+    """Chunked store for arbitrary ndarrays, supporting append.
+    
+    for the simple example:
+    dat = np.empty(10)
+    library.write('test', dat) #version 1
+    library.append('test', dat) #version 2
+    
+    version documents:
+    
+    [
+     {u'_id': ObjectId('55fa9a7781f12654382e58b8'),
+      u'symbol': u'test',
+      u'version': 1
+      u'type': u'ndarray',
+      u'up_to': 10,  # no. of rows included in the data for this version
+      u'append_count': 0,
+      u'append_size': 0,
+      u'base_sha': Binary('........', 0),
+      u'dtype': u'float64',
+      u'dtype_metadata': {},
+      u'segment_count': 1, #only 1 segment included in this version
+      u'sha': Binary('.........', 0),
+      u'shape': [-1],
+      },
+      
+     {u'_id': ObjectId('55fa9aa981f12654382e58ba'),
+      u'symbol': u'test',
+      u'version': 2
+      u'type': u'ndarray',
+      u'up_to': 20, # no. of rows included in the data for this version
+      u'append_count': 1, # 1 append operation so far
+      u'append_size': 80, # 80 bytes appended
+      u'base_sha': Binary('.........', 0), # equal to sha for version 1
+      u'base_version_id': ObjectId('55fa9a7781f12654382e58b8'), # _id of version 1
+      u'dtype': u'float64',
+      u'dtype_metadata': {},
+      u'segment_count': 2, #2 segments included in this version
+      }
+      ]
+    
+
+    segment documents:
+    
+    [
+     #first chunk written:
+     {u'_id': ObjectId('55fa9a778b376a68efdd10e3'),
+      u'compressed': True, #data is lz4 compressed on write()
+      u'data': Binary('...........', 0),
+      u'parent': [ObjectId('55fa9a7781f12654382e58b8')],
+      u'segment': 9, #10 rows in the data up to this segment, so last row is 9
+      u'sha': Binary('.............', 0), # checksum of (symbol, {'data':.., 'compressed':.., 'segment':...})
+      u'symbol': u'test'},
+
+     #second chunk appended:
+     {u'_id': ObjectId('55fa9aa98b376a68efdd10e6'),
+      u'compressed': False, # no initial compression for append()
+      u'data': Binary('...........', 0),
+      u'parent': [ObjectId('55fa9a7781f12654382e58b8')],
+      u'segment': 19, #20 rows in the data up to this segment, so last row is 19
+      u'sha': Binary('............', 0), # checksum of (symbol, {'data':.., 'compressed':.., 'segment':...})
+      u'symbol': u'test'},
+      ]
+
+    """
     TYPE = 'ndarray'
 
     @classmethod
@@ -51,11 +117,10 @@ class NdarrayStore(object):
             collection.create_index([('symbol', pymongo.ASCENDING),
                                      ('parent', pymongo.ASCENDING),
                                      ('segment', pymongo.ASCENDING)], unique=True, background=True)
-        except OperationFailure, e:
+        except OperationFailure as e:
             if "can't use unique indexes" in str(e):
                 return
             raise
-
 
     @mongo_retry
     def can_delete(self, version, symbol):
@@ -74,7 +139,6 @@ class NdarrayStore(object):
             return np.dtype(eval(string), metadata=metadata)
         return np.dtype(string, metadata=metadata)
 
-
     def _index_range(self, version, symbol, from_version=None, **kwargs):
         """
         Tuple describing range to read from the ndarray - closed:open
@@ -87,28 +151,17 @@ class NdarrayStore(object):
             from_index = from_version['up_to']
         return from_index, None
 
-    def get_info(self, arctic_lib, version, symbol, **kwargs):
-        collection = arctic_lib.get_top_level_collection()
+    def get_info(self, version):
+        ret = {}
         dtype = self._dtype(version['dtype'], version.get('dtype_metadata', {}))
         length = int(version['up_to'])
-
-        spec = {'symbol': symbol,
-                'parent': version.get('base_version_id', version['_id']),
-                'segment': {'$lt': length}}
-
-        n_segments = collection.find(spec).count()
-
-        est_size = dtype.itemsize * length
-        return """Handler: %s
-
-dtype: %s
-
-%d rows in %d segments
-Data size: %s bytes
-
-Version document:
-%s""" % (self.__class__.__name__, dtype, length, n_segments, est_size, pprint.pformat(version))
-
+        ret['size'] = dtype.itemsize * length
+        ret['segment_count'] = version['segment_count']
+        ret['dtype'] = version['dtype']
+        ret['type'] = version['type']
+        ret['handler'] = self.__class__.__name__
+        ret['rows'] = int(version['up_to'])
+        return ret
 
     def read(self, arctic_lib, version, symbol, read_preference=None, **kwargs):
         index_range = self._index_range(version, symbol, **kwargs)
@@ -118,16 +171,22 @@ Version document:
         return self._do_read(collection, version, symbol, index_range=index_range)
 
     def _do_read(self, collection, version, symbol, index_range=None):
+        '''
+        index_range is a 2-tuple of integers - a [from, to) range of segments to be read. 
+            Either from or to can be None, indicating no bound. 
+        '''
         from_index = index_range[0] if index_range else None
-        to_index = index_range[1] if index_range and index_range[1] is not None \
-            and index_range[1] < version['up_to'] else version['up_to']
+        to_index = version['up_to']
+        if index_range and index_range[1] and index_range[1] < version['up_to']:
+            to_index = index_range[1]
         segment_count = None
 
         spec = {'symbol': symbol,
                 'parent': version.get('base_version_id', version['_id']),
-                'segment': {'$lt': to_index}}
+                'segment': {'$lt': to_index}
+                }
         if from_index:
-            spec['segment'] = {'$lt': version['up_to'], '$gte': from_index}
+            spec['segment']['$gte'] = from_index
         else:
             segment_count = version.get('segment_count', None)
 
@@ -141,7 +200,7 @@ Version document:
                                       collection.find_one({'_id': x['_id']}),
                                       collection.find_one({'_id': x['_id']}))
                 raise
-        data = ''.join(segments)
+        data = b''.join(segments)
 
         # Check that the correct number of segments has been returned
         if segment_count is not None and i + 1 != segment_count:
@@ -152,35 +211,38 @@ Version document:
         rtn = np.fromstring(data, dtype=dtype).reshape(version.get('shape', (-1)))
         return rtn
 
-    def _promote_types(self, item, dtype_str):
-        if dtype_str == str(item.dtype):
-            return item.dtype
+    def _promote_types(self, dtype, dtype_str):
+        if dtype_str == str(dtype):
+            return dtype
         prev_dtype = self._dtype(dtype_str)
-        if item.dtype.names is None:
-            rtn = np.promote_types(item.dtype, prev_dtype)
+        if dtype.names is None:
+            rtn = np.promote_types(dtype, prev_dtype)
         else:
-            rtn = _promote_struct_dtypes(item.dtype, prev_dtype)
-        rtn = np.dtype(rtn, metadata=dict(item.dtype.metadata or {}))
+            rtn = _promote_struct_dtypes(dtype, prev_dtype)
+        rtn = np.dtype(rtn, metadata=dict(dtype.metadata or {}))
         return rtn
 
-    def append(self, arctic_lib, version, symbol, item, previous_version):
+    def append(self, arctic_lib, version, symbol, item, previous_version, dtype=None):
         collection = arctic_lib.get_top_level_collection()
         if previous_version.get('shape', [-1]) != [-1, ] + list(item.shape)[1:]:
             raise UnhandledDtypeException()
 
-        if previous_version['up_to'] == 0:
+        if not dtype:
             dtype = item.dtype
+        
+        if previous_version['up_to'] == 0:
+            dtype = dtype
         elif len(item) == 0:
             dtype = self._dtype(previous_version['dtype'])
         else:
-            dtype = self._promote_types(item, previous_version['dtype'])
+            dtype = self._promote_types(dtype, previous_version['dtype'])
         item = item.astype(dtype)
         if str(dtype) != previous_version['dtype']:
             logger.debug('Converting %s from %s to %s' % (symbol, previous_version['dtype'], str(dtype)))
             if item.dtype.hasobject:
                 raise UnhandledDtypeException()
-            version['dtype'] = str(item.dtype)
-            version['dtype_metadata'] = dict(item.dtype.metadata or {})
+            version['dtype'] = str(dtype)
+            version['dtype_metadata'] = dict(dtype.metadata or {})
             version['type'] = self.TYPE
 
             old_arr = self._do_read(collection, previous_version, symbol).astype(dtype)
@@ -285,7 +347,8 @@ Version document:
         else:
             logger.debug("Rewrite and compress/chunk %s, np.concatenate %s to %s" % (symbol,
                                                                                      item.dtype, old_arr.dtype))
-            self._do_write(collection, version, symbol, np.concatenate([old_arr, item]), previous_version, segment_offset=read_index_range[0])
+            self._do_write(collection, version, symbol, np.concatenate([old_arr, item]), previous_version,
+                           segment_offset=read_index_range[0])
         if unchanged_segment_ids:
             collection.update_many({'symbol': symbol, '_id': {'$in': [x['_id'] for x in unchanged_segment_ids]}},
                                    {'$addToSet': {'parent': version['_id']}})
@@ -309,20 +372,22 @@ Version document:
         sha.update(item.tostring())
         return Binary(sha.digest())
 
-    def write(self, arctic_lib, version, symbol, item, previous_version):
+    def write(self, arctic_lib, version, symbol, item, previous_version, dtype=None):
         collection = arctic_lib.get_top_level_collection()
         if item.dtype.hasobject:
             raise UnhandledDtypeException()
 
-        version['dtype'] = str(item.dtype)
+        if not dtype:
+            dtype = item.dtype
+        version['dtype'] = str(dtype)
         version['shape'] = (-1,) + item.shape[1:]
-        version['dtype_metadata'] = dict(item.dtype.metadata or {})
+        version['dtype_metadata'] = dict(dtype.metadata or {})
         version['type'] = self.TYPE
         version['up_to'] = len(item)
         version['sha'] = self.checksum(item)
-
+        
         if previous_version:
-            if version['dtype'] == str(item.dtype) \
+            if version['dtype'] == str(dtype) \
                     and 'sha' in previous_version \
                     and self.checksum(item[:previous_version['up_to']]) == previous_version['sha']:
                 #The first n rows are identical to the previous version, so just append.
@@ -337,7 +402,7 @@ Version document:
         sze = int(item.dtype.itemsize * np.prod(item.shape[1:]))
 
         # chunk and store the data by (uncompressed) size
-        chunk_size = _CHUNK_SIZE / sze
+        chunk_size = int(_CHUNK_SIZE / sze)
 
         previous_shas = []
         if previous_version:
@@ -365,7 +430,7 @@ Version document:
         # Write
         bulk = collection.initialize_unordered_bulk_op()
         for i, chunk in zip(idxs, compressed_chunks):
-            segment = {'data': Binary(chunk), 'compressed':True}
+            segment = {'data': Binary(chunk), 'compressed': True}
             segment['segment'] = min((i + 1) * chunk_size - 1, length - 1) + segment_offset
             segment_index.append(segment['segment'])
             sha = checksum(symbol, segment)
@@ -379,7 +444,8 @@ Version document:
         if i != -1:
             bulk.execute()
 
-        segment_index = self._segment_index(item, existing_index=existing_index, start=segment_offset, new_segments=segment_index)
+        segment_index = self._segment_index(item, existing_index=existing_index, start=segment_offset,
+                                            new_segments=segment_index)
         if segment_index:
             version['segment_index'] = segment_index
         version['segment_count'] = i + 1
@@ -388,6 +454,22 @@ Version document:
 
         self.check_written(collection, symbol, version)
 
-    def _segment_index(self, item, existing_index, start, new_segments):
-        pass
+    def _segment_index(self, new_data, existing_index, start, new_segments):
+        """
+        Generate a segment index which can be used in subselect data in _index_range.
+        This function must handle both generation of the index and appending to an existing index
 
+        Parameters:
+        -----------
+        new_data: new data being written (or appended)
+        existing_index: index field from the versions document of the previous version
+        start: first (0-based) offset of the new data
+        segments: list of offsets. Each offset is the row index of the
+                  the last row of a particular chunk relative to the start of the _original_ item.
+                  array(new_data) - segments = array(offsets in item)
+        
+        Returns:
+        --------
+        Library specific index metadata to be stored in the version document.
+        """
+        pass  # numpy arrays have no index

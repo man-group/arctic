@@ -1,7 +1,10 @@
-# [Arctic TimeSeries and Tick store](https://github.com/manahl/arctic)
+# [![arctic](logo/arctic_50.png)](https://github.com/manahl/arctic) [Arctic TimeSeries and Tick store](https://github.com/manahl/arctic)
+
 
 [![Circle CI](https://circleci.com/gh/manahl/arctic.svg?style=shield)](https://circleci.com/gh/manahl/arctic)
-[![Coverage Status](https://coveralls.io/repos/manahl/arctic/badge.svg?branch=master)](https://coveralls.io/r/manahl/arctic?branch=master)
+[![Travis CI](https://travis-ci.org/manahl/arctic.svg?branch=master)](https://travis-ci.org/manahl/arctic.svg?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/manahl/arctic/badge.svg?branch=master)](https://coveralls.io/github/manahl/arctic?branch=master)
+[![Join the chat at https://gitter.im/manahl/arctic](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/manahl/arctic?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Arctic is a high performance datastore for numeric data. It supports [Pandas](http://pandas.pydata.org/),
 [numpy](http://www.numpy.org/) arrays and pickled objects out-of-the-box, with pluggable support for
@@ -15,6 +18,11 @@ Arctic has been under active development at [Man AHL](http://www.ahl.com/) since
 
 ## Quickstart
 
+### Install Arctic
+
+```
+pip install git+https://github.com/manahl/arctic.git
+```
 
 ### Run a MongoDB
 
@@ -64,7 +72,7 @@ shows how.](howtos/how_to_custom_arctic_library.py)
 
 Arctic provides namespaced *libraries* of data.  These libraries allow
 bucketing data by *source*, *user* or some other metric (for example frequency:
-End-Of-Day; Minute Bars; etc.).  
+End-Of-Day; Minute Bars; etc.).
 
 Arctic supports multiple data libraries per user.  A user (or namespace)
 maps to a MongoDB database (the granularity of mongo authentication).  The library
@@ -98,7 +106,7 @@ Arctic storage implementations are **pluggable**.  VersionStore is the default.
 
 Arctic currently works with:
 
- * Python 2.7
+ * Python 2.7, 3.3, 3.4
  * pymongo >= 3.0
  * Pandas
  * MongoDB >= 2.4.x
@@ -113,11 +121,12 @@ It wouldn't be possible without the work of the AHL Data Engineering Team includ
  * [Richard Bounds](https://github.com/richardbounds)
  * [James Blackburn](https://github.com/jamesblackburn)
  * [Vlad Mereuta](https://github.com/vmereuta)
- * Tom Taylor
+ * [Tom Taylor](https://github.com/TomTaylorLondon)
  * Tope Olukemi
  * Drake Siard
  * [Slavi Marinov](https://github.com/slavi)
  * [Wilfred Hughes](https://github.com/wilfred)
+ * [Edward Easton](https://github.com/eeaston)
  * ... and many others ...
 
 Contributions welcome!

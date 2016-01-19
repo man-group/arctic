@@ -1,61 +1,61 @@
-import optparse
-import pymongo
-import uuid
+import argparse
 import base64
-import sys
+from pymongo import MongoClient
+import uuid
+import logging
 
-from ..auth import get_auth, authenticate
 from ..hooks import get_mongodb_uri
+from .utils import do_db_auth
+from arctic.arctic import Arctic
+
+logger = logging.getLogger(__name__)
 
 
 def main():
-    usage = """usage: %prog [options] username ...
+    usage = """arctic_create_user --host research [--db mongoose_user] [--write] user
 
-    Create the user's personal Arctic database, and adds them, read-only
-    to the central admin database.
+    Creates the user's personal Arctic mongo database
+    Or add a user to an existing Mongo Database.
     """
 
-    parser = optparse.OptionParser(usage=usage)
-    parser.add_option("--host", default='localhost', help="Hostname, or clustername. Default: localhost")
-    parser.add_option("--password",dest="password", default=None, help="Password. Default: random")
-    parser.add_option("--admin-write", dest="admin", action='store_false', default=True,
-                      help="Give write access to the admin DB. Default: False")
-    parser.add_option("--dryrun", "-n", dest="dryrun", action="store_true", help="Don't really do anything", default=False)
-    parser.add_option("--verbose", "-v", dest="verbose", action="store_true", help="Print some commentary", default=False)
-    parser.add_option("--nodb", dest="nodb", help="Don't create a 'personal' database", action="store_true", default=False)
+    parser = argparse.ArgumentParser(usage=usage)
+    parser.add_argument("--host", default='localhost', help="Hostname, or clustername. Default: localhost")
+    parser.add_argument("--db", default=None, help="Database to add user on. Default: mongoose_<user>")
+    parser.add_argument("--password", default=None, help="Password. Default: random")
+    parser.add_argument("--write", action='store_true', default=False, help="Used for granting write access to someone else's DB")
+    parser.add_argument("users", nargs='+', help="Users to add.")
 
-    (opts, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    c = pymongo.MongoClient(get_mongodb_uri(opts.host))
-    credentials = get_auth(opts.host, 'admin', 'admin')
-    if not credentials:
-        print >>sys.stderr, "You have no admin credentials for instance '%s'" % (opts.host)
+    c = MongoClient(get_mongodb_uri(args.host))
+
+    if not do_db_auth(args.host, c, args.db if args.db else 'admin'):
+        logger.error("Failed to authenticate to '%s'. Check your admin password!" % (args.host))
         return
 
-    if not authenticate(c.admin, credentials.user, credentials.password):
-        print >>sys.stderr, "Failed to authenticate to '%s' as '%s'" % (opts.host, credentials.user)
-        return
-
-    for user in args:
-
-        p = opts.password
-
+    for user in args.users:
+        write_access = args.write
+        p = args.password
         if p is None:
-            p = base64.b64encode(uuid.uuid4().bytes).replace('/', '')[:12]
+            p = base64.b64encode(uuid.uuid4().bytes).replace(b'/', b'')[:12]
+        db = args.db
+        if not db:
+            # Users always have write access to their database
+            write_access = True
+            db = Arctic.DB_PREFIX + '_' + user
 
-        if not opts.dryrun:
-            if opts.verbose:
-                print "Adding user %s to DB %s" % (user, opts.host)
-            if not opts.nodb:
-                if opts.verbose:
-                    print "Adding database arctic_%s to DB %s" % (user, opts.host)
-                c['arctic_' + user].add_user(user, p)
-            c.admin.add_user(user, p, read_only=opts.admin)
-        else:
-            print "DRYRUN: add user %s readonly %s nodb %s" % (user, opts.admin, opts.nodb)
+        # Add the user to the database
+        c[db].add_user(user, p, read_only=not write_access)
 
-        if not opts.password:
-            print "%-16s %s" % (user, p)
+        logger.info("Granted: {user} [{permission}] to {db}".format(user=user,
+                                                                    permission='WRITE' if write_access else 'READ',
+                                                                    db=db))
+        logger.info("User creds: {db}/{user}/{password}".format(user=user,
+                                                                host=args.host,
+                                                                db=db,
+                                                                password=p,
+                                                                ))
+
 
 if __name__ == '__main__':
     main()

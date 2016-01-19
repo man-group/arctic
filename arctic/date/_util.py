@@ -2,13 +2,15 @@ import calendar
 import datetime
 from datetime import timedelta
 
-from ..logging import logger
 from ._daterange import DateRange
-from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN, GeneralSlice
+from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN
 from ._parse import parse
 from ._mktz import mktz
+import sys
+if sys.version_info > (3,):
+    long = int
 
-
+    
 # Support standard brackets syntax for open/closed ranges.
 Ranges = {'()': OPEN_OPEN,
           '(]': OPEN_CLOSED,
@@ -79,20 +81,63 @@ def string_to_daterange(str_range, delimiter='-', as_dates=False, interval=CLOSE
     return DateRange(d[0], d[1], oc)
 
 
-def to_pandas_closed_closed(date_range):
+def to_dt(date, default_tz=None):
+    """
+    Returns a non-naive datetime.datetime.
+    
+    Interprets numbers as ms-since-epoch.
+
+    Parameters
+    ----------
+    date : `int` or `datetime.datetime`
+        The datetime to convert
+
+    default_tz : tzinfo
+        The TimeZone to use if none is found.  If not supplied, and the
+        datetime doesn't have a timezone, then we raise ValueError
+
+    Returns
+    -------
+    Non-naive datetime
+    """
+    if isinstance(date, (int, long)):
+        return ms_to_datetime(date, default_tz)
+    elif date.tzinfo is None:
+        if default_tz is None:
+            raise ValueError("Must specify a TimeZone on incoming data")
+        return date.replace(tzinfo=default_tz)
+    return date
+
+
+def to_pandas_closed_closed(date_range, add_tz=True):
     """
     Pandas DateRange slicing is CLOSED-CLOSED inclusive at both ends.
 
+    Parameters
+    ----------
+    date_range : `DateRange` object 
+        converted to CLOSED_CLOSED form for Pandas slicing
+
+    add_tz : `bool`
+        Adds a TimeZone to the daterange start and end if it doesn't
+        have one.
+
+    Returns
+    -------
     Returns a date_range with start-end suitable for slicing in pandas.
     """
     if not date_range:
         return None
+
     start = date_range.start
     end = date_range.end
     if start:
+        start = to_dt(start, mktz()) if add_tz else start
         if date_range.startopen:
             start += timedelta(milliseconds=1)
+
     if end:
+        end = to_dt(end, mktz()) if add_tz else end
         if date_range.endopen:
             end -= timedelta(milliseconds=1)
     return DateRange(start, end)
@@ -103,8 +148,8 @@ def ms_to_datetime(ms, tzinfo=None):
     if not isinstance(ms, (int, long)):
         raise TypeError('expected integer, not %s' % type(ms))
 
-    if tzinfo in (None, mktz()):
-        return datetime.datetime.fromtimestamp(ms * 1e-3, mktz()).replace(tzinfo=None)
+    if tzinfo is None:
+        tzinfo = mktz()
 
     return datetime.datetime.fromtimestamp(ms * 1e-3, tzinfo)
 

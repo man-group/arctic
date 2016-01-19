@@ -1,8 +1,5 @@
 import datetime
-from datetime import timedelta
-from dateutil.tz import tzlocal
 
-from ..logging import logger
 from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN, GeneralSlice
 from ._parse import parse
 
@@ -172,6 +169,13 @@ class DateRange(GeneralSlice):
         if rhs is None or not (hasattr(rhs, "end") and hasattr(rhs, "start")):
             return False
         return self.end == rhs.end and self.start == rhs.start
+
+    def __lt__(self, other):
+        if self.start is None:
+            return True
+        if other.start is None:
+            return False
+        return self.start < other.start
 
     def __hash__(self):
         return hash((self.start, self.end, self.step, self.interval))

@@ -7,7 +7,7 @@ import arctic._compress as c
 
 
 def test_roundtrip():
-    _str = "hello world"
+    _str = b"hello world"
     cstr = c.compress(_str)
     assert _str == c.decompress(cstr)
 
@@ -20,31 +20,31 @@ def test_roundtrip_multi(n):
 
 
 def test_roundtripHC():
-    _str = "hello world"
+    _str = b"hello world"
     cstr = c.compressHC(_str)
     assert _str == c.decompress(cstr)
 
 
 def test_roundtripLZ4():
-    _str = "hello world"
+    _str = b"hello world"
     cstr = lz4.compress(_str)
     assert _str == c.decompress(cstr)
 
 
 def test_roundtripLZ4Back():
-    _str = "hello world"
+    _str = b"hello world"
     cstr = c.compress(_str)
     assert _str == lz4.decompress(cstr)
 
 
 def test_roundtripLZ4HC():
-    _str = "hello world"
+    _str = b"hello world"
     cstr = lz4.compressHC(_str)
     assert _str == c.decompress(cstr)
 
 
 def test_roundtripLZ4HCBack():
-    _str = "hello world"
+    _str = b"hello world"
     cstr = c.compressHC(_str)
     assert _str == lz4.decompress(cstr)
 
@@ -69,4 +69,5 @@ def test_arr_zero():
 
 
 def random_string(N):
-    return ''.join(random.choice(string.printable) for _ in range(int(N)))
+    _str = ''.join(random.choice(string.printable) for _ in range(int(N)))
+    return _str.encode('ascii')

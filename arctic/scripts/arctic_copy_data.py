@@ -1,15 +1,17 @@
 import argparse
 import os
-import re
+import logging
 from multiprocessing import Pool
 import pwd
 
 from arctic.decorators import _get_host
 from arctic.store.audit import ArcticTransaction
 
-from ..logging import logger
 from ..hosts import get_arctic_lib
-from ..date import DateRange, to_pandas_closed_closed, CLOSED_OPEN, OPEN_CLOSED
+from ..date import DateRange, to_pandas_closed_closed, CLOSED_OPEN, OPEN_CLOSED, mktz
+from .utils import setup_logging
+
+logger = logging.getLogger(__name__)
 
 # Use the UID rather than environment variables for auditing
 USER = pwd.getpwuid(os.getuid())[0]
@@ -26,9 +28,9 @@ def copy_symbols_helper(src, dest, log, force, splice):
                     elif splice:
                         logger.warn("Symbol: %s already exists in destination, splicing in new data" % symbol)
                     else:
-                        logger.warn("Symbol: {} already exists in {}@{}, use --force to overwrite or --splice to join with existing data".format(symbol,
-                                                                                                                                                 _get_host(dest).get('l'),
-                                                                                                                                                 _get_host(dest).get('mhost')))
+                        logger.warn("Symbol: {} already exists in {}@{}, use --force to overwrite or --splice to join "
+                                    "with existing data".format(symbol, _get_host(dest).get('l'),
+                                                                _get_host(dest).get('mhost')))
                         continue
 
                 version = src.read(symbol)
@@ -36,8 +38,17 @@ def copy_symbols_helper(src, dest, log, force, splice):
 
                 if existing_data and splice:
                     original_data = dest.read(symbol).data
-                    before = original_data.ix[:to_pandas_closed_closed(DateRange(None, new_data.index[0].to_pydatetime(), interval=CLOSED_OPEN)).end]
-                    after = original_data.ix[to_pandas_closed_closed(DateRange(new_data.index[-1].to_pydatetime(), None, interval=OPEN_CLOSED)).start:]
+                    preserve_start = to_pandas_closed_closed(DateRange(None, new_data.index[0].to_pydatetime(),
+                                                                       interval=CLOSED_OPEN)).end
+                    preserve_end = to_pandas_closed_closed(DateRange(new_data.index[-1].to_pydatetime(),
+                                                                     None,
+                                                                     interval=OPEN_CLOSED)).start
+                    if not original_data.index.tz:
+                        # No timezone on the original, should we even allow this?
+                        preserve_start = preserve_start.replace(tzinfo=None)
+                        preserve_end = preserve_end.replace(tzinfo=None)
+                    before = original_data.ix[:preserve_start]
+                    after = original_data.ix[preserve_end:]
                     new_data = before.append(new_data).append(after)
 
                 mt.write(symbol, new_data, metadata=version.metadata)
@@ -51,6 +62,7 @@ def main():
     Example:
         arctic_copy_data --log "Copying data" --src user.library@host1 --dest user.library@host2 symbol1 symbol2
     """
+    setup_logging()
     p = argparse.ArgumentParser(usage=usage)
     p.add_argument("--src", required=True, help="Source MongoDB like: library@hostname:port")
     p.add_argument("--dest", required=True, help="Destination MongoDB like: library@hostname:port")
@@ -93,7 +105,6 @@ def main():
         pool.apply(copy_symbol, chunks)
     else:
         copy_symbol(required_symbols)
-
 
 
 if __name__ == '__main__':
