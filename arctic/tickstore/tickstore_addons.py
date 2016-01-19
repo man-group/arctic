@@ -116,7 +116,7 @@ def read(subject, library, startdate=None, enddate=None, fields=None):
 
     @return: data of 'subject' from 'daterange' with timezones converted to local
     '''
-     
+
     startdate = addTZ(startdate)
     enddate = addTZ(enddate)
 
@@ -124,6 +124,9 @@ def read(subject, library, startdate=None, enddate=None, fields=None):
 
     df = library.read(subject, date_range, fields)
 
-    df.index = df.index.tz_localize(pytz.utc).tz_convert(tzlocal.get_localzone())
+    if df.index.tzinfo is None:
+        df.index = df.index.tz_localize(pytz.utc).tz_convert(tzlocal.get_localzone())
+    else:
+        df.index = df.index.tz_convert(tzlocal.get_localzone())
 
     return df
