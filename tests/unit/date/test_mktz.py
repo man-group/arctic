@@ -3,7 +3,7 @@ from mock import patch
 from pytest import raises
 
 from arctic.date import mktz, TimezoneError
-from arctic.date._mktz import DEFAULT_TIME_ZONE_NAME
+from arctic.date._mktz import DEFAULT_TIME_ZONE_NAME, tzfile, TIME_ZONE_DATA_SOURCE
 
 
 def test_mktz():
@@ -37,3 +37,9 @@ def test_mktz_fails_if_invalid_timezone():
         file_exists.return_value = False
         with raises(TimezoneError):
             mktz('junk')
+
+
+def test_tzfile_raises():
+    t = tzfile(TIME_ZONE_DATA_SOURCE + DEFAULT_TIME_ZONE_NAME)
+    with raises(ValueError):
+        t._find_ttinfo(None) 
