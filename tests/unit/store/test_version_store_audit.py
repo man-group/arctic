@@ -3,9 +3,15 @@ from pymongo.errors import OperationFailure
 import pytest
 import pandas as pd
 
-from arctic.store.audit import ArcticTransaction
+from arctic.store.audit import ArcticTransaction, DataChange
 from arctic.store.version_store import VersionedItem, VersionStore
 from arctic.exceptions import ConcurrentModificationException, NoDataFoundException
+
+
+def test_data_change():
+    d = DataChange(sentinel, sentinel)
+    assert(d.date_range == sentinel)
+    assert(d.new_data == sentinel)
 
 
 def test_ArcticTransaction_simple():

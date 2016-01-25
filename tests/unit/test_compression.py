@@ -1,5 +1,5 @@
 from mock import patch, Mock, sentinel, call
-from arctic._compression import compress, compress_array, decompress, decompress_array
+from arctic._compression import compress, compress_array, decompress, decompress_array, enable_parallel_lz4
 import lz4
 
 
@@ -68,3 +68,13 @@ def test_compress_array_no_parallel():
         assert decompress_array(compress_array(a)) == a
         assert patch_lz4.compress.call_args_list == [call(x) for x in a]
         assert patch_lz4.decompress.call_args_list == [call(compress(x)) for x in a]
+
+
+def test_enable_parallel_lz4():
+    enable_parallel_lz4(True)
+    from arctic._compression import ENABLE_PARALLEL
+    assert(ENABLE_PARALLEL == True)
+    enable_parallel_lz4(False)
+    from arctic._compression import ENABLE_PARALLEL
+    assert(ENABLE_PARALLEL == False)
+
