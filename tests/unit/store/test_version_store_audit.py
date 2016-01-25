@@ -9,9 +9,9 @@ from arctic.exceptions import ConcurrentModificationException, NoDataFoundExcept
 
 
 def test_data_change():
-    d = DataChange("a", "b")
-    assert(d.date_range == "a")
-    assert(d.new_data == "b")
+    d = DataChange(sentinel, sentinel)
+    assert(d.date_range == sentinel)
+    assert(d.new_data == sentinel)
 
 
 def test_ArcticTransaction_simple():

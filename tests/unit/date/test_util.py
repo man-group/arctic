@@ -101,7 +101,7 @@ def test_daterange_eq():
 
 def test_daterange_lt():
     dr = DateRange(dt(2013, 1, 1))
-    dr2 = DateRange(2001, 1, 1)
+    dr2 = DateRange(dt(2001, 1, 1))
 
     assert(dr2 < dr)
     dr.start = None
