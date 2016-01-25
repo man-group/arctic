@@ -2,7 +2,7 @@
 
 
 [![Circle CI](https://circleci.com/gh/manahl/arctic.svg?style=shield)](https://circleci.com/gh/manahl/arctic)
-[![Travis CI](https://travis-ci.org/manahl/arctic.svg?branch=master)](https://travis-ci.org/manahl/arctic.svg?branch=master)
+[![Travis CI](https://travis-ci.org/manahl/arctic.svg?branch=master)](https://travis-ci.org/manahl/arctic)
 [![Coverage Status](https://coveralls.io/repos/github/manahl/arctic/badge.svg?branch=master)](https://coveralls.io/github/manahl/arctic?branch=master)
 [![Join the chat at https://gitter.im/manahl/arctic](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/manahl/arctic?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
