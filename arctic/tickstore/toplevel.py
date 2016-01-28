@@ -106,7 +106,7 @@ overlapping libraries: {}""".format(library_name, [l.library for l in library_me
                 df = l.library.read(symbol, l.date_range.intersection(date_range), columns,
                                     include_images=include_images)
                 dfs.append(df)
-            except NoDataFoundException, e:
+            except NoDataFoundException as e:
                 continue
         if len(dfs) == 0:
             raise NoDataFoundException("No Data found for {} in range: {}".format(symbol, date_range))
