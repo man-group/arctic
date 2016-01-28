@@ -71,12 +71,8 @@ def test_should_return_data_when_date_range_spans_libraries(toplevel_tickstore, 
     arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
     tickstore_2010 = arctic['FEED_2010.LEVEL1']
     tickstore_2011 = arctic['FEED_2011.LEVEL1']
-    toplevel_tickstore._collection.insert_one({'start': dt(2010, 1, 1),
-                                           'end': dt(2010, 12, 31, 23, 59, 59),
-                                           'library_name': 'FEED_2010.LEVEL1'})
-    toplevel_tickstore._collection.insert_one({'start': dt(2011, 1, 1),
-                                           'end': dt(2011, 12, 31, 23, 59, 59),
-                                           'library_name': 'FEED_2011.LEVEL1'})
+    toplevel_tickstore.add(DateRange(start=dt(2010, 1, 1), end=dt(2010, 12, 31, 23, 59, 59, 999000)), 'FEED_2010.LEVEL1')
+    toplevel_tickstore.add(DateRange(start=dt(2011, 1, 1), end=dt(2011, 12, 31, 23, 59, 59, 999000)), 'FEED_2011.LEVEL1')
     dates = pd.date_range('20100101', periods=6, tz=mktz('Europe/London'))
     df_10 = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
     tickstore_2010.write('blah', df_10)
@@ -93,12 +89,8 @@ def test_should_return_data_when_date_range_spans_libraries_even_if_one_returns_
     arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
     tickstore_2010 = arctic['FEED_2010.LEVEL1']
     tickstore_2011 = arctic['FEED_2011.LEVEL1']
-    toplevel_tickstore._collection.insert_one({'start': dt(2010, 1, 1),
-                                           'end': dt(2010, 12, 31, 23, 59, 59),
-                                           'library_name': 'FEED_2010.LEVEL1'})
-    toplevel_tickstore._collection.insert_one({'start': dt(2011, 1, 1),
-                                           'end': dt(2011, 12, 31, 23, 59, 59),
-                                           'library_name': 'FEED_2011.LEVEL1'})
+    toplevel_tickstore.add(DateRange(start=dt(2010, 1, 1), end=dt(2010, 12, 31, 23, 59, 59, 999000)), 'FEED_2010.LEVEL1')
+    toplevel_tickstore.add(DateRange(start=dt(2011, 1, 1), end=dt(2011, 12, 31, 23, 59, 59, 999000)), 'FEED_2011.LEVEL1')
     dates = pd.date_range('20100101', periods=6, tz=mktz('Europe/London'))
     df_10 = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
     tickstore_2010.write('blah', df_10)
