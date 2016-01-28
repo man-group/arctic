@@ -100,8 +100,16 @@ overlapping libraries: {}""".format(library_name, [l.library for l in library_me
 
     def read(self, symbol, date_range, columns=['BID', 'ASK', 'TRDPRC_1', 'BIDSIZE', 'ASKSIZE', 'TRDVOL_1'], include_images=False):
         libraries = self._get_libraries(date_range)
-        dfs = [l.library.read(symbol, l.date_range.intersection(date_range), columns,
-                              include_images=include_images) for l in libraries]
+        dfs = []
+        for l in libraries:
+            try:
+                df = l.library.read(symbol, l.date_range.intersection(date_range), columns,
+                                    include_images=include_images)
+                dfs.append(df)
+            except NoDataFoundException, e:
+                continue
+        if len(dfs) == 0:
+            raise NoDataFoundException("No Data found for {} in range: {}".format(symbol, date_range))
         return pd.concat(dfs)
 
     def write(self, symbol, data):
