@@ -1,8 +1,9 @@
 ## Changelog
 
-### 1.19
+### 1.19 (2016-01-29)
 
   * Feature: Add python 3.3/3.4 support
+  * Bugfix: #95 Fix raising NoDataFoundException across multiple low level libraries
 
 ### 1.18 (2016-01-05)
 
