@@ -71,7 +71,7 @@ compress = Extension('arctic._compress',
 
 setup(
     name="arctic",
-    version="1.19.0",
+    version="1.20.0",
     author="Man AHL Technology",
     author_email="ManAHLTech@ahl.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
@@ -120,7 +120,7 @@ setup(
         "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.3",
-        "Programming LAnguage :: Python :: 3.4",
+        "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Cython",
         "Operating System :: POSIX",
