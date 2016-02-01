@@ -540,7 +540,7 @@ class TickStore(object):
 
     def _pandas_to_bucket(self, df, symbol):
         start = to_dt(df.index[0].to_datetime())
-        end = to_dt(df.index[0].to_datetime())
+        end = to_dt(df.index[-1].to_datetime())
         rtn = {START: start, END: end, SYMBOL: symbol}
         rtn[VERSION] = CHUNK_VERSION_NUMBER
         rtn[COUNT] = len(df)
