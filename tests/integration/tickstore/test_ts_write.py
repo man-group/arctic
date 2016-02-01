@@ -101,5 +101,6 @@ def test_pandas_to_bucket(tickstore_lib):
     assert bucket[START] == dt(2012, 9, 8, 17, 6, 11, tzinfo=mktz('UTC'))
     assert bucket[END] == dt(2012, 11, 8, 17, 6, 11, tzinfo=mktz('UTC'))
     assert bucket[COUNT] == 4
-    assert bucket[COLUMNS].keys() == ['near']
+    assert len(bucket[COLUMNS]) == 1
+    assert 'near' in bucket[COLUMNS]
 
