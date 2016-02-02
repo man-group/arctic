@@ -5,8 +5,10 @@ import pytest
 from pymongo.collection import Collection
 import numpy as np
 import pandas as pd
+import lz4
 
-from arctic.tickstore.tickstore import TickStore, IMAGE_DOC, IMAGE, START, DTYPE, END, COUNT, SYMBOL, COLUMNS
+from arctic.tickstore.tickstore import TickStore, IMAGE_DOC, IMAGE, START, \
+    DTYPE, END, COUNT, SYMBOL, COLUMNS, ROWMASK, DATA, INDEX
 from arctic.date import CLOSED_OPEN
 from arctic.date._daterange import DateRange
 from arctic.date._mktz import mktz
@@ -69,9 +71,20 @@ def test_tickstore_to_bucket_with_image():
     bucket, final_image = TickStore._to_bucket(data, symbol, initial_image)
     assert bucket[COUNT] == 2
     assert bucket[END] == dt(2014, 1, 1, 0, 2, tzinfo=mktz())
+    assert set(bucket[COLUMNS]) == set(('A', 'B', 'D'))
     assert bucket[SYMBOL] == symbol
     assert bucket[START] == dt(2014, 1, 1, 0, 0, tzinfo=mktz())
+    assert bucket[IMAGE_DOC][DTYPE] == dt(2014, 1, 1, 0, 0, tzinfo=mktz())
+    assert bucket[IMAGE_DOC][IMAGE] == initial_image
     assert final_image == {'index': dt(2014, 1, 1, 0, 2, tzinfo=mktz()), 'A': 125, 'B': 27.2, 'C': 'DESC', 'D': 0}
+
+
+def get_coldata(coldata):
+    """ return values and rowmask """
+    dtype = np.dtype(coldata[DTYPE])
+    values = np.fromstring(lz4.decompress(coldata[DATA]), dtype=dtype)
+    rowmask = np.unpackbits(np.fromstring(lz4.decompress(coldata[ROWMASK]), dtype='uint8'))[:len(values)]
+    return list(values), list(rowmask)
 
 
 def test_tickstore_pandas_to_bucket_image():
@@ -86,6 +99,12 @@ def test_tickstore_pandas_to_bucket_image():
     assert bucket[COUNT] == 3
     assert bucket[START] == dt(2014, 1, 1, 0, 0, tzinfo=mktz())
     assert bucket[END] == dt(2014, 1, 4, 0, 0, tzinfo=mktz())
+    assert set(bucket[COLUMNS]) == set(('A', 'B', 'D'))
+    assert set(bucket[COLUMNS]['A']) == set((ROWMASK, DTYPE, DATA))
+    assert get_coldata(bucket[COLUMNS]['A']) == ([120, 122, 3], [1, 1, 1])
+    # TODO: finish this test:
+    # assert list(np.cumsum(np.fromstring(lz4.decompress(bucket[INDEX]), dtype='uint64'))) == []
+    assert bucket[COLUMNS]['A'][DTYPE] == 'int64'
     assert bucket[SYMBOL] == symbol
     assert bucket[IMAGE_DOC] == {IMAGE: initial_image,
                                  START: 0,

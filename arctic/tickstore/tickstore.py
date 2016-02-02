@@ -468,10 +468,10 @@ class TickStore(object):
         ----------
         symbol : `str`
             symbol name for the item
-        data : list of dicts or a panda.DataFrame
+        data : list of dicts or a pandas.DataFrame
             List of ticks to store to the tick-store.
             if a list of dicts, each dict must contain a 'index' datetime
-            if a panda.DataFrame the index must be a Timestamp that can be converted to a datetime
+            if a pandas.DataFrame the index must be a Timestamp that can be converted to a datetime
         initial_image : dict
             Dict of the initial image at the start of the document. If this contains a 'index' entry it is
             assumed to be the time of the timestamp of the index
@@ -500,6 +500,7 @@ class TickStore(object):
         mongo_retry(self._collection.insert_many)(buckets)
         t = (dt.now() - start).total_seconds()
         ticks = len(buckets) * self._chunk_size
+        logger.debug("%d buckets in %s: approx %s ticks/sec" % (len(buckets), t, int(ticks / t)))
 
     def _pandas_to_buckets(self, x, symbol, initial_image):
         rtn = []
@@ -638,7 +639,7 @@ class TickStore(object):
         if initial_image:
             image_start = initial_image.get('index', start)
             start = min(start, image_start)
-            rtn[IMAGE_DOC] = {DTYPE: image_start, START: 0, IMAGE: final_image}
+            rtn[IMAGE_DOC] = {DTYPE: image_start, START: 0, IMAGE: initial_image}
         rtn[END] = end
         rtn[START] =  start
         rtn[INDEX] = Binary(lz4.compressHC(np.concatenate(([data['index'][0]], np.diff(data['index']))).tostring()))
