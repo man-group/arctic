@@ -561,7 +561,7 @@ class TickStore(object):
         # Compute the final image with forward fill of df applied to the image
         final_image = copy.copy(image)
         last_values = df.ffill().tail(1).to_dict()
-        last_dict = {i: a.values()[0] for i, a in last_values.items()}
+        last_dict = {i: list(a.values())[0] for i, a in last_values.items()}
         final_image.update(last_dict)
         final_image['index'] = end
         return final_image
