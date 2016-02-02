@@ -112,7 +112,7 @@ def test_read_all_cols_all_dtypes(tickstore_lib, chunk_size):
             'index': dt(1970, 1, 1, 0, 0, 1, tzinfo=mktz('UTC')),
             },
             ]
-    tickstore_lib.chunk_size = 3
+    tickstore_lib._chunk_size = chunk_size
     tickstore_lib.write('sym', data)
     df = tickstore_lib.read('sym', columns=None)
 
@@ -167,7 +167,7 @@ def test_date_range(tickstore_lib):
     tickstore_lib.delete('SYM')
 
     # Chunk every 3 symbols and lets have some fun
-    tickstore_lib.chunk_size = 3
+    tickstore_lib._chunk_size = 3
     tickstore_lib.write('SYM', DUMMY_DATA)
 
     with patch.object(tickstore_lib._collection, 'find', side_effect=tickstore_lib._collection.find) as f:
@@ -222,7 +222,7 @@ def test_date_range_end_not_in_range(tickstore_lib):
                    },
                   ]
 
-    tickstore_lib.chunk_size = 1
+    tickstore_lib._chunk_size = 1
     tickstore_lib.write('SYM', DUMMY_DATA)
     with patch.object(tickstore_lib._collection, 'find', side_effect=tickstore_lib._collection.find) as f:
         df = tickstore_lib.read('SYM', date_range=DateRange(20130101, dt(2013, 1, 2, 9, 0)), columns=None)
@@ -251,7 +251,7 @@ def test_date_range_default_timezone(tickstore_lib, tz_name):
                   ]
 
     with patch('arctic.date._mktz.DEFAULT_TIME_ZONE_NAME', tz_name):
-        tickstore_lib.chunk_size = 1
+        tickstore_lib._chunk_size = 1
         tickstore_lib.write('SYM', DUMMY_DATA)
         df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130701), columns=None)
         assert len(df) == 2
@@ -281,7 +281,7 @@ def test_date_range_no_bounds(tickstore_lib):
                    },
                   ]
 
-    tickstore_lib.chunk_size = 1
+    tickstore_lib._chunk_size = 1
     tickstore_lib.write('SYM', DUMMY_DATA)
 
     # 1) No start, no end
@@ -315,7 +315,7 @@ def test_date_range_BST(tickstore_lib):
                    'index': dt(2013, 6, 1, 13, 00, tzinfo=mktz('Europe/London'))
                    },
                   ]
-    tickstore_lib.chunk_size = 1
+    tickstore_lib._chunk_size = 1
     tickstore_lib.write('SYM', DUMMY_DATA)
 
     df = tickstore_lib.read('SYM', columns=None)
@@ -363,7 +363,7 @@ def test_read_out_of_order(tickstore_lib):
                    'index': dt(2013, 6, 1, 13, 00, tzinfo=mktz('UTC'))
                    },
                   ]
-    tickstore_lib.chunk_size = 3
+    tickstore_lib._chunk_size = 3
     tickstore_lib.write('SYM', DUMMY_DATA)
     tickstore_lib.read('SYM', columns=None)
     assert len(tickstore_lib.read('SYM', columns=None, date_range=DateRange(dt(2013, 6, 1, tzinfo=mktz('UTC')), dt(2013, 6, 2, tzinfo=mktz('UTC'))))) == 3
@@ -380,7 +380,7 @@ def test_read_longs(tickstore_lib):
                    'index': dt(2013, 6, 1, 13, 00, tzinfo=mktz('Europe/London'))
                    },
                   ]
-    tickstore_lib.chunk_size = 3
+    tickstore_lib._chunk_size = 3
     tickstore_lib.write('SYM', DUMMY_DATA)
     tickstore_lib.read('SYM', columns=None)
     read = tickstore_lib.read('SYM', columns=None, date_range=DateRange(dt(2013, 6, 1), dt(2013, 6, 2)))
