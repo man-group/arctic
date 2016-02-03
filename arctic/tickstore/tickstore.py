@@ -10,6 +10,7 @@ import pandas as pd
 from pandas.core.frame import _arrays_to_mgr
 import pymongo
 from pymongo.errors import OperationFailure
+import copy
 
 from ..date import DateRange, to_pandas_closed_closed, mktz, datetime_to_ms, CLOSED_CLOSED, to_dt
 from ..decorators import mongo_retry
@@ -68,6 +69,7 @@ IMAGE = 'i'
 COLUMNS = 'cs'
 DATA = 'd'
 DTYPE = 't'
+IMAGE_TIME = 't'
 ROWMASK = 'm'
 
 COUNT = 'c'
@@ -77,8 +79,6 @@ CHUNK_VERSION_NUMBER = 3
 
 
 class TickStore(object):
-
-    chunk_size = 100000
 
     @classmethod
     def initialize_library(cls, arctic_lib, **kwargs):
@@ -91,7 +91,16 @@ class TickStore(object):
                                  (START, pymongo.ASCENDING)], background=True)
         collection.create_index([(START, pymongo.ASCENDING)], background=True)
 
-    def __init__(self, arctic_lib):
+    def __init__(self, arctic_lib, chunk_size=100000):
+        """
+        Parameters
+        ----------
+        arctic_lib : TickStore
+            Arctic Library
+        chunk_size : int
+            Number of ticks to store in a document before splitting to another document.
+            if the library was obtained through get_library then set with: self._chuck_size = 10000
+        """
         self._arctic_lib = arctic_lib
 
         # Do we allow reading from secondaries
@@ -99,6 +108,8 @@ class TickStore(object):
 
         # The default collections
         self._collection = arctic_lib.get_top_level_collection()
+
+        self._chunk_size = chunk_size
 
     def __getstate__(self):
         return {'arctic_lib': self._arctic_lib}
@@ -334,7 +345,7 @@ class TickStore(object):
 
     def _prepend_image(self, document, im, rtn_length, column_dtypes, column_set, columns):
         image = im[IMAGE]
-        first_dt = im['t']
+        first_dt = im[IMAGE_TIME]
         if not first_dt.tzinfo:
             first_dt = first_dt.replace(tzinfo=mktz('UTC'))
         document[INDEX] = np.insert(document[INDEX], 0, np.uint64(datetime_to_ms(first_dt)))
@@ -354,7 +365,7 @@ class TickStore(object):
         for field in set(document).difference(set(image)):
             if field == INDEX:
                 continue
-            logger.debug("Field %s is missing from image!", field)
+            logger.debug("Field %s is missing from image!" % field)
             if document[field] is not None:
                 val = np.nan
                 document[field] = np.insert(document[field], 0, document[field].dtype.type(val))
@@ -450,7 +461,7 @@ class TickStore(object):
                 raise OverlappingDataException("Document already exists with start:{} end:{} in the range of our start:{} end:{}".format(
                                                             doc[START], doc[END], start, end))
 
-    def write(self, symbol, data):
+    def write(self, symbol, data, initial_image=None):
         """
         Writes a list of market data events.
 
@@ -458,8 +469,13 @@ class TickStore(object):
         ----------
         symbol : `str`
             symbol name for the item
-        data : list of dicts
+        data : list of dicts or a pandas.DataFrame
             List of ticks to store to the tick-store.
+            if a list of dicts, each dict must contain a 'index' datetime
+            if a pandas.DataFrame the index must be a Timestamp that can be converted to a datetime
+        initial_image : dict
+            Dict of the initial image at the start of the document. If this contains a 'index' entry it is
+            assumed to be the time of the timestamp of the index
         """
         pandas = False
         # Check for overlapping data
@@ -475,38 +491,42 @@ class TickStore(object):
         self._assert_nonoverlapping_data(symbol, to_dt(start), to_dt(end))
 
         if pandas:
-            buckets = self._pandas_to_buckets(data, symbol)
+            buckets = self._pandas_to_buckets(data, symbol, initial_image)
         else:
-            buckets = self._to_buckets(data, symbol)
+            buckets = self._to_buckets(data, symbol, initial_image)
         self._write(buckets)
 
     def _write(self, buckets):
         start = dt.now()
         mongo_retry(self._collection.insert_many)(buckets)
         t = (dt.now() - start).total_seconds()
-        ticks = len(buckets) * self.chunk_size
-        print("%d buckets in %s: approx %s ticks/sec" % (len(buckets), t, int(ticks / t)))
+        ticks = len(buckets) * self._chunk_size
+        logger.debug("%d buckets in %s: approx %s ticks/sec" % (len(buckets), t, int(ticks / t)))
 
-    def _pandas_to_buckets(self, x, symbol):
+    def _pandas_to_buckets(self, x, symbol, initial_image):
         rtn = []
-        for i in range(0, len(x), self.chunk_size):
-            rtn.append(self._pandas_to_bucket(x[i:i + self.chunk_size], symbol))
+        for i in range(0, len(x), self._chunk_size):
+            bucket, initial_image = TickStore._pandas_to_bucket(x[i:i + self._chunk_size], symbol, initial_image)
+            rtn.append(bucket)
         return rtn
 
-    def _to_buckets(self, x, symbol):
+    def _to_buckets(self, x, symbol, initial_image):
         rtn = []
-        for i in range(0, len(x), self.chunk_size):
-            rtn.append(self._to_bucket(x[i:i + self.chunk_size], symbol))
+        for i in range(0, len(x), self._chunk_size):
+            bucket, initial_image = TickStore._to_bucket(x[i:i + self._chunk_size], symbol, initial_image)
+            rtn.append(bucket)
         return rtn
 
-    def _to_ms(self, date):
+    @staticmethod
+    def _to_ms(date):
         if isinstance(date, dt):
             if not date.tzinfo:
-                logger.warning('WARNING: treating naive datetime as London in write path')
+                logger.warning('WARNING: treating naive datetime as UTC in write path')
             return datetime_to_ms(date)
         return date
 
-    def _str_dtype(self, dtype):
+    @staticmethod
+    def _str_dtype(dtype):
         """
         Represent dtypes without byte order, as earlier Java tickstore code doesn't support explicit byte order.
         """
@@ -522,8 +542,8 @@ class TickStore(object):
         else:
             raise UnhandledDtypeException("Bad dtype '%s'" % dtype)
 
-
-    def _ensure_supported_dtypes(self, array):
+    @staticmethod
+    def _ensure_supported_dtypes(array):
         # We only support these types for now, as we need to read them in Java
         if (array.dtype.kind) == 'i':
             array = array.astype('<i8')
@@ -538,42 +558,68 @@ class TickStore(object):
             array = array.astype(array.dtype.newbyteorder('<'))
         return array
 
-    def _pandas_to_bucket(self, df, symbol):
-        start = to_dt(df.index[0].to_datetime())
+    @staticmethod
+    def _pandas_compute_final_image(df, image, end):
+        # Compute the final image with forward fill of df applied to the image
+        final_image = copy.copy(image)
+        last_values = df.ffill().tail(1).to_dict()
+        last_dict = {i: list(a.values())[0] for i, a in last_values.items()}
+        final_image.update(last_dict)
+        final_image['index'] = end
+        return final_image
+
+    @staticmethod
+    def _pandas_to_bucket(df, symbol, initial_image):
+        rtn = {SYMBOL: symbol, VERSION: CHUNK_VERSION_NUMBER, COLUMNS: {}, COUNT: len(df)}
         end = to_dt(df.index[-1].to_datetime())
-        rtn = {START: start, END: end, SYMBOL: symbol}
-        rtn[VERSION] = CHUNK_VERSION_NUMBER
-        rtn[COUNT] = len(df)
-        rtn[COLUMNS] = {}
+        if initial_image :
+            if 'index' in initial_image:
+                start = min(to_dt(df.index[0].to_datetime()), initial_image['index'])
+            else:
+                start = to_dt(df.index[0].to_datetime())
+            image_start = initial_image.get('index', start)
+            image = {k: v for k, v in initial_image.items() if k != 'index'}
+            rtn[IMAGE_DOC] = {IMAGE_TIME: image_start, IMAGE: initial_image}
+            final_image = TickStore._pandas_compute_final_image(df, initial_image, end)
+        else:
+            start = to_dt(df.index[0].to_datetime())
+            final_image = {}
+        rtn[END] = end
+        rtn[START] = start
 
         logger.warning("NB treating all values as 'exists' - no longer sparse")
         rowmask = Binary(lz4.compressHC(np.packbits(np.ones(len(df), dtype='uint8'))))
 
         recs = df.to_records(convert_datetime64=False)
         for col in df:
-            array = self._ensure_supported_dtypes(recs[col])
+            array = TickStore._ensure_supported_dtypes(recs[col])
             col_data = {}
             col_data[DATA] = Binary(lz4.compressHC(array.tostring()))
             col_data[ROWMASK] = rowmask
-            col_data[DTYPE] = self._str_dtype(array.dtype)
+            col_data[DTYPE] = TickStore._str_dtype(array.dtype)
             rtn[COLUMNS][col] = col_data
         rtn[INDEX] = Binary(lz4.compressHC(np.concatenate(([recs['index'][0].astype('datetime64[ms]').view('uint64')],
                                                            np.diff(recs['index'].astype('datetime64[ms]').view('uint64')))
                                                           ).tostring()))
-        return rtn
+        return rtn, final_image
 
-    def _to_bucket(self, ticks, symbol):
+    @staticmethod
+    def _to_bucket(ticks, symbol, initial_image):
+        rtn = {SYMBOL: symbol, VERSION: CHUNK_VERSION_NUMBER, COLUMNS: {}, COUNT: len(ticks)}
         data = {}
         rowmask = {}
         start = to_dt(ticks[0]['index'])
         end = to_dt(ticks[-1]['index'])
+        final_image = copy.copy(initial_image) if initial_image else {}
         for i, t in enumerate(ticks):
+            if initial_image:
+                final_image.update(t)
             for k, v in iteritems(t):
                 try:
                     if k != 'index':
                         rowmask[k][i] = 1
                     else:
-                        v = self._to_ms(v)
+                        v = TickStore._to_ms(v)
                     data[k].append(v)
                 except KeyError:
                     if k != 'index':
@@ -583,21 +629,22 @@ class TickStore(object):
 
         rowmask = dict([(k, Binary(lz4.compressHC(np.packbits(v).tostring())))
                         for k, v in iteritems(rowmask)])
-
-        rtn = {START: start, END: end, SYMBOL: symbol}
-        rtn[VERSION] = CHUNK_VERSION_NUMBER
-        rtn[COUNT] = len(ticks)
-        rtn[COLUMNS] = {}
         for k, v in iteritems(data):
             if k != 'index':
                 v = np.array(v)
-                v = self._ensure_supported_dtypes(v)
+                v = TickStore._ensure_supported_dtypes(v)
                 rtn[COLUMNS][k] = {DATA: Binary(lz4.compressHC(v.tostring())),
-                                   DTYPE: self._str_dtype(v.dtype),
+                                   DTYPE: TickStore._str_dtype(v.dtype),
                                    ROWMASK: rowmask[k]}
 
+        if initial_image:
+            image_start = initial_image.get('index', start)
+            start = min(start, image_start)
+            rtn[IMAGE_DOC] = {IMAGE_TIME: image_start, IMAGE: initial_image}
+        rtn[END] = end
+        rtn[START] =  start
         rtn[INDEX] = Binary(lz4.compressHC(np.concatenate(([data['index'][0]], np.diff(data['index']))).tostring()))
-        return rtn
+        return rtn, final_image
 
     def max_date(self, symbol):
         """
