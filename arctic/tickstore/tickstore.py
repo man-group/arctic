@@ -69,6 +69,7 @@ IMAGE = 'i'
 COLUMNS = 'cs'
 DATA = 'd'
 DTYPE = 't'
+IMAGE_TIME = 't'
 ROWMASK = 'm'
 
 COUNT = 'c'
@@ -344,7 +345,7 @@ class TickStore(object):
 
     def _prepend_image(self, document, im, rtn_length, column_dtypes, column_set, columns):
         image = im[IMAGE]
-        first_dt = im[DTYPE]
+        first_dt = im[IMAGE_TIME]
         if not first_dt.tzinfo:
             first_dt = first_dt.replace(tzinfo=mktz('UTC'))
         document[INDEX] = np.insert(document[INDEX], 0, np.uint64(datetime_to_ms(first_dt)))
@@ -578,7 +579,7 @@ class TickStore(object):
                 start = to_dt(df.index[0].to_datetime())
             image_start = initial_image.get('index', start)
             image = {k: v for k, v in initial_image.items() if k != 'index'}
-            rtn[IMAGE_DOC] = {DTYPE: image_start, START: 0, IMAGE: initial_image}
+            rtn[IMAGE_DOC] = {IMAGE_TIME: image_start, IMAGE: initial_image}
             final_image = TickStore._pandas_compute_final_image(df, initial_image, end)
         else:
             start = to_dt(df.index[0].to_datetime())
@@ -639,7 +640,7 @@ class TickStore(object):
         if initial_image:
             image_start = initial_image.get('index', start)
             start = min(start, image_start)
-            rtn[IMAGE_DOC] = {DTYPE: image_start, START: 0, IMAGE: initial_image}
+            rtn[IMAGE_DOC] = {IMAGE_TIME: image_start, IMAGE: initial_image}
         rtn[END] = end
         rtn[START] =  start
         rtn[INDEX] = Binary(lz4.compressHC(np.concatenate(([data['index'][0]], np.diff(data['index']))).tostring()))

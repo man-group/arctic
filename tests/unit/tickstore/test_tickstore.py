@@ -8,7 +8,7 @@ import pandas as pd
 import lz4
 
 from arctic.tickstore.tickstore import TickStore, IMAGE_DOC, IMAGE, START, \
-    DTYPE, END, COUNT, SYMBOL, COLUMNS, ROWMASK, DATA, INDEX
+    DTYPE, END, COUNT, SYMBOL, COLUMNS, ROWMASK, DATA, INDEX, IMAGE_TIME
 from arctic.date import CLOSED_OPEN
 from arctic.date._daterange import DateRange
 from arctic.date._mktz import mktz
@@ -84,8 +84,9 @@ def test_tickstore_to_bucket_with_image():
     assert bucket[COLUMNS]['B'][DTYPE] == 'float64'
     assert bucket[SYMBOL] == symbol
     assert bucket[START] == initial_image['index']
-    assert bucket[IMAGE_DOC][DTYPE] == initial_image['index']
     assert bucket[IMAGE_DOC][IMAGE] == initial_image
+    assert bucket[IMAGE_DOC] == {IMAGE: initial_image,
+                                 IMAGE_TIME: initial_image['index']}
     assert final_image == {'index': data[-1]['index'], 'A': 125, 'B': 27.2, 'C': 'DESC', 'D': 0}
 
 
@@ -129,5 +130,4 @@ def test_tickstore_pandas_to_bucket_image():
     assert bucket[COLUMNS]['B'][DTYPE] == 'float64'
     assert bucket[SYMBOL] == symbol
     assert bucket[IMAGE_DOC] == {IMAGE: initial_image,
-                                 START: 0,
-                                 DTYPE: dt(2014, 1, 1, 0, 0, tzinfo=mktz(tz))}
+                                 IMAGE_TIME: initial_image['index']}
