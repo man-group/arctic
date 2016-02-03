@@ -1,5 +1,10 @@
 ## Changelog
 
+### 1.20 (2016-02-03)
+
+  * Feature: #98 Add initial_image as optional parameter on tickstore write()
+  * Bugfix: #100 Write error on end field when writing with pandas dataframes
+
 ### 1.19 (2016-01-29)
 
   * Feature: Add python 3.3/3.4 support
