@@ -65,47 +65,69 @@ def test_tickstore_to_bucket_no_image():
 
 def test_tickstore_to_bucket_with_image():
     symbol = 'SYM'
-    initial_image = {'index': dt(2014, 1, 1, 0, 0, tzinfo=mktz()), 'A': 123, 'B': 54.4, 'C': 'DESC'}
-    data = [{'index': dt(2014, 1, 1, 0, 1, tzinfo=mktz()), 'A': 124, 'D': 0},
-            {'index': dt(2014, 1, 1, 0, 2, tzinfo=mktz()), 'A': 125, 'B': 27.2}]
+    tz = 'UTC'
+    initial_image = {'index': dt(2014, 1, 1, 0, 0, tzinfo=mktz(tz)), 'A': 123, 'B': 54.4, 'C': 'DESC'}
+    data = [{'index': dt(2014, 1, 1, 0, 1, tzinfo=mktz(tz)), 'A': 124, 'D': 0},
+            {'index': dt(2014, 1, 1, 0, 2, tzinfo=mktz(tz)), 'A': 125, 'B': 27.2}]
     bucket, final_image = TickStore._to_bucket(data, symbol, initial_image)
     assert bucket[COUNT] == 2
-    assert bucket[END] == dt(2014, 1, 1, 0, 2, tzinfo=mktz())
+    assert bucket[END] == dt(2014, 1, 1, 0, 2, tzinfo=mktz(tz))
     assert set(bucket[COLUMNS]) == set(('A', 'B', 'D'))
+    assert set(bucket[COLUMNS]['A']) == set((ROWMASK, DTYPE, DATA))
+    assert get_coldata(bucket[COLUMNS]['A']) == ([124, 125], [1, 1, 0, 0, 0, 0, 0, 0])
+    assert get_coldata(bucket[COLUMNS]['B']) == ([27.2], [0, 1, 0, 0, 0, 0, 0, 0])
+    assert get_coldata(bucket[COLUMNS]['D']) == ([0], [1, 0, 0, 0, 0, 0, 0, 0])
+    index = [dt.fromtimestamp(int(i/1000)).replace(tzinfo=mktz(tz)) for i in
+             list(np.cumsum(np.fromstring(lz4.decompress(bucket[INDEX]), dtype='uint64')))]
+    assert index == [i['index'] for i in data]
+    assert bucket[COLUMNS]['A'][DTYPE] == 'int64'
+    assert bucket[COLUMNS]['B'][DTYPE] == 'float64'
     assert bucket[SYMBOL] == symbol
-    assert bucket[START] == dt(2014, 1, 1, 0, 0, tzinfo=mktz())
-    assert bucket[IMAGE_DOC][DTYPE] == dt(2014, 1, 1, 0, 0, tzinfo=mktz())
+    assert bucket[START] == initial_image['index']
+    assert bucket[IMAGE_DOC][DTYPE] == initial_image['index']
     assert bucket[IMAGE_DOC][IMAGE] == initial_image
-    assert final_image == {'index': dt(2014, 1, 1, 0, 2, tzinfo=mktz()), 'A': 125, 'B': 27.2, 'C': 'DESC', 'D': 0}
+    assert final_image == {'index': data[-1]['index'], 'A': 125, 'B': 27.2, 'C': 'DESC', 'D': 0}
 
 
 def get_coldata(coldata):
     """ return values and rowmask """
     dtype = np.dtype(coldata[DTYPE])
     values = np.fromstring(lz4.decompress(coldata[DATA]), dtype=dtype)
-    rowmask = np.unpackbits(np.fromstring(lz4.decompress(coldata[ROWMASK]), dtype='uint8'))[:len(values)]
+    rowmask = np.unpackbits(np.fromstring(lz4.decompress(coldata[ROWMASK]), dtype='uint8'))
     return list(values), list(rowmask)
 
 
 def test_tickstore_pandas_to_bucket_image():
     symbol = 'SYM'
-    initial_image = {'index': dt(2014, 1, 1, 0, 0, tzinfo=mktz()), 'A': 123, 'B': 54.4, 'C': 'DESC'}
+    tz = 'UTC'
+    initial_image = {'index': dt(2014, 1, 1, 0, 0, tzinfo=mktz(tz)), 'A': 123, 'B': 54.4, 'C': 'DESC'}
     data = [{'A': 120, 'D': 1}, {'A': 122, 'B': 2.0}, {'A': 3, 'B': 3.0, 'D': 1}]
-    data = pd.DataFrame(data, index=[dt(2014, 1, 2, 0, 0, tzinfo=mktz()), dt(2014, 1, 3, 0, 0, tzinfo=mktz()),
-                                     dt(2014, 1, 4, 0, 0, tzinfo=mktz())])
+    tick_index = [dt(2014, 1, 2, 0, 0, tzinfo=mktz(tz)),
+                  dt(2014, 1, 3, 0, 0, tzinfo=mktz(tz)),
+                  dt(2014, 1, 4, 0, 0, tzinfo=mktz(tz))]
+    data = pd.DataFrame(data, index=tick_index)
     bucket, final_image = TickStore._pandas_to_bucket(data, symbol, initial_image)
-    assert final_image == {'index': dt(2014, 1, 4, 0, 0, tzinfo=mktz()), 'A': 3, 'B': 3.0, 'C': 'DESC', 'D': 1}
+    assert final_image == {'index': dt(2014, 1, 4, 0, 0, tzinfo=mktz(tz)), 'A': 3, 'B': 3.0, 'C': 'DESC', 'D': 1}
     assert IMAGE_DOC in bucket
     assert bucket[COUNT] == 3
-    assert bucket[START] == dt(2014, 1, 1, 0, 0, tzinfo=mktz())
-    assert bucket[END] == dt(2014, 1, 4, 0, 0, tzinfo=mktz())
+    assert bucket[START] == dt(2014, 1, 1, 0, 0, tzinfo=mktz(tz))
+    assert bucket[END] == dt(2014, 1, 4, 0, 0, tzinfo=mktz(tz))
     assert set(bucket[COLUMNS]) == set(('A', 'B', 'D'))
     assert set(bucket[COLUMNS]['A']) == set((ROWMASK, DTYPE, DATA))
-    assert get_coldata(bucket[COLUMNS]['A']) == ([120, 122, 3], [1, 1, 1])
-    # TODO: finish this test:
-    # assert list(np.cumsum(np.fromstring(lz4.decompress(bucket[INDEX]), dtype='uint64'))) == []
+    assert get_coldata(bucket[COLUMNS]['A']) == ([120, 122, 3], [1, 1, 1, 0, 0, 0, 0, 0])
+    values, rowmask = get_coldata(bucket[COLUMNS]['B'])
+    assert np.isnan(values[0]) and values[1:] == [2.0, 3.0]
+    assert rowmask == [1, 1, 1, 0, 0, 0, 0, 0]
+    values, rowmask = get_coldata(bucket[COLUMNS]['D'])
+    assert np.isnan(values[1])
+    assert values[0] == 1 and values[2] == 1
+    assert rowmask == [1, 1, 1, 0, 0, 0, 0, 0]
+    index = [dt.fromtimestamp(int(i/1000)).replace(tzinfo=mktz(tz)) for i in
+             list(np.cumsum(np.fromstring(lz4.decompress(bucket[INDEX]), dtype='uint64')))]
+    assert index == tick_index
     assert bucket[COLUMNS]['A'][DTYPE] == 'int64'
+    assert bucket[COLUMNS]['B'][DTYPE] == 'float64'
     assert bucket[SYMBOL] == symbol
     assert bucket[IMAGE_DOC] == {IMAGE: initial_image,
                                  START: 0,
-                                 DTYPE: dt(2014, 1, 1, 0, 0, tzinfo=mktz())}
+                                 DTYPE: dt(2014, 1, 1, 0, 0, tzinfo=mktz(tz))}
