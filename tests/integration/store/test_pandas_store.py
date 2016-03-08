@@ -538,6 +538,21 @@ def test_panel_save_read(library, df_size):
                 str(pn.axes[i].names) + "!=" + str(pn.axes[i].names)
 
 
+def test_panel_save_read_with_nans(library):
+    '''Ensure that nan rows are not dropped when calling to_frame.'''
+    df1 = DataFrame(data=np.arange(4).reshape((2, 2)), index=['r1', 'r2'], columns=['c1', 'c2'])
+    df2 = DataFrame(data=np.arange(6).reshape((3, 2)), index=['r1', 'r2', 'r3'], columns=['c1', 'c2'])
+    p_in = Panel(data=dict(i1=df1, i2=df2))
+
+    library.write('pandas', p_in)
+    p_out = library.read('pandas').data
+
+    assert p_in.shape == p_out.shape
+    # check_names is False because pandas helpfully names the axes for us.
+    assert_frame_equal(p_in.iloc[0], p_out.iloc[0], check_names=False)  
+    assert_frame_equal(p_in.iloc[1], p_out.iloc[1], check_names=False)  
+
+
 def test_save_read_ints(library):
     ts1 = DataFrame(index=[dt(2012, 1, 1) + dtd(hours=x) for x in range(5)],
                     data={'col1':np.arange(5), 'col2':np.arange(5)})

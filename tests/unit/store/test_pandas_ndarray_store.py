@@ -63,7 +63,7 @@ def test_panel_converted_to_dataframe_and_stacked_to_write():
     with patch.object(PandasDataFrameStore, 'write') as mock_write:
         with patch('arctic.store._pandas_ndarray_store.DataFrame') as DF:
             store.write(sentinel.mlib, sentinel.version, sentinel.symbol, panel, sentinel.prev)
-    panel.to_frame.assert_called_with()
+    panel.to_frame.assert_called_with(filter_observations=False)
     DF.assert_called_with(panel.to_frame.return_value.stack.return_value)
     mock_write.assert_called_with(sentinel.mlib, sentinel.version, sentinel.symbol,
                                   DF.return_value, sentinel.prev)
