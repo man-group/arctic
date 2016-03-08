@@ -316,7 +316,7 @@ class PandasPanelStore(PandasDataFrameStore):
 
     def can_write(self, version, symbol, data):
         if isinstance(data, Panel):
-            frame = data.to_frame()
+            frame = data.to_frame(filter_observations=False)
             if np.any(frame.dtypes.values == 'object'):
                 return self.can_convert_to_records_without_objects(frame, symbol)
             return True
@@ -329,7 +329,7 @@ class PandasPanelStore(PandasDataFrameStore):
             raise ValueError('Cannot insert a zero size panel into mongo.')
         if not np.all(len(i.names) == 1 for i in item.axes):
             raise ValueError('Cannot insert panels with multiindexes')
-        item = item.to_frame()
+        item = item.to_frame(filter_observations=False)
         if len(set(item.dtypes)) == 1:
             # If all columns have the same dtype, we support non-string column names.
             # We know from above check that columns is not a multiindex.

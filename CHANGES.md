@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.21 (2016-03-08)
+
+  * Bugfix: #106 Fix Pandas Panel storage for panels with different dimensions
+
 ### 1.20 (2016-02-03)
 
   * Feature: #98 Add initial_image as optional parameter on tickstore write()
