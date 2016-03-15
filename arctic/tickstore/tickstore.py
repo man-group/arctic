@@ -349,7 +349,7 @@ class TickStore(object):
 
         data = self._read_bucket(b, column_set, column_dtypes,
                                 multiple_symbols or (columns is not None and 'SYMBOL' in columns),
-                                include_images)
+                                include_images, columns)
 
         for k, v in data.iteritems():
            try:
