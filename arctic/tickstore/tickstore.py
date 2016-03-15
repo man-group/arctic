@@ -286,7 +286,7 @@ class TickStore(object):
             arrays = [[] for k in columns]
 
         if multiple_symbols:
-            sort = np.argsort(index)
+            sort = np.argsort(index, kind='mergesort')
             index = index[sort]
             arrays = [a[sort] for a in arrays]
 
@@ -302,7 +302,7 @@ class TickStore(object):
         logger.info("%d rows in %s secs: %s ticks/sec" % (ticks, t, int(ticks / t)))
         if not rtn.index.is_monotonic:
             logger.error("TimeSeries data is out of order, sorting!")
-            rtn = rtn.sort_index()
+            rtn = rtn.sort_index(kind='mergesort')
         if date_range:
             # FIXME: support DateRange.interval...
             rtn = rtn.ix[date_range.start:date_range.end]
