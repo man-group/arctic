@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.22
+  
+  * Bugfix: #109 Ensure stable sort during Arctic read
+
 ### 1.21 (2016-03-08)
 
   * Bugfix: #106 Fix Pandas Panel storage for panels with different dimensions
