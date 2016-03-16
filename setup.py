@@ -63,6 +63,17 @@ class PyTest(TestCommand):
         errno = pytest.main(args)
         sys.exit(errno)
 
+# Apple ships with clang gcc by default. clang, doesn't support openmp
+# The user *could* just set the CC env var at invocation... CC=gcc-4.2 pip install .
+import os; import subprocess; import re
+if sys.platform == "darwin" and re.search(r"Apple LLVM", subprocess.check_output(["gcc -v"], shell=True, stderr=subprocess.STDOUT), re.MULTILINE):
+  # Let's do a quick check and see if we can find a reall gcc for 'em
+  path = subprocess.check_output(["ls /usr/local/bin/gcc-* | head -1"], shell=True, stderr=subprocess.STDOUT)
+  if re.search("No such file", path): # We couldn't easily find another gcc 
+    sys.stderr.write("Apple LLVM detected you many need to install (non clang) gcc\n")
+  else: # we found another gcc
+    os.environ['CC'] = path
+
 # Cython lz4
 compress = Extension('arctic._compress',
                      sources=["src/_compress.pyx", "src/lz4.c", "src/lz4hc.c"],
