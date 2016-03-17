@@ -37,16 +37,39 @@ def _promote_struct_dtypes(dtype1, dtype2):
     return np.dtype([(n, _promote(dtype1.fields[n][0], dtype2.fields.get(n, (None,))[0])) for n in dtype1.names])
 
 
+class NumpySizeChunker(object):
+    TYPE = 'numpysize'
+    def __call__(self, item, **kwargs):
+        sze = int(item.dtype.itemsize * np.prod(item.shape[1:]))
+        length = len(item)
+        chunk_size = int(_CHUNK_SIZE / sze)
+        idxs = xrange(int(np.ceil(float(length) / chunk_size)))
+        for i in idxs:
+            yield min((i + 1) * chunk_size - 1, length - 1), item[i * chunk_size: (i + 1) * chunk_size].tostring()
+
+    def index_range(self, version, from_version=None, **kwargs):
+        """
+        Tuple describing range to read from the ndarray - closed:open
+        """
+        from_index = None
+        if from_version:
+            if version['base_sha'] != from_version['base_sha']:
+                # give up - the data has been overwritten, so we can't tail this
+                raise ConcurrentModificationException("Concurrent modification - data has been overwritten")
+            from_index = from_version['up_to']
+        return from_index, None
+
+
 class NdarrayStore(object):
     """Chunked store for arbitrary ndarrays, supporting append.
-    
+
     for the simple example:
     dat = np.empty(10)
     library.write('test', dat) #version 1
     library.append('test', dat) #version 2
-    
+
     version documents:
-    
+
     [
      {u'_id': ObjectId('55fa9a7781f12654382e58b8'),
       u'symbol': u'test',
@@ -62,7 +85,7 @@ class NdarrayStore(object):
       u'sha': Binary('.........', 0),
       u'shape': [-1],
       },
-      
+
      {u'_id': ObjectId('55fa9aa981f12654382e58ba'),
       u'symbol': u'test',
       u'version': 2
@@ -77,10 +100,10 @@ class NdarrayStore(object):
       u'segment_count': 2, #2 segments included in this version
       }
       ]
-    
+
 
     segment documents:
-    
+
     [
      #first chunk written:
      {u'_id': ObjectId('55fa9a778b376a68efdd10e3'),
@@ -103,6 +126,7 @@ class NdarrayStore(object):
 
     """
     TYPE = 'ndarray'
+    chunker_mapper = {NumpySizeChunker().TYPE: NumpySizeChunker()}
 
     @classmethod
     def initialize_library(cls, *args, **kwargs):
@@ -139,18 +163,6 @@ class NdarrayStore(object):
             return np.dtype(eval(string), metadata=metadata)
         return np.dtype(string, metadata=metadata)
 
-    def _index_range(self, version, symbol, from_version=None, **kwargs):
-        """
-        Tuple describing range to read from the ndarray - closed:open
-        """
-        from_index = None
-        if from_version:
-            if version['base_sha'] != from_version['base_sha']:
-                #give up - the data has been overwritten, so we can't tail this
-                raise ConcurrentModificationException("Concurrent modification - data has been overwritten")
-            from_index = from_version['up_to']
-        return from_index, None
-
     def get_info(self, version):
         ret = {}
         dtype = self._dtype(version['dtype'], version.get('dtype_metadata', {}))
@@ -160,33 +172,28 @@ class NdarrayStore(object):
         ret['dtype'] = version['dtype']
         ret['type'] = version['type']
         ret['handler'] = self.__class__.__name__
-        ret['rows'] = int(version['up_to'])
+        ret['rows'] = int(version['rows'])
         return ret
 
-    def read(self, arctic_lib, version, symbol, read_preference=None, **kwargs):
-        index_range = self._index_range(version, symbol, **kwargs)
+    def read(self, arctic_lib, version, symbol, read_preference=None, chunker=NumpySizeChunker(), **kwargs):
+        index_range = chunker.index_range(version, **kwargs)
         collection = arctic_lib.get_top_level_collection()
         if read_preference:
             collection = collection.with_options(read_preference=read_preference)
         return self._do_read(collection, version, symbol, index_range=index_range)
 
     def _do_read(self, collection, version, symbol, index_range=None):
-        '''
-        index_range is a 2-tuple of integers - a [from, to) range of segments to be read. 
-            Either from or to can be None, indicating no bound. 
-        '''
-        from_index = index_range[0] if index_range else None
-        to_index = version['up_to']
-        if index_range and index_range[1] and index_range[1] < version['up_to']:
-            to_index = index_range[1]
         segment_count = None
 
         spec = {'symbol': symbol,
                 'parent': version.get('base_version_id', version['_id']),
-                'segment': {'$lt': to_index}
+                'segment': {'$lte': version['up_to']}
                 }
-        if from_index:
-            spec['segment']['$gte'] = from_index
+        if index_range:
+            if index_range[0]:
+                spec['segment']['$gte'] = index_range[0]
+            if index_range[1]:
+                spec['segment']['$lte'] = index_range[1]
         else:
             segment_count = version.get('segment_count', None)
 
@@ -229,7 +236,7 @@ class NdarrayStore(object):
 
         if not dtype:
             dtype = item.dtype
-        
+
         if previous_version['up_to'] == 0:
             dtype = dtype
         elif len(item) == 0:
@@ -237,122 +244,32 @@ class NdarrayStore(object):
         else:
             dtype = self._promote_types(dtype, previous_version['dtype'])
         item = item.astype(dtype)
-        if str(dtype) != previous_version['dtype']:
-            logger.debug('Converting %s from %s to %s' % (symbol, previous_version['dtype'], str(dtype)))
-            if item.dtype.hasobject:
-                raise UnhandledDtypeException()
-            version['dtype'] = str(dtype)
-            version['dtype_metadata'] = dict(dtype.metadata or {})
-            version['type'] = self.TYPE
 
-            old_arr = self._do_read(collection, previous_version, symbol).astype(dtype)
-            # missing float columns should default to nan rather than zero
-            old_dtype = self._dtype(previous_version['dtype'])
-            if dtype.names is not None and old_dtype.names is not None:
-                new_columns = set(dtype.names) - set(old_dtype.names)
-                _is_float_type = lambda _dtype: _dtype.type in (np.float32, np.float64)
-                _is_void_float_type = lambda _dtype: _dtype.type == np.void and _is_float_type(_dtype.subdtype[0])
-                _is_float_or_void_float_type = lambda _dtype: _is_float_type(_dtype) or _is_void_float_type(_dtype)
-                _is_float = lambda column: _is_float_or_void_float_type(dtype.fields[column][0])
-                for new_column in filter(_is_float, new_columns):
-                    old_arr[new_column] = np.nan
+        if item.dtype.hasobject:
+            raise UnhandledDtypeException()
+        version['dtype'] = str(dtype)
+        version['dtype_metadata'] = dict(dtype.metadata or {})
+        version['type'] = self.TYPE
 
-            item = np.concatenate([old_arr, item])
-            version['up_to'] = len(item)
-            version['sha'] = self.checksum(item)
-            version['base_sha'] = version['sha']
-            self._do_write(collection, version, symbol, item, previous_version)
-        else:
-            version['dtype'] = previous_version['dtype']
-            version['dtype_metadata'] = previous_version['dtype_metadata']
-            version['type'] = self.TYPE
-            self._do_append(collection, version, symbol, item, previous_version)
+        old_arr = self._do_read(collection, previous_version, symbol).astype(dtype)
+        # missing float columns should default to nan rather than zero
+        old_dtype = self._dtype(previous_version['dtype'])
+        if dtype.names is not None and old_dtype.names is not None:
+            new_columns = set(dtype.names) - set(old_dtype.names)
+            _is_float_type = lambda _dtype: _dtype.type in (np.float32, np.float64)
+            _is_void_float_type = lambda _dtype: _dtype.type == np.void and _is_float_type(_dtype.subdtype[0])
+            _is_float_or_void_float_type = lambda _dtype: _is_float_type(_dtype) or _is_void_float_type(_dtype)
+            _is_float = lambda column: _is_float_or_void_float_type(dtype.fields[column][0])
+            for new_column in filter(_is_float, new_columns):
+                old_arr[new_column] = np.nan
 
-    def _do_append(self, collection, version, symbol, item, previous_version):
-
-        data = item.tostring()
-        version['base_sha'] = previous_version['base_sha']
-        version['up_to'] = previous_version['up_to'] + len(item)
-        if len(item) > 0:
-            version['segment_count'] = previous_version['segment_count'] + 1
-            version['append_count'] = previous_version['append_count'] + 1
-            version['append_size'] = previous_version['append_size'] + len(data)
-        else:
-            version['segment_count'] = previous_version['segment_count']
-            version['append_count'] = previous_version['append_count']
-            version['append_size'] = previous_version['append_size']
-
-        #_CHUNK_SIZE is probably too big if we're only appending single rows of data - perhaps something smaller,
-        #or also look at number of appended segments?
-        if version['append_count'] < _APPEND_COUNT and version['append_size'] < _APPEND_SIZE:
-            version['base_version_id'] = previous_version.get('base_version_id', previous_version['_id'])
-
-            if len(item) > 0:
-
-                segment = {'data': Binary(data), 'compressed': False}
-                segment['segment'] = version['up_to'] - 1
-                try:
-                    collection.update_one({'symbol': symbol,
-                                           'sha': checksum(symbol, segment)},
-                                          {'$set': segment,
-                                           '$addToSet': {'parent': version['base_version_id']}},
-                                          upsert=True)
-                except DuplicateKeyError:
-                    '''If we get a duplicate key error here, this segment has the same symbol/parent/segment
-                       as another chunk, but a different sha. This means that we have 'forked' history.
-                       If we concat_and_rewrite here, new chunks will have a different parent id (the _id of this version doc)
-                       ...so we can safely write them. 
-                       '''
-                    self._concat_and_rewrite(collection, version, symbol, item, previous_version)
-                    return
-
-                if 'segment_index' in previous_version:
-                    segment_index = self._segment_index(item,
-                                                        existing_index=previous_version.get('segment_index'),
-                                                        start=previous_version['up_to'],
-                                                        new_segments=[segment['segment'], ])
-                    if segment_index:
-                        version['segment_index'] = segment_index
-                logger.debug("Appended segment %d for parent %s" % (segment['segment'], version['_id']))
-            else:
-                if 'segment_index' in previous_version:
-                    version['segment_index'] = previous_version['segment_index']
-
-        else:  # Too much data has been appended now, so rewrite (and compress/chunk).
-            self._concat_and_rewrite(collection, version, symbol, item, previous_version)
-
-    def _concat_and_rewrite(self, collection, version, symbol, item, previous_version):
-
-        version.pop('base_version_id', None)
-
-        # Figure out which is the last 'full' chunk
-        spec = {'symbol': symbol,
-                'parent': previous_version.get('base_version_id', previous_version['_id']),
-                'segment': {'$lt': version['up_to']}}
-
-        read_index_range = [0, None]
-        unchanged_segment_ids = list(collection.find(spec, projection={'_id':1, 'segment':1},
-                                                     sort=[('segment', pymongo.ASCENDING)],))\
-                                                     [:-1 * (previous_version['append_count'] + 1)]
-        if unchanged_segment_ids:
-            read_index_range[0] = unchanged_segment_ids[-1]['segment'] + 1
-
-        old_arr = self._do_read(collection, previous_version, symbol, index_range=read_index_range)
-        if len(item) == 0:
-            logger.debug('Rewrite and compress/chunk item %s, rewrote old_arr' % symbol)
-            self._do_write(collection, version, symbol, old_arr, previous_version, segment_offset=read_index_range[0])
-        elif len(old_arr) == 0:
-            logger.debug('Rewrite and compress/chunk item %s, wrote item' % symbol)
-            self._do_write(collection, version, symbol, item, previous_version, segment_offset=read_index_range[0])
-        else:
-            logger.debug("Rewrite and compress/chunk %s, np.concatenate %s to %s" % (symbol,
-                                                                                     item.dtype, old_arr.dtype))
-            self._do_write(collection, version, symbol, np.concatenate([old_arr, item]), previous_version,
-                           segment_offset=read_index_range[0])
-        if unchanged_segment_ids:
-            collection.update_many({'symbol': symbol, '_id': {'$in': [x['_id'] for x in unchanged_segment_ids]}},
-                                   {'$addToSet': {'parent': version['_id']}})
-            version['segment_count'] = version['segment_count'] + len(unchanged_segment_ids)
+        item = np.concatenate([old_arr, item])
+        version['up_to'] = previous_version['up_to']
+        version['sha'] = self.checksum(item)
+        version['base_sha'] = version['sha']
+        version['chunker'] = previous_version['chunker']
+        version['rows'] = len(item)
+        self._do_write(collection, version, symbol, item, previous_version, self.chunker_mapper[version['chunker']])
 
     def check_written(self, collection, symbol, version):
         # Check all the chunks are in place
@@ -372,10 +289,13 @@ class NdarrayStore(object):
         sha.update(item.tostring())
         return Binary(sha.digest())
 
-    def write(self, arctic_lib, version, symbol, item, previous_version, dtype=None):
-        collection = arctic_lib.get_top_level_collection()
+    def write(self, arctic_lib, version, symbol, item, previous_version, chunker=NumpySizeChunker(),
+              dtype=None, **kwargs):
+
         if item.dtype.hasobject:
             raise UnhandledDtypeException()
+
+        collection = arctic_lib.get_top_level_collection()
 
         if not dtype:
             dtype = item.dtype
@@ -383,27 +303,23 @@ class NdarrayStore(object):
         version['shape'] = (-1,) + item.shape[1:]
         version['dtype_metadata'] = dict(dtype.metadata or {})
         version['type'] = self.TYPE
-        version['up_to'] = len(item)
+        version['rows'] = len(item)
+        version['up_to'] = 0
         version['sha'] = self.checksum(item)
-        
+        version['chunker'] = chunker.TYPE
+
         if previous_version:
             if version['dtype'] == str(dtype) \
                     and 'sha' in previous_version \
                     and self.checksum(item[:previous_version['up_to']]) == previous_version['sha']:
                 #The first n rows are identical to the previous version, so just append.
-                self._do_append(collection, version, symbol, item[previous_version['up_to']:], previous_version)
+                self.append(collection, version, symbol, item[previous_version['up_to']:], previous_version)
                 return
 
         version['base_sha'] = version['sha']
-        self._do_write(collection, version, symbol, item, previous_version)
+        self._do_write(collection, version, symbol, item, previous_version, chunker, **kwargs)
 
-    def _do_write(self, collection, version, symbol, item, previous_version, segment_offset=0):
-
-        sze = int(item.dtype.itemsize * np.prod(item.shape[1:]))
-
-        # chunk and store the data by (uncompressed) size
-        chunk_size = int(_CHUNK_SIZE / sze)
-
+    def _do_write(self, collection, version, symbol, item, previous_version, chunker, **kwargs):
         previous_shas = []
         if previous_version:
             previous_shas = set([x['sha'] for x in
@@ -412,27 +328,21 @@ class NdarrayStore(object):
                                                  )
                                  ])
 
-        length = len(item)
-
-        if segment_offset > 0 and 'segment_index' in previous_version:
-            existing_index = previous_version['segment_index']
-        else:
-            existing_index = None
-
-        segment_index = []
         i = -1
-
-        # Compress
-        idxs = xrange(int(np.ceil(float(length) / chunk_size)))
-        chunks = [(item[i * chunk_size: (i + 1) * chunk_size]).tostring() for i in idxs]
+        chunks = []
+        chunk_ranges = []
+        for rng, chunk in chunker(item, **kwargs):
+            chunks.append(chunk)
+            chunk_ranges.append(rng)
         compressed_chunks = compress_array(chunks)
 
         # Write
         bulk = collection.initialize_unordered_bulk_op()
-        for i, chunk in zip(idxs, compressed_chunks):
+        rng = 0
+        for rng, chunk in zip(chunk_ranges, compressed_chunks):
+            i += 1
             segment = {'data': Binary(chunk), 'compressed': True}
-            segment['segment'] = min((i + 1) * chunk_size - 1, length - 1) + segment_offset
-            segment_index.append(segment['segment'])
+            segment['segment'] = rng
             sha = checksum(symbol, segment)
             if sha not in previous_shas:
                 segment['sha'] = sha
@@ -441,35 +351,13 @@ class NdarrayStore(object):
             else:
                 bulk.find({'symbol': symbol, 'sha': sha, 'segment': segment['segment']}
                           ).update_one({'$addToSet': {'parent': version['_id']}})
+        # update up_to with the end of the range value from chunker
+        version['up_to'] = rng
         if i != -1:
             bulk.execute()
 
-        segment_index = self._segment_index(item, existing_index=existing_index, start=segment_offset,
-                                            new_segments=segment_index)
-        if segment_index:
-            version['segment_index'] = segment_index
         version['segment_count'] = i + 1
         version['append_size'] = 0
         version['append_count'] = 0
 
         self.check_written(collection, symbol, version)
-
-    def _segment_index(self, new_data, existing_index, start, new_segments):
-        """
-        Generate a segment index which can be used in subselect data in _index_range.
-        This function must handle both generation of the index and appending to an existing index
-
-        Parameters:
-        -----------
-        new_data: new data being written (or appended)
-        existing_index: index field from the versions document of the previous version
-        start: first (0-based) offset of the new data
-        segments: list of offsets. Each offset is the row index of the
-                  the last row of a particular chunk relative to the start of the _original_ item.
-                  array(new_data) - segments = array(offsets in item)
-        
-        Returns:
-        --------
-        Library specific index metadata to be stored in the version document.
-        """
-        pass  # numpy arrays have no index
