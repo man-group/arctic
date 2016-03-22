@@ -5,7 +5,7 @@ from bson.binary import Binary
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Panel
 from pandas.tseries.index import DatetimeIndex
 from pandas.tslib import Timestamp, get_timezone
-
+import pandas as pd
 import numpy as np
 
 from .._compression import compress, decompress
@@ -253,8 +253,8 @@ class PandasSeriesStore(PandasStore):
         name = recarr.dtype.names[-1]
         return Series.from_array(recarr[name], index=index, name=name)
 
-    def can_write(self, version, symbol, data):
-        if isinstance(data, Series):
+    def can_write(self, version, symbol, data, **kwargs):
+        if isinstance(data, Series) and 'chunk_size' not in version:
             if data.dtype == np.object_ or data.index.dtype == np.object_:
                 return self.can_convert_to_records_without_objects(data, symbol)
             return True
@@ -291,8 +291,8 @@ class PandasDataFrameStore(PandasStore):
         columns = recarr.dtype.metadata['columns']
         return DataFrame(data=recarr[column_fields], index=index, columns=columns)
 
-    def can_write(self, version, symbol, data):
-        if isinstance(data, DataFrame):
+    def can_write(self, version, symbol, data, **kwargs):
+        if isinstance(data, DataFrame) and 'chunk_size' not in version:
             if np.any(data.dtypes.values == 'object'):
                 return self.can_convert_to_records_without_objects(data, symbol)
             return True
@@ -314,7 +314,7 @@ class PandasDataFrameStore(PandasStore):
 class PandasPanelStore(PandasDataFrameStore):
     TYPE = 'pandaspan'
 
-    def can_write(self, version, symbol, data):
+    def can_write(self, version, symbol, data, **kwargs):
         if isinstance(data, Panel):
             frame = data.to_frame(filter_observations=False)
             if np.any(frame.dtypes.values == 'object'):
@@ -346,3 +346,84 @@ class PandasPanelStore(PandasDataFrameStore):
 
     def append(self, arctic_lib, version, symbol, item, previous_version):
         raise ValueError('Appending not supported for pandas.Panel')
+
+
+class PandasDateTimeIndexedStore(PandasStore):
+    TYPE = 'pandasdti'
+
+    def _column_data(self, df):
+        columns = list(map(str, df.columns))
+        column_vals = [df[c].values for c in df.columns]
+        return columns, column_vals
+
+    def can_write(self, version, symbol, data, **kwargs):
+        if isinstance(data, (DataFrame, Series)):
+            if 'date' in data.index.names and 'chunk_size' in version and version['chunk_size'] in ('D', 'M', 'Y'):
+                if np.any(data.dtypes.values == 'object'):
+                    return self.can_convert_to_records_without_objects(data, symbol)
+                return True
+        return False
+
+    def get_key_for_date(self, date, chunk_size):
+        fmt = ""
+        if chunk_size == 'Y':
+            fmt = '%Y'
+        elif chunk_size == 'M':
+            fmt = '%Y-%m'
+        elif chunk_size == 'D':
+            fmt = '%Y-%m-%d'
+        return date.strftime(fmt)
+
+    def to_records(self, df, chunk_size):
+        """
+        chunks the dataframe by dates
+
+        returns
+        -------
+        A list of dataframes
+        """
+        dates = [pd.to_datetime(d) for d in df.date.unique()]
+        key_map = {d: self.get_key_for_date(d, chunk_size) for d in dates}
+        return [g for g in df.groupby(df.date.map(key_map))]
+
+    def from_records(self, recarr):
+        index = self._index_from_records(recarr)
+        column_fields = [x for x in recarr.dtype.names if x not in recarr.dtype.metadata['index']]
+        if len(recarr) == 0:
+            rdata = recarr[column_fields] if len(column_fields) > 0 else None
+            return DataFrame(rdata, index=index)
+
+        columns = recarr.dtype.metadata['columns']
+        return DataFrame(data=recarr[column_fields], index=index, columns=columns)
+
+    def write(self, arctic_lib, version, symbol, item, previous_version, chunk_size=None):
+        index = item.index.names
+        item = item.reset_index()
+        recs = self.to_records(item, chunk_size)
+        records = []
+        ranges = []
+        dtype = None
+        for record in recs:
+            r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record[1].set_index(index))
+            records.append(r)
+            ranges.append((record[0], record[0]))
+        super(PandasDateTimeIndexedStore, self).chunked_write(arctic_lib,
+                                                              version,
+                                                              symbol,
+                                                              records,
+                                                              ranges,
+                                                              previous_version,
+                                                              dtype)
+
+    def read(self, arctic_lib, version, symbol, date_range=None, **kwargs):
+        item = super(PandasDateTimeIndexedStore, self).chunked_read(arctic_lib,
+                                                                    version,
+                                                                    symbol,
+                                                                    date_range)
+        return self.from_records(item)
+
+    def append(self, arctic_lib, version, symbol, item, previous_version):
+        pass
+
+    def upsert(self):
+        pass

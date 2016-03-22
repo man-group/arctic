@@ -875,3 +875,12 @@ def test_read_write_multiindex_store_keeps_timezone(library):
     assert list(library.read('spam').data.index[0]) == row0[:-1]
     assert list(library.read('spam').data.index[1]) == row1[:-1]
 
+def test_pandas_datetime_index_store(library):
+    df = DataFrame({'date':[dt(2016, 01, 01), dt(2016, 01, 02), dt(2016, 01, 03)], 'data':[1, 2, 3]})
+    df = df.set_index('date')
+    library.write('dti_test', df, chunk_size='D')
+    df = library.read('dti_test', date_range=date_range(dt(2016, 01, 02), dt(2016, 01, 02))).data
+    print df
+
+
+

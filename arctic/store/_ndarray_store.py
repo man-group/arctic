@@ -4,7 +4,7 @@ import hashlib
 from bson.binary import Binary
 import numpy as np
 import pymongo
-from pymongo.errors import OperationFailure, DuplicateKeyError
+from pymongo.errors import OperationFailure, DuplicateKeyError, BulkWriteError
 
 from ..decorators import mongo_retry, dump_bad_documents
 from ..exceptions import UnhandledDtypeException
@@ -13,6 +13,7 @@ from ._version_store_utils import checksum
 from .._compression import compress_array, decompress
 from ..exceptions import ConcurrentModificationException
 from six.moves import xrange
+from itertools import chain
 
 
 logger = logging.getLogger(__name__)
@@ -129,7 +130,7 @@ class NdarrayStore(object):
     def can_read(self, version, symbol):
         return version['type'] == self.TYPE
 
-    def can_write(self, version, symbol, data):
+    def can_write(self, version, symbol, data, **kwargs):
         return isinstance(data, np.ndarray) and not data.dtype.hasobject
 
     def _dtype(self, string, metadata=None):
@@ -162,6 +163,44 @@ class NdarrayStore(object):
         ret['handler'] = self.__class__.__name__
         ret['rows'] = int(version['up_to'])
         return ret
+
+    def chunked_read(self, arctic_lib, version, symbol, date_range, read_preference=None):
+        collection = arctic_lib.get_top_level_collection()
+        if read_preference:
+            collection = collection.with_options(read_preference=read_preference)
+        return self._do_chunked_read(collection, version, symbol, date_range)
+
+    def _do_chunked_read(self, collection, version, symbol, date_range):
+        segment_count = None
+
+        start = date_range[0].strftime('%Y-%m-%d')
+        end = date_range[-1].strftime('%Y-%m-%d')
+        
+        spec = {'symbol': symbol,
+                'parent': version.get('base_version_id', version['_id']),
+                'segment': {'$lte': end, '$gte': start}
+                }
+
+        segments = []
+        i = -1
+        for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
+            try:
+                segments.append(decompress(x['data']) if x['compressed'] else x['data'])
+            except Exception:
+                dump_bad_documents(x, collection.find_one({'_id': x['_id']}),
+                                      collection.find_one({'_id': x['_id']}),
+                                      collection.find_one({'_id': x['_id']}))
+                raise
+        data = b''.join(segments)
+
+        # Check that the correct number of segments has been returned
+        if segment_count is not None and i + 1 != segment_count:
+            raise OperationFailure("Incorrect number of segments returned for {}:{}.  Expected: {}, but got {}. {}".format(
+                                   symbol, version['version'], segment_count, i + 1, collection.database.name + '.' + collection.name))
+
+        dtype = self._dtype(version['dtype'], version.get('dtype_metadata', {}))
+        rtn = np.fromstring(data, dtype=dtype).reshape(version.get('shape', (-1)))
+        return rtn
 
     def read(self, arctic_lib, version, symbol, read_preference=None, **kwargs):
         index_range = self._index_range(version, symbol, **kwargs)
@@ -371,6 +410,69 @@ class NdarrayStore(object):
         sha = hashlib.sha1()
         sha.update(item.tostring())
         return Binary(sha.digest())
+
+    def chunked_write(self, arctic_lib, version, symbol, records, ranges, previous_version, dtype):
+        collection = arctic_lib.get_top_level_collection()
+
+        item = np.array(records).flatten()
+
+        if item.dtype.hasobject:
+            raise UnhandledDtypeException()
+
+        version['dtype'] = str(dtype)
+        version['shape'] = (-1,) + item.shape[1:]
+        version['dtype_metadata'] = dict(dtype.metadata or {})
+        version['type'] = self.TYPE
+        version['up_to'] = len(item)
+        version['sha'] = self.checksum(item)
+
+        if previous_version:
+            return
+
+        version['base_sha'] = version['sha']
+        self._do_chunked_write(collection, version, symbol, records, ranges, previous_version)
+
+    def _do_chunked_write(self, collection, version, symbol, records, ranges, previous_version):
+        previous_shas = []
+
+        if previous_version:
+            previous_shas = set([x['sha'] for x in
+                                 collection.find({'symbol': symbol},
+                                                 projection={'sha': 1, '_id': 0},
+                                                 )
+                                 ])
+        seg_count = 0
+
+        chunks = [r.tostring() for r in records]
+        chunks = compress_array(chunks)
+
+        bulk = collection.initialize_unordered_bulk_op()
+        for chunk, rng in zip(chunks, ranges):
+            start = rng[0]
+            end = rng[1]
+            seg_count += 1
+            segment = {'data': Binary(chunk), 'compressed': True}
+            segment['segment'] = start
+            segment['end'] = end
+            sha = checksum(symbol, segment)
+            if sha not in previous_shas:
+                segment['sha'] = sha
+                bulk.find({'symbol': symbol, 'sha': sha, 'segment': segment['segment']}
+                          ).upsert().update_one({'$set': segment, '$addToSet': {'parent': version['_id']}})
+            else:
+                bulk.find({'symbol': symbol, 'sha': sha, 'segment': segment['segment']}
+                          ).update_one({'$addToSet': {'parent': version['_id']}})
+        if seg_count != 0:
+            try:
+                bulk.execute()
+            except BulkWriteError as bwe:
+                print bwe.details
+
+        version['segment_count'] = seg_count
+        version['append_size'] = 0
+        version['append_count'] = 0
+
+        self.check_written(collection, symbol, version)
 
     def write(self, arctic_lib, version, symbol, item, previous_version, dtype=None):
         collection = arctic_lib.get_top_level_collection()

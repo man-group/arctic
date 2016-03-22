@@ -559,6 +559,9 @@ class VersionStore(object):
                                                   sort=[('version', pymongo.DESCENDING)],
                                                   )
 
+        if 'chunk_size' in  kwargs:
+            version['chunk_size'] = kwargs['chunk_size']
+
         handler = self._write_handler(version, symbol, data, **kwargs)
         mongo_retry(handler.write)(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
 
