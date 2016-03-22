@@ -7,7 +7,6 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tslib import Timestamp, get_timezone
 
 import numpy as np
-import pandas as pd
 
 from .._compression import compress, decompress
 from ..date._util import to_pandas_closed_closed
@@ -29,40 +28,6 @@ def _to_primitive(arr):
                 return np.array([t.value for t in arr], dtype=DTN64_DTYPE)
         return np.array(list(arr))
     return arr
-
-
-class PandasDateChunker(object):
-    TYPE = 'pandasdate'
-
-    def __call__(self, item, **kwargs):
-        if 'chunk' not in kwargs or kwargs['chunk'] not in ('D', 'M', 'Y'):
-            raise Exception('Must specify a chunk size of D, M or Y when using a date chunker')
-
-        if 'dates' in item:
-            dates = [pd.to_datetime(d) for d in item.date.unique()]
-        else:
-            try:
-                dates = [pd.to_datetime(d) for d in item.get_level_values('date').unique()]
-            except:
-                raise Exception('Dataframe/Series must be date indexed')
-        key_map = {d: self.get_key_for_date(d) for d in dates}
-
-        if 'dates' in item:
-            g = item.groupby(item.date.map(key_map))
-        else:
-            g = item.groupby(item.get_level_values('date').map(key_map))
-
-        for group in g:
-            yield str(g.date.max()), PandasStore().to_records(group)[0]
-
-    def index_range(self, version, from_version=None, **kwargs):
-        from_index = None
-        if from_version:
-            if version['base_sha'] != from_version['base_sha']:
-                # give up - the data has been overwritten, so we can't tail this
-                raise ConcurrentModificationException("Concurrent modification - data has been overwritten")
-            from_index = from_version['up_to']
-        return from_index, None
 
 
 class PandasStore(NdarrayStore):
@@ -142,7 +107,7 @@ class PandasStore(NdarrayStore):
     def can_convert_to_records_without_objects(self, df, symbol):
         # We can't easily distinguish string columns from objects
         try:
-            arr, _ = self.to_records(df)
+            arr,_ = self.to_records(df)
         except Exception as e:
             # This exception will also occur when we try to write the object so we fall-back to saving using Pickle
             log.info('Pandas dataframe %s caused exception "%s" when attempting to convert to records. Saving as Blob.'
@@ -159,9 +124,88 @@ class PandasStore(NdarrayStore):
             else:
                 return True
 
+    def _segment_index(self, recarr, existing_index, start, new_segments):
+        """
+        Generate index of datetime64 -> item offset.
+
+        Parameters:
+        -----------
+        new_data: new data being written (or appended)
+        existing_index: index field from the versions document of the previous version
+        start: first (0-based) offset of the new data
+        segments: list of offsets. Each offset is the row index of the
+                  the last row of a particular chunk relative to the start of the _original_ item.
+                  array(new_data) - segments = array(offsets in item)
+
+        Returns:
+        --------
+        Binary(compress(array([(index, datetime)]))
+            Where index is the 0-based index of the datetime in the DataFrame
+        """
+        # find the index of the first datetime64 column
+        idx_col = self._datetime64_index(recarr)
+        # if one exists let's create the index on it
+        if idx_col is not None:
+            new_segments = np.array(new_segments, dtype='i8')
+            last_rows = recarr[new_segments - start]
+            # create numpy index
+            index = np.core.records.fromarrays([last_rows[idx_col]]
+                                               + [new_segments, ],
+                                               dtype=INDEX_DTYPE)
+            # append to existing index if exists
+            if existing_index:
+                existing_index_arr = np.fromstring(decompress(existing_index), dtype=INDEX_DTYPE)
+                if start > 0:
+                    existing_index_arr = existing_index_arr[existing_index_arr['index'] < start]
+                index = np.concatenate((existing_index_arr, index))
+            return Binary(compress(index.tostring()))
+        elif existing_index:
+            raise ArcticException("Could not find datetime64 index in item but existing data contains one")
+        return None
+
+    def _datetime64_index(self, recarr):
+        """ Given a np.recarray find the first datetime64 column """
+        # TODO: Handle multi-indexes
+        names = recarr.dtype.names
+        for name in names:
+            if recarr[name].dtype == DTN64_DTYPE:
+                return name
+        return None
+
+    def _index_range(self, version, symbol, date_range=None, **kwargs):
+        """ Given a version, read the segment_index and return the chunks associated
+        with the date_range. As the segment index is (id -> last datetime)
+        we need to take care in choosing the correct chunks. """
+        if date_range and 'segment_index' in version:
+            index = np.fromstring(decompress(version['segment_index']), dtype=INDEX_DTYPE)
+            dtcol = self._datetime64_index(index)
+            if dtcol and len(index):
+                dts = index[dtcol]
+                start, end = _start_end(date_range, dts)
+                if start > dts[-1]:
+                    return -1, -1
+                idxstart = min(np.searchsorted(dts, start), len(dts) - 1)
+                idxend = min(np.searchsorted(dts, end), len(dts) - 1)
+                return int(index['index'][idxstart]), int(index['index'][idxend] + 1)
+        return super(PandasStore, self)._index_range(version, symbol, **kwargs)
+
+    def _daterange(self, recarr, date_range):
+        """ Given a recarr, slice out the given artic.date.DateRange if a
+        datetime64 index exists """
+        idx = self._datetime64_index(recarr)
+        if idx and len(recarr):
+            dts = recarr[idx]
+            mask = Series(np.zeros(len(dts)), index=dts)
+            start, end = _start_end(date_range, dts)
+            mask[start:end] = 1.0
+            return recarr[mask.values.astype(bool)]
+        return recarr
+
     def read(self, arctic_lib, version, symbol, read_preference=None, date_range=None, **kwargs):
         item = super(PandasStore, self).read(arctic_lib, version, symbol, read_preference,
                                              date_range=date_range, **kwargs)
+        if date_range:
+            item = self._daterange(item, date_range)
         return item
 
     def get_info(self, version):
@@ -174,6 +218,20 @@ class PandasStore(NdarrayStore):
         ret['handler'] = self.__class__.__name__
         ret['dtype'] = ast.literal_eval(version['dtype'])
         return ret
+
+
+def _start_end(date_range, dts):
+    """
+    Return tuple: [start, end] of np.datetime64 dates that are inclusive of the passed
+    in datetimes.
+    """
+    # FIXME: timezones
+    assert len(dts)
+    _assert_no_timezone(date_range)
+    date_range = to_pandas_closed_closed(date_range, add_tz=False)
+    start = np.datetime64(date_range.start) if date_range.start else dts[0]
+    end = np.datetime64(date_range.end) if date_range.end else dts[-1]
+    return start, end
 
 
 def _assert_no_timezone(date_range):
@@ -203,8 +261,8 @@ class PandasSeriesStore(PandasStore):
         return False
 
     def write(self, arctic_lib, version, symbol, item, previous_version):
-        _, md = self.to_records(item)
-        super(PandasSeriesStore, self).write(arctic_lib, version, symbol, item, previous_version, chunker=PandasDateChunker(), dtype=md)
+        item, md = self.to_records(item)
+        super(PandasSeriesStore, self).write(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
     def append(self, arctic_lib, version, symbol, item, previous_version):
         item, md = self.to_records(item)
@@ -241,8 +299,8 @@ class PandasDataFrameStore(PandasStore):
         return False
 
     def write(self, arctic_lib, version, symbol, item, previous_version):
-        _, md = self.to_records(item)
-        super(PandasDataFrameStore, self).write(arctic_lib, version, symbol, item, previous_version, chunker=PandasDateChunker(), dtype=md)
+        item, md = self.to_records(item)
+        super(PandasDataFrameStore, self).write(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
     def append(self, arctic_lib, version, symbol, item, previous_version):
         item, md = self.to_records(item)
