@@ -5,7 +5,7 @@ import string
 
 from dateutil.rrule import rrule, DAILY
 from mock import Mock, patch
-from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat
+from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat, Index
 from pandas.tseries.offsets import DateOffset
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 import pytest
@@ -91,7 +91,7 @@ def test_save_read_pandas_dataframe_with_unicode_index_name(library):
 
 def test_cant_write_pandas_series_with_tuple_values(library):
     df = Series(data=[('A', 'BC')], index=np.array([dt(2013, 1, 1), ]).astype('datetime64[ns]'))
-    assert PandasSeriesStore().can_write(Mock(), 'FOO', df) == False
+    assert PandasSeriesStore().can_write({}, 'FOO', df) == False
 
 
 def test_save_read_pandas_series_with_datetimeindex_with_timezone(library):
@@ -875,12 +875,28 @@ def test_read_write_multiindex_store_keeps_timezone(library):
     assert list(library.read('spam').data.index[0]) == row0[:-1]
     assert list(library.read('spam').data.index[1]) == row1[:-1]
 
-def test_pandas_datetime_index_store(library):
-    df = DataFrame({'date':[dt(2016, 01, 01), dt(2016, 01, 02), dt(2016, 01, 03)], 'data':[1, 2, 3]})
-    df = df.set_index('date')
+
+def test_pandas_datetime_index_store_df(library):
+    df = DataFrame(data=[1, 2, 3],
+                   index=Index(data=[dt(2016, 01, 01),
+                                     dt(2016, 01, 02),
+                                     dt(2016, 01, 03)],
+                               name='date'),
+                   columns=['data'])
+
     library.write('dti_test', df, chunk_size='D')
-    df = library.read('dti_test', date_range=date_range(dt(2016, 01, 02), dt(2016, 01, 02))).data
-    print df
+    ret = library.read('dti_test', date_range=date_range(dt(2016, 01, 01), dt(2016, 01, 03))).data
+
+    assert_frame_equal(df, ret)
 
 
-
+def test_pandas_datetime_index_store_series(library):
+    df = Series(data=[1, 2, 3],
+                index=Index(data=[dt(2016, 01, 01),
+                                  dt(2016, 01, 02),
+                                  dt(2016, 01, 03)],
+                            name='date'),
+                name='data')
+    library.write('dti_test', df, chunk_size='D')
+    s = library.read('dti_test', date_range=date_range(dt(2016, 01, 01), dt(2016, 01, 03))).data
+    assert_series_equal(s, df)

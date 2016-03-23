@@ -175,7 +175,7 @@ class NdarrayStore(object):
 
         start = date_range[0].strftime('%Y-%m-%d')
         end = date_range[-1].strftime('%Y-%m-%d')
-        
+
         spec = {'symbol': symbol,
                 'parent': version.get('base_version_id', version['_id']),
                 'segment': {'$lte': end, '$gte': start}
@@ -187,9 +187,10 @@ class NdarrayStore(object):
             try:
                 segments.append(decompress(x['data']) if x['compressed'] else x['data'])
             except Exception:
-                dump_bad_documents(x, collection.find_one({'_id': x['_id']}),
-                                      collection.find_one({'_id': x['_id']}),
-                                      collection.find_one({'_id': x['_id']}))
+                dump_bad_documents(x,
+                                   collection.find_one({'_id': x['_id']}),
+                                   collection.find_one({'_id': x['_id']}),
+                                   collection.find_one({'_id': x['_id']}))
                 raise
         data = b''.join(segments)
 
@@ -211,8 +212,8 @@ class NdarrayStore(object):
 
     def _do_read(self, collection, version, symbol, index_range=None):
         '''
-        index_range is a 2-tuple of integers - a [from, to) range of segments to be read. 
-            Either from or to can be None, indicating no bound. 
+        index_range is a 2-tuple of integers - a [from, to) range of segments to be read.
+            Either from or to can be None, indicating no bound.
         '''
         from_index = index_range[0] if index_range else None
         to_index = version['up_to']
@@ -268,7 +269,7 @@ class NdarrayStore(object):
 
         if not dtype:
             dtype = item.dtype
-        
+
         if previous_version['up_to'] == 0:
             dtype = dtype
         elif len(item) == 0:
@@ -340,7 +341,7 @@ class NdarrayStore(object):
                     '''If we get a duplicate key error here, this segment has the same symbol/parent/segment
                        as another chunk, but a different sha. This means that we have 'forked' history.
                        If we concat_and_rewrite here, new chunks will have a different parent id (the _id of this version doc)
-                       ...so we can safely write them. 
+                       ...so we can safely write them.
                        '''
                     self._concat_and_rewrite(collection, version, symbol, item, previous_version)
                     return

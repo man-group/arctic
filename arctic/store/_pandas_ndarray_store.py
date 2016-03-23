@@ -352,19 +352,22 @@ class PandasDateTimeIndexedStore(PandasStore):
     TYPE = 'pandasdti'
 
     def _column_data(self, df):
-        columns = list(map(str, df.columns))
-        column_vals = [df[c].values for c in df.columns]
-        return columns, column_vals
+        if isinstance(df, DataFrame):
+            return PandasDataFrameStore()._column_data(df)
+        else:
+            return PandasSeriesStore()._column_data(df)
 
     def can_write(self, version, symbol, data, **kwargs):
         if isinstance(data, (DataFrame, Series)):
             if 'date' in data.index.names and 'chunk_size' in version and version['chunk_size'] in ('D', 'M', 'Y'):
-                if np.any(data.dtypes.values == 'object'):
+                if isinstance(data, DataFrame) and np.any(data.dtypes.values == 'object'):
+                    return self.can_convert_to_records_without_objects(data, symbol)
+                elif isinstance(data, Series) and (data.dtype == np.object_ or data.index.dtype == np.object_):
                     return self.can_convert_to_records_without_objects(data, symbol)
                 return True
         return False
 
-    def get_key_for_date(self, date, chunk_size):
+    def get_date_chunk(self, date, chunk_size):
         fmt = ""
         if chunk_size == 'Y':
             fmt = '%Y'
@@ -374,39 +377,40 @@ class PandasDateTimeIndexedStore(PandasStore):
             fmt = '%Y-%m-%d'
         return date.strftime(fmt)
 
+    def get_range(self, df):
+        dates = df.reset_index()['date']
+        return dates.min().strftime('%Y-%m-%d'), dates.max().strftime('%Y-%m-%d')
+
     def to_records(self, df, chunk_size):
         """
-        chunks the dataframe by dates
+        chunks the dataframe/series by dates
 
         returns
         -------
-        A list of dataframes
+        A list of tuples - (date, dataframe/series)
         """
-        dates = [pd.to_datetime(d) for d in df.date.unique()]
-        key_map = {d: self.get_key_for_date(d, chunk_size) for d in dates}
-        return [g for g in df.groupby(df.date.map(key_map))]
 
-    def from_records(self, recarr):
-        index = self._index_from_records(recarr)
-        column_fields = [x for x in recarr.dtype.names if x not in recarr.dtype.metadata['index']]
-        if len(recarr) == 0:
-            rdata = recarr[column_fields] if len(column_fields) > 0 else None
-            return DataFrame(rdata, index=index)
-
-        columns = recarr.dtype.metadata['columns']
-        return DataFrame(data=recarr[column_fields], index=index, columns=columns)
+        dates = [pd.to_datetime(d) for d in df.index.get_level_values('date').drop_duplicates()]
+        key_array = [self.get_date_chunk(d, chunk_size) for d in dates]
+        for g in df.groupby(key_array):
+            start, end = self.get_range(g[1])
+            yield start, end, g[1]
 
     def write(self, arctic_lib, version, symbol, item, previous_version, chunk_size=None):
-        index = item.index.names
-        item = item.reset_index()
-        recs = self.to_records(item, chunk_size)
+        if isinstance(item, Series):
+            version['pandas_type'] = 'series'
+        else:
+            version['pandas_type'] = 'df'
+
         records = []
         ranges = []
         dtype = None
-        for record in recs:
-            r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record[1].set_index(index))
+
+        for start, end, record in self.to_records(item, chunk_size):
+            r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record)
             records.append(r)
-            ranges.append((record[0], record[0]))
+            ranges.append((start, end))
+
         super(PandasDateTimeIndexedStore, self).chunked_write(arctic_lib,
                                                               version,
                                                               symbol,
@@ -420,7 +424,10 @@ class PandasDateTimeIndexedStore(PandasStore):
                                                                     version,
                                                                     symbol,
                                                                     date_range)
-        return self.from_records(item)
+
+        if version['pandas_type'] == 'series':
+            return PandasSeriesStore().from_records(item)
+        return PandasDataFrameStore().from_records(item)
 
     def append(self, arctic_lib, version, symbol, item, previous_version):
         pass
