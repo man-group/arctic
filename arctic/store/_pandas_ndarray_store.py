@@ -19,6 +19,9 @@ log = logging.getLogger(__name__)
 DTN64_DTYPE = 'datetime64[ns]'
 
 INDEX_DTYPE = [('datetime', DTN64_DTYPE), ('index', 'i8')]
+# magic string is used as a place holder for column names we cannot store (i.e. None, integers)
+MAGIC_STRING = "*ARCTIC*"
+MAGIC_NONE = MAGIC_STRING + "None"
 
 
 def _to_primitive(arr):
@@ -214,9 +217,15 @@ class PandasStore(NdarrayStore):
         and returns it to the user in a dictionary
         """
         ret = super(PandasStore, self).get_info(version)
-        ret['col_names'] = version['dtype_metadata']
+        col_names = version['dtype_metadata']
+        col_names = ast.literal_eval(str(col_names).replace(MAGIC_STRING, ""))
+        ret['col_names'] = col_names
+
         ret['handler'] = self.__class__.__name__
-        ret['dtype'] = ast.literal_eval(version['dtype'])
+        dtype = version['dtype']
+        dtype = dtype.replace(MAGIC_STRING, '')
+        ret['dtype'] = ast.literal_eval(dtype)
+
         return ret
 
 
@@ -244,13 +253,15 @@ class PandasSeriesStore(PandasStore):
     TYPE = 'pandasseries'
 
     def _column_data(self, s):
-        columns = [s.name if s.name else 'values']
+        columns = [s.name if s.name else MAGIC_NONE]
         column_vals = [s.values]
         return columns, column_vals
 
     def from_records(self, recarr):
         index = self._index_from_records(recarr)
         name = recarr.dtype.names[-1]
+        if name == MAGIC_NONE:
+            return Series.from_array(recarr[name], index=index)
         return Series.from_array(recarr[name], index=index, name=name)
 
     def can_write(self, version, symbol, data):
@@ -277,7 +288,11 @@ class PandasDataFrameStore(PandasStore):
     TYPE = 'pandasdf'
 
     def _column_data(self, df):
-        columns = list(map(str, df.columns))
+        columns = []
+        if all(isinstance(x, int) for x in df.columns):
+            columns = [MAGIC_STRING + str(x) for x in df.columns]
+        else:
+            columns = list(map(str, df.columns))
         column_vals = [df[c].values for c in df.columns]
         return columns, column_vals
 
@@ -289,7 +304,11 @@ class PandasDataFrameStore(PandasStore):
             return DataFrame(rdata, index=index)
 
         columns = recarr.dtype.metadata['columns']
-        return DataFrame(data=recarr[column_fields], index=index, columns=columns)
+        df = DataFrame(data=recarr[column_fields], index=index, columns=columns)
+        if len(df.columns) > 0 and MAGIC_STRING in df.columns[0]:
+            df.columns = [int(c[len(MAGIC_STRING):]) for c in df.columns]
+        return df
+
 
     def can_write(self, version, symbol, data):
         if isinstance(data, DataFrame):

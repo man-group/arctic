@@ -5,17 +5,16 @@ import string
 
 from dateutil.rrule import rrule, DAILY
 from mock import Mock, patch
-from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat
+from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat, Index
 from pandas.tseries.offsets import DateOffset
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 import pytest
 
 from arctic._compression import decompress
 from arctic.date import DateRange, mktz
-from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasStore
+from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore
 from arctic.store.version_store import register_versioned_storage
 import numpy as np
-from tests.util import read_str_as_pandas
 
 
 register_versioned_storage(PandasDataFrameStore)
@@ -26,7 +25,7 @@ def test_save_read_pandas_series(library):
     library.write('pandas', s)
     saved = library.read('pandas').data
     assert np.all(s == saved)
-    assert saved.name == "values"
+    assert saved.name is None
 
 
 def test_save_read_pandas_series_maintains_name(library):
@@ -818,8 +817,8 @@ def test_data_info_series(library):
     s = Series(data=[1, 2, 3], index=[4, 5, 6])
     library.write('pandas', s)
     md = library.get_info('pandas')
-    assert md == {'dtype': [('index', '<i8'), ('values', '<i8')],
-                  'col_names': {u'index': [u'index'], u'columns': [u'values']},
+    assert md == {'dtype': [('index', '<i8'), ('None', '<i8')],
+                  'col_names': {u'index': [u'index'], u'columns': ['None']},
                   'type': u'pandasseries',
                   'handler': 'PandasSeriesStore',
                   'rows': 3,
@@ -832,7 +831,7 @@ def test_data_info_df(library):
     library.write('pandas', s)
     md = library.get_info('pandas')
     assert md == {'dtype': [('index', '<i8'), ('0', '<i8')],
-                  'col_names': {u'index': [u'index'], u'columns': [u'0']},
+                  'col_names': {u'index': [u'index'], u'columns': ['0']},
                   'type': u'pandasdf',
                   'handler': 'PandasDataFrameStore',
                   'rows': 3,
@@ -875,3 +874,24 @@ def test_read_write_multiindex_store_keeps_timezone(library):
     assert list(library.read('spam').data.index[0]) == row0[:-1]
     assert list(library.read('spam').data.index[1]) == row1[:-1]
 
+
+def test_df_with_no_name(library):
+    df = DataFrame(data=[1, 2, 3],
+                   index=Index(data=[dt(2016, 01, 01),
+                                     dt(2016, 01, 02),
+                                     dt(2016, 01, 03)],
+                               name='date'))
+    library.write('test', df)
+    ret = library.read('test').data
+    assert_frame_equal(ret, df)
+
+
+def test_series_with_no_name(library):
+    df = Series(data=[1, 2, 3],
+                index=Index(data=[dt(2016, 01, 01),
+                                  dt(2016, 01, 02),
+                                  dt(2016, 01, 03)],
+                            name='date'))
+    library.write('test', df)
+    ret = library.read('test').data
+    assert_series_equal(ret, df)
