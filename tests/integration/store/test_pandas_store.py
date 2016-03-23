@@ -877,9 +877,9 @@ def test_read_write_multiindex_store_keeps_timezone(library):
 
 def test_df_with_no_name(library):
     df = DataFrame(data=[1, 2, 3],
-                   index=Index(data=[dt(2016, 01, 01),
-                                     dt(2016, 01, 02),
-                                     dt(2016, 01, 03)],
+                   index=Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 1, 2),
+                                     dt(2016, 1, 3)],
                                name='date'))
     library.write('test', df)
     ret = library.read('test').data
@@ -888,9 +888,9 @@ def test_df_with_no_name(library):
 
 def test_series_with_no_name(library):
     df = Series(data=[1, 2, 3],
-                index=Index(data=[dt(2016, 01, 01),
-                                  dt(2016, 01, 02),
-                                  dt(2016, 01, 03)],
+                index=Index(data=[dt(2016, 1, 1),
+                                  dt(2016, 1, 2),
+                                  dt(2016, 1, 3)],
                             name='date'))
     library.write('test', df)
     ret = library.read('test').data
