@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.22 (2016-03-23)
+
+  * Bugfix: #113 Fix dataframe default column and series default name issues
+
 ### 1.21 (2016-03-08)
 
   * Bugfix: #106 Fix Pandas Panel storage for panels with different dimensions
