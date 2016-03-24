@@ -4,7 +4,7 @@ import dateutil
 import tzlocal
 
 DEFAULT_TIME_ZONE_NAME = tzlocal.get_localzone().zone  # 'Europe/London'
-TIME_ZONE_DATA_SOURCE = '/usr/share/zoneinfo/'
+TIME_ZONE_DATA_SOURCE = u'/usr/share/zoneinfo/'
 
 
 class TimezoneError(Exception):
