@@ -888,7 +888,6 @@ def test_pandas_datetime_index_store_df(library):
 
     library.write('dti_test', df, chunk_size='D')
     ret = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 1, 3))).data
-
     assert_frame_equal(df, ret)
 
 
@@ -902,3 +901,37 @@ def test_pandas_datetime_index_store_series(library):
     library.write('dti_test', df, chunk_size='D')
     s = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 1, 3))).data
     assert_series_equal(s, df)
+
+
+def test_pandas_dti_monthly_df(library):
+    df = DataFrame(data=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                   index=Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 1, 2),
+                                     dt(2016, 1, 3),
+                                     dt(2016, 1, 4),
+                                     dt(2016, 1, 5),
+                                     dt(2016, 2, 1),
+                                     dt(2016, 2, 2),
+                                     dt(2016, 2, 3),
+                                     dt(2016, 2, 4),
+                                     dt(2016, 3, 1)],
+                               name='date'),
+                   columns=['data'])
+
+    library.write('dti_test', df, chunk_size='M')
+    ret = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 1, 1))).data
+    assert len(ret) == 5
+    assert_frame_equal(df, library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2017, 1, 1))).data)
+
+
+def test_pandas_dti_yearly_df(library):
+    df = DataFrame(data=[1, 2, 3],
+                   index=Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 2, 1),
+                                     dt(2016, 3, 3)],
+                               name='date'),
+                   columns=['data'])
+
+    library.write('dti_test', df, chunk_size='Y')
+    ret = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 1, 1))).data
+    assert_frame_equal(df, ret)

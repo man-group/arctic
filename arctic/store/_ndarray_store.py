@@ -414,8 +414,7 @@ class NdarrayStore(object):
     def chunked_write(self, arctic_lib, version, symbol, records, ranges, previous_version, dtype):
         collection = arctic_lib.get_top_level_collection()
 
-        item = np.array(records).flatten()
-
+        item = np.array([r for record in records for r in record]).flatten()
         if item.dtype.hasobject:
             raise UnhandledDtypeException()
 
