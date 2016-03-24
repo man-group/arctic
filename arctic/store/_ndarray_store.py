@@ -4,7 +4,7 @@ import hashlib
 from bson.binary import Binary
 import numpy as np
 import pymongo
-from pymongo.errors import OperationFailure, DuplicateKeyError, BulkWriteError
+from pymongo.errors import OperationFailure, DuplicateKeyError
 
 from ..decorators import mongo_retry, dump_bad_documents
 from ..exceptions import UnhandledDtypeException
@@ -13,7 +13,6 @@ from ._version_store_utils import checksum
 from .._compression import compress_array, decompress
 from ..exceptions import ConcurrentModificationException
 from six.moves import xrange
-from itertools import chain
 
 
 logger = logging.getLogger(__name__)
@@ -464,10 +463,7 @@ class NdarrayStore(object):
                 bulk.find({'symbol': symbol, 'sha': sha, 'segment': segment['segment']}
                           ).update_one({'$addToSet': {'parent': version['_id']}})
         if seg_count != 0:
-            try:
-                bulk.execute()
-            except BulkWriteError as bwe:
-                print bwe.details
+            bulk.execute()
 
         version['segment_count'] = seg_count
         version['append_size'] = 0
