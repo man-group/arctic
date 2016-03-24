@@ -880,25 +880,25 @@ def test_read_write_multiindex_store_keeps_timezone(library):
 
 def test_pandas_datetime_index_store_df(library):
     df = DataFrame(data=[1, 2, 3],
-                   index=Index(data=[dt(2016, 01, 01),
-                                     dt(2016, 01, 02),
-                                     dt(2016, 01, 03)],
+                   index=Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 1, 2),
+                                     dt(2016, 1, 3)],
                                name='date'),
                    columns=['data'])
 
     library.write('dti_test', df, chunk_size='D')
-    ret = library.read('dti_test', date_range=date_range(dt(2016, 01, 01), dt(2016, 01, 03))).data
+    ret = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 1, 3))).data
 
     assert_frame_equal(df, ret)
 
 
 def test_pandas_datetime_index_store_series(library):
     df = Series(data=[1, 2, 3],
-                index=Index(data=[dt(2016, 01, 01),
-                                  dt(2016, 01, 02),
-                                  dt(2016, 01, 03)],
+                index=Index(data=[dt(2016, 1, 1),
+                                  dt(2016, 1, 2),
+                                  dt(2016, 1, 3)],
                             name='date'),
                 name='data')
     library.write('dti_test', df, chunk_size='D')
-    s = library.read('dti_test', date_range=date_range(dt(2016, 01, 01), dt(2016, 01, 03))).data
+    s = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 1, 3))).data
     assert_series_equal(s, df)
