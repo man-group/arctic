@@ -3,6 +3,7 @@ import hashlib
 
 from bson.binary import Binary
 import numpy as np
+import pandas as pd
 import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
@@ -260,6 +261,60 @@ class NdarrayStore(object):
             rtn = _promote_struct_dtypes(dtype, prev_dtype)
         rtn = np.dtype(rtn, metadata=dict(dtype.metadata or {}))
         return rtn
+
+    def chunked_append(self, arctic_lib, version, symbol, records, ranges, previous_version, dtype):
+        collection = arctic_lib.get_top_level_collection()
+
+        item = np.array([r for record in records for r in record]).flatten()
+
+        if previous_version.get('shape', [-1]) != [-1, ] + list(item.shape)[1:]:
+            raise UnhandledDtypeException()
+
+        if previous_version['up_to'] == 0:
+            dtype = dtype
+        elif len(item) == 0:
+            dtype = self._dtype(previous_version['dtype'])
+        else:
+            dtype = self._promote_types(dtype, previous_version['dtype'])
+
+        item = item.astype(dtype)
+
+        if str(dtype) != previous_version['dtype']:
+            raise Exception("Dtype mismatch - cannot append")
+
+        version['dtype'] = previous_version['dtype']
+        version['dtype_metadata'] = previous_version['dtype_metadata']
+        version['type'] = self.TYPE
+        self._do_chunked_append(collection, version, symbol, records, ranges, item, previous_version)
+
+    def _do_chunked_append(self, collection, version, symbol, records, ranges, item, previous_version):
+
+        data = item.tostring()
+        version['base_sha'] = previous_version['base_sha']
+        version['up_to'] = previous_version['up_to'] + len(item)
+        if len(item) > 0:
+            version['segment_count'] = previous_version['segment_count'] + len(records)
+            version['append_count'] = previous_version['append_count'] + len(records)
+            version['append_size'] = previous_version['append_size'] + len(data)
+        else:
+            version['segment_count'] = previous_version['segment_count']
+            version['append_count'] = previous_version['append_count']
+            version['append_size'] = previous_version['append_size']
+
+        version['base_version_id'] = previous_version.get('base_version_id', previous_version['_id'])
+        chunks = [r.tostring() for r in records]
+        chunks = compress_array(chunks)
+
+        for chunk, rng in zip(chunks, ranges):
+            start = rng[0]
+            end = rng[-1]
+
+            segment = {'data': Binary(chunk), 'compressed': True}
+            segment['segment'] = start
+            segment['end'] = end
+            collection.update_one({'symbol': symbol, 'sha': checksum(symbol, segment)},
+                                  {'$set': segment, '$addToSet': {'parent': version['base_version_id']}},
+                                  upsert=True)
 
     def append(self, arctic_lib, version, symbol, item, previous_version, dtype=None):
         collection = arctic_lib.get_top_level_collection()

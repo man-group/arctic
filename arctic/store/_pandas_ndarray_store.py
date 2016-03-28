@@ -426,11 +426,31 @@ class PandasDateTimeIndexedStore(PandasStore):
                                                                     date_range)
 
         if version['pandas_type'] == 'series':
-            return PandasSeriesStore().from_records(item)
-        return PandasDataFrameStore().from_records(item)
+            return PandasSeriesStore().from_records(item).ix[date_range[0]:date_range[-1]]
+        return PandasDataFrameStore().from_records(item).ix[date_range[0]:date_range[-1]]
 
     def append(self, arctic_lib, version, symbol, item, previous_version):
-        pass
+        if isinstance(item, Series) and previous_version['pandas_type'] == 'df':
+            raise Exception("cannot append a series to a dataframe")
+        if isinstance(item, DataFrame) and previous_version['pandas_type'] == 'series':
+            raise Exception("cannot append a dataframe to a series")
 
-    def upsert(self):
-        pass
+        version['pandas_type'] = previous_version['pandas_type']
+        version['chunk_size'] = previous_version['chunk_size']
+
+        records = []
+        ranges = []
+        dtype = None
+
+        for start, end, record in self.to_records(item, version['chunk_size']):
+            r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record)
+            records.append(r)
+            ranges.append((start, end))
+
+        super(PandasDateTimeIndexedStore, self).chunked_append(arctic_lib,
+                                                               version,
+                                                               symbol,
+                                                               records,
+                                                               ranges,
+                                                               previous_version,
+                                                               dtype)
