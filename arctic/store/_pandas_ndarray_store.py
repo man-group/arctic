@@ -426,8 +426,13 @@ class PandasDateTimeIndexedStore(PandasStore):
                                                                     date_range)
 
         if version['pandas_type'] == 'series':
-            return PandasSeriesStore().from_records(item).ix[date_range[0]:date_range[-1]]
-        return PandasDataFrameStore().from_records(item).ix[date_range[0]:date_range[-1]]
+            df = PandasSeriesStore().from_records(item)
+        else:
+            df = PandasDataFrameStore().from_records(item)
+
+        if date_range is None:
+            return df
+        return df.ix[date_range[0]:date_range[-1]]
 
     def append(self, arctic_lib, version, symbol, item, previous_version):
         if isinstance(item, Series) and previous_version['pandas_type'] == 'df':

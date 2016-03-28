@@ -171,21 +171,22 @@ class NdarrayStore(object):
         return self._do_chunked_read(collection, version, symbol, date_range)
 
     def _do_chunked_read(self, collection, version, symbol, date_range):
-        segment_count = None
-
-        start = date_range[0].strftime('%Y-%m-%d')
-        end = date_range[-1].strftime('%Y-%m-%d')
+        segment_count = version.get('segment_count', None)
 
         spec = {'symbol': symbol,
                 'parent': version.get('base_version_id', version['_id']),
-                'segment': {'$lte': end, '$gte': start}
                 }
+
+        if date_range is not None:
+            start = date_range[0].strftime('%Y-%m-%d')
+            end = date_range[-1].strftime('%Y-%m-%d')
+            spec['segment'] = {'$lte': end, '$gte': start}
 
         segments = []
         i = -1
         for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
             try:
-                segments.append(decompress(x['data']) if x['compressed'] else x['data'])
+                segments.append(decompress(x['data']))
             except Exception:
                 dump_bad_documents(x,
                                    collection.find_one({'_id': x['_id']}),
@@ -194,10 +195,13 @@ class NdarrayStore(object):
                 raise
         data = b''.join(segments)
 
-        # Check that the correct number of segments has been returned
-        if segment_count is not None and i + 1 != segment_count:
-            raise OperationFailure("Incorrect number of segments returned for {}:{}.  Expected: {}, but got {}. {}".format(
-                                   symbol, version['version'], segment_count, i + 1, collection.database.name + '.' + collection.name))
+        # we can retrieve any number of segments due to how we chunk and query the chunks
+        # so anything from 0 to segment_chunks (inclusive) is ok
+        if segment_count is not None and i + 1 > segment_count:
+            raise OperationFailure("Incorrect number of segments returned for {}:{}.  "
+                                   "Expected no more than {}, but got {}. {}".format(
+                                   symbol, version['version'], segment_count,
+                                   i + 1, collection.database.name + '.' + collection.name))
 
         dtype = self._dtype(version['dtype'], version.get('dtype_metadata', {}))
         rtn = np.fromstring(data, dtype=dtype).reshape(version.get('shape', (-1)))
