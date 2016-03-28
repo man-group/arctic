@@ -90,7 +90,7 @@ class BitemporalStore(object):
             existing_item = self._store.read(symbol, **kwargs)
             if metadata is None:
                 metadata = existing_item.metadata
-            df = existing_item.data.append(data).sort_index()
+            df = existing_item.data.append(data).sort_index(kind='mergesort')
         self._store.write(symbol, df, metadata=metadata, prune_previous_version=True)
 
     def write(self, *args, **kwargs):

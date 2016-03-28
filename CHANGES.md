@@ -1,8 +1,9 @@
 ## Changelog
 
-### 1.22 (2016-03-23)
-
-  * Bugfix: #113 Fix dataframe default column and series default name issues
+### 1.22 (2016-03-24)
+  
+  * Bugfix: #109 Ensure stable sort during Arctic read
+  * Bugfix: #113 Fix dataframe/series default naming
 
 ### 1.21 (2016-03-08)
 

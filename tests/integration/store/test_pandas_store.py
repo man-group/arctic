@@ -9,6 +9,7 @@ from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel
 from pandas.tseries.offsets import DateOffset
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 import pytest
+import pandas as pd
 
 from arctic._compression import decompress
 from arctic.date import DateRange, mktz
@@ -523,6 +524,7 @@ def panel(i1, i2, i3):
                  list(rrule(DAILY, count=i3, dtstart=dt(1970, 1, 1), interval=1)))
 
 
+@pytest.mark.skipif(pd.__version__ == '0.18.0', reason="issue #115")
 @pytest.mark.parametrize("df_size", list(itertools.combinations_with_replacement([1, 2, 4], r=3)))
 def test_panel_save_read(library, df_size):
     '''Note - empties are not tested here as they don't work!'''

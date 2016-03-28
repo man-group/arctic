@@ -234,7 +234,6 @@ def test_multi_index_ts_read_raw(bitemporal_library):
                          2012-10-09 17:06:11.040 | SPAM Index |  2015-01-01 |  2.5
                          2012-11-08 17:06:11.040 | SPAM Index |  2015-01-01 |  3.0""", num_index=3)
     bitemporal_library.update('spam', ts, as_of=dt(2015, 1, 1))
-    ret = bitemporal_library.read('spam', raw=True).data
     assert_frame_equal(expected_ts.tz_localize(tz=LOCAL_TZ, level=2), bitemporal_library.read('spam', raw=True).data)
 
 
