@@ -379,7 +379,8 @@ class PandasDateTimeIndexedStore(PandasStore):
 
     def get_range(self, df):
         dates = df.reset_index()['date']
-        return dates.min().strftime('%Y-%m-%d'), dates.max().strftime('%Y-%m-%d')
+        # return dates.min().strftime('%Y-%m-%d'), dates.max().strftime('%Y-%m-%d')
+        return dates.min(), dates.max()
 
     def to_records(self, df, chunk_size):
         """
@@ -432,7 +433,7 @@ class PandasDateTimeIndexedStore(PandasStore):
 
         if date_range is None:
             return df
-        return df.ix[date_range[0]:date_range[-1]]
+        return df.ix[date_range[0]:date_range[1]]
 
     def append(self, arctic_lib, version, symbol, item, previous_version):
         if isinstance(item, Series) and previous_version['pandas_type'] == 'df':

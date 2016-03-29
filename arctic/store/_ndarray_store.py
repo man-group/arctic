@@ -3,7 +3,6 @@ import hashlib
 
 from bson.binary import Binary
 import numpy as np
-import pandas as pd
 import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
@@ -178,9 +177,7 @@ class NdarrayStore(object):
                 }
 
         if date_range is not None:
-            start = date_range[0].strftime('%Y-%m-%d')
-            end = date_range[-1].strftime('%Y-%m-%d')
-            spec['segment'] = {'$lte': end, '$gte': start}
+            spec['segment'] = date_range.mongo_query()
 
         segments = []
         i = -1

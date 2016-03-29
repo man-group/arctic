@@ -895,7 +895,7 @@ def test_pandas_datetime_index_store_df(library):
                    columns=['data'])
 
     library.write('dti_test', df, chunk_size='D')
-    ret = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 1, 3))).data
+    ret = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 3))).data
     assert_frame_equal(df, ret)
 
 
@@ -912,6 +912,32 @@ def test_pandas_dti_no_range(library):
     assert_frame_equal(df, ret)
 
 
+def test_pandas_dti_closed_open(library):
+    df = DataFrame(data=[1, 2, 3],
+                   index=Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 1, 2),
+                                     dt(2016, 1, 3)],
+                               name='date'),
+                   columns=['data'])
+
+    library.write('dti_test', df, chunk_size='D')
+    ret = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), None)).data
+    assert_frame_equal(df, ret)
+
+
+def test_pandas_dti_open_closed(library):
+    df = DataFrame(data=[1, 2, 3],
+                   index=Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 1, 2),
+                                     dt(2016, 1, 3)],
+                               name='date'),
+                   columns=['data'])
+
+    library.write('dti_test', df, chunk_size='D')
+    ret = library.read('dti_test', date_range=DateRange(None, dt(2017, 1, 1))).data
+    assert_frame_equal(df, ret)
+
+
 def test_pandas_datetime_index_store_series(library):
     df = Series(data=[1, 2, 3],
                 index=Index(data=[dt(2016, 1, 1),
@@ -920,7 +946,7 @@ def test_pandas_datetime_index_store_series(library):
                             name='date'),
                 name='data')
     library.write('dti_test', df, chunk_size='D')
-    s = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 1, 3))).data
+    s = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 3))).data
     assert_series_equal(s, df)
 
 
@@ -940,7 +966,7 @@ def test_pandas_dti_monthly_df(library):
                    columns=['data'])
 
     library.write('dti_test', df, chunk_size='M')
-    ret = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 1, 2))).data
+    ret = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 2))).data
     assert len(ret) == 2
     # assert_frame_equal(df, library.read('dti_test').data)
 
@@ -954,7 +980,7 @@ def test_pandas_dti_yearly_df(library):
                    columns=['data'])
 
     library.write('dti_test', df, chunk_size='Y')
-    ret = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 3, 3))).data
+    ret = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), dt(2016, 3, 3))).data
     assert_frame_equal(df, ret)
 
 
@@ -967,7 +993,7 @@ def test_pandas_dti_yearly_series(library):
                 name='data')
 
     library.write('dti_test', df, chunk_size='Y')
-    ret = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 3, 3))).data
+    ret = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), dt(2016, 3, 3))).data
     assert_series_equal(df, ret)
 
 
@@ -987,7 +1013,7 @@ def test_pandas_dti_append_daily(library):
                                 name='date'),
                     columns=['data'])
     library.append('dti_test', df2)
-    ret = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 1, 6))).data
+    ret = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 6))).data
     assert_frame_equal(ret, pd.concat([df, df2]))
 
 
@@ -1007,7 +1033,7 @@ def test_pandas_dti_append_monthly(library):
                                 name='date'),
                     columns=['data'])
     library.append('dti_test', df2)
-    ret = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 12, 31))).data
+    ret = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), dt(2016, 12, 31))).data
     assert_frame_equal(ret, pd.concat([df, df2]))
 
 
@@ -1027,7 +1053,7 @@ def test_pandas_dti_append_yearly(library):
                                 name='date'),
                     columns=['data'])
     library.append('dti_test', df2)
-    ret = library.read('dti_test', date_range=date_range(dt(2000, 1, 1), dt(2100, 12, 31))).data
+    ret = library.read('dti_test', date_range=DateRange(dt(2000, 1, 1), dt(2100, 12, 31))).data
     assert_frame_equal(ret, pd.concat([df, df2]))
 
 
@@ -1047,7 +1073,7 @@ def test_pandas_dti_append_existing_chunk(library):
                                 name='date'),
                     columns=['data'])
     library.append('dti_test', df2)
-    ret = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 1, 31))).data
+    ret = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 31))).data
     assert_frame_equal(ret, pd.concat([df, df2]))
 
 
