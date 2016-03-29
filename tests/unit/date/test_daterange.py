@@ -60,11 +60,6 @@ def test_daterange_arg_parsing(date_range):
     assert d1.unbounded is False
 
 
-def test_ambiguous_parse():
-    with pytest.raises(ValueError):
-        DateRange('02/01/2011')
-
-
 def test_daterange_eq():
     d1 = DateRange('20110101', '20111231')
     d2 = DateRange('20110101', '20111231')
