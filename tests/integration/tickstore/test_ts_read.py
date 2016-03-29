@@ -40,7 +40,7 @@ def test_read(tickstore_lib):
     assert_array_equal(df['ASK'].values, np.array([1545.25, np.nan]))
     assert_array_equal(df['BID'].values, np.array([1545, np.nan]))
     assert_array_equal(df['PRICE'].values, np.array([1545, 1543.75]))
-    assert_array_equal(df.index.values.astype('object'), np.array([1185076787070000000L, 1185141600600000000L]))
+    assert_array_equal(df.index.values.astype('object'), np.array([1185076787070000000, 1185141600600000000]))
     assert tickstore_lib._collection.find_one()['c'] == 2
 
 
@@ -86,7 +86,7 @@ def test_read_multiple_symbols(tickstore_lib):
     assert_array_equal(df['ASK'].values, np.array([1545.25, np.nan]))
     assert_array_equal(df['BID'].values, np.array([1545, np.nan]))
     assert_array_equal(df['PRICE'].values, np.array([1545, 1543.75]))
-    assert_array_equal(df.index.values.astype('object'), np.array([1185076787070000000L, 1185141600600000000L]))
+    assert_array_equal(df.index.values.astype('object'), np.array([1185076787070000000, 1185141600600000000]))
     assert tickstore_lib._collection.find_one()['c'] == 1
 
 
