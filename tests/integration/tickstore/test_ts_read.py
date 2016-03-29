@@ -2,7 +2,7 @@ from datetime import datetime as dt
 from mock import patch
 import numpy as np
 from numpy.testing.utils import assert_array_equal
-from pandas.util.testing import assert_frame_equal
+from pandas.util.testing import assert_frame_equal, assert_index_equal
 import pandas as pd
 from pandas.tseries.index import DatetimeIndex
 import pytest
@@ -40,8 +40,7 @@ def test_read(tickstore_lib):
     assert_array_equal(df['ASK'].values, np.array([1545.25, np.nan]))
     assert_array_equal(df['BID'].values, np.array([1545, np.nan]))
     assert_array_equal(df['PRICE'].values, np.array([1545, 1543.75]))
-    assert_array_equal(df.index.values, np.array(['2007-07-22T04:59:47.070000000+0100',
-                                                   '2007-07-22T23:00:00.600000000+0100'], dtype='datetime64[ns]'))
+    assert_array_equal(df.index.values.astype('object'), pd.Index([1185076787070000000L, 1185141600600000000L]))
     assert tickstore_lib._collection.find_one()['c'] == 2
 
 
@@ -87,8 +86,7 @@ def test_read_multiple_symbols(tickstore_lib):
     assert_array_equal(df['ASK'].values, np.array([1545.25, np.nan]))
     assert_array_equal(df['BID'].values, np.array([1545, np.nan]))
     assert_array_equal(df['PRICE'].values, np.array([1545, 1543.75]))
-    assert_array_equal(df.index.values, np.array(['2007-07-22T04:59:47.070000000+0100',
-                                                   '2007-07-22T23:00:00.600000000+0100'], dtype='datetime64[ns]'))
+    assert_index_equal(df.index.astype('string'), pd.Index(['2007-07-21 23:59:47.070000-04:00', '2007-07-22 18:00:00.600000-04:00']))
     assert tickstore_lib._collection.find_one()['c'] == 1
 
 
