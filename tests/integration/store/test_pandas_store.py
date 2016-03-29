@@ -13,10 +13,9 @@ import pandas as pd
 
 from arctic._compression import decompress
 from arctic.date import DateRange, mktz
-from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasStore
+from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore
 from arctic.store.version_store import register_versioned_storage
 import numpy as np
-from tests.util import read_str_as_pandas
 
 
 register_versioned_storage(PandasDataFrameStore)
@@ -878,6 +877,15 @@ def test_read_write_multiindex_store_keeps_timezone(library):
     assert list(library.read('spam').data.index[1]) == row1[:-1]
 
 
+def test_series_append(library):
+    s = Series(data=[1, 2, 3], index=DatetimeIndex(start='1/1/2011', periods=3, freq='H'))
+    s2 = Series(data=[4, 5, 6], index=DatetimeIndex(start='2/1/2011', periods=3, freq='H'))
+    library.write('pandas', s)
+    library.append('pandas', s2)
+    saved_s = library.read('pandas').data
+    assert np.all(s.append(s2).values == saved_s.values)
+
+
 def test_pandas_datetime_index_store_df(library):
     df = DataFrame(data=[1, 2, 3],
                    index=Index(data=[dt(2016, 1, 1),
@@ -888,6 +896,19 @@ def test_pandas_datetime_index_store_df(library):
 
     library.write('dti_test', df, chunk_size='D')
     ret = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 1, 3))).data
+    assert_frame_equal(df, ret)
+
+
+def test_pandas_dti_no_range(library):
+    df = DataFrame(data=[1, 2, 3],
+                   index=Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 1, 2),
+                                     dt(2016, 1, 3)],
+                               name='date'),
+                   columns=['data'])
+
+    library.write('dti_test', df, chunk_size='D')
+    ret = library.read('dti_test').data
     assert_frame_equal(df, ret)
 
 
@@ -1028,3 +1049,31 @@ def test_pandas_dti_append_existing_chunk(library):
     library.append('dti_test', df2)
     ret = library.read('dti_test', date_range=date_range(dt(2016, 1, 1), dt(2016, 1, 31))).data
     assert_frame_equal(ret, pd.concat([df, df2]))
+
+
+def test_pandas_dti_append_exceptions(library):
+    df = DataFrame(data=[1, 2, 3],
+                   index=Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 1, 2),
+                                     dt(2016, 1, 3)],
+                               name='date'),
+                   columns=['data'])
+    s = Series(data=[1, 2, 3],
+               index=Index(data=[dt(2016, 1, 1),
+                                 dt(2016, 2, 1),
+                                 dt(2016, 3, 3)],
+                           name='date'),
+               name='data')
+
+    library.write('df', df, chunk_size='D')
+    library.write('s', s, chunk_size='D')
+
+    with pytest.raises(Exception) as e:
+        library.append('df', s)
+
+    assert("cannot append a series to a dataframe" in str(e))
+
+    with pytest.raises(Exception) as e:
+        library.append('s', df)
+
+    assert("cannot append a dataframe to a series" in str(e))
