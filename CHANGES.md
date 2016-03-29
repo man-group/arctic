@@ -3,6 +3,7 @@
 ### 1.22 (2016-03-24)
   
   * Bugfix: #109 Ensure stable sort during Arctic read
+  * Bugfix: #113 Fix dataframe/series default naming
 
 ### 1.21 (2016-03-08)
 
