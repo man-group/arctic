@@ -1,11 +1,20 @@
 import pytest
-import pytz
 
 from datetime import datetime as dt
 from arctic.date import datetime_to_ms, ms_to_datetime, mktz, to_pandas_closed_closed, DateRange, OPEN_OPEN, CLOSED_CLOSED
 from arctic.date._mktz import DEFAULT_TIME_ZONE_NAME
 from arctic.date._util import to_dt
 
+
+def test_ms_to_datetime_raises():
+    with pytest.raises(TypeError) as e:
+        ms_to_datetime("test")
+    assert("expected integer" in str(e))
+
+def test_datetime_to_ms_raises():
+    with pytest.raises(TypeError) as e:
+        datetime_to_ms("test")
+    assert("expect Python datetime" in str(e))
 
 @pytest.mark.parametrize('pdt', [
                             dt(2007, 3, 25, 1, tzinfo=mktz('Europe/London')),
