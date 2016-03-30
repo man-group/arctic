@@ -482,7 +482,11 @@ class NdarrayStore(object):
         version['sha'] = self.checksum(item)
 
         if previous_version:
-            return
+            if version['dtype'] == str(dtype) \
+                    and version['chunk_size'] == previous_version['chunk_size'] \
+                    and 'sha' in previous_version \
+                    and self.checksum(item[:previous_version['up_to']]) == previous_version['sha']:
+                raise Exception("Append on write is handled by PandasStore")
 
         version['base_sha'] = version['sha']
         self._do_chunked_write(collection, version, symbol, records, ranges, previous_version)
@@ -539,7 +543,7 @@ class NdarrayStore(object):
         version['type'] = self.TYPE
         version['up_to'] = len(item)
         version['sha'] = self.checksum(item)
-        
+
         if previous_version:
             if version['dtype'] == str(dtype) \
                     and 'sha' in previous_version \

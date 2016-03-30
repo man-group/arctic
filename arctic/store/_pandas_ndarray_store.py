@@ -7,6 +7,7 @@ from pandas.tseries.index import DatetimeIndex
 from pandas.tslib import Timestamp, get_timezone
 import pandas as pd
 import numpy as np
+import hashlib
 
 from .._compression import compress, decompress
 from ..date._util import to_pandas_closed_closed
@@ -385,6 +386,11 @@ class PandasDateTimeIndexedStore(PandasStore):
         # return dates.min().strftime('%Y-%m-%d'), dates.max().strftime('%Y-%m-%d')
         return dates.min(), dates.max()
 
+    def checksum(self, item):
+        sha = hashlib.sha1()
+        sha.update(item.tostring())
+        return Binary(sha.digest())
+
     def to_records(self, df, chunk_size):
         """
         chunks the dataframe/series by dates
@@ -405,6 +411,24 @@ class PandasDateTimeIndexedStore(PandasStore):
             version['pandas_type'] = 'series'
         else:
             version['pandas_type'] = 'df'
+
+        # if previous version we need to check if this is an append
+        if previous_version:
+            if 'sha' in previous_version and version['chunk_size'] == previous_version['chunk_size'] \
+                    and len(item) > previous_version['up_to']:
+                # convert to records so we can compare the hash of the first N rows
+                if version['pandas_type'] == 'series':
+                    record, dtype = PandasSeriesStore().to_records(item)
+                else:
+                    record, dtype = PandasDataFrameStore().to_records(item)
+
+                # if dttypes and hash match, we can subset the df/series and append
+                if previous_version['dtype'] == str(dtype) \
+                        and self.checksum(record[:previous_version['up_to']]) == previous_version['sha']:
+
+                    df = item.ix[previous_version['up_to']:]
+                    self.append(arctic_lib, version, symbol, df, previous_version)
+                    return
 
         records = []
         ranges = []
