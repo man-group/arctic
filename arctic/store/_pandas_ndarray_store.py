@@ -104,10 +104,13 @@ class PandasStore(NdarrayStore):
 
         return (rtn, dtype)
 
-    def can_convert_to_records_without_objects(self, df, symbol):
+    def can_convert_to_records_without_objects(self, df, symbol, func=None):
         # We can't easily distinguish string columns from objects
         try:
-            arr,_ = self.to_records(df)
+            if func:
+                arr, _ = func(df)
+            else:
+                arr, _ = self.to_records(df)
         except Exception as e:
             # This exception will also occur when we try to write the object so we fall-back to saving using Pickle
             log.info('Pandas dataframe %s caused exception "%s" when attempting to convert to records. Saving as Blob.'
@@ -361,9 +364,9 @@ class PandasDateTimeIndexedStore(PandasStore):
         if isinstance(data, (DataFrame, Series)):
             if 'date' in data.index.names and 'chunk_size' in version and version['chunk_size'] in ('D', 'M', 'Y'):
                 if isinstance(data, DataFrame) and np.any(data.dtypes.values == 'object'):
-                    return self.can_convert_to_records_without_objects(data, symbol)
+                    return self.can_convert_to_records_without_objects(data, symbol, PandasDataFrameStore().to_records)
                 elif isinstance(data, Series) and (data.dtype == np.object_ or data.index.dtype == np.object_):
-                    return self.can_convert_to_records_without_objects(data, symbol)
+                    return self.can_convert_to_records_without_objects(data, symbol, PandasSeriesStore().to_records)
                 return True
         return False
 

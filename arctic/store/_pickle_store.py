@@ -5,7 +5,6 @@ from six.moves import cPickle, xrange
 import io
 import lz4
 import pymongo
-import six
 
 from arctic.store._version_store_utils import checksum, pickle_compat_load
 
@@ -41,7 +40,7 @@ class PickleStore(object):
             return pickle_compat_load(io.BytesIO(data))
         return version['data']
 
-    def write(self, arctic_lib, version, symbol, item, previous_version):
+    def write(self, arctic_lib, version, symbol, item, previous_version, **kwargs):
         try:
             # If it's encodeable, then ship it
             b = bson.BSON.encode({'data': item})

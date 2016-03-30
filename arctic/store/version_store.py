@@ -563,7 +563,7 @@ class VersionStore(object):
             version['chunk_size'] = kwargs['chunk_size']
 
         handler = self._write_handler(version, symbol, data, **kwargs)
-
+        print handler
         mongo_retry(handler.write)(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
 
         # Insert the new version into the version DB

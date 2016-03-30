@@ -10,15 +10,22 @@ from pandas.tseries.offsets import DateOffset
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 import pytest
 import pandas as pd
+from pandas.tslib import Timestamp
 
 from arctic._compression import decompress
 from arctic.date import DateRange, mktz
-from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore
+from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, _to_primitive
 from arctic.store.version_store import register_versioned_storage
 import numpy as np
+from numpy.testing.utils import assert_array_equal
 
 
 register_versioned_storage(PandasDataFrameStore)
+
+
+def test_to_primitive_with_timestamps():
+    arr = _to_primitive(np.array([Timestamp('2010-11-12 00:00:00')]))
+    assert_array_equal(arr, np.array([Timestamp('2010-11-12 00:00:00').value], dtype='datetime64[ns]'))
 
 
 def test_save_read_pandas_series(library):
@@ -1103,3 +1110,29 @@ def test_pandas_dti_append_exceptions(library):
         library.append('s', df)
 
     assert("cannot append a dataframe to a series" in str(e))
+
+
+def test_pandas_dti_store_objects_df(library):
+    df = DataFrame(data=['1', '2', '3'],
+                   index=Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 1, 2),
+                                     dt(2016, 1, 3)],
+                               name='date'),
+                   columns=['data'])
+
+    library.write('dti_test', df, chunk_size='D')
+    ret = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 3))).data
+    assert_frame_equal(df, ret)
+
+
+def test_pandas_dti_store_objects_series(library):
+    df = Series(data=['1', '2', '3'],
+                index=Index(data=[dt(2016, 1, 1),
+                                  dt(2016, 1, 2),
+                                  dt(2016, 1, 3)],
+                            name='date'),
+                name='data')
+
+    library.write('dti_test', df, chunk_size='D')
+    ret = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 3))).data
+    assert_series_equal(df, ret)
