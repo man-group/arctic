@@ -282,7 +282,7 @@ class PandasDataFrameStore(PandasStore):
 
     def _column_data(self, df):
         columns = list(map(str, df.columns))
-        if columns != df.columns:
+        if columns != list(df.columns):
             log.info("Dataframe column names converted to strings")
         column_vals = [df[c].values for c in df.columns]
         return columns, column_vals
