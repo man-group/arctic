@@ -53,8 +53,10 @@ class PandasStore(NdarrayStore):
                 if n is None:
                     index_names[i] = 'level_%d' % count
                     count += 1
+                    log.info("Level in MultiIndex has no name, defaulting to %s" % index_names[i])
         elif index_names[0] is None:
             index_names = ['index']
+            log.info("Index has no name, defaulting to 'index'")
 
         metadata['index'] = index_names
 
@@ -244,6 +246,8 @@ class PandasSeriesStore(PandasStore):
     TYPE = 'pandasseries'
 
     def _column_data(self, s):
+        if s.name is None:
+            log.info("Series has no name, defaulting to 'values'")
         columns = [s.name if s.name else 'values']
         column_vals = [s.values]
         return columns, column_vals
@@ -278,6 +282,8 @@ class PandasDataFrameStore(PandasStore):
 
     def _column_data(self, df):
         columns = list(map(str, df.columns))
+        if columns != list(df.columns):
+            log.info("Dataframe column names converted to strings")
         column_vals = [df[c].values for c in df.columns]
         return columns, column_vals
 
