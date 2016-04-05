@@ -1156,3 +1156,32 @@ def test_pandas_dti_write_with_append_series(library):
     library.write('dti_test', df2, chunk_size='M')
     ret = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 3))).data
     assert_series_equal(df2, ret)
+
+
+def test_pandas_dti_empty_range(library):
+    df = DataFrame(data={'data': [1], 'values': [10]},
+                   index=Index(data=[dt(2016, 1, 1)], name='date'))
+    library.write('dti_test', df, chunk_size='D')
+    df = library.read('dti_test', date_range=DateRange(dt(2016, 1, 2))).data
+    assert(df.empty)
+
+
+def test_pandas_dti_update(library):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=pd.Index(data=[dt(2016, 1, 1),
+                                        dt(2016, 1, 2),
+                                        dt(2016, 1, 3)], name='date'))
+    df2 = DataFrame(data={'data': [20, 30, 40]},
+                    index=pd.Index(data=[dt(2016, 1, 2),
+                                         dt(2016, 1, 3),
+                                         dt(2016, 1, 4)], name='date'))
+
+    equals = DataFrame(data={'data': [1, 20, 30, 40]},
+                       index=pd.Index(data=[dt(2016, 1, 1),
+                                            dt(2016, 1, 2),
+                                            dt(2016, 1, 3),
+                                            dt(2016, 1, 4)], name='date'))
+
+    library.write('dti_test', df, chunk_size='D')
+    library.update('dti_test', df2)
+    assert_frame_equal(library.read('dti_test').data, equals)

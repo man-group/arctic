@@ -10,7 +10,7 @@ import numpy as np
 import hashlib
 
 from .._compression import compress, decompress
-from ..date._util import to_pandas_closed_closed
+from ..date._util import to_pandas_closed_closed, DateRange
 from ..exceptions import ArcticException
 from ._ndarray_store import NdarrayStore
 
@@ -223,6 +223,9 @@ class PandasStore(NdarrayStore):
         ret['dtype'] = ast.literal_eval(version['dtype'])
         return ret
 
+    def can_update(self, version, symbol, data, **kwargs):
+        return False
+
 
 def _start_end(date_range, dts):
     """
@@ -371,6 +374,13 @@ class PandasDateTimeIndexedStore(PandasStore):
                 return True
         return False
 
+    def can_update(self, version, symbol, data, **kwargs):
+        if self.can_read(version, symbol):
+            if isinstance(data, DataFrame) and version['pandas_type'] == 'df' \
+                    or isinstance(data, Series) and version['pandas_type'] == 'series':
+                return self.can_write(version, symbol, data, **kwargs)
+        return False
+
     def get_date_chunk(self, date, chunk_size):
         fmt = ""
         if chunk_size == 'Y':
@@ -383,8 +393,13 @@ class PandasDateTimeIndexedStore(PandasStore):
 
     def get_range(self, df):
         dates = df.reset_index()['date']
-        # return dates.min().strftime('%Y-%m-%d'), dates.max().strftime('%Y-%m-%d')
-        return dates.min(), dates.max()
+        start = dates.min()
+        end = dates.max()
+        if isinstance(start, Timestamp):
+            start = start.to_pydatetime()
+        if isinstance(end, Timestamp):
+            end = end.to_pydatetime()
+        return start, end
 
     def checksum(self, item):
         sha = hashlib.sha1()
@@ -418,14 +433,11 @@ class PandasDateTimeIndexedStore(PandasStore):
                     and len(item) > previous_version['up_to']:
                 # convert to records so we can compare the hash of the first N rows
                 if version['pandas_type'] == 'series':
-                    record, dtype = PandasSeriesStore().to_records(item)
+                    record, _ = PandasSeriesStore().to_records(item)
                 else:
-                    record, dtype = PandasDataFrameStore().to_records(item)
+                    record, _ = PandasDataFrameStore().to_records(item)
 
-                # if dttypes and hash match, we can subset the df/series and append
-                if previous_version['dtype'] == str(dtype) \
-                        and self.checksum(record[:previous_version['up_to']]) == previous_version['sha']:
-
+                if self.checksum(record[:previous_version['up_to']]) == previous_version['sha']:
                     df = item.ix[previous_version['up_to']:]
                     self.append(arctic_lib, version, symbol, df, previous_version)
                     return
@@ -487,3 +499,29 @@ class PandasDateTimeIndexedStore(PandasStore):
                                                                ranges,
                                                                previous_version,
                                                                dtype)
+
+    def update(self, arctic_lib, version, symbol, item):
+        records = []
+        ranges = []
+        orig_ranges = []
+        for start, end, record in self.to_records(item, version['chunk_size']):
+            # read out matching chunks
+            df = self.read(arctic_lib, version, symbol, date_range=DateRange(start, end))
+            # assuming they exist, update them and store the original chunk range for
+            # later use
+            if not df.empty:
+                record = record.combine_first(df)
+                orig_ranges.append((self.get_range(df)))
+            else:
+                orig_ranges.append((None, None))
+
+            r, _ = super(PandasDateTimeIndexedStore, self).to_records(record)
+            records.append(r)
+            ranges.append((start, end))
+
+        super(PandasDateTimeIndexedStore, self).chunked_update(arctic_lib,
+                                                               version,
+                                                               symbol,
+                                                               records,
+                                                               ranges,
+                                                               orig_ranges)

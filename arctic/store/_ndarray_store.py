@@ -625,9 +625,48 @@ class NdarrayStore(object):
         segments: list of offsets. Each offset is the row index of the
                   the last row of a particular chunk relative to the start of the _original_ item.
                   array(new_data) - segments = array(offsets in item)
-        
+
         Returns:
         --------
         Library specific index metadata to be stored in the version document.
         """
         pass  # numpy arrays have no index
+
+    def chunked_update(self, arctic_lib, version, symbol, records, ranges, orig_ranges):
+        collection = arctic_lib.get_top_level_collection()
+
+        chunks = [r.tostring() for r in records]
+        lens = [len(i) for i in chunks]
+        chunks = compress_array(chunks)
+
+        seg_count = 0
+        seg_len = 0
+
+        bulk = collection.initialize_unordered_bulk_op()
+        for chunk, rng, orig_rng, rec_len in zip(chunks, ranges, orig_ranges, lens):
+            start = rng[0]
+            end = rng[1]
+            orig_start = orig_rng[0]
+            if orig_start is None:
+                seg_count += 1
+                seg_len += rec_len
+            segment = {'data': Binary(chunk), 'compressed': True}
+            segment['segment'] = start
+            segment['end'] = end
+            sha = checksum(symbol, segment)
+            segment['sha'] = sha
+            if orig_start is None:
+                # new chunk
+                bulk.find({'symbol': symbol, 'sha': sha, 'segment': segment['segment']}
+                          ).upsert().update_one({'$set': segment, '$addToSet': {'parent': version['_id']}})
+            else:
+                bulk.find({'symbol': symbol, 'segment': orig_start}
+                          ).update_one({'$set': segment, '$addToSet': {'parent': version['_id']}})
+        if len(chunks) > 0:
+                bulk.execute()
+
+        if seg_count != 0:
+            version['segment_count'] += seg_count
+            version['append_size'] += seg_len
+            version['append_count'] += seg_count
+            version['sha'] = sha
