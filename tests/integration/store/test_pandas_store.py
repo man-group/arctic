@@ -1239,7 +1239,6 @@ def test_pandas_dti_append_and_update(library):
     library.write('dti_test', df, chunk_size='D')
     library.append('dti_test', df2)
     library.update('dti_test', df3)
-    print library.read('dti_test').data
     assert_frame_equal(library.read('dti_test').data, equals)
 
 
