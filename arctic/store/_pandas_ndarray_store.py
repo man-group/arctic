@@ -490,6 +490,8 @@ class PandasDateTimeIndexedStore(PandasStore):
             # assuming they exist, update them and store the original chunk range for
             # later use
             if not df.empty:
+                if df.equals(record):
+                    continue
                 record = record.combine_first(df)
                 orig_ranges.append((self.get_range(df)))
             else:
@@ -499,9 +501,10 @@ class PandasDateTimeIndexedStore(PandasStore):
             records.append(r)
             ranges.append((start, end))
 
-        super(PandasDateTimeIndexedStore, self).chunked_update(arctic_lib,
-                                                               version,
-                                                               symbol,
-                                                               records,
-                                                               ranges,
-                                                               orig_ranges)
+        if len(records) > 0:
+            super(PandasDateTimeIndexedStore, self).chunked_update(arctic_lib,
+                                                                   version,
+                                                                   symbol,
+                                                                   records,
+                                                                   ranges,
+                                                                   orig_ranges)

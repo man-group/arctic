@@ -14,6 +14,7 @@ from pandas.tslib import Timestamp
 
 from arctic._compression import decompress
 from arctic.date import DateRange, mktz
+from arctic.store._ndarray_store import NdarrayStore
 from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, _to_primitive
 from arctic.store.version_store import register_versioned_storage
 import numpy as np
@@ -1138,26 +1139,6 @@ def test_pandas_dti_store_objects_series(library):
     assert_series_equal(df, ret)
 
 
-def test_pandas_dti_write_with_append(library):
-    df = DataFrame(data={'data': [1], 'values': [10]},
-                   index=Index(data=[dt(2016, 1, 1)], name='date'))
-    library.write('dti_test', df, chunk_size='M')
-    df2 = DataFrame(data={'data': [1, 2], 'values': [10, 20]},
-                    index=Index(data=[dt(2016, 1, 1), dt(2016, 1, 2)], name='date'))
-    library.write('dti_test', df2, chunk_size='M')
-    ret = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 3))).data
-    assert_frame_equal(df2, ret)
-
-
-def test_pandas_dti_write_with_append_series(library):
-    df = Series(data=[1], index=Index(data=[dt(2016, 1, 1)], name='date'), name='data')
-    library.write('dti_test', df, chunk_size='M')
-    df2 = Series(data=[1, 2], index=Index(data=[dt(2016, 1, 1), dt(2016, 1, 2)], name='date'), name='data')
-    library.write('dti_test', df2, chunk_size='M')
-    ret = library.read('dti_test', date_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 3))).data
-    assert_series_equal(df2, ret)
-
-
 def test_pandas_dti_empty_range(library):
     df = DataFrame(data={'data': [1], 'values': [10]},
                    index=Index(data=[dt(2016, 1, 1)], name='date'))
@@ -1185,3 +1166,90 @@ def test_pandas_dti_update(library):
     library.write('dti_test', df, chunk_size='D')
     library.update('dti_test', df2)
     assert_frame_equal(library.read('dti_test').data, equals)
+
+
+def test_pandas_dti_update_no_overlap(library):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=pd.Index(data=[dt(2016, 1, 1),
+                                        dt(2016, 1, 2),
+                                        dt(2016, 1, 3)], name='date'))
+    df2 = DataFrame(data={'data': [20, 30, 40]},
+                    index=pd.Index(data=[dt(2015, 1, 2),
+                                         dt(2015, 1, 3),
+                                         dt(2015, 1, 4)], name='date'))
+
+    equals = DataFrame(data={'data': [20, 30, 40, 1, 2, 3]},
+                       index=pd.Index(data=[dt(2015, 1, 2),
+                                            dt(2015, 1, 3),
+                                            dt(2015, 1, 4),
+                                            dt(2016, 1, 1),
+                                            dt(2016, 1, 2),
+                                            dt(2016, 1, 3)], name='date'))
+
+    library.write('dti_test', df, chunk_size='D')
+    library.update('dti_test', df2)
+    assert_frame_equal(library.read('dti_test').data, equals)
+
+
+def test_pandas_dti_append_before(library):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=pd.Index(data=[dt(2016, 1, 1),
+                                        dt(2016, 1, 2),
+                                        dt(2016, 1, 3)], name='date'))
+    df2 = DataFrame(data={'data': [20, 30, 40]},
+                    index=pd.Index(data=[dt(2015, 1, 2),
+                                         dt(2015, 1, 3),
+                                         dt(2015, 1, 4)], name='date'))
+
+    equals = DataFrame(data={'data': [20, 30, 40, 1, 2, 3]},
+                       index=pd.Index(data=[dt(2015, 1, 2),
+                                            dt(2015, 1, 3),
+                                            dt(2015, 1, 4),
+                                            dt(2016, 1, 1),
+                                            dt(2016, 1, 2),
+                                            dt(2016, 1, 3)], name='date'))
+
+    library.write('dti_test', df, chunk_size='D')
+    library.append('dti_test', df2)
+    assert_frame_equal(library.read('dti_test').data, equals)
+
+
+def test_pandas_dti_append_and_update(library):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=pd.Index(data=[dt(2016, 1, 1),
+                                        dt(2016, 1, 2),
+                                        dt(2016, 1, 3)], name='date'))
+    df2 = DataFrame(data={'data': [20, 30, 40]},
+                    index=pd.Index(data=[dt(2015, 1, 2),
+                                         dt(2015, 1, 3),
+                                         dt(2015, 1, 4)], name='date'))
+
+    df3 = DataFrame(data={'data': [100, 300]},
+                    index=pd.Index(data=[dt(2015, 1, 2),
+                                         dt(2016, 1, 2)], name='date'))
+
+    equals = DataFrame(data={'data': [100, 30, 40, 1, 300, 3]},
+                       index=pd.Index(data=[dt(2015, 1, 2),
+                                            dt(2015, 1, 3),
+                                            dt(2015, 1, 4),
+                                            dt(2016, 1, 1),
+                                            dt(2016, 1, 2),
+                                            dt(2016, 1, 3)], name='date'))
+
+    library.write('dti_test', df, chunk_size='D')
+    library.append('dti_test', df2)
+    library.update('dti_test', df3)
+    print library.read('dti_test').data
+    assert_frame_equal(library.read('dti_test').data, equals)
+
+
+def test_pandas_dti_update_same_df(library):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=pd.Index(data=[dt(2016, 1, 1),
+                                        dt(2016, 1, 2),
+                                        dt(2016, 1, 3)], name='date'))
+    library.write('dti_test', df, chunk_size='D')
+
+    with patch.object(NdarrayStore, 'chunked_update') as p:
+        library.update('dti_test', df)
+    assert(not p.chunked_update.called)
