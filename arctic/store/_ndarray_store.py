@@ -11,7 +11,6 @@ from ..exceptions import UnhandledDtypeException
 from ._version_store_utils import checksum
 
 from .._compression import compress_array, decompress
-from ..exceptions import ConcurrentModificationException
 from six.moves import xrange
 
 
@@ -55,7 +54,6 @@ class NdarrayStore(object):
       u'up_to': 10,  # no. of rows included in the data for this version
       u'append_count': 0,
       u'append_size': 0,
-      u'base_sha': Binary('........', 0),
       u'dtype': u'float64',
       u'dtype_metadata': {},
       u'segment_count': 1, #only 1 segment included in this version
@@ -70,7 +68,6 @@ class NdarrayStore(object):
       u'up_to': 20, # no. of rows included in the data for this version
       u'append_count': 1, # 1 append operation so far
       u'append_size': 80, # 80 bytes appended
-      u'base_sha': Binary('.........', 0), # equal to sha for version 1
       u'base_version_id': ObjectId('55fa9a7781f12654382e58b8'), # _id of version 1
       u'dtype': u'float64',
       u'dtype_metadata': {},
@@ -145,9 +142,6 @@ class NdarrayStore(object):
         """
         from_index = None
         if from_version:
-            if version['base_sha'] != from_version['base_sha']:
-                #give up - the data has been overwritten, so we can't tail this
-                raise ConcurrentModificationException("Concurrent modification - data has been overwritten")
             from_index = from_version['up_to']
         return from_index, None
 
@@ -291,7 +285,6 @@ class NdarrayStore(object):
     def _do_chunked_append(self, collection, version, symbol, records, ranges, item, previous_version):
 
         data = item.tostring()
-        version['base_sha'] = previous_version['base_sha']
         version['up_to'] = previous_version['up_to'] + len(item)
         if len(item) > 0:
             version['segment_count'] = previous_version['segment_count'] + len(records)
@@ -355,7 +348,6 @@ class NdarrayStore(object):
             item = np.concatenate([old_arr, item])
             version['up_to'] = len(item)
             version['sha'] = self.checksum(item)
-            version['base_sha'] = version['sha']
             self._do_write(collection, version, symbol, item, previous_version)
         else:
             version['dtype'] = previous_version['dtype']
@@ -366,7 +358,6 @@ class NdarrayStore(object):
     def _do_append(self, collection, version, symbol, item, previous_version):
 
         data = item.tostring()
-        version['base_sha'] = previous_version['base_sha']
         version['up_to'] = previous_version['up_to'] + len(item)
         if len(item) > 0:
             version['segment_count'] = previous_version['segment_count'] + 1
@@ -479,16 +470,7 @@ class NdarrayStore(object):
         version['dtype_metadata'] = dict(dtype.metadata or {})
         version['type'] = self.TYPE
         version['up_to'] = len(item)
-        version['sha'] = self.checksum(item)
 
-        if previous_version:
-            if version['dtype'] == str(dtype) \
-                    and version['chunk_size'] == previous_version['chunk_size'] \
-                    and 'sha' in previous_version \
-                    and self.checksum(item[:previous_version['up_to']]) == previous_version['sha']:
-                raise Exception("Append on write is handled by PandasStore")
-
-        version['base_sha'] = version['sha']
         self._do_chunked_write(collection, version, symbol, records, ranges, previous_version)
 
     def _do_chunked_write(self, collection, version, symbol, records, ranges, previous_version):
@@ -552,7 +534,6 @@ class NdarrayStore(object):
                 self._do_append(collection, version, symbol, item[previous_version['up_to']:], previous_version)
                 return
 
-        version['base_sha'] = version['sha']
         self._do_write(collection, version, symbol, item, previous_version)
 
     def _do_write(self, collection, version, symbol, item, previous_version, segment_offset=0):
@@ -648,6 +629,7 @@ class NdarrayStore(object):
             end = rng[1]
             orig_start = orig_rng[0]
             if orig_start is None:
+                version['up_to'] += rec_len
                 seg_count += 1
                 seg_len += rec_len
             segment = {'data': Binary(chunk), 'compressed': True}
@@ -669,4 +651,3 @@ class NdarrayStore(object):
             version['segment_count'] += seg_count
             version['append_size'] += seg_len
             version['append_count'] += seg_count
-            version['sha'] = sha

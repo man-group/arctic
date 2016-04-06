@@ -401,11 +401,6 @@ class PandasDateTimeIndexedStore(PandasStore):
             end = end.to_pydatetime()
         return start, end
 
-    def checksum(self, item):
-        sha = hashlib.sha1()
-        sha.update(item.tostring())
-        return Binary(sha.digest())
-
     def to_records(self, df, chunk_size):
         """
         chunks the dataframe/series by dates
@@ -426,21 +421,6 @@ class PandasDateTimeIndexedStore(PandasStore):
             version['pandas_type'] = 'series'
         else:
             version['pandas_type'] = 'df'
-
-        # if previous version we need to check if this is an append
-        if previous_version:
-            if 'sha' in previous_version and version['chunk_size'] == previous_version['chunk_size'] \
-                    and len(item) > previous_version['up_to']:
-                # convert to records so we can compare the hash of the first N rows
-                if version['pandas_type'] == 'series':
-                    record, _ = PandasSeriesStore().to_records(item)
-                else:
-                    record, _ = PandasDataFrameStore().to_records(item)
-
-                if self.checksum(record[:previous_version['up_to']]) == previous_version['sha']:
-                    df = item.ix[previous_version['up_to']:]
-                    self.append(arctic_lib, version, symbol, df, previous_version)
-                    return
 
         records = []
         ranges = []
