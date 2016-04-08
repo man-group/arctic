@@ -1239,7 +1239,6 @@ def test_pandas_dti_append_and_update(library):
     library.write('dti_test', df, chunk_size='D')
     library.append('dti_test', df2)
     library.update('dti_test', df3)
-    print library.read('dti_test').data
     assert_frame_equal(library.read('dti_test').data, equals)
 
 
@@ -1248,6 +1247,43 @@ def test_pandas_dti_update_same_df(library):
                    index=pd.Index(data=[dt(2016, 1, 1),
                                         dt(2016, 1, 2),
                                         dt(2016, 1, 3)], name='date'))
+    library.write('dti_test', df, chunk_size='D')
+
+    with patch.object(NdarrayStore, 'chunked_update') as p:
+        library.update('dti_test', df)
+    assert(not p.chunked_update.called)
+
+
+def test_pandas_dti_update_series(library):
+    df = Series(data=[1, 2, 3],
+                index=pd.Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 1, 2),
+                                     dt(2016, 1, 3)], name='date'),
+                name='data')
+    df2 = Series(data=[20, 30, 40],
+                 index=pd.Index(data=[dt(2016, 1, 2),
+                                      dt(2016, 1, 3),
+                                      dt(2016, 1, 4)], name='date'),
+                 name='data')
+
+    equals = Series(data=[1, 20, 30, 40],
+                    index=pd.Index(data=[dt(2016, 1, 1),
+                                         dt(2016, 1, 2),
+                                         dt(2016, 1, 3),
+                                         dt(2016, 1, 4)], name='date'),
+                    name='data')
+
+    library.write('dti_test', df, chunk_size='D')
+    library.update('dti_test', df2)
+    assert_series_equal(library.read('dti_test').data, equals)
+
+
+def test_pandas_dti_update_same_series(library):
+    df = Series(data=[1, 2, 3],
+                index=pd.Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 1, 2),
+                                     dt(2016, 1, 3)], name='date'),
+                name='data')
     library.write('dti_test', df, chunk_size='D')
 
     with patch.object(NdarrayStore, 'chunked_update') as p:
