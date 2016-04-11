@@ -526,7 +526,8 @@ class VersionStore(object):
     def update(self, symbol, data, **kwargs):
         """
         Find an existing chunk of data and update (overwrite) it. This WILL NOT
-        create a new version of the data!
+        create a new version of the data! This is currently only supported by the
+        PandasDatetimeIndexedStore storage type.
 
         Parameters
         ----------

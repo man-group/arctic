@@ -6,7 +6,7 @@ import numpy as np
 import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
-from ..decorators import mongo_retry, dump_bad_documents
+from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException
 from ._version_store_utils import checksum
 
@@ -176,14 +176,8 @@ class NdarrayStore(object):
         segments = []
         i = -1
         for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
-            try:
-                segments.append(decompress(x['data']))
-            except Exception:
-                dump_bad_documents(x,
-                                   collection.find_one({'_id': x['_id']}),
-                                   collection.find_one({'_id': x['_id']}),
-                                   collection.find_one({'_id': x['_id']}))
-                raise
+            segments.append(decompress(x['data']))
+
         data = b''.join(segments)
 
         # we can retrieve any number of segments due to how we chunk and query the chunks
@@ -228,13 +222,8 @@ class NdarrayStore(object):
         segments = []
         i = -1
         for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
-            try:
-                segments.append(decompress(x['data']) if x['compressed'] else x['data'])
-            except Exception:
-                dump_bad_documents(x, collection.find_one({'_id': x['_id']}),
-                                      collection.find_one({'_id': x['_id']}),
-                                      collection.find_one({'_id': x['_id']}))
-                raise
+            segments.append(decompress(x['data']) if x['compressed'] else x['data'])
+
         data = b''.join(segments)
 
         # Check that the correct number of segments has been returned

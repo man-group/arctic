@@ -1,14 +1,11 @@
 import bson
-from bson import ObjectId, Binary
-import datetime
 from datetime import datetime as dt, timedelta as dtd
 from mock import patch
 import numpy as np
 from numpy.testing import assert_equal
-import os
+
 from pymongo.server_type import SERVER_TYPE
 import pytest
-import time
 
 from arctic.store._ndarray_store import NdarrayStore, _APPEND_COUNT
 from arctic.store.version_store import register_versioned_storage
@@ -321,27 +318,6 @@ def test_append_with_extra_columns(library):
 
     assert expected.dtype == saved_arr.dtype
     assert_equal(expected.tolist(), saved_arr.tolist())
-
-
-def test_logging_of_bad_documents(library):
-    ndarr = np.array([(2.1, 1, "a")], dtype=[('C', np.float), ('B', np.int), ('A', 'S1')])
-    library.write('MYARR', ndarr)
-
-    doc = library._collection.find_one()
-    with patch('arctic.store._ndarray_store.decompress', side_effect=Exception("some-error")), \
-         patch('arctic.decorators.datetime') as dt, \
-         pytest.raises(Exception) as e:
-            dt.now.return_value = datetime.datetime(1970, 1, 1)
-            library.read('MYARR')
-    assert 'some-error' in str(e)
-    path = '/tmp/mongo_debug_' + str(os.getpid()) + '_' + str(doc['_id']) + '_1970-01-01 00:00:00'
-    with open(path, 'r') as f:
-        for l in f:
-            assert l.strip() == str(doc)
-            new_doc = eval(l.strip())
-            assert doc['data'] == new_doc['data']
-
-    os.remove(path)
 
 
 def test_save_append_delete_append(library):

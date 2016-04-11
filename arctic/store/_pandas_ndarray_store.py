@@ -3,11 +3,9 @@ import logging
 
 from bson.binary import Binary
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Panel
-from pandas.tseries.index import DatetimeIndex
 from pandas.tslib import Timestamp, get_timezone
 import pandas as pd
 import numpy as np
-import hashlib
 
 from .._compression import compress, decompress
 from ..date._util import to_pandas_closed_closed, DateRange
@@ -356,6 +354,14 @@ class PandasPanelStore(PandasDataFrameStore):
 
 
 class PandasDateTimeIndexedStore(PandasStore):
+    """
+    Datetime indexed storage type. Can be either Series or Dataframe, but 
+    must have an index named 'date'. Data will be chunked based on the specified 
+    chunk size at write time. 
+    
+    Allows write, read, append, and update operations
+    """
+
     TYPE = 'pandasdti'
 
     def _column_data(self, df):
@@ -382,6 +388,13 @@ class PandasDateTimeIndexedStore(PandasStore):
         return False
 
     def get_date_chunk(self, date, chunk_size):
+        '''
+        format date appropriately for the chunk size
+        
+        returns
+        -------
+        Formatted date string
+        '''
         fmt = ""
         if chunk_size == 'Y':
             fmt = '%Y'
@@ -392,6 +405,13 @@ class PandasDateTimeIndexedStore(PandasStore):
         return date.strftime(fmt)
 
     def get_range(self, df):
+        """
+        get minx/max dates in the index of the dataframe
+        
+        returns
+        -------
+        A tuple (start date, end date)
+        """
         dates = df.reset_index()['date']
         start = dates.min()
         end = dates.max()
@@ -407,7 +427,7 @@ class PandasDateTimeIndexedStore(PandasStore):
 
         returns
         -------
-        A list of tuples - (date, dataframe/series)
+        A list of tuples - (start date, end date, dataframe/series)
         """
 
         dates = [pd.to_datetime(d) for d in df.index.get_level_values('date').drop_duplicates()]
