@@ -451,8 +451,9 @@ class NdarrayStore(object):
         collection = arctic_lib.get_top_level_collection()
 
         item = np.array([r for record in records for r in record]).flatten()
-        if item.dtype.hasobject:
-            raise UnhandledDtypeException()
+        for record in records:
+            if record.dtype.hasobject:
+                raise UnhandledDtypeException()
 
         version['dtype'] = str(dtype)
         version['shape'] = (-1,) + item.shape[1:]

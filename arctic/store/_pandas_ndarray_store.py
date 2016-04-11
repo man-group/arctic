@@ -100,7 +100,6 @@ class PandasStore(NdarrayStore):
         # For some reason the dtype metadata is lost in the line above
         # and setting rtn.dtype to dtype does not preserve the metadata
         # see https://github.com/numpy/numpy/issues/6771
-
         return (rtn, dtype)
 
     def can_convert_to_records_without_objects(self, df, symbol, func=None):

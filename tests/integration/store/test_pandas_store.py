@@ -1289,3 +1289,24 @@ def test_pandas_dti_update_same_series(library):
     with patch.object(NdarrayStore, 'chunked_update') as p:
         library.update('dti_test', df)
     assert(not p.chunked_update.called)
+
+
+def test_pandas_dti_df_with_multiindex(library):
+    df = DataFrame(data=[1, 2, 3],
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 2),
+                                                 (dt(2016, 1, 2), 3),
+                                                 (dt(2016, 1, 3), 2)],
+                                                names=['date', 'security']))
+    library.write('pandas', df, chunk_size='D')
+    saved_df = library.read('pandas').data
+    assert np.all(df.values == saved_df.values)
+
+
+def test_pandas_dti_with_strings(library):
+    df = DataFrame(data={'data': ['A', 'B', 'C']},
+                   index=pd.Index(data=[dt(2016, 1, 1),
+                                        dt(2016, 1, 2),
+                                        dt(2016, 1, 3)], name='date'))
+    library.write('dti_test', df, chunk_size='D')
+    read_df = library.read('dti_test').data
+    assert_frame_equal(read_df, df)
