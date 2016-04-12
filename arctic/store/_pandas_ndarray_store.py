@@ -20,11 +20,13 @@ DTN64_DTYPE = 'datetime64[ns]'
 INDEX_DTYPE = [('datetime', DTN64_DTYPE), ('index', 'i8')]
 
 
-def _to_primitive(arr):
+def _to_primitive(arr, string_max_len=None):
     if arr.dtype.hasobject:
         if len(arr) > 0:
             if isinstance(arr[0], Timestamp):
                 return np.array([t.value for t in arr], dtype=DTN64_DTYPE)
+        if string_max_len:
+            return np.array(arr.astype('S{:d}'.format(string_max_len)))
         return np.array(list(arr))
     return arr
 
@@ -77,13 +79,16 @@ class PandasStore(NdarrayStore):
 
         return rtn
 
-    def to_records(self, df):
+    def to_records(self, df, string_max_len=None):
         """
         Similar to DataFrame.to_records()
         Differences:
             Attempt type conversion for pandas columns stored as objects (e.g. strings),
             as we can only store primitives in the ndarray.
             Use dtype metadata to store column and index names.
+            
+        string_max_len: integer - enforces a string size on the dtype, if any
+                                  strings exist in the record
         """
 
         index_names, ix_vals, metadata = self._index_to_records(df)
@@ -91,8 +96,11 @@ class PandasStore(NdarrayStore):
 
         metadata['columns'] = columns
         names = index_names + columns
-        arrays = ix_vals + column_vals
-        arrays = list(map(_to_primitive, arrays))
+
+        arrays = []
+        for arr in ix_vals + column_vals:
+            arrays.append(_to_primitive(arr, string_max_len))
+
         dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
                          metadata=metadata)
 
@@ -362,6 +370,7 @@ class PandasDateTimeIndexedStore(PandasStore):
     """
 
     TYPE = 'pandasdti'
+    STRING_MAX = 16
 
     def _column_data(self, df):
         if isinstance(df, DataFrame):
@@ -446,7 +455,7 @@ class PandasDateTimeIndexedStore(PandasStore):
         dtype = None
 
         for start, end, record in self.to_records(item, chunk_size):
-            r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record)
+            r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record, string_max_len=self.STRING_MAX)
             records.append(r)
             ranges.append((start, end))
 
@@ -487,7 +496,7 @@ class PandasDateTimeIndexedStore(PandasStore):
         dtype = None
 
         for start, end, record in self.to_records(item, version['chunk_size']):
-            r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record)
+            r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record, string_max_len=self.STRING_MAX)
             records.append(r)
             ranges.append((start, end))
 
