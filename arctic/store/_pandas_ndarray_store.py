@@ -26,7 +26,7 @@ def _to_primitive(arr, string_max_len=None):
             if isinstance(arr[0], Timestamp):
                 return np.array([t.value for t in arr], dtype=DTN64_DTYPE)
         if string_max_len:
-            return np.array(arr.astype('S{:d}'.format(string_max_len)))
+            return np.array(arr.astype('U{:d}'.format(string_max_len)))
         return np.array(list(arr))
     return arr
 
