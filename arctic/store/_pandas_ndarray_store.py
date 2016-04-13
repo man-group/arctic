@@ -420,7 +420,7 @@ class PandasDateTimeIndexedStore(PandasStore):
         -------
         A tuple (start date, end date)
         """
-        dates = df.reset_index()['date']
+        dates = df.index.get_level_values('date')
         start = dates.min()
         end = dates.max()
         if isinstance(start, Timestamp):
@@ -437,12 +437,13 @@ class PandasDateTimeIndexedStore(PandasStore):
         -------
         A list of tuples - (start date, end date, dataframe/series)
         """
-
         dates = [pd.to_datetime(d) for d in df.index.get_level_values('date').drop_duplicates()]
         key_array = [self.get_date_chunk(d, chunk_size) for d in dates]
-        for g in df.groupby(key_array):
-            start, end = self.get_range(g[1])
-            yield start, end, g[1]
+
+        for date in set(key_array):
+            ret = df[date : date]
+            start, end = self.get_range(ret)
+            yield start, end, ret
 
     def write(self, arctic_lib, version, symbol, item, previous_version, chunk_size=None):
         if isinstance(item, Series):
@@ -495,10 +496,39 @@ class PandasDateTimeIndexedStore(PandasStore):
         ranges = []
         dtype = None
 
+        update_records = []
+        update_ranges = []
+        update_orig_ranges = []
+
         for start, end, record in self.to_records(item, version['chunk_size']):
-            r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record, string_max_len=self.STRING_MAX)
-            records.append(r)
-            ranges.append((start, end))
+            '''
+            if we have a multiindex there is a chance that part of the append
+            will overlap an already written chunk, so we need to update
+            where the date part of the index overlaps
+            '''
+            if item.index.nlevels > 1:
+                df = self.read(arctic_lib, previous_version, symbol, date_range=DateRange(start, end))
+                if not df.empty:
+                    if df.equals(record):
+                        continue
+                    record = record.combine_first(df)
+                    r, _ = super(PandasDateTimeIndexedStore, self).to_records(record, string_max_len=self.STRING_MAX)
+                    update_records.append(r)
+                    update_ranges.append((start, end))
+                    update_orig_ranges.append((self.get_range(df)))
+            else:
+                r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record, string_max_len=self.STRING_MAX)
+                records.append(r)
+                ranges.append((start, end))
+
+        # update old chunks before writing new ones
+        if len(update_records) > 0:
+            super(PandasDateTimeIndexedStore, self).chunked_update(arctic_lib,
+                                                                   version,
+                                                                   symbol,
+                                                                   update_records,
+                                                                   update_ranges,
+                                                                   update_orig_ranges)
 
         super(PandasDateTimeIndexedStore, self).chunked_append(arctic_lib,
                                                                version,
@@ -525,7 +555,7 @@ class PandasDateTimeIndexedStore(PandasStore):
             else:
                 orig_ranges.append((None, None))
 
-            r, _ = super(PandasDateTimeIndexedStore, self).to_records(record)
+            r, _ = super(PandasDateTimeIndexedStore, self).to_records(record, string_max_len=self.STRING_MAX)
             records.append(r)
             ranges.append((start, end))
 

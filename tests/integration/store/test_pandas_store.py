@@ -1315,20 +1315,20 @@ def test_pandas_dti_with_strings(library):
 def test_pandas_dti_with_strings_multiindex_append(library):
     df = DataFrame(data={'data': ['A', 'BBB', 'CC']},
                    index=MultiIndex.from_tuples([(dt(2016, 1, 1), 2),
-                                                 (dt(2016, 1, 2), 3),
-                                                 (dt(2016, 1, 3), 2)],
+                                                 (dt(2016, 1, 1), 3),
+                                                 (dt(2016, 1, 2), 2)],
                                                 names=['date', 'security']))
     library.write('dti_test', df, chunk_size='D')
     read_df = library.read('dti_test').data
     assert_frame_equal(read_df, df)
     df2 = DataFrame(data={'data': ['AAAAAAA']},
-                    index=MultiIndex.from_tuples([(dt(2016, 1, 4), 4)],
+                    index=MultiIndex.from_tuples([(dt(2016, 1, 2), 4)],
                                                  names=['date', 'security']))
     library.append('dti_test', df2)
     df = DataFrame(data={'data': ['A', 'BBB', 'CC', 'AAAAAAA']},
                    index=MultiIndex.from_tuples([(dt(2016, 1, 1), 2),
-                                                 (dt(2016, 1, 2), 3),
-                                                 (dt(2016, 1, 3), 2),
-                                                 (dt(2016, 1, 4), 4)],
+                                                 (dt(2016, 1, 1), 3),
+                                                 (dt(2016, 1, 2), 2),
+                                                 (dt(2016, 1, 2), 4)],
                                                 names=['date', 'security']))
     assert_frame_equal(library.read('dti_test').data, df)
