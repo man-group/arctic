@@ -9,6 +9,7 @@ from pymongo.errors import OperationFailure, DuplicateKeyError
 from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException
 from ._version_store_utils import checksum
+from ._store import BaseStore
 
 from .._compression import compress_array, decompress
 from six.moves import xrange
@@ -36,7 +37,7 @@ def _promote_struct_dtypes(dtype1, dtype2):
     return np.dtype([(n, _promote(dtype1.fields[n][0], dtype2.fields.get(n, (None,))[0])) for n in dtype1.names])
 
 
-class NdarrayStore(object):
+class NdarrayStore(BaseStore):
     """Chunked store for arbitrary ndarrays, supporting append.
     
     for the simple example:
@@ -129,9 +130,6 @@ class NdarrayStore(object):
     def can_write(self, version, symbol, data, **kwargs):
         return isinstance(data, np.ndarray) and not data.dtype.hasobject
 
-    def can_update(self, version, symbol, data, **kwargs):
-        return False
-
     def _dtype(self, string, metadata=None):
         if metadata is None:
             metadata = {}
@@ -160,7 +158,7 @@ class NdarrayStore(object):
         ret['rows'] = int(version['up_to'])
         return ret
 
-    def chunked_read(self, arctic_lib, version, symbol, date_range, read_preference=None):
+    def _chunked_read(self, arctic_lib, version, symbol, date_range, read_preference=None):
         collection = arctic_lib.get_top_level_collection()
         if read_preference:
             collection = collection.with_options(read_preference=read_preference)
@@ -249,7 +247,7 @@ class NdarrayStore(object):
         rtn = np.dtype(rtn, metadata=dict(dtype.metadata or {}))
         return rtn
 
-    def chunked_append(self, arctic_lib, version, symbol, records, ranges, previous_version, dtype):
+    def _chunked_append(self, arctic_lib, version, symbol, records, ranges, previous_version, dtype):
         collection = arctic_lib.get_top_level_collection()
 
         item = np.array([r for record in records for r in record]).flatten()
@@ -450,7 +448,7 @@ class NdarrayStore(object):
         sha.update(item.tostring())
         return Binary(sha.digest())
 
-    def chunked_write(self, arctic_lib, version, symbol, records, ranges, previous_version, dtype):
+    def _chunked_write(self, arctic_lib, version, symbol, records, ranges, previous_version, dtype):
         collection = arctic_lib.get_top_level_collection()
 
         item = np.array([r for record in records for r in record]).flatten()
@@ -606,7 +604,7 @@ class NdarrayStore(object):
         """
         pass  # numpy arrays have no index
 
-    def chunked_update(self, arctic_lib, version, symbol, records, ranges, orig_ranges):
+    def _chunked_update(self, arctic_lib, version, symbol, records, ranges, orig_ranges):
         collection = arctic_lib.get_top_level_collection()
 
         chunks = [r.tostring() for r in records]

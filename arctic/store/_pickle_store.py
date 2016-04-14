@@ -7,13 +7,15 @@ import lz4
 import pymongo
 
 from arctic.store._version_store_utils import checksum, pickle_compat_load
+from ._store import BaseStore
+
 
 _MAGIC_CHUNKED = '__chunked__'
 _CHUNK_SIZE = 15 * 1024 * 1024  # 15MB
 _MAX_BSON_ENCODE = 256 * 1024  # 256K - don't fill up the version document with encoded bson
 
 
-class PickleStore(object):
+class PickleStore(BaseStore):
 
     @classmethod
     def initialize_library(cls, *args, **kwargs):

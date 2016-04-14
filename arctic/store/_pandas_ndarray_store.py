@@ -228,9 +228,6 @@ class PandasStore(NdarrayStore):
         ret['dtype'] = ast.literal_eval(version['dtype'])
         return ret
 
-    def can_update(self, version, symbol, data, **kwargs):
-        return False
-
 
 def _start_end(date_range, dts):
     """
@@ -466,20 +463,20 @@ class PandasDateTimeIndexedStore(PandasStore):
             records.append(r)
             ranges.append((start, end))
 
-        super(PandasDateTimeIndexedStore, self).chunked_write(arctic_lib,
-                                                              version,
-                                                              symbol,
-                                                              records,
-                                                              ranges,
-                                                              previous_version,
-                                                              dtype)
+        super(PandasDateTimeIndexedStore, self)._chunked_write(arctic_lib,
+                                                               version,
+                                                               symbol,
+                                                               records,
+                                                               ranges,
+                                                               previous_version,
+                                                               dtype)
 
     def read(self, arctic_lib, version, symbol, date_range=None, **kwargs):
 
-        item = super(PandasDateTimeIndexedStore, self).chunked_read(arctic_lib,
-                                                                    version,
-                                                                    symbol,
-                                                                    date_range)
+        item = super(PandasDateTimeIndexedStore, self)._chunked_read(arctic_lib,
+                                                                     version,
+                                                                     symbol,
+                                                                     date_range)
 
         if version['pandas_type'] == 'series':
             df = PandasSeriesStore().from_records(item)
@@ -530,20 +527,20 @@ class PandasDateTimeIndexedStore(PandasStore):
 
         # update old chunks before writing new ones
         if len(update_records) > 0:
-            super(PandasDateTimeIndexedStore, self).chunked_update(arctic_lib,
-                                                                   version,
-                                                                   symbol,
-                                                                   update_records,
-                                                                   update_ranges,
-                                                                   update_orig_ranges)
+            super(PandasDateTimeIndexedStore, self)._chunked_update(arctic_lib,
+                                                                    version,
+                                                                    symbol,
+                                                                    update_records,
+                                                                    update_ranges,
+                                                                    update_orig_ranges)
 
-        super(PandasDateTimeIndexedStore, self).chunked_append(arctic_lib,
-                                                               version,
-                                                               symbol,
-                                                               records,
-                                                               ranges,
-                                                               previous_version,
-                                                               dtype)
+        super(PandasDateTimeIndexedStore, self)._chunked_append(arctic_lib,
+                                                                version,
+                                                                symbol,
+                                                                records,
+                                                                ranges,
+                                                                previous_version,
+                                                                dtype)
 
     def update(self, arctic_lib, version, symbol, item):
         records = []
@@ -567,9 +564,9 @@ class PandasDateTimeIndexedStore(PandasStore):
             ranges.append((start, end))
 
         if len(records) > 0:
-            super(PandasDateTimeIndexedStore, self).chunked_update(arctic_lib,
-                                                                   version,
-                                                                   symbol,
-                                                                   records,
-                                                                   ranges,
-                                                                   orig_ranges)
+            super(PandasDateTimeIndexedStore, self)._chunked_update(arctic_lib,
+                                                                    version,
+                                                                    symbol,
+                                                                    records,
+                                                                    ranges,
+                                                                    orig_ranges)

@@ -1250,9 +1250,9 @@ def test_pandas_dti_update_same_df(library):
                                         dt(2016, 1, 3)], name='date'))
     library.write('dti_test', df, chunk_size='D')
 
-    with patch.object(NdarrayStore, 'chunked_update') as p:
+    with patch.object(NdarrayStore, '_chunked_update') as p:
         library.update('dti_test', df)
-    assert(not p.chunked_update.called)
+    assert(not p._chunked_update.called)
 
 
 def test_pandas_dti_update_series(library):
@@ -1287,9 +1287,9 @@ def test_pandas_dti_update_same_series(library):
                 name='data')
     library.write('dti_test', df, chunk_size='D')
 
-    with patch.object(NdarrayStore, 'chunked_update') as p:
+    with patch.object(NdarrayStore, '_chunked_update') as p:
         library.update('dti_test', df)
-    assert(not p.chunked_update.called)
+    assert(not p._chunked_update.called)
 
 
 def test_pandas_dti_df_with_multiindex(library):
