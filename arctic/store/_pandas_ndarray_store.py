@@ -3,13 +3,12 @@ import logging
 
 from bson.binary import Binary
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Panel
-from pandas.tseries.index import DatetimeIndex
 from pandas.tslib import Timestamp, get_timezone
-
+import pandas as pd
 import numpy as np
 
 from .._compression import compress, decompress
-from ..date._util import to_pandas_closed_closed
+from ..date._util import to_pandas_closed_closed, DateRange
 from ..exceptions import ArcticException
 from ._ndarray_store import NdarrayStore
 
@@ -21,11 +20,13 @@ DTN64_DTYPE = 'datetime64[ns]'
 INDEX_DTYPE = [('datetime', DTN64_DTYPE), ('index', 'i8')]
 
 
-def _to_primitive(arr):
+def _to_primitive(arr, string_max_len=None):
     if arr.dtype.hasobject:
         if len(arr) > 0:
             if isinstance(arr[0], Timestamp):
                 return np.array([t.value for t in arr], dtype=DTN64_DTYPE)
+        if string_max_len:
+            return np.array(arr.astype('U{:d}'.format(string_max_len)))
         return np.array(list(arr))
     return arr
 
@@ -80,13 +81,16 @@ class PandasStore(NdarrayStore):
 
         return rtn
 
-    def to_records(self, df):
+    def to_records(self, df, string_max_len=None):
         """
         Similar to DataFrame.to_records()
         Differences:
             Attempt type conversion for pandas columns stored as objects (e.g. strings),
             as we can only store primitives in the ndarray.
             Use dtype metadata to store column and index names.
+            
+        string_max_len: integer - enforces a string size on the dtype, if any
+                                  strings exist in the record
         """
 
         index_names, ix_vals, metadata = self._index_to_records(df)
@@ -94,8 +98,11 @@ class PandasStore(NdarrayStore):
 
         metadata['columns'] = columns
         names = index_names + columns
-        arrays = ix_vals + column_vals
-        arrays = list(map(_to_primitive, arrays))
+
+        arrays = []
+        for arr in ix_vals + column_vals:
+            arrays.append(_to_primitive(arr, string_max_len))
+
         dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
                          metadata=metadata)
 
@@ -103,13 +110,15 @@ class PandasStore(NdarrayStore):
         # For some reason the dtype metadata is lost in the line above
         # and setting rtn.dtype to dtype does not preserve the metadata
         # see https://github.com/numpy/numpy/issues/6771
-
         return (rtn, dtype)
 
-    def can_convert_to_records_without_objects(self, df, symbol):
+    def can_convert_to_records_without_objects(self, df, symbol, func=None):
         # We can't easily distinguish string columns from objects
         try:
-            arr,_ = self.to_records(df)
+            if func:
+                arr, _ = func(df)
+            else:
+                arr, _ = self.to_records(df)
         except Exception as e:
             # This exception will also occur when we try to write the object so we fall-back to saving using Pickle
             log.info('Pandas dataframe %s caused exception "%s" when attempting to convert to records. Saving as Blob.'
@@ -257,8 +266,8 @@ class PandasSeriesStore(PandasStore):
         name = recarr.dtype.names[-1]
         return Series.from_array(recarr[name], index=index, name=name)
 
-    def can_write(self, version, symbol, data):
-        if isinstance(data, Series):
+    def can_write(self, version, symbol, data, **kwargs):
+        if isinstance(data, Series) and 'chunk_size' not in version:
             if data.dtype == np.object_ or data.index.dtype == np.object_:
                 return self.can_convert_to_records_without_objects(data, symbol)
             return True
@@ -297,8 +306,8 @@ class PandasDataFrameStore(PandasStore):
         columns = recarr.dtype.metadata['columns']
         return DataFrame(data=recarr[column_fields], index=index, columns=columns)
 
-    def can_write(self, version, symbol, data):
-        if isinstance(data, DataFrame):
+    def can_write(self, version, symbol, data, **kwargs):
+        if isinstance(data, DataFrame) and 'chunk_size' not in version:
             if np.any(data.dtypes.values == 'object'):
                 return self.can_convert_to_records_without_objects(data, symbol)
             return True
@@ -320,7 +329,7 @@ class PandasDataFrameStore(PandasStore):
 class PandasPanelStore(PandasDataFrameStore):
     TYPE = 'pandaspan'
 
-    def can_write(self, version, symbol, data):
+    def can_write(self, version, symbol, data, **kwargs):
         if isinstance(data, Panel):
             frame = data.to_frame(filter_observations=False)
             if np.any(frame.dtypes.values == 'object'):
@@ -352,3 +361,218 @@ class PandasPanelStore(PandasDataFrameStore):
 
     def append(self, arctic_lib, version, symbol, item, previous_version):
         raise ValueError('Appending not supported for pandas.Panel')
+
+
+class PandasDateTimeIndexedStore(PandasStore):
+    """
+    Datetime indexed storage type. Can be either Series or Dataframe, but 
+    must have an index named 'date'. Data will be chunked based on the specified 
+    chunk size at write time. 
+    
+    Allows write, read, append, and update operations
+    """
+
+    TYPE = 'pandasdti'
+    STRING_MAX = 16
+
+    def _column_data(self, df):
+        if isinstance(df, DataFrame):
+            return PandasDataFrameStore()._column_data(df)
+        else:
+            return PandasSeriesStore()._column_data(df)
+
+    def can_write(self, version, symbol, data, **kwargs):
+        if isinstance(data, (DataFrame, Series)):
+            if 'date' in data.index.names and 'chunk_size' in version and version['chunk_size'] in ('D', 'M', 'Y'):
+                if isinstance(data, DataFrame) and np.any(data.dtypes.values == 'object'):
+                    return self.can_convert_to_records_without_objects(data, symbol, PandasDataFrameStore().to_records)
+                elif isinstance(data, Series) and (data.dtype == np.object_ or data.index.dtype == np.object_):
+                    return self.can_convert_to_records_without_objects(data, symbol, PandasSeriesStore().to_records)
+                return True
+        return False
+
+    def can_update(self, version, symbol, data, **kwargs):
+        if self.can_read(version, symbol):
+            if isinstance(data, DataFrame) and version['pandas_type'] == 'df' \
+                    or isinstance(data, Series) and version['pandas_type'] == 'series':
+                return self.can_write(version, symbol, data, **kwargs)
+        return False
+
+    def get_date_chunk(self, date, chunk_size):
+        '''
+        format date appropriately for the chunk size
+        
+        returns
+        -------
+        Formatted date string
+        '''
+        if chunk_size == 'Y':
+            return date.strftime('%Y')
+        elif chunk_size == 'M':
+            return date.strftime('%Y-%m')
+        elif chunk_size == 'D':
+            return date.strftime('%Y-%m-%d')
+
+
+    def get_range(self, df):
+        """
+        get minx/max dates in the index of the dataframe
+        
+        returns
+        -------
+        A tuple (start date, end date)
+        """
+        dates = df.index.get_level_values('date')
+        start = dates.min()
+        end = dates.max()
+        if isinstance(start, Timestamp):
+            start = start.to_pydatetime()
+        if isinstance(end, Timestamp):
+            end = end.to_pydatetime()
+        return start, end
+
+    def to_records(self, df, chunk_size):
+        """
+        chunks the dataframe/series by dates
+
+        returns
+        -------
+        A list of tuples - (start date, end date, dataframe/series)
+        """
+        dates = [pd.to_datetime(d) for d in df.index.get_level_values('date').drop_duplicates()]
+        key_array = [self.get_date_chunk(d, chunk_size) for d in dates]
+
+        for date in set(key_array):
+            if df.index.nlevels > 1:
+                '''
+                can't slice with partial date on multi-index. Support coming in 
+                pandas 0.18.1
+                '''
+                ret = df.xs(slice(date, date), level='date', drop_level=False)
+            else:
+                ret = df[date : date]
+            start, end = self.get_range(ret)
+            yield start, end, ret
+
+    def write(self, arctic_lib, version, symbol, item, previous_version, chunk_size=None):
+        if isinstance(item, Series):
+            version['pandas_type'] = 'series'
+        else:
+            version['pandas_type'] = 'df'
+
+        records = []
+        ranges = []
+        dtype = None
+
+        for start, end, record in self.to_records(item, chunk_size):
+            r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record, string_max_len=self.STRING_MAX)
+            records.append(r)
+            ranges.append((start, end))
+
+        super(PandasDateTimeIndexedStore, self)._chunked_write(arctic_lib,
+                                                               version,
+                                                               symbol,
+                                                               records,
+                                                               ranges,
+                                                               previous_version,
+                                                               dtype)
+
+    def read(self, arctic_lib, version, symbol, date_range=None, **kwargs):
+
+        item = super(PandasDateTimeIndexedStore, self)._chunked_read(arctic_lib,
+                                                                     version,
+                                                                     symbol,
+                                                                     date_range)
+
+        if version['pandas_type'] == 'series':
+            df = PandasSeriesStore().from_records(item)
+        else:
+            df = PandasDataFrameStore().from_records(item)
+
+        if date_range is None:
+            return df
+        return df.ix[date_range[0]:date_range[1]]
+
+    def append(self, arctic_lib, version, symbol, item, previous_version):
+        if isinstance(item, Series) and previous_version['pandas_type'] == 'df':
+            raise Exception("cannot append a series to a dataframe")
+        if isinstance(item, DataFrame) and previous_version['pandas_type'] == 'series':
+            raise Exception("cannot append a dataframe to a series")
+
+        version['pandas_type'] = previous_version['pandas_type']
+        version['chunk_size'] = previous_version['chunk_size']
+
+        records = []
+        ranges = []
+        dtype = None
+
+        update_records = []
+        update_ranges = []
+        update_orig_ranges = []
+
+        for start, end, record in self.to_records(item, version['chunk_size']):
+            '''
+            if we have a multiindex there is a chance that part of the append
+            will overlap an already written chunk, so we need to update
+            where the date part of the index overlaps
+            '''
+            if item.index.nlevels > 1:
+                df = self.read(arctic_lib, previous_version, symbol, date_range=DateRange(start, end))
+                if not df.empty:
+                    if df.equals(record):
+                        continue
+                    record = record.combine_first(df)
+                    r, _ = super(PandasDateTimeIndexedStore, self).to_records(record, string_max_len=self.STRING_MAX)
+                    update_records.append(r)
+                    update_ranges.append((start, end))
+                    update_orig_ranges.append((self.get_range(df)))
+                    continue
+            r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record, string_max_len=self.STRING_MAX)
+            records.append(r)
+            ranges.append((start, end))
+
+        # update old chunks before writing new ones
+        if len(update_records) > 0:
+            super(PandasDateTimeIndexedStore, self)._chunked_update(arctic_lib,
+                                                                    version,
+                                                                    symbol,
+                                                                    update_records,
+                                                                    update_ranges,
+                                                                    update_orig_ranges)
+
+        super(PandasDateTimeIndexedStore, self)._chunked_append(arctic_lib,
+                                                                version,
+                                                                symbol,
+                                                                records,
+                                                                ranges,
+                                                                previous_version,
+                                                                dtype)
+
+    def update(self, arctic_lib, version, symbol, item):
+        records = []
+        ranges = []
+        orig_ranges = []
+        for start, end, record in self.to_records(item, version['chunk_size']):
+            # read out matching chunks
+            df = self.read(arctic_lib, version, symbol, date_range=DateRange(start, end))
+            # assuming they exist, update them and store the original chunk range for
+            # later use
+            if not df.empty:
+                if df.equals(record):
+                    continue
+                record = record.combine_first(df)
+                orig_ranges.append((self.get_range(df)))
+            else:
+                orig_ranges.append((None, None))
+
+            r, _ = super(PandasDateTimeIndexedStore, self).to_records(record, string_max_len=self.STRING_MAX)
+            records.append(r)
+            ranges.append((start, end))
+
+        if len(records) > 0:
+            super(PandasDateTimeIndexedStore, self)._chunked_update(arctic_lib,
+                                                                    version,
+                                                                    symbol,
+                                                                    records,
+                                                                    ranges,
+                                                                    orig_ranges)

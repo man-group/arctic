@@ -3,6 +3,7 @@ import operator
 import pytest
 import itertools
 import six
+import pickle
 
 from arctic.date import DateRange, string_to_daterange, CLOSED_CLOSED, CLOSED_OPEN, OPEN_CLOSED, OPEN_OPEN
 
@@ -51,6 +52,7 @@ test_ranges_for_parse = [
     ['2011-01-02', '2011-12-31'],
     [dt(2011, 1, 2), dt(2011, 12, 31)],
 ]
+
 
 @pytest.mark.parametrize("date_range", test_ranges_for_parse)
 def test_daterange_arg_parsing(date_range):
@@ -234,3 +236,9 @@ def test_intersection_preserves_boundaries():
     assert DateRange('20110101', '20110102', OPEN_OPEN) == DateRange('20110101', '20110102', CLOSED_OPEN).intersection(DateRange('20110101', '20110102', OPEN_OPEN))
     assert DateRange('20110101', '20110102', OPEN_OPEN) == DateRange('20110101', '20110102', OPEN_OPEN).intersection(DateRange('20110101', '20110102', OPEN_CLOSED))
 
+
+def test_daterange_pickle():
+    d = DateRange(dt(2015, 1, 1), dt(2016, 1, 1))
+    p = pickle.dumps(d)
+    d2 = pickle.loads(p)
+    assert(d == d2)

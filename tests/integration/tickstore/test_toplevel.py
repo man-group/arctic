@@ -1,5 +1,4 @@
 from datetime import datetime as dt, timedelta as dtd
-from dateutil.rrule import rrule, DAILY
 import pytest
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
@@ -183,3 +182,12 @@ def test_should_add_underlying_libraries_when_intialized(arctic):
     expected_results = {'FEED_2010.LEVEL1': {'start': dt(2010, 1, 1), 'end': dt(2010, 12, 31, 23, 59, 59, 999000)},
                         'FEED_2011.LEVEL1': {'start': dt(2011, 1, 1), 'end': dt(2011, 12, 31, 23, 59, 59, 999000)}}
     assert expected_results == results
+
+
+def test_read_raises(toplevel_tickstore, arctic):
+    arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+    arctic.initialize_library('test_current.toplevel_tickstore', tickstore.TICK_STORE_TYPE)
+
+    with pytest.raises(NoDataFoundException) as e:
+        toplevel_tickstore.read('blah', DateRange(start=dt(2015, 1, 1), end=dt(2015, 1, 6)), list('ABCD'))
+    assert("No Data found for blah in range" in str(e))

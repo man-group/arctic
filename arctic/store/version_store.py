@@ -1,5 +1,4 @@
 from datetime import datetime as dt, timedelta
-import pprint
 import logging
 
 import bson
@@ -288,6 +287,14 @@ class VersionStore(object):
             handler = self._bson_handler
         return handler
 
+    def _update_handler(self, version, symbol, data, **kwargs):
+        handler = None
+        for h in _TYPE_HANDLERS:
+            if h.can_update(version, symbol, data, **kwargs):
+                handler = h
+                break
+        return handler
+
     def read(self, symbol, as_of=None, date_range=None, from_version=None, allow_secondary=None, **kwargs):
         """
         Read data for the named symbol.  Returns a VersionedItem object with
@@ -359,8 +366,6 @@ class VersionStore(object):
         if handler and hasattr(handler, 'get_info'):
             return handler.get_info(version)
         return {}
-
-
 
     def _do_read(self, symbol, version, from_version=None, **kwargs):
         handler = self._read_handler(version, symbol)
@@ -517,6 +522,31 @@ class VersionStore(object):
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
                              metadata=version.pop('metadata', None), data=None)
 
+    @mongo_retry
+    def update(self, symbol, data, **kwargs):
+        """
+        Find an existing chunk of data and update (overwrite) it. This WILL NOT
+        create a new version of the data! This is currently only supported by the
+        PandasDatetimeIndexedStore storage type.
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        data :
+            to be persisted
+        """
+        version = self._read_metadata(symbol)
+        old_ver = dict(version)
+        handler = self._update_handler(version, symbol, data, **kwargs)
+
+        if handler is None:
+            Exception("Update not implemented for handler %s" % handler)
+
+        mongo_retry(handler.update)(self._arctic_lib, version, symbol, data, **kwargs)
+        mongo_retry(self._versions.delete_one)(old_ver)
+        mongo_retry(self._versions.insert_one)(version)
+
     def _publish_change(self, symbol, version):
         if self._publish_changes:
             mongo_retry(self._changes.insert_one)(version)
@@ -540,7 +570,7 @@ class VersionStore(object):
             Default: True
         kwargs :
             passed through to the write handler
-            
+
         Returns
         -------
         VersionedItem named tuple containing the metadata and verison number
@@ -558,6 +588,9 @@ class VersionStore(object):
         previous_version = self._versions.find_one({'symbol': symbol, 'version': {'$lt': version['version']}},
                                                   sort=[('version', pymongo.DESCENDING)],
                                                   )
+
+        if 'chunk_size' in  kwargs:
+            version['chunk_size'] = kwargs['chunk_size']
 
         handler = self._write_handler(version, symbol, data, **kwargs)
         mongo_retry(handler.write)(self._arctic_lib, version, symbol, data, previous_version, **kwargs)

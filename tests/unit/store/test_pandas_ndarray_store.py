@@ -1,11 +1,9 @@
 from mock import Mock, sentinel, patch
-from pandas.util.testing import assert_frame_equal
 from pytest import raises
 
 from arctic.store._pandas_ndarray_store import PandasStore, \
     PandasDataFrameStore, PandasPanelStore
 import numpy as np
-import pandas as pd
 from tests.util import read_str_as_pandas
 
 
@@ -104,3 +102,4 @@ def test_read_multi_index_with_no_ts_info():
     record = np.array(record.tolist(), dtype=np.dtype([('index 1', '<M8[ns]'), ('index 2', '<M8[ns]'), ('SPAM', '<f8')],
                                                       metadata={'index': ['index 1', 'index 2'], 'columns': ['SPAM']}))
     assert store._index_from_records(record).equals(df.index)
+

@@ -6,12 +6,12 @@ import numpy as np
 import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
-from ..decorators import mongo_retry, dump_bad_documents
+from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException
 from ._version_store_utils import checksum
+from ._store import BaseStore
 
 from .._compression import compress_array, decompress
-from ..exceptions import ConcurrentModificationException
 from six.moves import xrange
 
 
@@ -37,7 +37,7 @@ def _promote_struct_dtypes(dtype1, dtype2):
     return np.dtype([(n, _promote(dtype1.fields[n][0], dtype2.fields.get(n, (None,))[0])) for n in dtype1.names])
 
 
-class NdarrayStore(object):
+class NdarrayStore(BaseStore):
     """Chunked store for arbitrary ndarrays, supporting append.
     
     for the simple example:
@@ -55,7 +55,6 @@ class NdarrayStore(object):
       u'up_to': 10,  # no. of rows included in the data for this version
       u'append_count': 0,
       u'append_size': 0,
-      u'base_sha': Binary('........', 0),
       u'dtype': u'float64',
       u'dtype_metadata': {},
       u'segment_count': 1, #only 1 segment included in this version
@@ -70,7 +69,6 @@ class NdarrayStore(object):
       u'up_to': 20, # no. of rows included in the data for this version
       u'append_count': 1, # 1 append operation so far
       u'append_size': 80, # 80 bytes appended
-      u'base_sha': Binary('.........', 0), # equal to sha for version 1
       u'base_version_id': ObjectId('55fa9a7781f12654382e58b8'), # _id of version 1
       u'dtype': u'float64',
       u'dtype_metadata': {},
@@ -129,7 +127,7 @@ class NdarrayStore(object):
     def can_read(self, version, symbol):
         return version['type'] == self.TYPE
 
-    def can_write(self, version, symbol, data):
+    def can_write(self, version, symbol, data, **kwargs):
         return isinstance(data, np.ndarray) and not data.dtype.hasobject
 
     def _dtype(self, string, metadata=None):
@@ -145,9 +143,6 @@ class NdarrayStore(object):
         """
         from_index = None
         if from_version:
-            if version['base_sha'] != from_version['base_sha']:
-                #give up - the data has been overwritten, so we can't tail this
-                raise ConcurrentModificationException("Concurrent modification - data has been overwritten")
             from_index = from_version['up_to']
         return from_index, None
 
@@ -163,6 +158,41 @@ class NdarrayStore(object):
         ret['rows'] = int(version['up_to'])
         return ret
 
+    def _chunked_read(self, arctic_lib, version, symbol, date_range, read_preference=None):
+        collection = arctic_lib.get_top_level_collection()
+        if read_preference:
+            collection = collection.with_options(read_preference=read_preference)
+        return self._do_chunked_read(collection, version, symbol, date_range)
+
+    def _do_chunked_read(self, collection, version, symbol, date_range):
+        segment_count = version.get('segment_count', None)
+
+        spec = {'symbol': symbol,
+                'parent': version.get('base_version_id', version['_id']),
+                }
+
+        if date_range is not None:
+            spec['segment'] = date_range.mongo_query()
+
+        segments = []
+        i = -1
+        for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
+            segments.append(decompress(x['data']))
+
+        data = b''.join(segments)
+
+        # we can retrieve any number of segments due to how we chunk and query the chunks
+        # so anything from 0 to segment_chunks (inclusive) is ok
+        if segment_count is not None and i + 1 > segment_count:
+            raise OperationFailure("Incorrect number of segments returned for {}:{}.  "
+                                   "Expected no more than {}, but got {}. {}".format(
+                                   symbol, version['version'], segment_count,
+                                   i + 1, collection.database.name + '.' + collection.name))
+
+        dtype = self._dtype(version['dtype'], version.get('dtype_metadata', {}))
+        rtn = np.fromstring(data, dtype=dtype).reshape(version.get('shape', (-1)))
+        return rtn
+
     def read(self, arctic_lib, version, symbol, read_preference=None, **kwargs):
         index_range = self._index_range(version, symbol, **kwargs)
         collection = arctic_lib.get_top_level_collection()
@@ -172,8 +202,8 @@ class NdarrayStore(object):
 
     def _do_read(self, collection, version, symbol, index_range=None):
         '''
-        index_range is a 2-tuple of integers - a [from, to) range of segments to be read. 
-            Either from or to can be None, indicating no bound. 
+        index_range is a 2-tuple of integers - a [from, to) range of segments to be read.
+            Either from or to can be None, indicating no bound.
         '''
         from_index = index_range[0] if index_range else None
         to_index = version['up_to']
@@ -193,13 +223,8 @@ class NdarrayStore(object):
         segments = []
         i = -1
         for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
-            try:
-                segments.append(decompress(x['data']) if x['compressed'] else x['data'])
-            except Exception:
-                dump_bad_documents(x, collection.find_one({'_id': x['_id']}),
-                                      collection.find_one({'_id': x['_id']}),
-                                      collection.find_one({'_id': x['_id']}))
-                raise
+            segments.append(decompress(x['data']) if x['compressed'] else x['data'])
+
         data = b''.join(segments)
 
         # Check that the correct number of segments has been returned
@@ -222,6 +247,59 @@ class NdarrayStore(object):
         rtn = np.dtype(rtn, metadata=dict(dtype.metadata or {}))
         return rtn
 
+    def _chunked_append(self, arctic_lib, version, symbol, records, ranges, previous_version, dtype):
+        collection = arctic_lib.get_top_level_collection()
+
+        item = np.array([r for record in records for r in record]).flatten()
+
+        if previous_version.get('shape', [-1]) != [-1, ] + list(item.shape)[1:]:
+            raise UnhandledDtypeException()
+
+        if previous_version['up_to'] == 0:
+            dtype = dtype
+        elif len(item) == 0:
+            dtype = self._dtype(previous_version['dtype'])
+        else:
+            dtype = self._promote_types(dtype, previous_version['dtype'])
+
+        item = item.astype(dtype)
+
+        if str(dtype) != previous_version['dtype']:
+            raise Exception("Dtype mismatch - cannot append")
+
+        version['dtype'] = previous_version['dtype']
+        version['dtype_metadata'] = previous_version['dtype_metadata']
+        version['type'] = self.TYPE
+        self._do_chunked_append(collection, version, symbol, records, ranges, item, previous_version)
+
+    def _do_chunked_append(self, collection, version, symbol, records, ranges, item, previous_version):
+
+        data = item.tostring()
+        version['up_to'] = previous_version['up_to'] + len(item)
+        if len(item) > 0:
+            version['segment_count'] = previous_version['segment_count'] + len(records)
+            version['append_count'] = previous_version['append_count'] + len(records)
+            version['append_size'] = previous_version['append_size'] + len(data)
+        else:
+            version['segment_count'] = previous_version['segment_count']
+            version['append_count'] = previous_version['append_count']
+            version['append_size'] = previous_version['append_size']
+
+        version['base_version_id'] = previous_version.get('base_version_id', previous_version['_id'])
+        chunks = [r.tostring() for r in records]
+        chunks = compress_array(chunks)
+
+        for chunk, rng in zip(chunks, ranges):
+            start = rng[0]
+            end = rng[-1]
+
+            segment = {'data': Binary(chunk), 'compressed': True}
+            segment['segment'] = start
+            segment['end'] = end
+            collection.update_one({'symbol': symbol, 'sha': checksum(symbol, segment)},
+                                  {'$set': segment, '$addToSet': {'parent': version['base_version_id']}},
+                                  upsert=True)
+
     def append(self, arctic_lib, version, symbol, item, previous_version, dtype=None):
         collection = arctic_lib.get_top_level_collection()
         if previous_version.get('shape', [-1]) != [-1, ] + list(item.shape)[1:]:
@@ -229,7 +307,7 @@ class NdarrayStore(object):
 
         if not dtype:
             dtype = item.dtype
-        
+
         if previous_version['up_to'] == 0:
             dtype = dtype
         elif len(item) == 0:
@@ -260,7 +338,6 @@ class NdarrayStore(object):
             item = np.concatenate([old_arr, item])
             version['up_to'] = len(item)
             version['sha'] = self.checksum(item)
-            version['base_sha'] = version['sha']
             self._do_write(collection, version, symbol, item, previous_version)
         else:
             version['dtype'] = previous_version['dtype']
@@ -271,7 +348,6 @@ class NdarrayStore(object):
     def _do_append(self, collection, version, symbol, item, previous_version):
 
         data = item.tostring()
-        version['base_sha'] = previous_version['base_sha']
         version['up_to'] = previous_version['up_to'] + len(item)
         if len(item) > 0:
             version['segment_count'] = previous_version['segment_count'] + 1
@@ -301,7 +377,7 @@ class NdarrayStore(object):
                     '''If we get a duplicate key error here, this segment has the same symbol/parent/segment
                        as another chunk, but a different sha. This means that we have 'forked' history.
                        If we concat_and_rewrite here, new chunks will have a different parent id (the _id of this version doc)
-                       ...so we can safely write them. 
+                       ...so we can safely write them.
                        '''
                     self._concat_and_rewrite(collection, version, symbol, item, previous_version)
                     return
@@ -372,6 +448,61 @@ class NdarrayStore(object):
         sha.update(item.tostring())
         return Binary(sha.digest())
 
+    def _chunked_write(self, arctic_lib, version, symbol, records, ranges, previous_version, dtype):
+        collection = arctic_lib.get_top_level_collection()
+
+        item = np.array([r for record in records for r in record]).flatten()
+        for record in records:
+            if record.dtype.hasobject:
+                raise UnhandledDtypeException()
+
+        version['dtype'] = str(dtype)
+        version['shape'] = (-1,) + item.shape[1:]
+        version['dtype_metadata'] = dict(dtype.metadata or {})
+        version['type'] = self.TYPE
+        version['up_to'] = len(item)
+
+        self._do_chunked_write(collection, version, symbol, records, ranges, previous_version)
+
+    def _do_chunked_write(self, collection, version, symbol, records, ranges, previous_version):
+        previous_shas = []
+
+        if previous_version:
+            previous_shas = set([x['sha'] for x in
+                                 collection.find({'symbol': symbol},
+                                                 projection={'sha': 1, '_id': 0},
+                                                 )
+                                 ])
+        seg_count = 0
+
+        chunks = [r.tostring() for r in records]
+        chunks = compress_array(chunks)
+
+        bulk = collection.initialize_unordered_bulk_op()
+        for chunk, rng in zip(chunks, ranges):
+            start = rng[0]
+            end = rng[1]
+            seg_count += 1
+            segment = {'data': Binary(chunk), 'compressed': True}
+            segment['segment'] = start
+            segment['end'] = end
+            sha = checksum(symbol, segment)
+            if sha not in previous_shas:
+                segment['sha'] = sha
+                bulk.find({'symbol': symbol, 'sha': sha, 'segment': segment['segment']}
+                          ).upsert().update_one({'$set': segment, '$addToSet': {'parent': version['_id']}})
+            else:
+                bulk.find({'symbol': symbol, 'sha': sha, 'segment': segment['segment']}
+                          ).update_one({'$addToSet': {'parent': version['_id']}})
+        if seg_count != 0:
+            bulk.execute()
+
+        version['segment_count'] = seg_count
+        version['append_size'] = 0
+        version['append_count'] = 0
+
+        self.check_written(collection, symbol, version)
+
     def write(self, arctic_lib, version, symbol, item, previous_version, dtype=None):
         collection = arctic_lib.get_top_level_collection()
         if item.dtype.hasobject:
@@ -385,7 +516,7 @@ class NdarrayStore(object):
         version['type'] = self.TYPE
         version['up_to'] = len(item)
         version['sha'] = self.checksum(item)
-        
+
         if previous_version:
             if 'sha' in previous_version \
                     and self.checksum(item[:previous_version['up_to']]) == previous_version['sha']:
@@ -393,7 +524,6 @@ class NdarrayStore(object):
                 self._do_append(collection, version, symbol, item[previous_version['up_to']:], previous_version)
                 return
 
-        version['base_sha'] = version['sha']
         self._do_write(collection, version, symbol, item, previous_version)
 
     def _do_write(self, collection, version, symbol, item, previous_version, segment_offset=0):
@@ -466,9 +596,48 @@ class NdarrayStore(object):
         segments: list of offsets. Each offset is the row index of the
                   the last row of a particular chunk relative to the start of the _original_ item.
                   array(new_data) - segments = array(offsets in item)
-        
+
         Returns:
         --------
         Library specific index metadata to be stored in the version document.
         """
         pass  # numpy arrays have no index
+
+    def _chunked_update(self, arctic_lib, version, symbol, records, ranges, orig_ranges):
+        collection = arctic_lib.get_top_level_collection()
+
+        chunks = [r.tostring() for r in records]
+        lens = [len(i) for i in chunks]
+        chunks = compress_array(chunks)
+
+        seg_count = 0
+        seg_len = 0
+
+        bulk = collection.initialize_unordered_bulk_op()
+        for chunk, rng, orig_rng, rec_len in zip(chunks, ranges, orig_ranges, lens):
+            start = rng[0]
+            end = rng[1]
+            orig_start = orig_rng[0]
+            if orig_start is None:
+                version['up_to'] += rec_len
+                seg_count += 1
+                seg_len += rec_len
+            segment = {'data': Binary(chunk), 'compressed': True}
+            segment['segment'] = start
+            segment['end'] = end
+            sha = checksum(symbol, segment)
+            segment['sha'] = sha
+            if orig_start is None:
+                # new chunk
+                bulk.find({'symbol': symbol, 'sha': sha, 'segment': segment['segment']}
+                          ).upsert().update_one({'$set': segment, '$addToSet': {'parent': version['_id']}})
+            else:
+                bulk.find({'symbol': symbol, 'segment': orig_start}
+                          ).update_one({'$set': segment, '$addToSet': {'parent': version['_id']}})
+        if len(chunks) > 0:
+                bulk.execute()
+
+        if seg_count != 0:
+            version['segment_count'] += seg_count
+            version['append_size'] += seg_len
+            version['append_count'] += seg_count

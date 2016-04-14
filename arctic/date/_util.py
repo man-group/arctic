@@ -10,7 +10,7 @@ import sys
 if sys.version_info > (3,):
     long = int
 
-    
+
 # Support standard brackets syntax for open/closed ranges.
 Ranges = {'()': OPEN_OPEN,
           '(]': OPEN_CLOSED,
