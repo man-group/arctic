@@ -2,6 +2,7 @@ from six import StringIO
 from datetime import datetime as dt, timedelta as dtd
 import itertools
 import string
+import random
 
 from dateutil.rrule import rrule, DAILY
 from mock import Mock, patch
@@ -1332,3 +1333,100 @@ def test_pandas_dti_with_strings_multiindex_append(library):
                                                  (dt(2016, 1, 2), 4)],
                                                 names=['date', 'security']))
     assert_frame_equal(library.read('dti_test').data, df)
+
+
+def gen_daily_data(month, days, securities):
+    for day in days:
+        openp = [round(random.uniform(50.0, 100.0), 1) for x in securities]
+        closep = [round(x + random.uniform(-5.0, 5.0), 1) for x in openp]
+
+        index_list = [(dt(2016, month, day), s) for s in securities]
+        yield DataFrame(data={'open': openp, 'close':closep},
+                        index=MultiIndex.from_tuples(index_list,
+                                                     names=['date', 'security']))
+
+
+def write_random_data(library, name, month, days, securities, chunk_size='D', update=False, append=False):
+    '''
+    will generate daily data and write it in daily chunks
+    regardless of what the chunk_size is set to.
+
+    month: integer
+    days: list of integers
+    securities: list of integers
+    chunk_size: one of 'D', 'M', 'Y'
+    update: force update for each daily write
+    append: force append for each daily write
+    '''
+    df_list = []
+    for df in gen_daily_data(month, days, securities):
+        if update:
+            library.update(name, df)
+        elif append or len(df_list) > 0:
+            library.append(name, df)
+        else:
+            library.write(name, df, chunk_size=chunk_size)
+        df_list.append(df)
+
+    return pd.concat(df_list)
+
+
+def test_pandas_dti_multiple_actions(library):
+    def helper(library, name, chunk_size, v_count):
+        written_df = write_random_data(library, name, 1, list(range(1, 31)), list(range(1, 101)), chunk_size=chunk_size)
+
+        read_info = library.read(name)
+        assert_frame_equal(written_df, read_info.data)
+        assert(read_info.version == v_count)
+
+        df = write_random_data(library, name, 1, [1], list(range(1, 11)), update=True, chunk_size=chunk_size)
+
+        read_info = library.read(name, data_range=DateRange(dt(2016, 1, 2), dt(2016, 1, 30)))
+        assert_frame_equal(written_df['2016-01-02':], read_info.data['2016-01-02':])
+        assert(read_info.version == v_count)
+
+        read_info = library.read(name, data_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 1)))
+        written_df = df.combine_first(written_df)
+        assert_frame_equal(written_df[:'2016-01-01'], read_info.data[:'2016-01-01'])
+
+
+        df = write_random_data(library, name, 2, list(range(1, 29)), list(range(1, 501)), append=True, chunk_size=chunk_size)
+        read_info = library.read(name)
+        assert_frame_equal(pd.concat([written_df, df]), read_info.data)
+        assert(read_info.version == v_count + 28)
+
+    for chunk_size, version_count in [('D', 30), ('M', 30), ('Y', 30)]:
+        helper(library, 'test_data_' + chunk_size, chunk_size, version_count)
+
+
+def test_pandas_dti_multiple_actions_monthly_data(library):
+    def helper(library, chunk_size, name, df, append):
+        library.write(name, df, chunk_size=chunk_size)
+
+        assert_frame_equal(library.read(name).data, df)
+        assert(library.read(name).version == 1)
+
+        library.append(name, append)
+
+        assert_frame_equal(library.read(name).data, pd.concat([df, append]))
+        assert(library.read(name).version == 2)
+
+        library.update(name, append)
+
+        assert_frame_equal(library.read(name).data, pd.concat([df, append]))
+        assert(library.read(name).version == 2)
+
+    df = []
+    for month in range(1, 4):
+        df.extend(list(gen_daily_data(month, list(range(1, 21)), list(range(1, 11)))))
+
+    df = pd.concat(df)
+
+    append = []
+    for month in range(6, 10):
+        append.extend(list(gen_daily_data(month, list(range(1, 21)), list(range(1, 11)))))
+
+    append = pd.concat(append)
+
+    for chunk_size in ['D', 'M', 'Y']:
+        helper(library, chunk_size, 'test_monthly_' + chunk_size, df, append)

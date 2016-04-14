@@ -403,14 +403,13 @@ class PandasDateTimeIndexedStore(PandasStore):
         -------
         Formatted date string
         '''
-        fmt = ""
         if chunk_size == 'Y':
-            fmt = '%Y'
+            return date.strftime('%Y')
         elif chunk_size == 'M':
-            fmt = '%Y-%m'
+            return date.strftime('%Y-%m')
         elif chunk_size == 'D':
-            fmt = '%Y-%m-%d'
-        return date.strftime(fmt)
+            return date.strftime('%Y-%m-%d')
+
 
     def get_range(self, df):
         """
@@ -441,7 +440,14 @@ class PandasDateTimeIndexedStore(PandasStore):
         key_array = [self.get_date_chunk(d, chunk_size) for d in dates]
 
         for date in set(key_array):
-            ret = df[date : date]
+            if df.index.nlevels > 1:
+                '''
+                can't slice with partial date on multi-index. Support coming in 
+                pandas 0.18.1
+                '''
+                ret = df.xs(slice(date, date), level='date', drop_level=False)
+            else:
+                ret = df[date : date]
             start, end = self.get_range(ret)
             yield start, end, ret
 
@@ -469,6 +475,7 @@ class PandasDateTimeIndexedStore(PandasStore):
                                                               dtype)
 
     def read(self, arctic_lib, version, symbol, date_range=None, **kwargs):
+
         item = super(PandasDateTimeIndexedStore, self).chunked_read(arctic_lib,
                                                                     version,
                                                                     symbol,
@@ -516,10 +523,10 @@ class PandasDateTimeIndexedStore(PandasStore):
                     update_records.append(r)
                     update_ranges.append((start, end))
                     update_orig_ranges.append((self.get_range(df)))
-            else:
-                r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record, string_max_len=self.STRING_MAX)
-                records.append(r)
-                ranges.append((start, end))
+                    continue
+            r, dtype = super(PandasDateTimeIndexedStore, self).to_records(record, string_max_len=self.STRING_MAX)
+            records.append(r)
+            ranges.append((start, end))
 
         # update old chunks before writing new ones
         if len(update_records) > 0:

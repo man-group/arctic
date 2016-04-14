@@ -129,6 +129,9 @@ class NdarrayStore(object):
     def can_write(self, version, symbol, data, **kwargs):
         return isinstance(data, np.ndarray) and not data.dtype.hasobject
 
+    def can_update(self, version, symbol, data, **kwargs):
+        return False
+
     def _dtype(self, string, metadata=None):
         if metadata is None:
             metadata = {}
