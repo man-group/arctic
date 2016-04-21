@@ -1,6 +1,5 @@
 from arctic import Arctic
 import pandas as pd
-from datetime import datetime as dt
 import random
 
 
@@ -35,41 +34,40 @@ def gen_series_compressible(rows):
     return pd.Series(data=data, index=index)
 
 
-class TimeSuite(object):
-    def __init__(self):
-        self.df_random = gen_dataframe_random(5, 10000)
-        self.s_random = gen_series_random(50000)
-        self.df_random_big = gen_dataframe_random(10, 1000000)
-        self.s_random_big = gen_series_random(10000000)
-        self.df_compress = gen_dataframe_compressible(10, 1000000)
-        self.s_compress = gen_series_compressible(10000000)
+TEST_SIZES = [1000, 10000, 100000, 1000000]
+df_random = [gen_dataframe_random(5, rows) for rows in TEST_SIZES]
+s_random = [gen_series_random(5 * rows) for rows in TEST_SIZES]
+df_compress = [gen_dataframe_compressible(10, rows) for rows in TEST_SIZES]
+s_compress = [gen_series_compressible(rows) for rows in TEST_SIZES]
 
-    def setup(self):
+
+class TimeSuiteWrite(object):
+    def setup(self, arg):
         self.store = Arctic("127.0.0.1")
         self.store.delete_library('test.lib')
         self.store.initialize_library('test.lib')
         self.lib = self.store['test.lib']
         
-    def teardown(self):
+    def teardown(self, arg):
         self.store.delete_library('test.lib')
         self.lib = None
 
-    def time_write_dataframe_random(self):
-       self.lib.write('df_bench_random', self.df_random)
+    def time_write_dataframe_random(self, idx):
+       self.lib.write('df_bench_random', df_random[idx])
 
-    def time_write__series_random(self):
-        self.lib.write('series_bench_random', self.s_random)
+    time_write_dataframe_random.params = list(range(len(TEST_SIZES)))
+       
+    def time_write_series_random(self, idx):
+        self.lib.write('series_bench_random', s_random[idx])
 
-    def time_write_dataframe_random_massive(self):
-       self.lib.write('df_bench_random_massive', self.df_random_big)
+    time_write_series_random.params = list(range(len(TEST_SIZES)))
 
-    def time_write_series_random_massive(self):
-        self.lib.write('series_bench_random_massive', self.s_random_big)
-
-    def time_write_dataframe_compressible(self):
-        self.lib.write('df_bench_compressible', self.df_compress)
-
-    def time_write_series_compressible(self):
-        self.lib.write('series_bench_compressible', self.s_compress)
+    def time_write_dataframe_compressible(self, idx):
+        self.lib.write('df_bench_compressible', df_compress[idx])
         
+    time_write_dataframe_compressible.params = list(range(len(TEST_SIZES)))
 
+    def time_write_series_compressible(self, idx):
+        self.lib.write('series_bench_compressible', s_compress[idx])
+        
+    time_write_series_compressible.params = list(range(len(TEST_SIZES)))
