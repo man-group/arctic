@@ -387,8 +387,7 @@ class NdarrayStore(object):
         version['sha'] = self.checksum(item)
         
         if previous_version:
-            if version['dtype'] == str(dtype) \
-                    and 'sha' in previous_version \
+            if 'sha' in previous_version \
                     and self.checksum(item[:previous_version['up_to']]) == previous_version['sha']:
                 #The first n rows are identical to the previous version, so just append.
                 self._do_append(collection, version, symbol, item[previous_version['up_to']:], previous_version)

@@ -9,6 +9,7 @@ from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel
 from pandas.tseries.offsets import DateOffset
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 import pytest
+import pandas as pd
 
 from arctic._compression import decompress
 from arctic.date import DateRange, mktz
@@ -524,6 +525,7 @@ def panel(i1, i2, i3):
                  list(rrule(DAILY, count=i3, dtstart=dt(1970, 1, 1), interval=1)))
 
 
+@pytest.mark.skipif(pd.__version__ == '0.18.0', reason="issue #115")
 @pytest.mark.parametrize("df_size", list(itertools.combinations_with_replacement([1, 2, 4], r=3)))
 def test_panel_save_read(library, df_size):
     '''Note - empties are not tested here as they don't work!'''
@@ -536,6 +538,21 @@ def test_panel_save_read(library, df_size):
         if None not in pn.axes[i].names:
             assert np.all(pn.axes[i].names == result.axes[i].names), \
                 str(pn.axes[i].names) + "!=" + str(pn.axes[i].names)
+
+
+def test_panel_save_read_with_nans(library):
+    '''Ensure that nan rows are not dropped when calling to_frame.'''
+    df1 = DataFrame(data=np.arange(4).reshape((2, 2)), index=['r1', 'r2'], columns=['c1', 'c2'])
+    df2 = DataFrame(data=np.arange(6).reshape((3, 2)), index=['r1', 'r2', 'r3'], columns=['c1', 'c2'])
+    p_in = Panel(data=dict(i1=df1, i2=df2))
+
+    library.write('pandas', p_in)
+    p_out = library.read('pandas').data
+
+    assert p_in.shape == p_out.shape
+    # check_names is False because pandas helpfully names the axes for us.
+    assert_frame_equal(p_in.iloc[0], p_out.iloc[0], check_names=False)  
+    assert_frame_equal(p_in.iloc[1], p_out.iloc[1], check_names=False)  
 
 
 def test_save_read_ints(library):

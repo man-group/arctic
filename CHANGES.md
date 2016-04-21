@@ -1,8 +1,22 @@
 ## Changelog
 
-### 1.19
+### 1.22 (2016-03-24)
+  
+  * Bugfix: #109 Ensure stable sort during Arctic read
+
+### 1.21 (2016-03-08)
+
+  * Bugfix: #106 Fix Pandas Panel storage for panels with different dimensions
+
+### 1.20 (2016-02-03)
+
+  * Feature: #98 Add initial_image as optional parameter on tickstore write()
+  * Bugfix: #100 Write error on end field when writing with pandas dataframes
+
+### 1.19 (2016-01-29)
 
   * Feature: Add python 3.3/3.4 support
+  * Bugfix: #95 Fix raising NoDataFoundException across multiple low level libraries
 
 ### 1.18 (2016-01-05)
 

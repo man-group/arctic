@@ -21,7 +21,7 @@ def test_delete(tickstore_lib):
                'index': dt(2013, 1, 30, tzinfo=mktz('Europe/London'))
                },
               ]
-    tickstore_lib.chunk_size = 1
+    tickstore_lib._chunk_size = 1
     tickstore_lib.write('SYM', DUMMY_DATA)
     tickstore_lib.delete('SYM')
     with pytest.raises(NoDataFoundException):
@@ -45,7 +45,7 @@ def test_delete_daterange(tickstore_lib):
                'index': dt(2013, 2, 1, tzinfo=mktz('Europe/London'))
                },
               ]
-    tickstore_lib.chunk_size = 1
+    tickstore_lib._chunk_size = 1
     tickstore_lib.write('SYM', DUMMY_DATA)
 
     # Delete with a date-range

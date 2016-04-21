@@ -8,6 +8,7 @@ from arctic.multi_index import groupby_asof, fancy_group_by, insert_at
 import numpy as np
 import pandas as pd
 from tests.util import read_str_as_pandas
+import pytest
 
 
 def get_bitemporal_test_data():
@@ -251,3 +252,9 @@ def test__can_append_row():
     assert len(df) == 5
     assert df.loc[dt('2014-01-05')]['OPEN'] == 9
     assert df.loc[dt('2014-01-05')]['CLOSE'] == 90
+
+
+def test_fancy_group_by_raises():
+    with pytest.raises(ValueError):
+        assert(fancy_group_by(None, method=None))
+

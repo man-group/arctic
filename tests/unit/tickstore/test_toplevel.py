@@ -15,6 +15,7 @@ from arctic.exceptions import OverlappingDataException
 from arctic.tickstore.toplevel import TopLevelTickStore, TickStoreLibrary
 from dateutil.rrule import rrule, DAILY
 from arctic.tickstore.tickstore import TickStore
+from arctic.exceptions import UnhandledDtypeException
 
 
 def test_raise_exception_if_daterange_is_not_provided():
@@ -168,3 +169,10 @@ def test_read():
                                                     sentinel.include_columns, include_images=sentinel.include_images),
                                                call(sentinel.symbol, tsl.date_range.intersection.return_value,
                                                     sentinel.include_columns, include_images=sentinel.include_images)]
+
+
+def test_slice_raises():
+    m = TopLevelTickStore(Mock())
+    with pytest.raises(UnhandledDtypeException) as e:
+        m._slice("abc", 1, 2)
+    assert("Can't persist type" in str(e))
