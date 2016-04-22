@@ -42,6 +42,9 @@ s_compress = [gen_series_compressible(rows) for rows in TEST_SIZES]
 
 
 class TimeSuiteWrite(object):
+    params = list(range(len(TEST_SIZES)))
+    param_names = ['5K * 10^']
+    
     def setup(self, arg):
         self.store = Arctic("127.0.0.1")
         self.store.delete_library('test.lib')
@@ -54,20 +57,56 @@ class TimeSuiteWrite(object):
 
     def time_write_dataframe_random(self, idx):
        self.lib.write('df_bench_random', df_random[idx])
-
-    time_write_dataframe_random.params = list(range(len(TEST_SIZES)))
        
     def time_write_series_random(self, idx):
         self.lib.write('series_bench_random', s_random[idx])
 
-    time_write_series_random.params = list(range(len(TEST_SIZES)))
-
     def time_write_dataframe_compressible(self, idx):
         self.lib.write('df_bench_compressible', df_compress[idx])
-        
-    time_write_dataframe_compressible.params = list(range(len(TEST_SIZES)))
 
     def time_write_series_compressible(self, idx):
         self.lib.write('series_bench_compressible', s_compress[idx])
+
+
+class TimeSuiteRead(object):
+    params = list(range(len(TEST_SIZES)))
+    param_names = ['5K * 10^']
+    
+    def __init__(self):
+        self.store = Arctic("127.0.0.1")
+
+    def setup(self, idx):
+        self.store.delete_library('test.lib')
+        self.store.initialize_library('test.lib')
+        self.lib = self.store['test.lib']
+
+        self.lib.write('test_df', df_random[idx])
+
+    def teardown(self, arg):
+        self.store.delete_library('test.lib')
+        self.lib = None 
         
-    time_write_series_compressible.params = list(range(len(TEST_SIZES)))
+    def time_read_dataframe(self, idx):
+        self.lib.read('test_df')
+
+
+class TimeSuiteAppend(object):
+    params = list(range(len(TEST_SIZES)))
+    param_names = ['5K * 10^']
+    
+    def __init__(self):
+        self.store = Arctic("127.0.0.1")
+
+    def setup(self, idx):
+        self.store.delete_library('test.lib')
+        self.store.initialize_library('test.lib')
+        self.lib = self.store['test.lib']
+
+        self.lib.write('test_df', df_random[idx])
+
+    def teardown(self, arg):
+        self.store.delete_library('test.lib')
+        self.lib = None 
+        
+    def time_append_dataframe(self, idx):
+        self.lib.append('test_df', df_random[idx])
