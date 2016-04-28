@@ -159,41 +159,43 @@ class TickStore(object):
 
         # Find the start bound
         start_range = {}
-        first = last = None
+        first_dt = last_dt = None
         if date_range.start:
             assert date_range.start.tzinfo
             start = date_range.start
-            startq = self._symbol_query(symbol)
-            startq.update({START: {'$lte': start}})
-            first = self._collection.find_one(startq,
-                                              # Service entirely from the index
-                                              projection={START: 1, ID: 0},
-                                              sort=[(START, pymongo.DESCENDING)])
-        if first:
-            start_range['$gte'] = first[START]
+            match = self._symbol_query(symbol)
+            match.update({'s': {'$lte': start}})
+
+            result = self._collection.aggregate([
+                            {'$match': match},
+                            {'$project': {'_id': 0, 's': 1, 'sy': 1}},
+                            {'$group': {'_id': '$sy', 'start': {'$max': '$s'}}},
+                            {'$sort': {'start': 1}},
+                            {'$limit': 1}])
+            try:
+                first_dt = next(result)['start']
+            except StopIteration:
+                pass
+        if first_dt:
+            start_range['$gte'] = first_dt
 
         # Find the end bound
         if date_range.end:
             assert date_range.end.tzinfo
-            end = date_range.end
-            endq = self._symbol_query(symbol)
-            endq.update({START: {'$gt': end}})
-            last = self._collection.find_one(endq,
-                                              # Service entirely from the index
-                                              projection={START: 1, ID: 0},
-                                              sort=[(START, pymongo.ASCENDING)])
+            last_dt = date_range.end
         else:
-            logger.info("No end provided.  Loading a month for: {}:{}".format(symbol, first))
-            if not first:
-                first = self._collection.find_one(self._symbol_query(symbol),
+            logger.info("No end provided.  Loading a month for: {}:{}".format(symbol, first_dt))
+            if not first_dt:
+                first_doc = self._collection.find_one(self._symbol_query(symbol),
                                                   projection={START: 1, ID: 0},
                                                   sort=[(START, pymongo.ASCENDING)])
-                if not first:
+                if not first_doc:
                     raise NoDataFoundException()
-            last = first[START]
-            last = {START: last + timedelta(days=30)}
-        if last:
-            start_range['$lt'] = last[START]
+
+                first_dt = first_doc[START]
+            last_dt = first_dt + timedelta(days=30)
+        if last_dt:
+            start_range['$lte'] = last_dt
 
         # Return chunks in the specified range
         if not start_range:

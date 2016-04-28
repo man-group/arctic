@@ -368,6 +368,47 @@ def test_read_out_of_order(tickstore_lib):
     assert len(tickstore_lib.read('SYM', columns=None, date_range=DateRange(dt(2013, 6, 1, tzinfo=mktz('UTC')), dt(2013, 6, 1, 12, tzinfo=mktz('UTC'))))) == 2
 
 
+def test_read_chunk_boundaries(tickstore_lib):
+    SYM1_DATA = [
+                  {'a': 1.,
+                   'b': 2.,
+                   'index': dt(2013, 6, 1, 12, 00, tzinfo=mktz('UTC'))
+                   },
+                   {'a': 3.,
+                   'b': 4.,
+                   'index': dt(2013, 6, 1, 13, 00, tzinfo=mktz('UTC'))
+                   },
+                 # Chunk boundary here
+                   {'a': 5.,
+                   'b': 6.,
+                   'index': dt(2013, 6, 1, 14, 00, tzinfo=mktz('UTC'))
+                   }
+                  ]
+    SYM2_DATA = [
+                  {'a': 7.,
+                   'b': 8.,
+                   'index': dt(2013, 6, 1, 12, 30, tzinfo=mktz('UTC'))
+                   },
+                   {'a': 9.,
+                   'b': 10.,
+                   'index': dt(2013, 6, 1, 13, 30, tzinfo=mktz('UTC'))
+                   },
+                 # Chunk boundary here
+                   {'a': 11.,
+                   'b': 12.,
+                   'index': dt(2013, 6, 1, 14, 30, tzinfo=mktz('UTC'))
+                   }
+                  ]
+    tickstore_lib._chunk_size = 2
+    tickstore_lib.write('SYM1', SYM1_DATA)
+    tickstore_lib.write('SYM2', SYM2_DATA)
+
+    assert len(tickstore_lib.read('SYM1', columns=None, date_range=DateRange(dt(2013, 6, 1, 12, 45, tzinfo=mktz('UTC')), dt(2013, 6, 1, 15, 00, tzinfo=mktz('UTC'))))) == 2
+    assert len(tickstore_lib.read('SYM2', columns=None, date_range=DateRange(dt(2013, 6, 1, 12, 45, tzinfo=mktz('UTC')), dt(2013, 6, 1, 15, 00, tzinfo=mktz('UTC'))))) == 2
+
+    assert len(tickstore_lib.read(['SYM1', 'SYM2'], columns=None, date_range=DateRange(dt(2013, 6, 1, 12, 45, tzinfo=mktz('UTC')), dt(2013, 6, 1, 15, 00, tzinfo=mktz('UTC'))))) == 4
+
+
 def test_read_longs(tickstore_lib):
     DUMMY_DATA = [
                   {'a': 1,
