@@ -150,10 +150,10 @@ class PandasSerializer(object):
                 return True
 
     def serialize(self, item):
-        pass
+        raise NotImplementedError
 
     def deserialize(self, item):
-        pass
+        raise NotImplementedError
 
 
 class SeriesSerializer(PandasSerializer):

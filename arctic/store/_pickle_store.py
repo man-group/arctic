@@ -5,7 +5,6 @@ from six.moves import cPickle, xrange
 import io
 import lz4
 import pymongo
-import six
 
 from arctic.store._version_store_utils import checksum, pickle_compat_load
 

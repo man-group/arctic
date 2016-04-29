@@ -6,12 +6,11 @@ import numpy as np
 import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
-from ..decorators import mongo_retry, dump_bad_documents
+from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException
 from ._version_store_utils import checksum
 
 from .._compression import compress_array, decompress
-from ..exceptions import ConcurrentModificationException
 from six.moves import xrange
 
 
@@ -55,7 +54,6 @@ class NdarrayStore(object):
       u'up_to': 10,  # no. of rows included in the data for this version
       u'append_count': 0,
       u'append_size': 0,
-      u'base_sha': Binary('........', 0),
       u'dtype': u'float64',
       u'dtype_metadata': {},
       u'segment_count': 1, #only 1 segment included in this version
@@ -70,7 +68,6 @@ class NdarrayStore(object):
       u'up_to': 20, # no. of rows included in the data for this version
       u'append_count': 1, # 1 append operation so far
       u'append_size': 80, # 80 bytes appended
-      u'base_sha': Binary('.........', 0), # equal to sha for version 1
       u'base_version_id': ObjectId('55fa9a7781f12654382e58b8'), # _id of version 1
       u'dtype': u'float64',
       u'dtype_metadata': {},
@@ -145,9 +142,6 @@ class NdarrayStore(object):
         """
         from_index = None
         if from_version:
-            if version['base_sha'] != from_version['base_sha']:
-                #give up - the data has been overwritten, so we can't tail this
-                raise ConcurrentModificationException("Concurrent modification - data has been overwritten")
             from_index = from_version['up_to']
         return from_index, None
 
@@ -193,13 +187,8 @@ class NdarrayStore(object):
         segments = []
         i = -1
         for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
-            try:
-                segments.append(decompress(x['data']) if x['compressed'] else x['data'])
-            except Exception:
-                dump_bad_documents(x, collection.find_one({'_id': x['_id']}),
-                                      collection.find_one({'_id': x['_id']}),
-                                      collection.find_one({'_id': x['_id']}))
-                raise
+            segments.append(decompress(x['data']) if x['compressed'] else x['data'])
+
         data = b''.join(segments)
 
         # Check that the correct number of segments has been returned
@@ -260,7 +249,6 @@ class NdarrayStore(object):
             item = np.concatenate([old_arr, item])
             version['up_to'] = len(item)
             version['sha'] = self.checksum(item)
-            version['base_sha'] = version['sha']
             self._do_write(collection, version, symbol, item, previous_version)
         else:
             version['dtype'] = previous_version['dtype']
@@ -271,7 +259,6 @@ class NdarrayStore(object):
     def _do_append(self, collection, version, symbol, item, previous_version):
 
         data = item.tostring()
-        version['base_sha'] = previous_version['base_sha']
         version['up_to'] = previous_version['up_to'] + len(item)
         if len(item) > 0:
             version['segment_count'] = previous_version['segment_count'] + 1
@@ -393,7 +380,6 @@ class NdarrayStore(object):
                 self._do_append(collection, version, symbol, item[previous_version['up_to']:], previous_version)
                 return
 
-        version['base_sha'] = version['sha']
         self._do_write(collection, version, symbol, item, previous_version)
 
     def _do_write(self, collection, version, symbol, item, previous_version, segment_offset=0):

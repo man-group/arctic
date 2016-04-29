@@ -1,7 +1,14 @@
 import numpy as np
 
+from numpy.testing import assert_array_equal
 from mock import patch, Mock, sentinel
-from arctic.serialization.pandas_serializer import PandasSerializer
+from arctic.serialization.pandas_serializer import PandasSerializer, _to_primitive
+from pandas import Timestamp
+
+
+def test_to_primitive_timestamps():
+    arr = _to_primitive(np.array([Timestamp('2010-11-12 00:00:00')]))
+    assert_array_equal(arr, np.array([Timestamp('2010-11-12 00:00:00').value], dtype='datetime64[ns]'))
 
 def test_can_convert_to_records_without_objects_returns_false_on_exception_in_to_records():
     store = PandasSerializer()

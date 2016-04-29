@@ -11,7 +11,7 @@ class Chunker(object):
             chunk end index/marker/key,
             chunked data)
         """
-        pass
+        raise NotImplementedError
 
     def to_range(self, start, end):
         """
@@ -22,7 +22,7 @@ class Chunker(object):
         -------
         A range object (dependent on type of chunker)
         """
-        pass
+        raise NotImplementedError
 
     def to_start_end(self, item):
         """
@@ -33,7 +33,7 @@ class Chunker(object):
         -------
         tuple - (start, end)
         """
-        pass
+        raise NotImplementedError
 
     def to_mongo(self, range_obj):
         """
@@ -45,7 +45,7 @@ class Chunker(object):
         -------
         string
         """
-        pass
+        raise NotImplementedError
 
     def filter(self, data, range_obj):
         """
@@ -60,3 +60,4 @@ class Chunker(object):
         -------
         data, filtered by range_obj
         """
+        raise NotImplementedError
