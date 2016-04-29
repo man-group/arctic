@@ -1,8 +1,9 @@
 ## Changelog
 
-### 1.22 (2016-03-24)
+### 1.22 (2016-04-29)
   
   * Bugfix: #109 Ensure stable sort during Arctic read
+  * Feature: New benchmark suite using ASV
 
 ### 1.21 (2016-03-08)
 
