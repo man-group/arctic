@@ -1,9 +1,10 @@
 ## Changelog
 
-### 1.22 (2016-04-29)
+### 1.22 (2016-05-03)
   
   * Bugfix: #109 Ensure stable sort during Arctic read
   * Feature: New benchmark suite using ASV
+  * Bugfix: #129 Fixed an issue where some chunks could get skipped during a multiple-symbol TickStore read
 
 ### 1.21 (2016-03-08)
 
