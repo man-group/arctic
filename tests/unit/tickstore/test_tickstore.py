@@ -17,15 +17,19 @@ from arctic.date._mktz import mktz
 def test_mongo_date_range_query():
     self = create_autospec(TickStore)
     self._collection = create_autospec(Collection)
-    self._collection.find_one.return_value = {'s': sentinel.start}
-    self._symbol_query = partial(TickStore._symbol_query, self)
-    query = TickStore._mongo_date_range_query(self, 'sym', DateRange(dt(2014, 1, 1, 0, 0, tzinfo=mktz()),
-                                                                     dt(2014, 1, 2, 0, 0, tzinfo=mktz())))
-    assert self._collection.find_one.call_args_list == [call({'sy': 'sym', 's': {'$lte': dt(2014, 1, 1, 0, 0, tzinfo=mktz())}},
-                                                             sort=[('s', -1)], projection={'s': 1, '_id': 0}),
-                                                        call({'sy': 'sym', 's': {'$gt': dt(2014, 1, 2, 0, 0, tzinfo=mktz())}},
-                                                             sort=[('s', 1)], projection={'s': 1, '_id': 0})]
-    assert query == {'s': {'$gte': sentinel.start, '$lt': sentinel.start}}
+    self._symbol_query.return_value = {"sy": { "$in" : [ "s1" , "s2"]}}
+    self._collection.aggregate.return_value = iter([{"_id": "s1", "start": dt(2014, 1, 1, 0, 0, tzinfo=mktz())}])
+
+    query = TickStore._mongo_date_range_query(self, 'sym', DateRange(dt(2014, 1, 2, 0, 0, tzinfo=mktz()),
+                                                                     dt(2014, 1, 3, 0, 0, tzinfo=mktz())))
+    
+    assert self._collection.aggregate.call_args_list == [call([
+     {"$match": {"s": {"$lte": dt(2014, 1, 2, 0, 0, tzinfo=mktz())}, "sy": { "$in" : [ "s1" , "s2"]}}},
+     {"$project": {"_id": 0, "s": 1, "sy": 1}},
+     {"$group": {"_id": "$sy", "start": {"$max": "$s"}}},
+     {"$sort": {"start": 1}},
+     {"$limit": 1}])]
+    assert query == {'s': {'$gte': dt(2014, 1, 1, 0, 0, tzinfo=mktz()), '$lte': dt(2014, 1, 3, 0, 0, tzinfo=mktz())}}
 
 
 def test_mongo_date_range_query_asserts():
