@@ -30,9 +30,9 @@ def test_overwrite_dataframe(chunkstore_lib):
                    )
 
     dg = DataFrame(data={'data': [1, 2, 3]},
-                   index=MultiIndex.from_tuples([(dt(2015, 1, 1), 1),
-                                                 (dt(2015, 1, 2), 1),
-                                                 (dt(2015, 1, 3), 1)],
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1)],
                                                 names=['date', 'id'])
                    )
     chunkstore_lib.write('test_df', df, 'D')

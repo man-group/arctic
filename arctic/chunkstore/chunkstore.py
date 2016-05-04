@@ -192,31 +192,30 @@ class ChunkStore(object):
         doc['dtype_metadata'] = dict(dtype.metadata or {})
         doc['len'] = len(item)
 
-        seg_count = 0
-
         chunks = [r.tostring() for r in records]
         chunks = compress_array(chunks)
 
+        op = False
         bulk = self._collection.initialize_unordered_bulk_op()
         for chunk, rng in zip(chunks, ranges):
             start = rng[0]
             end = rng[1]
-            seg_count += 1
-            chunk = {'data': Binary(chunk), 'compressed': True}
+            chunk = {'data': Binary(chunk)}
             chunk['start'] = start
             chunk['end'] = end
             chunk['symbol'] = symbol
             chunk['sha'] = checksum(symbol, chunk)
             if chunk['sha'] not in previous_shas:
+                op = True
                 bulk.find({'symbol': symbol, 'sha': chunk['sha']},
                           ).upsert().update_one({'$set': chunk})
             else:
                 # already exists, dont need to update in mongo
-                previous_shas = previous_shas.remove(chunk['sha'])
-        if seg_count != 0:
+                previous_shas.remove(chunk['sha'])
+        if op:
             bulk.execute()
 
-        doc['chunk_count'] = seg_count
+        doc['chunk_count'] = len(chunks)
         doc['append_size'] = 0
         doc['append_count'] = 0
 
@@ -296,7 +295,7 @@ class ChunkStore(object):
                 start = rng[0]
                 end = rng[-1]
 
-                segment = {'data': Binary(chunk), 'compressed': True}
+                segment = {'data': Binary(chunk)}
                 segment['start'] = start
                 segment['end'] = end
                 self._collection.update_one({'symbol': symbol, 'sha': checksum(symbol, segment)},
@@ -360,7 +359,7 @@ class ChunkStore(object):
                     sym['len'] += rec_len
                     seg_count += 1
                     seg_len += rec_len
-                segment = {'data': Binary(chunk), 'compressed': True}
+                segment = {'data': Binary(chunk)}
                 segment['start'] = start
                 segment['end'] = end
                 sha = checksum(symbol, segment)
