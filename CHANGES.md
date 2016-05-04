@@ -1,10 +1,12 @@
 ## Changelog
 
-### 1.22 (2016-05-03)
+### 1.22 (2016-05-04)
   
   * Bugfix: #109 Ensure stable sort during Arctic read
   * Feature: New benchmark suite using ASV
   * Bugfix: #129 Fixed an issue where some chunks could get skipped during a multiple-symbol TickStore read
+  * Bugfix: #135 Fix issue with different datatype returned from pymongo in python3
+  * Feature: #130 New Chunkstore storage type
 
 ### 1.21 (2016-03-08)
 
