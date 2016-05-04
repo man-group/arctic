@@ -391,7 +391,7 @@ class NdarrayStore(object):
 
         previous_shas = []
         if previous_version:
-            previous_shas = set([x['sha'] for x in
+            previous_shas = set([Binary(x['sha']) for x in
                                  collection.find({'symbol': symbol},
                                                  projection={'sha': 1, '_id': 0},
                                                  )

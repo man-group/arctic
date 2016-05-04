@@ -116,19 +116,17 @@ class ChunkStore(object):
         """
 
         sym = self._get_symbol_info(symbol)
-
         if not sym:
             raise NoDataFoundException('No data found for %s in library %s' % (symbol, self._collection.get_name()))
 
         spec = {'symbol': symbol,
                 }
 
-        if chunk_range is not None:
+        if chunk_range:
             spec['start'] = self.chunker.to_mongo(chunk_range)
 
         segments = []
-        i = -1
-        for i, x in enumerate(self._collection.find(spec, sort=[('start', pymongo.ASCENDING)],)):
+        for _, x in enumerate(self._collection.find(spec, sort=[('start', pymongo.ASCENDING)],)):
             segments.append(decompress(x['data']))
 
         data = b''.join(segments)
@@ -169,10 +167,9 @@ class ChunkStore(object):
 
         previous_shas = []
         if self._get_symbol_info(symbol):
-            previous_shas = set([x['sha'] for x in self._collection.find({'symbol': symbol},
+            previous_shas = set([Binary(x['sha']) for x in self._collection.find({'symbol': symbol},
                                                                          projection={'sha': True, '_id': False},
                                                                          )])
-
         records = []
         ranges = []
         dtype = None
@@ -205,6 +202,7 @@ class ChunkStore(object):
             chunk['end'] = end
             chunk['symbol'] = symbol
             chunk['sha'] = checksum(symbol, chunk)
+            
             if chunk['sha'] not in previous_shas:
                 op = True
                 bulk.find({'symbol': symbol, 'sha': chunk['sha']},
