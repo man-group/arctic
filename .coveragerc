@@ -2,4 +2,5 @@
 exclude_lines = 
     pragma: no cover
     raise NotImplementedError
+    except ImportError:
 
