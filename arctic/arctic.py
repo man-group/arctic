@@ -11,6 +11,7 @@ from .exceptions import LibraryNotFoundException, ArcticException, QuotaExceeded
 from .hooks import get_mongodb_uri
 from .store import version_store
 from .tickstore import tickstore, toplevel
+from .chunkstore import chunkstore
 from six import string_types
 
 
@@ -22,9 +23,11 @@ logger = logging.getLogger(__name__)
 APPLICATION_NAME = 'arctic'
 VERSION_STORE = version_store.VERSION_STORE_TYPE
 TICK_STORE = tickstore.TICK_STORE_TYPE
+CHUNK_STORE = chunkstore.CHUNK_STORE_TYPE
 LIBRARY_TYPES = {version_store.VERSION_STORE_TYPE: version_store.VersionStore,
                  tickstore.TICK_STORE_TYPE: tickstore.TickStore,
                  toplevel.TICK_STORE_TYPE: toplevel.TopLevelTickStore,
+                 chunkstore.CHUNK_STORE_TYPE: chunkstore.ChunkStore
                  }
 
 
