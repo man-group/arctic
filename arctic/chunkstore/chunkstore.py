@@ -32,22 +32,20 @@ class ChunkStore(object):
 
     @mongo_retry
     def _ensure_index(self):
-        collection = self._collection.symbols
-        collection.create_index([("symbol", pymongo.ASCENDING),
-                                 ("_id", pymongo.DESCENDING)],
-                                background=True)
+        self._symbols.create_index([("symbol", pymongo.ASCENDING)],
+                                   unique=True,
+                                   background=True)
 
-        collection = self._collection
-        collection.create_index([('symbol', pymongo.HASHED)], background=True)
-        collection.create_index([('symbol', pymongo.ASCENDING),
-                                ('sha', pymongo.ASCENDING)],
-                                unique=True,
-                                background=True)
-        collection.create_index([('symbol', pymongo.ASCENDING),
-                                ('parent', pymongo.ASCENDING),
-                                ('start', pymongo.ASCENDING),
-                                ('end', pymongo.ASCENDING)],
-                                unique=True, background=True)
+        self._collection.create_index([('symbol', pymongo.HASHED)],
+                                      background=True)
+        self._collection.create_index([('symbol', pymongo.ASCENDING),
+                                      ('sha', pymongo.ASCENDING)],
+                                      unique=True,
+                                      background=True)
+        self._collection.create_index([('symbol', pymongo.ASCENDING),
+                                       ('start', pymongo.ASCENDING),
+                                       ('end', pymongo.ASCENDING)],
+                                      unique=True, background=True)
 
     @mongo_retry
     def __init__(self, arctic_lib, chunker=DateChunker()):
@@ -123,7 +121,6 @@ class ChunkStore(object):
             raise NoDataFoundException('No data found for %s in library %s' % (symbol, self._collection.get_name()))
 
         spec = {'symbol': symbol,
-                'parent': sym['_id'],
                 }
 
         if chunk_range is not None:
@@ -159,7 +156,7 @@ class ChunkStore(object):
             A chunk size that is understood by the specified chunker
         """
 
-        doc = {'_id': bson.ObjectId()}
+        doc = {}
         doc['symbol'] = symbol
         doc['chunk_size'] = chunk_size
 
@@ -169,6 +166,12 @@ class ChunkStore(object):
             doc['type'] = DataFrameSerializer.TYPE
         else:
             raise Exception("Can only chunk Series and DataFrames")
+
+        previous_shas = []
+        if self._get_symbol_info(symbol):
+            previous_shas = set([x['sha'] for x in self._collection.find({'symbol': symbol},
+                                                                         projection={'sha': True, '_id': False},
+                                                                         )])
 
         records = []
         ranges = []
@@ -183,12 +186,6 @@ class ChunkStore(object):
         for record in records:
             if record.dtype.hasobject:
                 raise UnhandledDtypeException()
-
-        sym = self._get_symbol_info(symbol)
-        if sym:
-            # if the symbol already exists, we are basically overwriting it
-            # clean up the data before we orphan the symbol chunks
-            self.delete(symbol)
 
         doc['dtype'] = str(dtype)
         doc['shape'] = (-1,) + item.shape[1:]
@@ -210,8 +207,12 @@ class ChunkStore(object):
             chunk['end'] = end
             chunk['symbol'] = symbol
             chunk['sha'] = checksum(symbol, chunk)
-            bulk.find({'symbol': symbol, 'sha': chunk['sha'], 'start': chunk['start']}
-                      ).upsert().update_one({'$set': chunk, '$addToSet': {'parent': doc['_id']}})
+            if chunk['sha'] not in previous_shas:
+                bulk.find({'symbol': symbol, 'sha': chunk['sha']},
+                          ).upsert().update_one({'$set': chunk})
+            else:
+                # already exists, dont need to update in mongo
+                previous_shas = previous_shas.remove(chunk['sha'])
         if seg_count != 0:
             bulk.execute()
 
@@ -219,7 +220,12 @@ class ChunkStore(object):
         doc['append_size'] = 0
         doc['append_count'] = 0
 
-        mongo_retry(self._symbols.insert_one)(doc)
+        if previous_shas:
+            mongo_retry(self._collection.delete_many)({'sha': {'$in': list(previous_shas)}})
+
+        mongo_retry(self._symbols.update_one)({'symbol': symbol},
+                                              {'$set': doc},
+                                              upsert=True)
 
     def append(self, symbol, item):
         """
@@ -294,7 +300,7 @@ class ChunkStore(object):
                 segment['start'] = start
                 segment['end'] = end
                 self._collection.update_one({'symbol': symbol, 'sha': checksum(symbol, segment)},
-                                            {'$set': segment, '$addToSet': {'parent': sym['_id']}},
+                                            {'$set': segment},
                                             upsert=True)
 
             self._symbols.replace_one({'symbol': symbol}, sym)
@@ -362,10 +368,10 @@ class ChunkStore(object):
                 if orig_start is None:
                     # new chunk
                     bulk.find({'symbol': symbol, 'sha': sha, 'start': segment['start']}
-                              ).upsert().update_one({'$set': segment, '$addToSet': {'parent': sym['_id']}})
+                              ).upsert().update_one({'$set': segment})
                 else:
                     bulk.find({'symbol': symbol, 'start': orig_start}
-                              ).update_one({'$set': segment, '$addToSet': {'parent': sym['_id']}})
+                              ).update_one({'$set': segment})
             if len(chunks) > 0:
                     bulk.execute()
 

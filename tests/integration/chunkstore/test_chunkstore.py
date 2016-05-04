@@ -579,5 +579,3 @@ def test_multiple_actions_monthly_data(chunkstore_lib):
 
     for chunk_size in ['D', 'M', 'Y']:
         helper(chunkstore_lib, chunk_size, 'test_monthly_' + chunk_size, df, append)
-
-
