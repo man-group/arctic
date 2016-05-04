@@ -21,14 +21,15 @@ def test_write_dataframe(chunkstore_lib):
 
 
 def test_overwrite_dataframe(chunkstore_lib):
-    df = DataFrame(data={'data': [1, 2, 3]},
+    df = DataFrame(data={'data': [1, 2, 3, 4]},
                    index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
                                                  (dt(2016, 1, 2), 1),
-                                                 (dt(2016, 1, 3), 1)],
+                                                 (dt(2016, 1, 3), 1),
+                                                 (dt(2016, 1, 4), 1)],
                                                 names=['date', 'id'])
                    )
 
-    dg = DataFrame(data={'data': [4, 5, 6]},
+    dg = DataFrame(data={'data': [1, 2, 3]},
                    index=MultiIndex.from_tuples([(dt(2015, 1, 1), 1),
                                                  (dt(2015, 1, 2), 1),
                                                  (dt(2015, 1, 3), 1)],
@@ -579,3 +580,18 @@ def test_multiple_actions_monthly_data(chunkstore_lib):
 
     for chunk_size in ['D', 'M', 'Y']:
         helper(chunkstore_lib, chunk_size, 'test_monthly_' + chunk_size, df, append)
+
+
+def test_delete(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+    chunkstore_lib.write('test_df', df, 'D')
+    read_df = chunkstore_lib.read('test_df')
+    assert_frame_equal(df, read_df)
+    assert ('test_df' in chunkstore_lib.list_symbols())
+    chunkstore_lib.delete('test_df')
+    assert (chunkstore_lib.list_symbols() == [])
