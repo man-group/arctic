@@ -99,7 +99,7 @@ Arctic includes three storage engines:
   * [TickStore](arctic/tickstore/tickstore.py): Column oriented tick database.  Supports
     dynamic fields, chunks aren't versioned. Designed for large continuously ticking data.
   * [Chunkstore](arctic/chunkstore/chunkstore.py): A storage type that allows data to be stored in customizable chunk sizes. Chunks
-    aren't versioned, and can up appended to and updated in place. 
+    aren't versioned, and can be appended to and updated in place. 
 
 Arctic storage implementations are **pluggable**.  VersionStore is the default.
 
