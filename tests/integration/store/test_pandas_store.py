@@ -525,7 +525,7 @@ def panel(i1, i2, i3):
                  list(rrule(DAILY, count=i3, dtstart=dt(1970, 1, 1), interval=1)))
 
 
-@pytest.mark.skipif(pd.__version__ == '0.18.0', reason="issue #115")
+@pytest.mark.skipif(pd.__version__ >= '0.18.0', reason="issue #115")
 @pytest.mark.parametrize("df_size", list(itertools.combinations_with_replacement([1, 2, 4], r=3)))
 def test_panel_save_read(library, df_size):
     '''Note - empties are not tested here as they don't work!'''
