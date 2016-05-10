@@ -1,8 +1,8 @@
 ## Changelog
 
-### 1.23 (2016-05-10)
+### 1.24 (2016-05-10)
   
-  * Bugfix: Make sure documents written by newer versions of Arctic can still be read by the previous ones.
+  * Bugfix: Backwards compatibility reading/writing documents with previous versions of Arctic
 
 ### 1.22 (2016-05-09)
   
