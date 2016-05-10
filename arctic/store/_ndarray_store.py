@@ -260,7 +260,8 @@ class NdarrayStore(object):
     def _do_append(self, collection, version, symbol, item, previous_version):
 
         data = item.tostring()
-        version['base_sha'] = previous_version['base_sha']
+        # Compatibility with Arctic 1.22.0 that didn't write base_sha into the version document
+        version['base_sha'] = previous_version.get('base_sha', Binary(b''))
         version['up_to'] = previous_version['up_to'] + len(item)
         if len(item) > 0:
             version['segment_count'] = previous_version['segment_count'] + 1
