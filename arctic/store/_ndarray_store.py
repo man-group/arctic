@@ -249,6 +249,7 @@ class NdarrayStore(object):
             item = np.concatenate([old_arr, item])
             version['up_to'] = len(item)
             version['sha'] = self.checksum(item)
+            version['base_sha'] = version['sha']
             self._do_write(collection, version, symbol, item, previous_version)
         else:
             version['dtype'] = previous_version['dtype']
@@ -259,6 +260,7 @@ class NdarrayStore(object):
     def _do_append(self, collection, version, symbol, item, previous_version):
 
         data = item.tostring()
+        version['base_sha'] = previous_version['base_sha']
         version['up_to'] = previous_version['up_to'] + len(item)
         if len(item) > 0:
             version['segment_count'] = previous_version['segment_count'] + 1
@@ -380,6 +382,7 @@ class NdarrayStore(object):
                 self._do_append(collection, version, symbol, item[previous_version['up_to']:], previous_version)
                 return
 
+        version['base_sha'] = version['sha']
         self._do_write(collection, version, symbol, item, previous_version)
 
     def _do_write(self, collection, version, symbol, item, previous_version, segment_offset=0):
