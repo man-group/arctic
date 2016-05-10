@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.23 (2016-05-10)
+  
+  * Bugfix: Make sure documents written by newer versions of Arctic can still be read by the previous ones.
+
 ### 1.22 (2016-05-09)
   
   * Bugfix: #109 Ensure stable sort during Arctic read
