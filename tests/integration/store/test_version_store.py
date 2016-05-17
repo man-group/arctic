@@ -427,6 +427,11 @@ def test_delete_bson_versions(library):
     assert coll.versions.count() == 0
 
 
+def test_read_none_does_not_exception(library):
+    library.write(symbol, None)
+    assert library.read(symbol).data is None
+
+
 def test_delete_item_has_symbol(library):
     library.write(symbol, ts1)
     library.write(symbol, ts2, prune_previous_version=False)

@@ -8,6 +8,8 @@
 # Coverage
 htmlcov
 .coverage
+.idea
+.cache
 coverage.xml
 junit.xml
 /tmp/
