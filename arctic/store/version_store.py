@@ -362,10 +362,10 @@ class VersionStore(object):
 
 
     def _do_read(self, symbol, version, from_version=None, **kwargs):
+        if version.get('deleted'):
+            raise NoDataFoundException("No data found for %s in library %s" % (symbol, self._arctic_lib.get_name()))
         handler = self._read_handler(version, symbol)
         data = handler.read(self._arctic_lib, version, symbol, from_version=from_version, **kwargs)
-        if data is None:
-            raise NoDataFoundException("No data found for %s in library %s" % (symbol, self._arctic_lib.get_name()))
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
                              metadata=version.pop('metadata', None), data=data)
     _do_read_retry = mongo_retry(_do_read)
