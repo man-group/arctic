@@ -1,5 +1,10 @@
 ## Changelog
 
+### 1.25
+
+  * Bugfix: Ensure that Tickstore.write doesn't allow out of order messages
+  * Bugfix: VersionStore.write now allows writing 'None' as a value
+
 ### 1.24 (2016-05-10)
   
   * Bugfix: Backwards compatibility reading/writing documents with previous versions of Arctic
