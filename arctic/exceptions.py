@@ -34,7 +34,7 @@ class QuotaExceededException(ArcticException):
     pass
 
 
-class UnorderedAppendException(ArcticException):
+class UnorderedDataException(ArcticException):
     pass
 
 
