@@ -12,6 +12,7 @@ from arctic.tickstore.tickstore import TickStore, IMAGE_DOC, IMAGE, START, \
 from arctic.date import CLOSED_OPEN
 from arctic.date._daterange import DateRange
 from arctic.date._mktz import mktz
+from arctic.exceptions import UnorderedDataException
 
 
 def test_mongo_date_range_query():
@@ -93,6 +94,25 @@ def test_tickstore_to_bucket_with_image():
                                  IMAGE_TIME: initial_image['index']}
     assert final_image == {'index': data[-1]['index'], 'A': 125, 'B': 27.2, 'C': 'DESC', 'D': 0}
 
+
+def test_tickstore_to_bucket_always_forwards():
+    symbol = 'SYM'
+    tz = 'UTC'
+    initial_image = {'index': dt(2014, 1, 1, 0, 0, tzinfo=mktz(tz)), 'A': 123, 'B': 54.4, 'C': 'DESC'}
+    data = [{'index': dt(2014, 2, 1, 0, 1, tzinfo=mktz(tz)), 'A': 124, 'D': 0},
+            {'index': dt(2014, 1, 1, 0, 1, tzinfo=mktz(tz)), 'A': 125, 'B': 27.2}]
+    with pytest.raises(UnorderedDataException):
+        TickStore._to_bucket(data, symbol, initial_image)
+
+
+def test_tickstore_to_bucket_always_forwards_image():
+    symbol = 'SYM'
+    tz = 'UTC'
+    initial_image = {'index': dt(2014, 2, 1, 0, 0, tzinfo=mktz(tz)), 'A': 123, 'B': 54.4, 'C': 'DESC'}
+    data = [{'index': dt(2014, 1, 1, 0, 1, tzinfo=mktz(tz)), 'A': 124, 'D': 0}]
+    with pytest.raises(UnorderedDataException) as e:
+        TickStore._to_bucket(data, symbol, initial_image)
+    print e
 
 def get_coldata(coldata):
     """ return values and rowmask """

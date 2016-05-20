@@ -1,8 +1,8 @@
 from __future__ import print_function
 import logging
 
-from six import iteritems
 from bson.binary import Binary
+import copy
 from datetime import datetime as dt, timedelta
 import lz4
 import numpy as np
@@ -10,12 +10,11 @@ import pandas as pd
 from pandas.core.frame import _arrays_to_mgr
 import pymongo
 from pymongo.errors import OperationFailure
-import copy
+from six import iteritems, string_types
 
-from ..date import DateRange, to_pandas_closed_closed, mktz, datetime_to_ms, CLOSED_CLOSED, to_dt
+from ..date import DateRange, to_pandas_closed_closed, mktz, datetime_to_ms, ms_to_datetime, CLOSED_CLOSED, to_dt
 from ..decorators import mongo_retry
-from ..exceptions import OverlappingDataException, NoDataFoundException, UnhandledDtypeException, ArcticException
-from six import string_types
+from ..exceptions import OverlappingDataException, NoDataFoundException, UnorderedDataException, UnhandledDtypeException, ArcticException
 from .._util import indent
 
 
@@ -632,6 +631,9 @@ class TickStore(object):
                         rowmask[k][i] = 1
                     else:
                         v = TickStore._to_ms(v)
+                        if data[k][-1] > v:
+                            raise UnorderedDataException("Timestamps out-of-order: %s > %s" % (
+                                                          ms_to_datetime(data[k][-1]), t))
                     data[k].append(v)
                 except KeyError:
                     if k != 'index':
@@ -651,6 +653,9 @@ class TickStore(object):
 
         if initial_image:
             image_start = initial_image.get('index', start)
+            if image_start > start:
+                raise UnorderedDataException("Image timestamp is after first tick: %s > %s" % (
+                                              image_start, start))
             start = min(start, image_start)
             rtn[IMAGE_DOC] = {IMAGE_TIME: image_start, IMAGE: initial_image}
         rtn[END] = end
