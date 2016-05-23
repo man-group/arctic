@@ -41,6 +41,7 @@ ts1_append = read_str_as_pandas("""         times | near
 
 symbol = 'TS1'
 symbol2 = 'TS2'
+symbol3 = 'TS3'
 
 
 def test_ArcticTransaction_can_do_first_writes(library):
@@ -121,6 +122,9 @@ def test_metadata_changes_writes(library):
 
 
 def test_audit_read(library):
+    with ArcticTransaction(library, symbol3, 'u3', 'foo') as mt:
+        mt.write(symbol3, ts1)
+
     with ArcticTransaction(library, symbol, 'u1', 'l1') as mt:
         mt.write(symbol, ts1)
 
@@ -141,6 +145,14 @@ def test_audit_read(library):
 
     assert symbol_audit_log == [{u'new_v': 2, u'symbol': u'TS1', u'message': u'l2', u'user': u'u2', u'orig_v': 1},
                          {u'new_v': 1, u'symbol': u'TS1', u'message': u'l1', u'user': u'u1', u'orig_v': 0}]
+
+
+    symbols_audit_log = library.read_audit_log(symbol=[symbol, symbol2])
+
+    assert symbols_audit_log == [{u'new_v': 1, u'symbol': u'TS2', u'message': u'l2', u'user': u'u2', u'orig_v': 0},
+                                {u'new_v': 2, u'symbol': u'TS1', u'message': u'l2', u'user': u'u2', u'orig_v': 1},
+                         {u'new_v': 1, u'symbol': u'TS1', u'message': u'l1', u'user': u'u1', u'orig_v': 0}]
+
 
     symbol_message_audit_log = library.read_audit_log(symbol=symbol, message='l2')
 

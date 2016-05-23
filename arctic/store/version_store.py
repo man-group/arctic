@@ -208,7 +208,7 @@ class VersionStore(object):
         """
         query = {}
         if symbol:
-            if isinstance(symbol, basestring):
+            if isinstance(symbol, six.string_types):
                 query['symbol'] = {'$regex': symbol}
             else:
                 query['symbol'] = {'$in': list(symbol)}
