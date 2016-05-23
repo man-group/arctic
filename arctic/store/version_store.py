@@ -215,8 +215,11 @@ class VersionStore(object):
         if message is not None:
             query['message'] = message
 
-        return list(self._audit.find(query, sort=[('_id', -1)],
-                                     projection={'_id': False}))
+        def _pop_id(x):
+            x.pop('_id')
+            return x
+
+        return [_pop_id(x) for x in self._audit.find(query, sort=[('_id', -1)])]
 
     def list_versions(self, symbol=None, snapshot=None, latest_only=False):
         """
