@@ -196,7 +196,7 @@ class VersionStore(object):
         except NoDataFoundException:
             return False
 
-    def read_audit_log(self, symbol):
+    def read_audit_log(self, symbol=None, message=None):
         """
         Return the audit log associated with a given symbol
 
@@ -205,7 +205,16 @@ class VersionStore(object):
         symbol : `str`
             symbol name for the item
         """
-        query = {'symbol': symbol}
+        query = {}
+        if symbol:
+            if isinstance(symbol, six.string_types):
+                query['symbol'] = {'$regex': symbol}
+            else:
+                query['symbol'] = {'$in': list(symbol)}
+
+        if message is not None:
+            query['message'] = message
+
         return list(self._audit.find(query, sort=[('_id', -1)],
                                      projection={'_id': False}))
 
