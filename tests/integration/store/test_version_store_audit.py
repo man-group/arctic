@@ -133,7 +133,14 @@ def test_audit_read(library):
 
     with ArcticTransaction(library, symbol2, 'u2', 'l2') as mt:
         mt.write(symbol2, ts2)
+        
+    audit_log = library.read_audit_log()
 
+    assert audit_log == [{u'new_v': 1, u'symbol': u'TS2', u'message': u'l2', u'user': u'u2', u'orig_v': 0},
+                         {u'new_v': 2, u'symbol': u'TS1', u'message': u'l2', u'user': u'u2', u'orig_v': 1},
+                         {u'new_v': 1, u'symbol': u'TS1', u'message': u'l1', u'user': u'u1', u'orig_v': 0},
+                         {u'new_v': 1, u'symbol': u'TS3', u'message': u'foo', u'user': u'u3', u'orig_v': 0},
+                         ]
 
     l2_audit_log = library.read_audit_log(message='l2')
 
