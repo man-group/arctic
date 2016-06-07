@@ -401,6 +401,93 @@ def test_read_chunk_boundaries(tickstore_lib):
     assert len(tickstore_lib.read(['SYM1', 'SYM2'], columns=None, date_range=DateRange(dt(2013, 6, 1, 12, 45, tzinfo=mktz('UTC')), dt(2013, 6, 1, 15, 00, tzinfo=mktz('UTC'))))) == 4
 
 
+def test_read_spanning_chunks(tickstore_lib):
+    SYM1_DATA = [
+              {'a': 1.,
+               'b': 2.,
+               'index': dt(2013, 6, 1, 11, 00, tzinfo=mktz('UTC'))
+               },
+               {'a': 3.,
+               'b': 4.,
+               'index': dt(2013, 6, 1, 12, 00, tzinfo=mktz('UTC'))
+               },
+             # Chunk boundary here
+               {'a': 5.,
+               'b': 6.,
+               'index': dt(2013, 6, 1, 14, 00, tzinfo=mktz('UTC'))
+               }
+              ]
+    SYM2_DATA = [
+                  {'a': 7.,
+                   'b': 8.,
+                   'index': dt(2013, 6, 1, 12, 30, tzinfo=mktz('UTC'))
+                   },
+                   {'a': 9.,
+                   'b': 10.,
+                   'index': dt(2013, 6, 1, 13, 30, tzinfo=mktz('UTC'))
+                   },
+                 # Chunk boundary here
+                   {'a': 11.,
+                   'b': 12.,
+                   'index': dt(2013, 6, 1, 14, 30, tzinfo=mktz('UTC'))
+                   }
+                  ]
+    tickstore_lib._chunk_size = 2
+    tickstore_lib.write('SYM1', SYM1_DATA)
+    tickstore_lib.write('SYM2', SYM2_DATA)
+    
+    # Even though the latest chunk that's the closest to the start point for SYM1 starts at 11:00, it ends before the start point,
+    # so we want to ignore it and start from SYM2 (12:30) instead.
+    assert tickstore_lib._mongo_date_range_query(
+                                                 ['SYM1', 'SYM2'],
+                                                 date_range=DateRange(dt(2013, 6, 1, 12, 45, tzinfo=mktz('UTC')),
+                                                                      dt(2013, 6, 1, 15, 00, tzinfo=mktz('UTC')))) == \
+        {'s': {'$gte': dt(2013, 6, 1, 12, 30, tzinfo=mktz('UTC')), '$lte': dt(2013, 6, 1, 15, 0, tzinfo=mktz('UTC'))}}
+
+
+def test_read_inside_range(tickstore_lib):
+    SYM1_DATA = [
+              {'a': 1.,
+               'b': 2.,
+               'index': dt(2013, 6, 1, 0, 00, tzinfo=mktz('UTC'))
+               },
+               {'a': 3.,
+               'b': 4.,
+               'index': dt(2013, 6, 1, 1, 00, tzinfo=mktz('UTC'))
+               },
+             # Chunk boundary here
+               {'a': 5.,
+               'b': 6.,
+               'index': dt(2013, 6, 1, 14, 00, tzinfo=mktz('UTC'))
+               }
+              ]
+    SYM2_DATA = [
+                  {'a': 7.,
+                   'b': 8.,
+                   'index': dt(2013, 6, 1, 12, 30, tzinfo=mktz('UTC'))
+                   },
+                   {'a': 9.,
+                   'b': 10.,
+                   'index': dt(2013, 6, 1, 13, 30, tzinfo=mktz('UTC'))
+                   },
+                 # Chunk boundary here
+                   {'a': 11.,
+                   'b': 12.,
+                   'index': dt(2013, 6, 1, 14, 30, tzinfo=mktz('UTC'))
+                   }
+                  ]
+    tickstore_lib._chunk_size = 2
+    tickstore_lib.write('SYM1', SYM1_DATA)
+    tickstore_lib.write('SYM2', SYM2_DATA)
+
+    # If there are no chunks spanning the range, we still cap the start range so that we don't
+    # fetch SYM1's 0am--1am chunk
+    assert tickstore_lib._mongo_date_range_query(
+                                                 ['SYM1', 'SYM2'],
+                                                 date_range=DateRange(dt(2013, 6, 1, 10, 0, tzinfo=mktz('UTC')),
+                                                                      dt(2013, 6, 1, 15, 0, tzinfo=mktz('UTC')))) == \
+        {'s': {'$gte': dt(2013, 6, 1, 10, 0, tzinfo=mktz('UTC')), '$lte': dt(2013, 6, 1, 15, 0, tzinfo=mktz('UTC'))}}
+
 def test_read_longs(tickstore_lib):
     DUMMY_DATA = [
                   {'a': 1,

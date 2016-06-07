@@ -165,6 +165,11 @@ class TickStore(object):
         if date_range.start:
             assert date_range.start.tzinfo
             start = date_range.start
+            
+            # If all chunks start inside of the range, we default to capping to our
+            # range so that we don't fetch any chunks from the beginning of time
+            start_range['$gte'] = start
+            
             match = self._symbol_query(symbol)
             match.update({'s': {'$lte': start}})
 
@@ -175,17 +180,22 @@ class TickStore(object):
                             # Throw away everything but the start of every chunk and the symbol
                             {'$project': {'_id': 0, 's': 1, 'sy': 1}},
                             # For every symbol, get the latest chunk start (that is still before
-                            # our sought start, so all of these chunks span the start point)
+                            # our sought start)
                             {'$group': {'_id': '$sy', 'start': {'$max': '$s'}}},
-                            # Take the earliest one of these chunk starts
                             {'$sort': {'start': 1}},
-                            {'$limit': 1}])
+                            ])
+            # Now we need to get the earliest start of the chunk that still spans the start point.
+            # Since we got them sorted by start, we just need to fetch their ends as well and stop
+            # when we've seen the first such chunk
             try:
-                first_dt = next(result)['start']
+                for candidate in result:
+                    chunk = self._collection.find_one({'s': candidate['start'], 'sy': candidate['_id']}, {'e': 1})
+                    if chunk['e'].replace(tzinfo=mktz('UTC')) >= start:
+                        start_range['$gte'] = candidate['start'].replace(tzinfo=mktz('UTC'))
+                        break
             except StopIteration:
                 pass
-        if first_dt:
-            start_range['$gte'] = first_dt
+            
 
         # Find the end bound
         if date_range.end:
