@@ -1,6 +1,10 @@
 ## Changelog
 
-### 1.25
+### 1.26
+
+  * Bugfix: Faster TickStore querying for multiple symbols simultaneously
+
+### 1.25 (2016-05-23)
 
   * Bugfix: Ensure that Tickstore.write doesn't allow out of order messages
   * Bugfix: VersionStore.write now allows writing 'None' as a value
