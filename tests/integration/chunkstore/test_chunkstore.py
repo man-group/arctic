@@ -595,3 +595,24 @@ def test_delete(chunkstore_lib):
     assert ('test_df' in chunkstore_lib.list_symbols())
     chunkstore_lib.delete('test_df')
     assert (chunkstore_lib.list_symbols() == [])
+
+
+def test_get_info(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+    chunkstore_lib.write('test_df', df, 'D')
+    info = {'rows': 3,
+            'dtype': [('date', '<M8[ns]'), ('id', '<i8'), ('data', '<i8')],
+            'chunk_count': 3,
+            'col_names': {
+                            u'index': [u'date', u'id'],
+                            u'index_tz': [None, None],
+                            u'columns': [u'data']
+                         },
+            'type': u'df',
+            'size': 72}
+    assert(chunkstore_lib.get_info('test_df') == info)
