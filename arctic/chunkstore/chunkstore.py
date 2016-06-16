@@ -2,6 +2,7 @@ import logging
 import pymongo
 import numpy as np
 import bson
+import ast
 
 from bson.binary import Binary
 from pandas import Series, DataFrame
@@ -131,7 +132,7 @@ class ChunkStore(object):
 
         data = b''.join(segments)
 
-        dtype = PandasSerializer()._dtype(sym['dtype'], sym.get('dtype_metadata', {}))
+        dtype = PandasSerializer._dtype(sym['dtype'], sym.get('dtype_metadata', {}))
         records = np.fromstring(data, dtype=dtype).reshape(sym.get('shape', (-1)))
 
         data = deserialize(records, sym['type'])
@@ -377,3 +378,17 @@ class ChunkStore(object):
                 sym['append_size'] += seg_len
                 sym['append_count'] += seg_count
             self._symbols.replace_one({'symbol': symbol}, sym)
+
+    def get_info(self, symbol):
+        sym = self._get_symbol_info(symbol)
+        ret = {}
+        dtype = PandasSerializer._dtype(sym['dtype'], sym['dtype_metadata'])
+        length = sym['len']
+        ret['size'] = dtype.itemsize * length
+        ret['chunk_count'] = sym['chunk_count']
+        ret['dtype'] = sym['dtype']
+        ret['type'] = sym['type']
+        ret['rows'] = length
+        ret['col_names'] = sym['dtype_metadata']
+        ret['dtype'] = ast.literal_eval(sym['dtype'])
+        return ret

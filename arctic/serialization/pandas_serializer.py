@@ -42,7 +42,8 @@ def _to_primitive(arr, string_max_len=None):
 
 class PandasSerializer(object):
 
-    def _dtype(self, string, metadata=None):
+    @staticmethod
+    def _dtype(string, metadata=None):
         if metadata is None:
             metadata = {}
         if string.startswith('['):
