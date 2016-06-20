@@ -50,7 +50,7 @@ class DateChunker(Chunker):
             raise Exception("Chunk size must be one of D, M, Y")
 
         if 'date' not in df.index.names:
-            raise Exception("Data must be datetime indexed and have an index colum named 'date'")
+            raise Exception("Data must be datetime indexed and have an index column named 'date'")
 
         dates = [pd.to_datetime(d) for d in df.index.get_level_values('date').drop_duplicates()]
         key_array = [self._get_date_chunk(d, chunk_size) for d in dates]
