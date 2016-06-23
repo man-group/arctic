@@ -162,13 +162,14 @@ def test_get_quota():
 
 def test_check_quota_Zero():
     self = create_autospec(ArcticLibraryBinding)
-    self.quota = 0
+    self.get_library_metadata.return_value = 0
     ArcticLibraryBinding.check_quota(self)
 
 
 def test_check_quota_None():
     m = Mock(spec=ArcticLibraryBinding)
     m.quota = None
+    m.quota_countdown = 0
     m.get_library_metadata.return_value = None
     ArcticLibraryBinding.check_quota(m)
     m.get_library_metadata.assert_called_once_with('QUOTA')
@@ -178,6 +179,7 @@ def test_check_quota_None():
 def test_check_quota_Zero2():
     m = Mock(spec=ArcticLibraryBinding)
     m.quota = None
+    m.quota_countdown = 0
     m.get_library_metadata.return_value = 0
     ArcticLibraryBinding.check_quota(m)
     m.get_library_metadata.assert_called_once_with('QUOTA')
@@ -195,7 +197,7 @@ def test_check_quota_countdown():
 def test_check_quota():
     self = create_autospec(ArcticLibraryBinding)
     self.arctic = create_autospec(Arctic)
-    self.quota = 1024 * 1024 * 1024
+    self.get_library_metadata.return_value = 1024 * 1024 * 1024
     self.quota_countdown = 0
     self.arctic.__getitem__.return_value = Mock(stats=Mock(return_value={'totals':
                                                                              {'size': 900 * 1024 * 1024,
@@ -212,7 +214,7 @@ def test_check_quota():
 def test_check_quota_info():
     self = create_autospec(ArcticLibraryBinding)
     self.arctic = create_autospec(Arctic)
-    self.quota = 1024 * 1024 * 1024
+    self.get_library_metadata.return_value = 1024 * 1024 * 1024
     self.quota_countdown = 0
     self.arctic.__getitem__.return_value = Mock(stats=Mock(return_value={'totals':
                                                                              {'size': 1 * 1024 * 1024,
