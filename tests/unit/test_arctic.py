@@ -188,7 +188,7 @@ def test_check_quota_Zero2():
 
 def test_check_quota_countdown():
     self = create_autospec(ArcticLibraryBinding)
-    self.quota = 10
+    self.get_library_metadata.return_value = 10
     self.quota_countdown = 10
     ArcticLibraryBinding.check_quota(self)
     assert self.quota_countdown == 9
@@ -231,7 +231,7 @@ def test_check_quota_info():
 def test_check_quota_exceeded():
     self = create_autospec(ArcticLibraryBinding)
     self.arctic = create_autospec(Arctic)
-    self.quota = 1024 * 1024 * 1024
+    self.get_library_metadata.return_value = 1024 * 1024 * 1024
     self.quota_countdown = 0
     self.arctic.__getitem__.return_value = Mock(stats=Mock(return_value={'totals':
                                                                              {'size': 1024 * 1024 * 1024,
