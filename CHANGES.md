@@ -4,6 +4,7 @@
 
   * Bugfix: Faster TickStore querying for multiple symbols simultaneously
   * Bugfix: #147 Add get_info method to ChunkStore
+  * Bugfix: Periodically re-cache the library.quota to pick up any changes
 
 ### 1.25 (2016-05-23)
 
