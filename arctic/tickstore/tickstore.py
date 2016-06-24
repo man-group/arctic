@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from pandas.core.frame import _arrays_to_mgr
 import pymongo
+from pymongo import ReadPreference
 from pymongo.errors import OperationFailure
 from six import iteritems, string_types
 
@@ -230,7 +231,14 @@ class TickStore(object):
             query = {}
         return query
 
-    def read(self, symbol, date_range=None, columns=None, include_images=False, _target_tick_count=0):
+    def _read_preference(self, allow_secondary):
+        """ Return the mongo read preference given an 'allow_secondary' argument
+        """
+        allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
+        return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
+
+    def read(self, symbol, date_range=None, columns=None, include_images=False, allow_secondary=None,
+             _target_tick_count=0):
         """
         Read data for the named symbol.  Returns a VersionedItem object with
         a data and metdata element (as passed into write).
@@ -245,6 +253,12 @@ class TickStore(object):
             Columns (fields) to return from the tickstore
         include_images : `bool`
             Should images (/snapshots) be included in the read
+        allow_secondary : `bool` or `None`
+            Override the default behavior for allowing reads from secondary members of a cluster:
+            `None` : use the settings from the top-level `Arctic` object used to query this version store.
+            `True` : allow reads from secondary members
+            `False` : only allow reads from primary members
+
         Returns
         -------
         pandas.DataFrame of data
@@ -277,7 +291,8 @@ class TickStore(object):
 
         column_dtypes = {}
         ticks_read = 0
-        for b in self._collection.find(query, projection=projection).sort([(START, pymongo.ASCENDING)],):
+        data_coll = self._collection.with_options(read_preference=self._read_preference(allow_secondary))
+        for b in data_coll.find(query, projection=projection).sort([(START, pymongo.ASCENDING)],):
             data = self._read_bucket(b, column_set, column_dtypes,
                                      multiple_symbols or (columns is not None and 'SYMBOL' in columns),
                                      include_images, columns)
