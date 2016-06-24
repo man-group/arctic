@@ -163,6 +163,7 @@ def test_get_quota():
 def test_check_quota_Zero():
     self = create_autospec(ArcticLibraryBinding)
     self.get_library_metadata.return_value = 0
+    self.quota_countdown = 0
     ArcticLibraryBinding.check_quota(self)
 
 
