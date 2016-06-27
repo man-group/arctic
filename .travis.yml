@@ -6,13 +6,13 @@ python:
   - "3.5"
 install:
   - pip install --upgrade pip
-  - pip install python-dateutil --upgrade 
-  - pip install pytz --upgrade 
-  - pip install tzlocal --upgrade 
+  - pip install python-dateutil --upgrade
+  - pip install pytz --upgrade
+  - pip install tzlocal --upgrade
   - pip install cython --upgrade
   - pip install pymongo --upgrade
   - pip install numpy --upgrade
-  - pip install pandas --upgrade 
+  - pip install pandas --upgrade
   - pip install decorator --upgrade
   - pip install enum34 --upgrade
   - pip install lz4 --upgrade
@@ -24,4 +24,6 @@ install:
   - pip install pytest-timeout --upgrade
   - pip install pytest-xdist --upgrade
   - pip install setuptools-git --upgrade
-script: python setup.py test
+script:
+  - pip freeze
+  - python setup.py test
