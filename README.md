@@ -34,6 +34,7 @@ mongod --dbpath <path/to/db_directory>
 
 ```
 from arctic import Arctic
+import quandl
 
 # Connect to Local MONGODB
 store = Arctic('localhost')
@@ -45,7 +46,7 @@ store.initialize_library('NASDAQ')
 library = store['NASDAQ']
 
 # Load some data - maybe from Quandl
-aapl = Quandl.get("NASDAQ/AAPL", authtoken="your token here")
+aapl = quandl.get("WIKI/AAPL", authtoken="your token here")
 
 # Store the data in the library
 library.write('AAPL', aapl, metadata={'source': 'Quandl'})
