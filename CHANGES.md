@@ -3,6 +3,7 @@
 ### 1.26
 
   * Bugfix: Faster TickStore querying for multiple symbols simultaneously
+  * Bugfix: TickStore.read now respects `allow_secondary=True`
   * Bugfix: #147 Add get_info method to ChunkStore
 
 ### 1.25 (2016-05-23)

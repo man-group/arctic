@@ -1,10 +1,11 @@
 from datetime import datetime as dt
-from mock import patch
+from mock import patch, call
 import numpy as np
 from numpy.testing.utils import assert_array_equal
 from pandas.util.testing import assert_frame_equal
 import pandas as pd
 from pandas.tseries.index import DatetimeIndex
+from pymongo import ReadPreference
 import pytest
 import pytz
 
@@ -41,6 +42,44 @@ def test_read(tickstore_lib):
     assert_array_equal(df['BID'].values, np.array([1545, np.nan]))
     assert_array_equal(df['PRICE'].values, np.array([1545, 1543.75]))
     assert_array_equal(df.index.values.astype('object'), np.array([1185076787070000000, 1185141600600000000]))
+    assert tickstore_lib._collection.find_one()['c'] == 2
+
+
+def test_read_allow_secondary(tickstore_lib):
+    data = [{'ASK': 1545.25,
+                  'ASKSIZE': 1002.0,
+                  'BID': 1545.0,
+                  'BIDSIZE': 55.0,
+                  'CUMVOL': 2187387.0,
+                  'DELETED_TIME': 0,
+                  'INSTRTYPE': 'FUT',
+                  'PRICE': 1545.0,
+                  'SIZE': 1.0,
+                  'TICK_STATUS': 0,
+                  'TRADEHIGH': 1561.75,
+                  'TRADELOW': 1537.25,
+                  'index': 1185076787070},
+                 {'CUMVOL': 354.0,
+                  'DELETED_TIME': 0,
+                  'PRICE': 1543.75,
+                  'SIZE': 354.0,
+                  'TRADEHIGH': 1543.75,
+                  'TRADELOW': 1543.75,
+                  'index': 1185141600600}]
+    tickstore_lib.write('FEED::SYMBOL', data)
+
+
+    with patch('pymongo.collection.Collection.find', side_effect=tickstore_lib._collection.find) as find:
+        with patch('pymongo.collection.Collection.with_options', side_effect=tickstore_lib._collection.with_options) as with_options:
+            with patch.object(tickstore_lib, '_read_preference', side_effect=tickstore_lib._read_preference) as read_pref:
+                df = tickstore_lib.read('FEED::SYMBOL', columns=['BID', 'ASK', 'PRICE'], allow_secondary=True)
+    assert read_pref.call_args_list == [call(True)]
+    assert with_options.call_args_list == [call(read_preference=ReadPreference.NEAREST)]
+    assert find.call_args_list == [call({'sy': 'FEED::SYMBOL'}, sort=[('s', 1)], projection={'s': 1, '_id': 0}),
+                                   call({'sy': 'FEED::SYMBOL', 's': {'$lte': dt(2007, 8, 21, 3, 59, 47, 70000)}}, 
+                                        projection={'sy': 1, 'cs.PRICE': 1, 'i': 1, 'cs.BID': 1, 's': 1, 'im': 1, 'v': 1, 'cs.ASK': 1})]
+
+    assert_array_equal(df['ASK'].values, np.array([1545.25, np.nan]))
     assert tickstore_lib._collection.find_one()['c'] == 2
 
 
@@ -168,7 +207,7 @@ def test_date_range(tickstore_lib):
     tickstore_lib._chunk_size = 3
     tickstore_lib.write('SYM', DUMMY_DATA)
 
-    with patch.object(tickstore_lib._collection, 'find', side_effect=tickstore_lib._collection.find) as f:
+    with patch('pymongo.collection.Collection.find', side_effect=tickstore_lib._collection.find) as f:
         df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130103), columns=None)
         assert_array_equal(df['b'].values, np.array([2., 3., 5.]))
         assert tickstore_lib._collection.find(f.call_args_list[-1][0][0]).count() == 1

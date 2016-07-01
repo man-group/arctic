@@ -2,6 +2,7 @@ from datetime import datetime as dt
 from functools import partial
 from mock import create_autospec, sentinel, call
 import pytest
+from pymongo import ReadPreference
 from pymongo.collection import Collection
 import numpy as np
 import pandas as pd
@@ -164,3 +165,23 @@ def test_tickstore_pandas_to_bucket_image():
     assert bucket[SYMBOL] == symbol
     assert bucket[IMAGE_DOC] == {IMAGE: initial_image,
                                  IMAGE_TIME: initial_image['index']}
+
+
+def test__read_preference__allow_secondary_true():
+    self = create_autospec(TickStore)
+    assert TickStore._read_preference(self, True) == ReadPreference.NEAREST
+
+
+def test__read_preference__allow_secondary_false():
+    self = create_autospec(TickStore)
+    assert TickStore._read_preference(self, False) == ReadPreference.PRIMARY
+
+
+def test__read_preference__default_true():
+    self = create_autospec(TickStore, _allow_secondary=True)
+    assert TickStore._read_preference(self, None) == ReadPreference.NEAREST
+
+
+def test__read_preference__default_false():
+    self = create_autospec(TickStore, _allow_secondary=False)
+    assert TickStore._read_preference(self, None) == ReadPreference.PRIMARY
