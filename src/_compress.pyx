@@ -18,7 +18,9 @@ cimport libc.stdio
 cimport openmp
 
 from libc.stdlib cimport malloc, free, realloc
-from libc.stdint cimport uint8_t, uint32_t
+ctypedef unsigned char  uint8_t
+ctypedef unsigned int   uint32_t
+
 from libc.stdio cimport printf
 from cython.view cimport array as cvarray
 from cython.parallel import prange
