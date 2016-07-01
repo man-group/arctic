@@ -398,18 +398,15 @@ class ArcticLibraryBinding(object):
         every write.  Will raise() if the library has exceeded its allotted
         quota.
         """
-        # Don't check on every write
-        if self.quota is None:
-            self.quota = self.get_library_metadata(ArcticLibraryBinding.QUOTA)
-            if self.quota is None:
-                self.quota = 0
-
-        if self.quota == 0:
-            return
-
         # Don't check on every write, that would be slow
         if self.quota_countdown > 0:
             self.quota_countdown -= 1
+            return
+
+        # Re-cache the quota after the countdown
+        self.quota = self.get_library_metadata(ArcticLibraryBinding.QUOTA)
+        if self.quota is None or self.quota == 0:
+            self.quota = 0
             return
 
         # Figure out whether the user has exceeded their quota
@@ -439,6 +436,7 @@ class ArcticLibraryBinding(object):
                                                               to_gigabytes(self.quota)))
 
         # Set-up a timer to prevent us for checking for a few writes.
+        # This will check every average half-life
         self.quota_countdown = int(max(remaining_count // 2, 1))
 
     def get_library_type(self):
