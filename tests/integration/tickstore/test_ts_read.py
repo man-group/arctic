@@ -1,5 +1,5 @@
 from datetime import datetime as dt
-from mock import patch, call
+from mock import patch, call, Mock
 import numpy as np
 from numpy.testing.utils import assert_array_equal
 from pandas.util.testing import assert_frame_equal
@@ -287,7 +287,7 @@ def test_date_range_default_timezone(tickstore_lib, tz_name):
                    },
                   ]
 
-    with patch('arctic.date._mktz.DEFAULT_TIME_ZONE_NAME', tz_name):
+    with patch('tzlocal.get_localzone', return_value=Mock(zone=tz_name)):
         tickstore_lib._chunk_size = 1
         tickstore_lib.write('SYM', DUMMY_DATA)
         df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130701), columns=None)
