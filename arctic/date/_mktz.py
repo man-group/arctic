@@ -35,4 +35,11 @@ def mktz(zone=None):
     tz = dateutil.tz.gettz(zone)
     if not tz:
         raise TimezoneError('Timezone "%s" can not be read' % (zone))
+    # Stash the zone name as an attribute (as pytz does)
+    if not hasattr(tz, 'zone'):
+        tz.zone = zone
+        for p in dateutil.tz.TZPATHS:
+            if zone.startswith(p):
+                tz.zone = zone[len(p) + 1:]
+                break
     return tz

@@ -29,9 +29,9 @@ def test_mktz_noarg():
 
 def test_mktz_zone():
     tz = mktz('UTC')
-    assert 'UTC' in repr(tz)
+    assert tz.zone == "UTC"
     tz = mktz('/usr/share/zoneinfo/UTC')
-    assert 'UTC' in repr(tz)
+    assert tz.zone == "UTC"
 
 
 def test_mktz_fails_if_invalid_timezone():
