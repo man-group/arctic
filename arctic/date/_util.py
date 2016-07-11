@@ -166,3 +166,18 @@ def datetime_to_ms(d):
         return long((calendar.timegm(_add_tzone(d).utctimetuple()) + d.microsecond / 1000000.0) * 1e3)
     except AttributeError:
         raise TypeError('expect Python datetime object, not %s' % type(d))
+
+
+def utc_dt_to_local_dt(dtm):
+    """Convert a UTC datetime to datetime in local timezone"""
+    utc_zone = mktz("UTC")
+    if dtm.tzinfo is not None and dtm.tzinfo != utc_zone:
+        raise ValueError(
+            "Expected dtm without tzinfo or with UTC, not %r" % (
+                dtm.tzinfo
+            )
+        )
+
+    if dtm.tzinfo is None:
+        dtm = dtm.replace(tzinfo=utc_zone)
+    return dtm.astimezone(mktz())

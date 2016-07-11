@@ -1,9 +1,10 @@
 import pytest
 import pytz
+from mock import patch
 
 from datetime import datetime as dt
 from arctic.date import datetime_to_ms, ms_to_datetime, mktz, to_pandas_closed_closed, DateRange, OPEN_OPEN, CLOSED_CLOSED
-from arctic.date._util import to_dt
+from arctic.date._util import to_dt, utc_dt_to_local_dt
 
 
 @pytest.mark.parametrize('pdt', [
@@ -105,3 +106,15 @@ def test_daterange_lt():
     assert(dr2 < dr)
     dr.start = None
     assert((dr2 < dr) == False)
+
+
+@patch("arctic.date._util.mktz", lambda zone="Asia/Shanghai": mktz(zone))
+def test_utc_dt_to_local_dt():
+    with pytest.raises(ValueError):
+        assert(utc_dt_to_local_dt(
+            dt(2000, 1, 1, 0, 0, 0, tzinfo=mktz("Asia/Shanghai"))
+        ))
+
+    utc_time = dt(2000, 1, 1, 10, 0, 0)
+    pek_time = utc_dt_to_local_dt(utc_time)  # GMT +0800
+    assert(pek_time.hour - utc_time.hour == 8)
