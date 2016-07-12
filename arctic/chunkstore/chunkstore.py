@@ -39,6 +39,8 @@ class ChunkStore(object):
 
         self._collection.create_index([('symbol', pymongo.HASHED)],
                                       background=True)
+        self._collection.create_index([('sha', pymongo.HASHED)],
+                                      background=True)
         self._collection.create_index([('symbol', pymongo.ASCENDING),
                                       ('sha', pymongo.ASCENDING)],
                                       unique=True,
