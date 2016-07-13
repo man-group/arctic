@@ -219,7 +219,7 @@ class ChunkStore(object):
         doc['append_count'] = 0
 
         if previous_shas:
-            mongo_retry(self._collection.delete_many)({'sha': {'$in': list(previous_shas)}})
+            mongo_retry(self._collection.delete_many)({'symbol': symbol, 'sha': {'$in': list(previous_shas)}})
 
         mongo_retry(self._symbols.update_one)({'symbol': symbol},
                                               {'$set': doc},
