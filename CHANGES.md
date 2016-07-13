@@ -6,6 +6,7 @@
   * Bugfix: TickStore.read now respects `allow_secondary=True`
   * Bugfix: #147 Add get_info method to ChunkStore
   * Bugfix: Periodically re-cache the library.quota to pick up any changes
+  * Bugfix #169 Dtype mismatch in chunkstore updates
 
 ### 1.25 (2016-05-23)
 
