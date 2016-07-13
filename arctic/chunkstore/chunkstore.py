@@ -167,7 +167,8 @@ class ChunkStore(object):
             raise Exception("Can only chunk Series and DataFrames")
 
         previous_shas = []
-        if self._get_symbol_info(symbol):
+        sym = self._get_symbol_info(symbol)
+        if sym:
             previous_shas = set([Binary(x['sha']) for x in self._collection.find({'symbol': symbol},
                                                                          projection={'sha': True, '_id': False},
                                                                          )])
@@ -177,6 +178,9 @@ class ChunkStore(object):
 
         for start, end, record in self.chunker.to_chunks(item, chunk_size):
             r, dtype = serialize(record, string_max_len=self.STRING_MAX)
+            # if symbol exists, dtypes better match
+            if sym and str(dtype) != sym['dtype']:
+                raise Exception('Dtype mismatch - cannot write chunk')
             records.append(r)
             ranges.append((start, end))
 
@@ -266,6 +270,8 @@ class ChunkStore(object):
                     sym = self._get_symbol_info(symbol)
                     continue
             r, dtype = serialize(record, string_max_len=self.STRING_MAX)
+            if str(dtype) != sym['dtype']:
+                raise Exception("Dtype mismatch - cannot append")
             records.append(r)
             ranges.append((start, end))
 
@@ -321,6 +327,7 @@ class ChunkStore(object):
         if not sym:
             raise NoDataFoundException("Symbol does not exist. Cannot update")
 
+        
         records = []
         ranges = []
         orig_ranges = []
@@ -337,7 +344,9 @@ class ChunkStore(object):
             else:
                 orig_ranges.append((None, None))
 
-            r, _ = serialize(record, string_max_len=self.STRING_MAX)
+            r, dtype = serialize(record, string_max_len=self.STRING_MAX)
+            if str(dtype) != sym['dtype']:
+                raise Exception('Dtype mismatch - cannot update')
             records.append(r)
             ranges.append((start, end))
 
