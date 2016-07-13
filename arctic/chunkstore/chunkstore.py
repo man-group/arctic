@@ -178,6 +178,9 @@ class ChunkStore(object):
 
         for start, end, record in self.chunker.to_chunks(item, chunk_size):
             r, dtype = serialize(record, string_max_len=self.STRING_MAX)
+            # if symbol exists, dtypes better match
+            if sym and str(dtype) != sym['dtype']:
+                raise Exception('Dtype mismatch - cannot write chunk')
             records.append(r)
             ranges.append((start, end))
 
@@ -206,9 +209,6 @@ class ChunkStore(object):
             chunk['sha'] = checksum(symbol, chunk)
             
             if chunk['sha'] not in previous_shas:
-                # if we are re-using old chunks, their dtype better match
-                if sym and doc['dtype'] != sym['dtype']:
-                    raise Exception('Dtype mismatch - cannot write chunk')
                 op = True
                 bulk.find({'symbol': symbol, 'sha': chunk['sha']},
                           ).upsert().update_one({'$set': chunk})
