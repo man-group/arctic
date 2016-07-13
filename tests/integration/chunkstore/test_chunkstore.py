@@ -616,3 +616,25 @@ def test_get_info(chunkstore_lib):
             'type': u'df',
             'size': 72}
     assert(chunkstore_lib.get_info('test_df') == info)
+
+
+def test_dtype_mismatch_error(chunkstore_lib):
+    s = pd.Series([1], index=pd.date_range('2016-01-01', '2016-01-01', name='date'), name='vals')
+
+    # Write with an int
+    chunkstore_lib.write('test', s, 'D')
+
+    # Update with a float
+    with pytest.raises(Exception) as e:
+        chunkstore_lib.update('test', s * 1.0)
+    assert('Dtype mismatch' in  str(e))
+
+    with pytest.raises(Exception) as e:
+        chunkstore_lib.write('test', s * 1.0, 'D')
+    assert('Dtype mismatch' in  str(e))
+
+    with pytest.raises(Exception) as e:
+        chunkstore_lib.append('test', s * 1.0)
+    assert('Dtype mismatch' in  str(e))
+
+    assert_series_equal(s, chunkstore_lib.read('test'))

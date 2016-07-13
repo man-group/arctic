@@ -167,7 +167,8 @@ class ChunkStore(object):
             raise Exception("Can only chunk Series and DataFrames")
 
         previous_shas = []
-        if self._get_symbol_info(symbol):
+        sym = self._get_symbol_info(symbol)
+        if sym:
             previous_shas = set([Binary(x['sha']) for x in self._collection.find({'symbol': symbol},
                                                                          projection={'sha': True, '_id': False},
                                                                          )])
@@ -205,6 +206,9 @@ class ChunkStore(object):
             chunk['sha'] = checksum(symbol, chunk)
             
             if chunk['sha'] not in previous_shas:
+                # if we are re-using old chunks, their dtype better match
+                if sym and doc['dtype'] != sym['dtype']:
+                    raise Exception('Dtype mismatch - cannot write chunk')
                 op = True
                 bulk.find({'symbol': symbol, 'sha': chunk['sha']},
                           ).upsert().update_one({'$set': chunk})
@@ -266,6 +270,8 @@ class ChunkStore(object):
                     sym = self._get_symbol_info(symbol)
                     continue
             r, dtype = serialize(record, string_max_len=self.STRING_MAX)
+            if str(dtype) != sym['dtype']:
+                raise Exception("Dtype mismatch - cannot append")
             records.append(r)
             ranges.append((start, end))
 
@@ -321,6 +327,7 @@ class ChunkStore(object):
         if not sym:
             raise NoDataFoundException("Symbol does not exist. Cannot update")
 
+        
         records = []
         ranges = []
         orig_ranges = []
@@ -337,7 +344,9 @@ class ChunkStore(object):
             else:
                 orig_ranges.append((None, None))
 
-            r, _ = serialize(record, string_max_len=self.STRING_MAX)
+            r, dtype = serialize(record, string_max_len=self.STRING_MAX)
+            if str(dtype) != sym['dtype']:
+                raise Exception('Dtype mismatch - cannot update')
             records.append(r)
             ranges.append((start, end))
 
