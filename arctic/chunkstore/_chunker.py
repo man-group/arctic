@@ -61,3 +61,13 @@ class Chunker(object):
         data, filtered by range_obj
         """
         raise NotImplementedError
+
+def exclude(self, data, range_obj):
+        """
+        Removes data within the bounds of the range object (inclusive)
+
+        returns
+        -------
+        data, filtered by range_obj
+        """
+        raise NotImplementedError

@@ -83,6 +83,8 @@ class DateChunker(Chunker):
         else:
             return {}
 
-
     def filter(self, data, range_obj):
         return data.ix[range_obj[0]:range_obj[1]]
+
+    def exclude(self, data, range_obj):
+        return data[(data.index.get_level_values('date') < range_obj[0]) | (data.index.get_level_values('date') > range_obj[1])]

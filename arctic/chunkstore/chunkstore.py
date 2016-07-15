@@ -86,8 +86,7 @@ class ChunkStore(object):
             # read out chunks that fall within the range and filter out
             # data within the range
             df = self.read(symbol, chunk_range=chunk_range, no_filter=True)
-            df = df[(df.index.get_level_values('date') < chunk_range[0]) | (df.index.get_level_values('date') > chunk_range[1])]
-
+            df = self.chunker.exclude(df, chunk_range)
 
             # remove chunks, and update any remaining data
             query = {'symbol': symbol}
