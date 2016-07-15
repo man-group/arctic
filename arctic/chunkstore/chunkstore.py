@@ -73,18 +73,32 @@ class ChunkStore(object):
     def __repr__(self):
         return str(self)
 
-    def delete(self, symbol):
+    def delete(self, symbol, chunk_range=None):
         """
-        Delete all chunks for a symbol.
+        Delete all chunks for a symbol, or optionally, chunks within a range
 
         Parameters
         ----------
         symbol : `str`
             symbol name for the item
         """
-        query = {"symbol": symbol}
-        self._collection.delete_many(query)
-        self._collection.symbols.delete_many(query)
+        if chunk_range:
+            # read out chunks that fall within the range and filter out
+            # data within the range
+            df = self.read(symbol, chunk_range=chunk_range, no_filter=True)
+            df = df[(df.index.get_level_values('date') < chunk_range[0]) | (df.index.get_level_values('date') > chunk_range[1])]
+
+
+            # remove chunks, and update any remaining data
+            query = {'symbol': symbol}
+            query.update(self.chunker.to_mongo(chunk_range))
+            self._collection.delete_many(query)
+            self.update(symbol, df)
+
+        else:
+            query = {"symbol": symbol}
+            self._collection.delete_many(query)
+            self._collection.symbols.delete_many(query)
 
     def list_symbols(self):
         """
@@ -99,7 +113,7 @@ class ChunkStore(object):
     def _get_symbol_info(self, symbol):
         return self._symbols.find_one({'symbol': symbol})
 
-    def read(self, symbol, chunk_range=None):
+    def read(self, symbol, chunk_range=None, no_filter=False):
         """
         Reads data for a given symbol from the database.
 
@@ -110,6 +124,9 @@ class ChunkStore(object):
         chunk_range: object
             corresponding range object for the specified chunker (for
             DateChunker it is a DateRange object)
+        no_filter: boolean
+            perform chunk level filtering on the data (see filter() in _chunker)
+            only applicable when chunk_range is specified
 
         Returns
         -------
@@ -124,7 +141,7 @@ class ChunkStore(object):
                 }
 
         if chunk_range:
-            spec['start'] = self.chunker.to_mongo(chunk_range)
+            spec.update(self.chunker.to_mongo(chunk_range))
 
         segments = []
         for _, x in enumerate(self._collection.find(spec, sort=[('start', pymongo.ASCENDING)],)):
@@ -137,7 +154,7 @@ class ChunkStore(object):
 
         data = deserialize(records, sym['type'])
 
-        if chunk_range is None:
+        if no_filter or chunk_range is None:
             return data
         return self.chunker.filter(data, chunk_range)
 
