@@ -85,7 +85,7 @@ class ChunkStore(object):
         if chunk_range:
             # read out chunks that fall within the range and filter out
             # data within the range
-            df = self.read(symbol, chunk_range=chunk_range, no_filter=True)
+            df = self.read(symbol, chunk_range=chunk_range, filter_data=False)
             df = self.chunker.exclude(df, chunk_range)
 
             # remove chunks, and update any remaining data
@@ -112,7 +112,7 @@ class ChunkStore(object):
     def _get_symbol_info(self, symbol):
         return self._symbols.find_one({'symbol': symbol})
 
-    def read(self, symbol, chunk_range=None, no_filter=False):
+    def read(self, symbol, chunk_range=None, filter_data=True):
         """
         Reads data for a given symbol from the database.
 
@@ -123,7 +123,7 @@ class ChunkStore(object):
         chunk_range: object
             corresponding range object for the specified chunker (for
             DateChunker it is a DateRange object)
-        no_filter: boolean
+        filter: boolean
             perform chunk level filtering on the data (see filter() in _chunker)
             only applicable when chunk_range is specified
 
@@ -153,7 +153,7 @@ class ChunkStore(object):
 
         data = deserialize(records, sym['type'])
 
-        if no_filter or chunk_range is None:
+        if not filter_data or chunk_range is None:
             return data
         return self.chunker.filter(data, chunk_range)
 
