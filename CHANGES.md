@@ -8,6 +8,8 @@
   * Bugfix: Periodically re-cache the library.quota to pick up any changes
   * Bugfix: #166 Add index on SHA for ChunkStore
   * Bugfix: #169 Dtype mismatch in chunkstore updates
+  * Feature: #171 allow deleting of values within a date range in ChunkStore
+  * Bugfix: #172 Fix date range bug when querying dates in the middle of chunks
 
 ### 1.25 (2016-05-23)
 

@@ -74,7 +74,17 @@ class DateChunker(Chunker):
         return self._get_date_range(data)
 
     def to_mongo(self, range_obj):
-        return range_obj.mongo_query()
+        if range_obj.start and range_obj.end:
+            return {'$and': [{'start': {'$lte': range_obj.end}}, {'end': {'$gte': range_obj.start}}]}
+        elif range_obj.start:
+            return {'end': {'$gte': range_obj.start}}
+        elif range_obj.end:
+            return {'start': {'$lte': range_obj.end}}
+        else:
+            return {}
 
     def filter(self, data, range_obj):
-        return data.ix[range_obj[0]:range_obj[1]]
+        return data.ix[range_obj.start:range_obj.end]
+
+    def exclude(self, data, range_obj):
+        return data[(data.index.get_level_values('date') < range_obj.start) | (data.index.get_level_values('date') > range_obj.end)]

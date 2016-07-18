@@ -135,7 +135,7 @@ def test_monthly_df(chunkstore_lib):
     chunkstore_lib.write('chunkstore_test', df, chunk_size='M')
     ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 2)))
     assert len(ret) == 2
-    # assert_frame_equal(df, chunkstore_lib.read('chunkstore_test') )
+    assert_frame_equal(df, chunkstore_lib.read('chunkstore_test'))
 
 
 def test_yearly_df(chunkstore_lib):
@@ -638,3 +638,51 @@ def test_dtype_mismatch_error(chunkstore_lib):
     assert('Dtype mismatch' in  str(e))
 
     assert_series_equal(s, chunkstore_lib.read('test'))
+
+
+def test_delete_range(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3, 4, 5, 6]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 2, 1), 1),
+                                                 (dt(2016, 2, 2), 1),
+                                                 (dt(2016, 3, 1), 1),
+                                                 (dt(2016, 3, 2), 1)],
+                                                names=['date', 'id'])
+                   )
+
+    df_result = DataFrame(data={'data': [1, 6]},
+                          index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                        (dt(2016, 3, 2), 1)],
+                                                       names=['date', 'id'])
+                          )
+
+    chunkstore_lib.write('test', df, 'M')
+    chunkstore_lib.delete('test', chunk_range=DateRange(dt(2016, 1, 2), dt(2016, 3, 1)))
+    assert_frame_equal(chunkstore_lib.read('test'), df_result)
+
+
+def test_read_chunk_range(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3, 4, 5, 6, 7, 8, 9]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1),
+                                                 (dt(2016, 2, 1), 1),
+                                                 (dt(2016, 2, 2), 1),
+                                                 (dt(2016, 2, 3), 1),
+                                                 (dt(2016, 3, 1), 1),
+                                                 (dt(2016, 3, 2), 1),
+                                                 (dt(2016, 3, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+
+    chunkstore_lib.write('test', df, 'M')
+    assert(chunkstore_lib.read('test', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 1))).index.get_level_values('date')[0] == dt(2016,1,1))
+    assert(chunkstore_lib.read('test', chunk_range=DateRange(dt(2016, 1, 2), dt(2016, 1, 2))).index.get_level_values('date')[0] == dt(2016, 1, 2))
+    assert(chunkstore_lib.read('test', chunk_range=DateRange(dt(2016, 1, 3), dt(2016, 1, 3))).index.get_level_values('date')[0] == dt(2016, 1, 3))
+    assert(chunkstore_lib.read('test', chunk_range=DateRange(dt(2016, 2, 2), dt(2016, 2, 2))).index.get_level_values('date')[0] == dt(2016, 2, 2))
+
+    assert(len(chunkstore_lib.read('test', chunk_range=DateRange(dt(2016, 2, 2), dt(2016, 2, 2)), filter_data=False)) == 3)
+
+    df2 = chunkstore_lib.read('test', chunk_range=DateRange(None, None))
+    assert_frame_equal(df, df2)
