@@ -41,6 +41,51 @@ def test_overwrite_dataframe(chunkstore_lib):
     assert_frame_equal(dg, read_df)
 
 
+def test_overwrite_dataframe_monthly(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3, 4, 5, 6]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 5), 1),
+                                                 (dt(2016, 2, 5), 1),
+                                                 (dt(2016, 3, 5), 1),
+                                                 (dt(2016, 4, 5), 1),
+                                                 (dt(2016, 5, 5), 1),
+                                                 (dt(2016, 6, 5), 1)],
+                                                names=['date', 'id'])
+                   )
+
+    dg = DataFrame(data={'data': [1, 2, 3, 4, 5, 6]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 2, 2), 1),
+                                                 (dt(2016, 3, 3), 1),
+                                                 (dt(2016, 4, 4), 1),
+                                                 (dt(2016, 5, 5), 1),
+                                                 (dt(2016, 6, 6), 1)],
+                                                names=['date', 'id'])
+                   )
+    chunkstore_lib.write('test_df', df, 'M')
+    chunkstore_lib.write('test_df', dg, 'M')
+    read_df = chunkstore_lib.read('test_df')
+    assert_frame_equal(dg, read_df)
+
+
+def test_overwrite_series(chunkstore_lib):
+    s = pd.Series([1], index=pd.date_range('2016-01-01',
+                                           '2016-01-01',
+                                           name='date'),
+                  name='vals')
+
+    chunkstore_lib.write('test', s, 'D')
+    chunkstore_lib.write('test', s + 1, 'D')
+    assert_series_equal(chunkstore_lib.read('test'), s + 1)
+
+
+def test_overwrite_series_monthly(chunkstore_lib):
+    s = pd.Series([1, 2], index=pd.Index(data=[dt(2016, 1, 1), dt(2016, 2, 1)], name='date'), name='vals')
+
+    chunkstore_lib.write('test', s, 'M')
+    chunkstore_lib.write('test', s + 1, 'M')
+    assert_series_equal(chunkstore_lib.read('test'), s + 1)
+
+
 def test_write_read_with_daterange(chunkstore_lib):
     df = DataFrame(data={'data': [1, 2, 3]},
                    index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
