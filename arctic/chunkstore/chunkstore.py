@@ -1,7 +1,6 @@
 import logging
 import pymongo
 import numpy as np
-import bson
 import ast
 
 from bson.binary import Binary
@@ -134,7 +133,7 @@ class ChunkStore(object):
 
         sym = self._get_symbol_info(symbol)
         if not sym:
-            raise NoDataFoundException('No data found for %s in library %s' % (symbol, self._collection.get_name()))
+            raise NoDataFoundException('No data found for %s' % (symbol))
 
         spec = {'symbol': symbol,
                 }
@@ -223,14 +222,15 @@ class ChunkStore(object):
             chunk['end'] = end
             chunk['symbol'] = symbol
             chunk['sha'] = checksum(symbol, chunk)
-            
+
             if chunk['sha'] not in previous_shas:
                 op = True
-                bulk.find({'symbol': symbol, 'sha': chunk['sha']},
+                bulk.find({'symbol': symbol, 'start': start, 'end': end},
                           ).upsert().update_one({'$set': chunk})
             else:
                 # already exists, dont need to update in mongo
                 previous_shas.remove(chunk['sha'])
+
         if op:
             bulk.execute()
 
