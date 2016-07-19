@@ -133,7 +133,7 @@ class ChunkStore(object):
 
         sym = self._get_symbol_info(symbol)
         if not sym:
-            raise NoDataFoundException('No data found for %s in library %s' % (symbol, self._collection.get_name()))
+            raise NoDataFoundException('No data found for %s' % (symbol))
 
         spec = {'symbol': symbol,
                 }

@@ -10,6 +10,7 @@
   * Bugfix: #169 Dtype mismatch in chunkstore updates
   * Feature: #171 allow deleting of values within a date range in ChunkStore
   * Bugfix: #172 Fix date range bug when querying dates in the middle of chunks
+  * Bugfix: #176 Fix overwrite failures in Chunkstore
 
 ### 1.25 (2016-05-23)
 
