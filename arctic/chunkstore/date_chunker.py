@@ -1,5 +1,7 @@
+import calendar
 import pandas as pd
 from pandas import Timestamp
+from datetime import datetime as dt
 
 from ._chunker import Chunker
 from ..date import DateRange
@@ -21,22 +23,26 @@ class DateChunker(Chunker):
         elif chunk_size == 'D':
             return date.strftime('%Y-%m-%d')
 
-    def _get_date_range(self, df):
+    def _get_date_range(self, df, chunk_size):
         """
-        get minx/max dates in the index of the dataframe
+        get minx/max dates for the chunk
 
         returns
         -------
         A tuple (start date, end date)
         """
-        dates = df.index.get_level_values('date')
-        start = dates.min()
-        end = dates.max()
-        if isinstance(start, Timestamp):
-            start = start.to_pydatetime()
-        if isinstance(end, Timestamp):
-            end = end.to_pydatetime()
-        return start, end
+        date = df.index.get_level_values('date')[0]
+
+        if isinstance(date, Timestamp):
+            date = date.to_pydatetime()
+
+        if chunk_size == 'M':
+            _, end_day = calendar.monthrange(date.year, date.month)
+            return dt(date.year, date.month, 1), dt(date.year, date.month, end_day)
+        elif chunk_size == 'Y':
+            return dt(date.year, 1, 1), dt(date.year, 12, 31)
+        else:
+            return date, date
 
     def to_chunks(self, df, chunk_size):
         """
@@ -64,14 +70,11 @@ class DateChunker(Chunker):
                 ret = df.xs(slice(date, date), level='date', drop_level=False)
             else:
                 ret = df[date: date]
-            start, end = self._get_date_range(ret)
+            start, end = self._get_date_range(ret, chunk_size)
             yield start, end, ret
 
     def to_range(self, start, end):
         return DateRange(start, end)
-
-    def to_start_end(self, data):
-        return self._get_date_range(data)
 
     def to_mongo(self, range_obj):
         if range_obj.start and range_obj.end:
@@ -84,7 +87,7 @@ class DateChunker(Chunker):
             return {}
 
     def filter(self, data, range_obj):
-        return data.ix[range_obj.start:range_obj.end]
+        return data[range_obj.start:range_obj.end]
 
     def exclude(self, data, range_obj):
         return data[(data.index.get_level_values('date') < range_obj.start) | (data.index.get_level_values('date') > range_obj.end)]

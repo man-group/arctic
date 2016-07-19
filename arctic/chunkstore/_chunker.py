@@ -24,17 +24,6 @@ class Chunker(object):
         """
         raise NotImplementedError
 
-    def to_start_end(self, item):
-        """
-        turns the data in item to  a start/end pair (same as is returned by
-        to_chunks()
-
-        returns
-        -------
-        tuple - (start, end)
-        """
-        raise NotImplementedError
-
     def to_mongo(self, range_obj):
         """
         takes the range object used for this chunker type
@@ -62,7 +51,7 @@ class Chunker(object):
         """
         raise NotImplementedError
 
-def exclude(self, data, range_obj):
+    def exclude(self, data, range_obj):
         """
         Removes data within the bounds of the range object (inclusive)
 
