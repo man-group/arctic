@@ -32,6 +32,7 @@ def mktz(zone=None):
     """
     if zone is None:
         zone = tzlocal.get_localzone().zone
+    zone = unicode(zone, 'ascii')
     tz = dateutil.tz.gettz(zone)
     if not tz:
         raise TimezoneError('Timezone "%s" can not be read' % (zone))
