@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.26
+### 1.26 (2016-07-20)
 
   * Bugfix: Faster TickStore querying for multiple symbols simultaneously
   * Bugfix: TickStore.read now respects `allow_secondary=True`
