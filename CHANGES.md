@@ -11,7 +11,8 @@
   * Feature: #171 allow deleting of values within a date range in ChunkStore
   * Bugfix: #172 Fix date range bug when querying dates in the middle of chunks
   * Bugfix: #176 Fix overwrite failures in Chunkstore
-  * Bugfix: #178 - Change how start/end dates are populated in the DB, also fix append so it works as expected. 
+  * Bugfix: #178 - Change how start/end dates are populated in the DB, also fix append so it works as expected.
+  * Bugfix: #43 - Remove dependency on hardcode linux timezone files
 
 ### 1.25 (2016-05-23)
 
