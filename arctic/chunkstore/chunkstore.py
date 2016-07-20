@@ -4,7 +4,7 @@ import numpy as np
 import ast
 
 from bson.binary import Binary
-from pandas import Series, DataFrame
+from pandas import Series, DataFrame, concat
 
 from ..store._version_store_utils import checksum
 from ..decorators import mongo_retry
@@ -245,49 +245,45 @@ class ChunkStore(object):
                                               {'$set': doc},
                                               upsert=True)
 
-    def append(self, symbol, item):
-        """
-        Appends data from item to symbol's data in the database
+    def __concat(self, a, b):
+        return concat([a, b]).sort()
 
-        Parameters
-        ----------
-        symbol: str
-            the symbol for the given item in the DB
-        item:
-            the data to append
-        """
+    def __combine(self, a, b):
+        return a.combine_first(b)
 
+    def __update(self, symbol, item, combine_method=None):
         sym = self._get_symbol_info(symbol)
         if not sym:
-            raise NoDataFoundException("Symbol does not exist. Cannot append")
+            raise NoDataFoundException("Symbol does not exist.")
 
         if isinstance(item, Series) and sym['type'] == 'df':
-            raise Exception("cannot append a series to a dataframe")
+            raise Exception("Symbol types do not match")
         if isinstance(item, DataFrame) and sym['type'] == 'series':
-            raise Exception("cannot append a dataframe to a series")
+            raise Exception("Symbol types do not match")
 
         records = []
         ranges = []
-        dtype = None
-
+        new_chunks = []
         for start, end, record in self.chunker.to_chunks(item, sym['chunk_size']):
-            '''
-            if we have a multiindex there is a chance that part of the append
-            will overlap an already written chunk, so we need to update
-            where the date part of the index overlaps
-            '''
-            if item.index.nlevels > 1:
-                df = self.read(symbol, chunk_range=self.chunker.to_range(start, end))
-                if not df.empty:
-                    if df.equals(record):
-                        continue
-                    record = record.combine_first(df)
-                    self.update(symbol, record)
-                    sym = self._get_symbol_info(symbol)
+            # read out matching chunks
+            df = self.read(symbol, chunk_range=self.chunker.to_range(start, end), filter_data=False)
+            # assuming they exist, update them and store the original chunk
+            # range for later use
+            if not df.empty:
+                record = combine_method(record, df)
+                if record is None or record.equals(df):
                     continue
+
+                new_chunks.append(False)
+                sym['append_count'] += len(record)
+                sym['len'] -= len(df)
+            else:
+                new_chunks.append(True)
+                sym['chunk_count'] += 1
+
             r, dtype = serialize(record, string_max_len=self.STRING_MAX)
             if str(dtype) != sym['dtype']:
-                raise Exception("Dtype mismatch - cannot append")
+                raise Exception('Dtype mismatch.')
             records.append(r)
             ranges.append((start, end))
 
@@ -299,37 +295,58 @@ class ChunkStore(object):
 
             item = item.astype(dtype)
 
-            if str(dtype) != sym['dtype']:
-                raise Exception("Dtype mismatch - cannot append")
-
             data = item.tostring()
             sym['len'] += len(item)
             if len(item) > 0:
-                sym['chunk_count'] += len(records)
-                sym['append_count'] += len(records)
                 sym['append_size'] += len(data)
 
             chunks = [r.tostring() for r in records]
             chunks = compress_array(chunks)
 
-            for chunk, rng in zip(chunks, ranges):
+            bulk = self._collection.initialize_unordered_bulk_op()
+            for chunk, rng, new_chunk in zip(chunks, ranges, new_chunks):
                 start = rng[0]
-                end = rng[-1]
+                end = rng[1]
 
                 segment = {'data': Binary(chunk)}
                 segment['start'] = start
                 segment['end'] = end
-                self._collection.update_one({'symbol': symbol, 'sha': checksum(symbol, segment)},
-                                            {'$set': segment},
-                                            upsert=True)
+                sha = checksum(symbol, segment)
+                segment['sha'] = sha
+                if new_chunk:
+                    # new chunk
+                    bulk.find({'symbol': symbol, 'sha': sha}
+                              ).upsert().update_one({'$set': segment})
+                else:
+                    bulk.find({'symbol': symbol, 'start': start, 'end': end}
+                              ).update_one({'$set': segment})
+            if len(chunks) > 0:
+                    bulk.execute()
 
             self._symbols.replace_one({'symbol': symbol}, sym)
+
+    def append(self, symbol, item):
+        """
+        Appends data from item to symbol's data in the database.
+
+        Is not idempotent
+
+        Parameters
+        ----------
+        symbol: str
+            the symbol for the given item in the DB
+        item:
+            the data to append
+        """
+        self.__update(symbol, item, combine_method=self.__concat)
 
     def update(self, symbol, item):
         """
         Merges data from item onto existing data in the database for symbol
         data that exists in symbol and item for the same index/multiindex will
         be overwritten by the data in item.
+
+        Is idempotent
 
         Parameters
         ----------
@@ -339,70 +356,7 @@ class ChunkStore(object):
             the data to update
         """
 
-        sym = self._get_symbol_info(symbol)
-        if not sym:
-            raise NoDataFoundException("Symbol does not exist. Cannot update")
-
-        
-        records = []
-        ranges = []
-        orig_ranges = []
-        for start, end, record in self.chunker.to_chunks(item, sym['chunk_size']):
-            # read out matching chunks
-            df = self.read(symbol, chunk_range=self.chunker.to_range(start, end))
-            # assuming they exist, update them and store the original chunk
-            # range for later use
-            if not df.empty:
-                if df.equals(record):
-                    continue
-                record = record.combine_first(df)
-                orig_ranges.append((self.chunker.to_start_end(record)))
-            else:
-                orig_ranges.append((None, None))
-
-            r, dtype = serialize(record, string_max_len=self.STRING_MAX)
-            if str(dtype) != sym['dtype']:
-                raise Exception('Dtype mismatch - cannot update')
-            records.append(r)
-            ranges.append((start, end))
-
-        if len(records) > 0:
-            chunks = [r.tostring() for r in records]
-            lens = [len(i) for i in chunks]
-            chunks = compress_array(chunks)
-
-            seg_count = 0
-            seg_len = 0
-
-            bulk = self._collection.initialize_unordered_bulk_op()
-            for chunk, rng, orig_rng, rec_len in zip(chunks, ranges, orig_ranges, lens):
-                start = rng[0]
-                end = rng[1]
-                orig_start = orig_rng[0]
-                if orig_start is None:
-                    sym['len'] += rec_len
-                    seg_count += 1
-                    seg_len += rec_len
-                segment = {'data': Binary(chunk)}
-                segment['start'] = start
-                segment['end'] = end
-                sha = checksum(symbol, segment)
-                segment['sha'] = sha
-                if orig_start is None:
-                    # new chunk
-                    bulk.find({'symbol': symbol, 'sha': sha, 'start': segment['start']}
-                              ).upsert().update_one({'$set': segment})
-                else:
-                    bulk.find({'symbol': symbol, 'start': orig_start}
-                              ).update_one({'$set': segment})
-            if len(chunks) > 0:
-                    bulk.execute()
-
-            if seg_count != 0:
-                sym['chunk_count'] += seg_count
-                sym['append_size'] += seg_len
-                sym['append_count'] += seg_count
-            self._symbols.replace_one({'symbol': symbol}, sym)
+        self.__update(symbol, item, combine_method=self.__combine)
 
     def get_info(self, symbol):
         sym = self._get_symbol_info(symbol)
