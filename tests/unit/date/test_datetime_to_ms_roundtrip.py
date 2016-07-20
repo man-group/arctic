@@ -3,7 +3,6 @@ import datetime
 from datetime import datetime as dt
 import pytz
 from arctic.date import mktz, datetime_to_ms, ms_to_datetime
-from arctic.date._mktz import DEFAULT_TIME_ZONE_NAME
 import sys
 
 
@@ -64,11 +63,11 @@ def test_datetime_roundtrip_local_no_tz():
 
 
 def test_datetime_roundtrip_local_tz():
-    pdt = datetime.datetime(2012, 6, 12, 12, 12, 12, 123000, tzinfo=mktz(DEFAULT_TIME_ZONE_NAME))
+    pdt = datetime.datetime(2012, 6, 12, 12, 12, 12, 123000, tzinfo=mktz())
     pdt2 = ms_to_datetime(datetime_to_ms(pdt))
     assert pdt2 == pdt
 
-    pdt = datetime.datetime(2012, 1, 12, 12, 12, 12, 123000, tzinfo=mktz(DEFAULT_TIME_ZONE_NAME))
+    pdt = datetime.datetime(2012, 1, 12, 12, 12, 12, 123000, tzinfo=mktz())
     pdt2 = ms_to_datetime(datetime_to_ms(pdt))
     assert pdt2 == pdt
 
@@ -76,8 +75,8 @@ def test_datetime_roundtrip_local_tz():
 def test_datetime_roundtrip_est_tz():
     pdt = datetime.datetime(2012, 6, 12, 12, 12, 12, 123000, tzinfo=mktz('EST'))
     pdt2 = ms_to_datetime(datetime_to_ms(pdt))
-    assert pdt2.replace(tzinfo=mktz(DEFAULT_TIME_ZONE_NAME)) == pdt
+    assert pdt2.replace(tzinfo=mktz()) == pdt
 
     pdt = datetime.datetime(2012, 1, 12, 12, 12, 12, 123000, tzinfo=mktz('EST'))
     pdt2 = ms_to_datetime(datetime_to_ms(pdt))
-    assert pdt2.replace(tzinfo=mktz(DEFAULT_TIME_ZONE_NAME)) == pdt
+    assert pdt2.replace(tzinfo=mktz()) == pdt

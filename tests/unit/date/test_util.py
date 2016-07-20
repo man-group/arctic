@@ -3,7 +3,6 @@ import pytz
 
 from datetime import datetime as dt
 from arctic.date import datetime_to_ms, ms_to_datetime, mktz, to_pandas_closed_closed, DateRange, OPEN_OPEN, CLOSED_CLOSED
-from arctic.date._mktz import DEFAULT_TIME_ZONE_NAME
 from arctic.date._util import to_dt
 
 
@@ -24,7 +23,7 @@ def test_datetime_to_ms_and_back(pdt):
 
 
 def test_datetime_to_ms_and_back_microseconds():
-    pdt = dt(2012, 8, 1, 12, 34, 56, 999999, tzinfo=mktz(DEFAULT_TIME_ZONE_NAME))
+    pdt = dt(2012, 8, 1, 12, 34, 56, 999999, tzinfo=mktz())
     i = datetime_to_ms(pdt)
     pdt2 = ms_to_datetime(i)
 
