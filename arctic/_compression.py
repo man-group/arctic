@@ -3,13 +3,7 @@ import os
 import logging
 
 logger = logging.getLogger(__name__)
-
-try:
-    from . import _compress as clz4
-except ImportError:
-    logger.warning("Couldn't import cython lz4")
-    import lz4 as clz4
-
+clz4 = None
 
 # switch to parallel LZ4 compress (and potentially other parallel stuff), Default True
 ENABLE_PARALLEL = not os.environ.get('DISABLE_PARALLEL')
@@ -40,6 +34,7 @@ def compress_array(str_list):
     if not ENABLE_PARALLEL:
         return [lz4.compress(s) for s in str_list]
 
+    _lazy_import_clz4()
     # Less than 50 chunks its quicker to compress sequentially..
     if len(str_list) > LZ4_N_PARALLEL:
         return clz4.compressarr(str_list)
@@ -47,8 +42,20 @@ def compress_array(str_list):
         return [clz4.compress(s) for s in str_list]
 
 
+def _lazy_import_clz4():
+    global clz4
+    if clz4 is not None:
+        return
+    try:
+        from . import _compress as clz4
+    except ImportError:
+        logger.warning("Couldn't import cython lz4")
+        import lz4 as clz4
+
+
 def _get_lib():
     if ENABLE_PARALLEL:
+        _lazy_import_clz4()
         return clz4
     return lz4
 
@@ -75,5 +82,6 @@ def decompress_array(str_list):
     Decompress a list of strings
     """
     if ENABLE_PARALLEL:
+        _lazy_import_clz4()
         return clz4.decompressarr(str_list)
     return [lz4.decompress(chunk) for chunk in str_list]
