@@ -172,7 +172,8 @@ class ChunkStore(object):
         doc['symbol'] = symbol
         doc['chunk_size'] = chunk_size
         doc['rows'] = len(item)
-
+        doc['type'] = 'dataframe' if isinstance(item, DataFrame) else 'series'
+        
         sym = self._get_symbol_info(symbol)
         if sym:
             previous_shas = set([Binary(x['sha']) for x in self._collection.find({'symbol': symbol},
@@ -228,6 +229,12 @@ class ChunkStore(object):
         sym = self._get_symbol_info(symbol)
         if not sym:
             raise NoDataFoundException("Symbol does not exist.")
+        
+        if sym['type'] == 'series' and not isinstance(item, Series):
+            raise Exception("Cannot combine Series and DataFrame")
+        if sym['type'] == 'dataframe' and not isinstance(item, DataFrame):
+            raise Exception("Cannot combine DataFrame and Series")
+
 
         bulk = self._collection.initialize_unordered_bulk_op()
         op = False
@@ -253,6 +260,7 @@ class ChunkStore(object):
             op = True
 
             segment = {'data': data}
+            segment['type'] = 'dataframe' if isinstance(record, DataFrame) else 'series'
             segment['start'] = start
             segment['end'] = end
             sha = checksum(symbol, segment)

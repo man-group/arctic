@@ -1,6 +1,6 @@
-from pandas import DataFrame, MultiIndex, Index
+from pandas import DataFrame, MultiIndex, Index, Series
 from datetime import datetime as dt
-from pandas.util.testing import assert_frame_equal
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 from arctic.date import DateRange
 from arctic.exceptions import NoDataFoundException
 import pandas as pd
@@ -423,7 +423,7 @@ def gen_daily_data(month, days, securities):
         closep = [round(x + random.uniform(-5.0, 5.0), 1) for x in openp]
 
         index_list = [(dt(2016, month, day), s) for s in securities]
-        yield DataFrame(data={'open': openp, 'close':closep},
+        yield DataFrame(data={'open': openp, 'close': closep},
                         index=MultiIndex.from_tuples(index_list,
                                                      names=['date', 'security']))
 
@@ -648,7 +648,7 @@ def test_invalid_type(chunkstore_lib):
 
 def test_append_no_data(chunkstore_lib):
     with pytest.raises(NoDataFoundException) as e:
-        chunkstore_lib.append('some_data', "")
+        chunkstore_lib.append('some_data', DataFrame())
     assert('Symbol does not exist.' in str(e))
 
 
@@ -670,3 +670,139 @@ def test_append_no_new_data(chunkstore_lib):
     chunkstore_lib.append('test', df)
     r = chunkstore_lib.read('test')
     assert_frame_equal(pd.concat([df, df]).sort(), r)
+
+
+def test_overwrite_series(chunkstore_lib):
+    s = pd.Series([1], index=pd.date_range('2016-01-01',
+                                           '2016-01-01',
+                                           name='date'),
+                  name='vals')
+
+    chunkstore_lib.write('test', s, 'D')
+    chunkstore_lib.write('test', s + 1, 'D')
+    assert_series_equal(chunkstore_lib.read('test'), s + 1)
+
+
+def test_overwrite_series_monthly(chunkstore_lib):
+    s = pd.Series([1, 2], index=pd.Index(data=[dt(2016, 1, 1), dt(2016, 2, 1)], name='date'), name='vals')
+
+    chunkstore_lib.write('test', s, 'M')
+    chunkstore_lib.write('test', s + 1, 'M')
+    assert_series_equal(chunkstore_lib.read('test'), s + 1)
+
+
+def test_pandas_datetime_index_store_series(chunkstore_lib):
+    df = Series(data=[1, 2, 3],
+                index=Index(data=[dt(2016, 1, 1),
+                                  dt(2016, 1, 2),
+                                  dt(2016, 1, 3)],
+                            name='date'),
+                name='data')
+    chunkstore_lib.write('chunkstore_test', df, chunk_size='D')
+    s = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 3)))
+    assert_series_equal(s, df)
+
+
+def test_yearly_series(chunkstore_lib):
+    df = Series(data=[1, 2, 3],
+                index=Index(data=[dt(2016, 1, 1),
+                                  dt(2016, 2, 1),
+                                  dt(2016, 3, 3)],
+                            name='date'),
+                name='data')
+
+    chunkstore_lib.write('chunkstore_test', df, chunk_size='Y')
+    ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 3, 3)))
+    assert_series_equal(df, ret)
+
+
+def test_append_exceptions(chunkstore_lib):
+    df = DataFrame(data=[1, 2, 3],
+                   index=Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 1, 2),
+                                     dt(2016, 1, 3)],
+                               name='date'),
+                   columns=['data'])
+    s = Series(data=[1, 2, 3],
+               index=Index(data=[dt(2016, 1, 1),
+                                 dt(2016, 2, 1),
+                                 dt(2016, 3, 3)],
+                           name='date'),
+               name='data')
+
+    chunkstore_lib.write('df', df, chunk_size='D')
+    chunkstore_lib.write('s', s, chunk_size='D')
+
+    with pytest.raises(Exception) as e:
+        chunkstore_lib.append('df', s)
+    assert("Cannot combine DataFrame and Series" in str(e))
+
+    with pytest.raises(Exception) as e:
+        chunkstore_lib.append('s', df)
+    assert("Cannot combine Series and DataFrame" in str(e))
+
+
+def test_store_objects_series(chunkstore_lib):
+    df = Series(data=['1', '2', '3'],
+                index=Index(data=[dt(2016, 1, 1),
+                                  dt(2016, 1, 2),
+                                  dt(2016, 1, 3)],
+                            name='date'),
+                name='data')
+
+    chunkstore_lib.write('chunkstore_test', df, chunk_size='D')
+    ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 3)))
+    assert_series_equal(df, ret)
+
+
+def test_update_series(chunkstore_lib):
+    df = Series(data=[1, 2, 3],
+                index=pd.Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 1, 2),
+                                     dt(2016, 1, 3)], name='date'),
+                name='data')
+    df2 = Series(data=[20, 30, 40],
+                 index=pd.Index(data=[dt(2016, 1, 2),
+                                      dt(2016, 1, 3),
+                                      dt(2016, 1, 4)], name='date'),
+                 name='data')
+
+    equals = Series(data=[1, 20, 30, 40],
+                    index=pd.Index(data=[dt(2016, 1, 1),
+                                         dt(2016, 1, 2),
+                                         dt(2016, 1, 3),
+                                         dt(2016, 1, 4)], name='date'),
+                    name='data')
+
+    chunkstore_lib.write('chunkstore_test', df, chunk_size='D')
+    chunkstore_lib.update('chunkstore_test', df2)
+    assert_series_equal(chunkstore_lib.read('chunkstore_test'), equals)
+
+
+def test_update_same_series(chunkstore_lib):
+    df = Series(data=[1, 2, 3],
+                index=pd.Index(data=[dt(2016, 1, 1),
+                                     dt(2016, 1, 2),
+                                     dt(2016, 1, 3)], name='date'),
+                name='data')
+    chunkstore_lib.write('chunkstore_test', df, chunk_size='D')
+
+    sym = chunkstore_lib._get_symbol_info('chunkstore_test')
+    chunkstore_lib.update('chunkstore_test', df)
+    assert(sym == chunkstore_lib._get_symbol_info('chunkstore_test'))
+
+
+def test_dtype_mismatch(chunkstore_lib):
+    s = pd.Series([1], index=pd.date_range('2016-01-01', '2016-01-01', name='date'), name='vals')
+
+    # Write with an int
+    chunkstore_lib.write('test', s, 'D')
+    assert(str(chunkstore_lib.read('test').dtype) == 'int64')
+
+    # Update with a float
+    chunkstore_lib.update('test', s * 1.0)
+    assert(str(chunkstore_lib.read('test').dtype) == 'float64')
+
+
+    chunkstore_lib.write('test', s * 1.0, 'D')
+    assert(str(chunkstore_lib.read('test').dtype) == 'float64')
