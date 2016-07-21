@@ -803,6 +803,29 @@ def test_dtype_mismatch(chunkstore_lib):
     chunkstore_lib.update('test', s * 1.0)
     assert(str(chunkstore_lib.read('test').dtype) == 'float64')
 
-
     chunkstore_lib.write('test', s * 1.0, 'D')
     assert(str(chunkstore_lib.read('test').dtype) == 'float64')
+
+
+def test_read_column_subset(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                         'open': [1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9],
+                         'close': [1.2, 2.3, 3.4, 4.5, 5.6, 6.7, 7.8, 8.9, 9.0],
+                         'prev_close': [.1, .2, .3, .4, .5, .6, .7, .8, .8],
+                         'volume': [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000]
+                         },
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1),
+                                                 (dt(2016, 2, 1), 1),
+                                                 (dt(2016, 2, 2), 1),
+                                                 (dt(2016, 2, 3), 1),
+                                                 (dt(2016, 3, 1), 1),
+                                                 (dt(2016, 3, 2), 1),
+                                                 (dt(2016, 3, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+
+    chunkstore_lib.write('test', df, 'D')
+    r = chunkstore_lib.read('test', columns=['prev_close', 'volume'])
+    assert_frame_equal(r, df[['prev_close', 'volume']])

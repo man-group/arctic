@@ -77,8 +77,10 @@ class ChunkStore(object):
 
         Parameters
         ----------
-        symbol : `str`
+        symbol : str
             symbol name for the item
+        chunk_range: range object
+            a date range to delete
         """
         if chunk_range:
             # read out chunks that fall within the range and filter out
@@ -110,7 +112,7 @@ class ChunkStore(object):
     def _get_symbol_info(self, symbol):
         return self._symbols.find_one({'symbol': symbol})
 
-    def read(self, symbol, chunk_range=None, filter_data=True):
+    def read(self, symbol, columns=None, chunk_range=None, filter_data=True):
         """
         Reads data for a given symbol from the database.
 
@@ -118,6 +120,9 @@ class ChunkStore(object):
         ----------
         symbol: str
             the symbol to retrieve
+        columns: list of str
+            subset of columns to read back (index will always be included, if
+            one exists)
         chunk_range: object
             corresponding range object for the specified chunker (for
             DateChunker it is a DateRange object)
@@ -144,7 +149,7 @@ class ChunkStore(object):
         for _, x in enumerate(self._collection.find(spec, sort=[('start', pymongo.ASCENDING)],)):
             segments.append(x['data'])
 
-        data = self.serializer.deserialize(segments)
+        data = self.serializer.deserialize(segments, columns)
 
         if not filter_data or chunk_range is None:
             return data

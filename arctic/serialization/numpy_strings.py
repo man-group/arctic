@@ -148,17 +148,19 @@ class NumpyString(object):
             return ret
         return self.converter.docify(df).update({'type': dtype})
 
-    def deserialize(self, data):
+    def deserialize(self, data, columns=None):
         if data == []:
             return pd.DataFrame()
 
         if isinstance(data, list):
-            df = pd.concat([self.converter.objify(d) for d in data])
+            if columns and 'index' in data[0]:
+                columns.extend(data[0]['index'])
+            df = pd.concat([self.converter.objify(d, columns) for d in data])
             dtype = data[0]['type']
             if 'index' in data[0]:
                 df = df.set_index(data[0]['index'])
         else:
-            df = self.converter.objify(data)
+            df = self.converter.objify(data, columns)
             dtype = data['dtype']
             if 'index' in data:
                 df = df.set_index(data['index'])
