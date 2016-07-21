@@ -63,7 +63,7 @@ class NumpyArrayConverter(object):
         # We can't infer the type of an empty array, so just
         # assume strings
         if len(a) == 0:
-            return a.astype('S1'), None
+            return a.astype('U1'), None
 
         # Compute a mask of missing values. Replace NaNs and Nones with
         # empty strings so that type inference has a chance.
@@ -77,7 +77,7 @@ class NumpyArrayConverter(object):
         type_ = pd.lib.infer_dtype(a)
         if type_ in ['unicode', 'string']:
             max_len = pd.lib.max_len_string_array(a)
-            return a.astype('S{:d}'.format(max_len)), mask
+            return a.astype('U{:d}'.format(max_len)), mask
         else:
             raise ValueError('Cannot store arrays with {} dtype'.format(type_))
 
