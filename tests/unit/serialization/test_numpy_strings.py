@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import pytest
 from pandas.util.testing import assert_frame_equal
-from arctic.chunkstore.date_chunker import DateChunker
 
 from arctic.serialization.numpy_strings import FrameConverter
 
@@ -11,8 +10,6 @@ def test_frame_converter():
     f = FrameConverter()
     df = pd.DataFrame(np.random.randint(0, 100, size=(100, 4)),
                       columns=list('ABCD'))
-
-    print f.docify(df)
 
     assert_frame_equal(f.objify(f.docify(df)), df)
 
@@ -25,10 +22,15 @@ def test_with_strings():
 
 
 def test_with_objects_raises():
+    class Example(object):
+        def __init__(self, data):
+            self.data = data
+
+        def get(self):
+            return self.data
+
     f = FrameConverter()
-    df = pd.DataFrame(data={'one': [DateChunker()]})
+    df = pd.DataFrame(data={'one': [Example(444)]})
 
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(Exception):
         f.docify(df)
-    assert('Cannot store arrays' in str(e))
-
