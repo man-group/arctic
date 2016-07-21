@@ -22,7 +22,6 @@ CHUNK_STORE_TYPE = 'ChunkStoreV1'
 
 
 class ChunkStore(object):
-    STRING_MAX = 16
 
     @classmethod
     def initialize_library(cls, arctic_lib, **kwargs):
