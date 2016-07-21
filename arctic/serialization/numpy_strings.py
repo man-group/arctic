@@ -3,6 +3,7 @@ import numpy as np
 import numpy.ma as ma
 import pandas as pd
 from bson import Binary, SON
+import six
 
 from arctic._compress import compress, decompress
 
@@ -74,6 +75,10 @@ class NumpyArrayConverter(object):
         else:
             mask = None
 
+        if pd.lib.infer_dtype(a) == 'mixed':
+            a = a.astype('S')
+            a = a.astype('O')
+        
         type_ = pd.lib.infer_dtype(a)
         if type_ in ['unicode', 'string']:
             max_len = pd.lib.max_len_string_array(a)

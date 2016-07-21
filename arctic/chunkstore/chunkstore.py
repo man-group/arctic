@@ -221,7 +221,7 @@ class ChunkStore(object):
                                               upsert=True)
 
     def __concat(self, a, b):
-        return concat([a, b]).sort()
+        return concat([a, b]).sort_index()
 
     def __combine(self, a, b):
         return a.combine_first(b)

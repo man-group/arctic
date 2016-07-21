@@ -551,7 +551,7 @@ def test_get_info_after_append(chunkstore_lib):
                                                  names=['date', 'id'])
                     )
     chunkstore_lib.append('test_df', df2)
-    assert_frame_equal(chunkstore_lib.read('test_df'), pd.concat([df, df2]).sort())
+    assert_frame_equal(chunkstore_lib.read('test_df'), pd.concat([df, df2]).sort_index())
 
     info = {'rows': 6,
             'chunk_count': 4,
@@ -576,7 +576,7 @@ def test_get_info_after_update(chunkstore_lib):
                                                  names=['date', 'id'])
                     )
     chunkstore_lib.update('test_df', df2)
-    assert_frame_equal(chunkstore_lib.read('test_df'), pd.concat([df, df2]).sort())
+    assert_frame_equal(chunkstore_lib.read('test_df'), pd.concat([df, df2]).sort_index())
 
     info = {'rows': 6,
             'chunk_count': 4,
@@ -669,7 +669,7 @@ def test_append_no_new_data(chunkstore_lib):
     chunkstore_lib.write('test', df, 'D')
     chunkstore_lib.append('test', df)
     r = chunkstore_lib.read('test')
-    assert_frame_equal(pd.concat([df, df]).sort(), r)
+    assert_frame_equal(pd.concat([df, df]).sort_index(), r)
 
 
 def test_overwrite_series(chunkstore_lib):
