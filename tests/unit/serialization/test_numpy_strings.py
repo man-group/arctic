@@ -42,3 +42,28 @@ def test_without_index():
     n = NumpyString()
     a = n.serialize(df)
     assert_frame_equal(df, n.deserialize(a))
+
+
+def test_with_index():
+    df = pd.DataFrame(np.random.randint(0, 100, size=(100, 4)),
+                      columns=list('ABCD'))
+    df = df.set_index(['A'])
+    n = NumpyString()
+    a = n.serialize(df)
+    assert_frame_equal(df, n.deserialize(a))
+
+
+def test_with_nans():
+    df = pd.DataFrame(np.random.randint(0, 100, size=(100, 4)),
+                      columns=list('ABCD'))
+    df['A'] = np.NaN
+    n = NumpyString()
+    a = n.serialize(df)
+    assert_frame_equal(df, n.deserialize(a))
+
+
+def test_empty_dataframe():
+    df = pd.DataFrame()
+    n = NumpyString()
+    a = n.serialize(df)
+    assert_frame_equal(df, n.deserialize(a))
