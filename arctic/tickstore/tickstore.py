@@ -335,7 +335,8 @@ class TickStore(object):
 
         t = (dt.now() - perf_start).total_seconds()
         ticks = len(rtn)
-        logger.info("%d rows in %s secs: %s ticks/sec" % (ticks, t, int(ticks / t)))
+        rate = int(ticks / t) if t != 0 else float("nan")
+        logger.info("%d rows in %s secs: %s ticks/sec" % (ticks, t, rate))
         if not rtn.index.is_monotonic:
             logger.error("TimeSeries data is out of order, sorting!")
             rtn = rtn.sort_index(kind='mergesort')
@@ -537,7 +538,8 @@ class TickStore(object):
         mongo_retry(self._collection.insert_many)(buckets)
         t = (dt.now() - start).total_seconds()
         ticks = len(buckets) * self._chunk_size
-        logger.debug("%d buckets in %s: approx %s ticks/sec" % (len(buckets), t, int(ticks / t)))
+        rate = int(ticks / t) if t != 0 else float("nan")
+        logger.debug("%d buckets in %s: approx %s ticks/sec" % (len(buckets), t, rate))
 
     def _pandas_to_buckets(self, x, symbol, initial_image):
         rtn = []
