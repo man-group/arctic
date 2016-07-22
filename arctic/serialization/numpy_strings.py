@@ -150,7 +150,9 @@ class NumpyString(object):
             ret['index'] = index
             ret['type'] = dtype
             return ret
-        return self.converter.docify(df).update({'type': dtype})
+        ret = self.converter.docify(df)
+        ret['type'] = dtype
+        return ret
 
     def deserialize(self, data, columns=None):
         if data == []:
@@ -165,7 +167,7 @@ class NumpyString(object):
                 df = df.set_index(data[0]['index'])
         else:
             df = self.converter.objify(data, columns)
-            dtype = data['dtype']
+            dtype = data['type']
             if 'index' in data:
                 df = df.set_index(data['index'])
         if dtype == 'series':
