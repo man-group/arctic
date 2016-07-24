@@ -78,7 +78,7 @@ setup(
     license="GPL",
     keywords=["ahl", "keyvalue", "tickstore", "mongo", "timeseries", ],
     url="https://github.com/manahl/arctic",
-    packages=find_packages(include=("arctic*", )),
+    packages=find_packages(exclude=['tests', 'tests.*', 'benchmarks']),
     long_description='\n'.join((long_description, changelog)),
     cmdclass={'test': PyTest},
     ext_modules=cythonize(compress),
