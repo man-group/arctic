@@ -73,8 +73,8 @@ class ChunkStore(object):
         """
         sha = hashlib.sha1()
         sha.update(symbol.encode('ascii'))
-        sha.update(self.chunker.chunk_to_str(doc['start']))
-        sha.update(self.chunker.chunk_to_str(doc['end']))
+        sha.update(self.chunker.chunk_to_str(doc['start']).encode('ascii'))
+        sha.update(self.chunker.chunk_to_str(doc['end']).encode('ascii'))
         for k in doc['data']['columns']:
             sha.update(doc['data']['data'][k]['values'])
         return Binary(sha.digest())
