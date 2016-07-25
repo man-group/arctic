@@ -2,9 +2,10 @@ import logging
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
+
 from bson import Binary, SON
 
-from arctic._compress import compress, decompress
+from .._compress import compress, decompress
 
 
 class NumpyArrayConverter(object):

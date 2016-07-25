@@ -60,3 +60,13 @@ class Chunker(object):
         data, filtered by range_obj
         """
         raise NotImplementedError
+
+    def chunk_to_str(self, chunk_id):
+        """
+        Converts a chunk identifier to a string
+
+        returns
+        -------
+        string
+        """
+        raise NotImplementedError

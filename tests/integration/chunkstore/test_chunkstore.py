@@ -459,18 +459,15 @@ def test_multiple_actions(chunkstore_lib):
         read_info = chunkstore_lib.read(name)
         assert_frame_equal(written_df, read_info)
 
-        df = write_random_data(chunkstore_lib, name, 1, [1], list(range(1, 11)), update=True, chunk_size=chunk_size)
+        df = write_random_data(chunkstore_lib, name, 1, list(range(1, 31)), list(range(1, 101)), chunk_size=chunk_size)
 
-        read_info = chunkstore_lib.read(name, chunk_range=DateRange(dt(2016, 1, 2), dt(2016, 1, 30)))
-        assert_frame_equal(written_df['2016-01-02':], read_info['2016-01-02':])
+        read_info = chunkstore_lib.read(name)
+        assert_frame_equal(df, read_info)
 
-        read_info = chunkstore_lib.read(name, chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 1)))
-        written_df = df.combine_first(written_df)
-        assert_frame_equal(written_df[:'2016-01-01'], read_info [:'2016-01-01'])
-
+        r = read_info
         df = write_random_data(chunkstore_lib, name, 2, list(range(1, 29)), list(range(1, 501)), append=True, chunk_size=chunk_size)
         read_info = chunkstore_lib.read(name)
-        assert_frame_equal(pd.concat([written_df, df]), read_info)
+        assert_frame_equal(pd.concat([r, df]), read_info)
 
     for chunk_size in ['D', 'M', 'Y']:
         helper(chunkstore_lib, 'test_data_' + chunk_size, chunk_size)
@@ -480,7 +477,8 @@ def test_multiple_actions_monthly_data(chunkstore_lib):
     def helper(chunkstore_lib, chunk_size, name, df, append):
         chunkstore_lib.write(name, df, chunk_size=chunk_size)
 
-        assert_frame_equal(chunkstore_lib.read(name) , df)
+        r = chunkstore_lib.read(name)
+        assert_frame_equal(r, df)
         
         chunkstore_lib.append(name, append)
 
@@ -488,7 +486,12 @@ def test_multiple_actions_monthly_data(chunkstore_lib):
 
         chunkstore_lib.update(name, append)
 
-        assert_frame_equal(chunkstore_lib.read(name), pd.concat([df, append]))
+        if chunk_size is not "Y":
+            assert_frame_equal(chunkstore_lib.read(name), pd.concat([df, append]))
+        else:
+            # chunksize is the entire DF, so we'll overwrite the whole thing
+            # with the update when its yearly chunking
+            assert_frame_equal(chunkstore_lib.read(name), append)
 
     df = []
     for month in range(1, 4):
@@ -576,9 +579,8 @@ def test_get_info_after_update(chunkstore_lib):
                                                  names=['date', 'id'])
                     )
     chunkstore_lib.update('test_df', df2)
-    assert_frame_equal(chunkstore_lib.read('test_df'), pd.concat([df, df2]).sort_index())
 
-    info = {'rows': 6,
+    info = {'rows': 4,
             'chunk_count': 4,
             'col_names': [u'date', u'id', u'data'],
             }

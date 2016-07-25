@@ -67,3 +67,10 @@ def test_empty_dataframe():
     n = NumpyString()
     a = n.serialize(df)
     assert_frame_equal(df, n.deserialize(a))
+
+
+def test_empty_columns():
+    df = pd.DataFrame(data={'A': [], 'B': [], 'C': []})
+    n = NumpyString()
+    a = n.serialize(df)
+    assert_frame_equal(df, n.deserialize(a))

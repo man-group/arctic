@@ -1,16 +1,14 @@
 import logging
 import pymongo
-import numpy as np
-import ast
+import hashlib
+import six
 
 from bson.binary import Binary
 from pandas import concat, DataFrame, Series
 
-from ..store._version_store_utils import checksum
 from ..decorators import mongo_retry
 from .._util import indent
-
-from arctic.serialization.numpy_strings import NumpyString
+from ..serialization.numpy_strings import NumpyString
 
 from .date_chunker import DateChunker
 from ..exceptions import NoDataFoundException
@@ -22,7 +20,6 @@ CHUNK_STORE_TYPE = 'ChunkStoreV1'
 
 
 class ChunkStore(object):
-
     @classmethod
     def initialize_library(cls, arctic_lib, **kwargs):
         ChunkStore(arctic_lib)._ensure_index()
@@ -69,6 +66,18 @@ class ChunkStore(object):
 
     def __repr__(self):
         return str(self)
+
+    def _checksum(self, symbol, doc):
+        """
+        Checksum the passed in dictionary
+        """
+        sha = hashlib.sha1()
+        sha.update(symbol.encode('ascii'))
+        sha.update(self.chunker.chunk_to_str(doc['start']))
+        sha.update(self.chunker.chunk_to_str(doc['end']))
+        for k in doc['data']['columns']:
+            sha.update(doc['data']['data'][k]['values'])
+        return Binary(sha.digest())
 
     def delete(self, symbol, chunk_range=None):
         """
@@ -197,7 +206,7 @@ class ChunkStore(object):
             chunk['start'] = start
             chunk['end'] = end
             chunk['symbol'] = symbol
-            chunk['sha'] = checksum(symbol, chunk)
+            chunk['sha'] = self._checksum(symbol, chunk)
 
             if chunk['sha'] not in previous_shas:
                 op = True
@@ -223,8 +232,8 @@ class ChunkStore(object):
     def __concat(self, a, b):
         return concat([a, b]).sort_index()
 
-    def __combine(self, a, b):
-        return a.combine_first(b)
+    def __take_new(self, a, b):
+        return a
 
     def __update(self, symbol, item, combine_method=None):
         if not isinstance(item, (DataFrame, Series)):
@@ -267,7 +276,7 @@ class ChunkStore(object):
             segment['type'] = 'dataframe' if isinstance(record, DataFrame) else 'series'
             segment['start'] = start
             segment['end'] = end
-            sha = checksum(symbol, segment)
+            sha = self._checksum(symbol, segment)
             segment['sha'] = sha
             if new_chunk:
                 # new chunk
@@ -299,9 +308,7 @@ class ChunkStore(object):
 
     def update(self, symbol, item):
         """
-        Merges data from item onto existing data in the database for symbol
-        data that exists in symbol and item for the same index/multiindex will
-        be overwritten by the data in item.
+        Overwrites data in DB with data in item for the given symbol.
 
         Is idempotent
 
@@ -313,7 +320,7 @@ class ChunkStore(object):
             the data to update
         """
 
-        self.__update(symbol, item, combine_method=self.__combine)
+        self.__update(symbol, item, combine_method=self.__take_new)
 
     def get_info(self, symbol):
         sym = self._get_symbol_info(symbol)
