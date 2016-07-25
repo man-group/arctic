@@ -74,3 +74,10 @@ def test_empty_columns():
     n = NumpyString()
     a = n.serialize(df)
     assert_frame_equal(df, n.deserialize(a))
+
+
+def test_string_cols_with_nans():
+    f = FrameConverter()
+    df = pd.DataFrame(data={'one': ['a', 'b', 'c', np.NaN]})
+
+    assert_frame_equal(f.objify(f.docify(df)), df)
