@@ -21,6 +21,18 @@ def test_write_dataframe(chunkstore_lib):
     assert_frame_equal(df, read_df)
 
 
+def test_write_dataframe_noindex(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3],
+                         'date': [dt(2016, 1, 1),
+                                  dt(2016, 1, 2),
+                                  dt(2016, 1, 3)]
+                         }
+                   )
+    chunkstore_lib.write('test_df', df, 'D')
+    read_df = chunkstore_lib.read('test_df')
+    assert_frame_equal(df, read_df)
+
+
 def test_overwrite_dataframe(chunkstore_lib):
     df = DataFrame(data={'data': [1, 2, 3, 4]},
                    index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
@@ -40,6 +52,25 @@ def test_overwrite_dataframe(chunkstore_lib):
     chunkstore_lib.write('test_df', dg, 'D')
     read_df = chunkstore_lib.read('test_df')
     assert_frame_equal(dg, read_df)
+
+
+def test_overwrite_dataframe_noindex(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3, 4],
+                         'date': [dt(2016, 1, 1),
+                                  dt(2016, 1, 2),
+                                  dt(2016, 1, 3),
+                                  dt(2016, 1, 4)]})
+
+    df2 = DataFrame(data={'data': [5, 6, 7, 8],
+                          'date': [dt(2016, 1, 1),
+                                   dt(2016, 1, 2),
+                                   dt(2016, 1, 3),
+                                   dt(2016, 1, 4)]})
+
+    chunkstore_lib.write('test_df', df, 'D')
+    chunkstore_lib.write('test_df', df2, 'D')
+    read_df = chunkstore_lib.read('test_df')
+    assert_frame_equal(df2, read_df)
 
 
 def test_overwrite_dataframe_monthly(chunkstore_lib):
@@ -75,10 +106,31 @@ def test_write_read_with_daterange(chunkstore_lib):
                                                  (dt(2016, 1, 3), 1)],
                                                 names=['date', 'id'])
                    )
+
+    dg = DataFrame(data={'data': [1, 2]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1)],
+                                                names=['date', 'id'])
+                   )
+
     chunkstore_lib.write('test_df', df, 'D')
     read_df = chunkstore_lib.read('test_df', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 2)))
-    assert(len(read_df.index.get_level_values('date')) == 2)
+    assert_frame_equal(read_df, dg)
 
+
+def test_write_read_with_daterange_noindex(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3],
+                         'date': [dt(2016, 1, 1),
+                                  dt(2016, 1, 2),
+                                  dt(2016, 1, 3)]})
+
+    dg = DataFrame(data={'data': [1, 2],
+                         'date': [dt(2016, 1, 1),
+                                  dt(2016, 1, 2)]})
+
+    chunkstore_lib.write('test_df', df, 'D')
+    read_df = chunkstore_lib.read('test_df', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 2)))
+    assert_frame_equal(read_df, dg)
 
 def test_store_single_index_df(chunkstore_lib):
     df = DataFrame(data=[1, 2, 3],
@@ -604,6 +656,24 @@ def test_delete_range(chunkstore_lib):
                                                         (dt(2016, 3, 2), 1)],
                                                        names=['date', 'id'])
                           )
+
+    chunkstore_lib.write('test', df, 'M')
+    chunkstore_lib.delete('test', chunk_range=DateRange(dt(2016, 1, 2), dt(2016, 3, 1)))
+    assert_frame_equal(chunkstore_lib.read('test'), df_result)
+
+
+def test_delete_range_noindex(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3, 4, 5, 6],
+                         'date': [dt(2016, 1, 1),
+                                  dt(2016, 1, 2),
+                                  dt(2016, 2, 1),
+                                  dt(2016, 2, 2),
+                                  dt(2016, 3, 1),
+                                  dt(2016, 3, 2)]})
+
+    df_result = DataFrame(data={'data': [1, 6],
+                                'date': [dt(2016, 1, 1),
+                                         dt(2016, 3, 2)]})
 
     chunkstore_lib.write('test', df, 'M')
     chunkstore_lib.delete('test', chunk_range=DateRange(dt(2016, 1, 2), dt(2016, 3, 1)))

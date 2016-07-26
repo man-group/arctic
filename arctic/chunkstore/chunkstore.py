@@ -1,7 +1,6 @@
 import logging
 import pymongo
 import hashlib
-import six
 
 from bson.binary import Binary
 from pandas import concat, DataFrame, Series
@@ -120,7 +119,7 @@ class ChunkStore(object):
     def _get_symbol_info(self, symbol):
         return self._symbols.find_one({'symbol': symbol})
 
-    def read(self, symbol, columns=None, chunk_range=None, filter_data=True):
+    def read(self, symbol, chunk_range=None, columns=None, filter_data=True):
         """
         Reads data for a given symbol from the database.
 
@@ -128,12 +127,12 @@ class ChunkStore(object):
         ----------
         symbol: str
             the symbol to retrieve
-        columns: list of str
-            subset of columns to read back (index will always be included, if
-            one exists)
         chunk_range: object
             corresponding range object for the specified chunker (for
             DateChunker it is a DateRange object)
+        columns: list of str
+            subset of columns to read back (index will always be included, if
+            one exists)
         filter: boolean
             perform chunk level filtering on the data (see filter in _chunker)
             only applicable when chunk_range is specified

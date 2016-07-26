@@ -141,6 +141,7 @@ class NumpyString(object):
     def serialize(self, df):
         if isinstance(df, pd.Series):
             dtype = 'series'
+            df = df.to_frame()
         else:
             dtype = 'dataframe'
 
@@ -162,7 +163,9 @@ class NumpyString(object):
         if isinstance(data, list):
             if columns and 'index' in data[0]:
                 columns.extend(data[0]['index'])
-            df = pd.concat([self.converter.objify(d, columns) for d in data])
+                df = pd.concat([self.converter.objify(d, columns) for d in data])
+            else:
+                df = pd.concat([self.converter.objify(d, columns) for d in data], ignore_index=True)
             dtype = data[0]['type']
             if 'index' in data[0]:
                 df = df.set_index(data[0]['index'])
