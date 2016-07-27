@@ -7,7 +7,7 @@ from pandas import concat, DataFrame, Series
 
 from ..decorators import mongo_retry
 from .._util import indent
-from ..serialization.numpy_strings import NumpyString
+from arctic.serialization.numpy_arrays import FrametoArraySerializer
 
 from .date_chunker import DateChunker
 from ..exceptions import NoDataFoundException
@@ -41,7 +41,7 @@ class ChunkStore(object):
                                       unique=True, background=True)
 
     @mongo_retry
-    def __init__(self, arctic_lib, chunker=DateChunker(), serializer=NumpyString()):
+    def __init__(self, arctic_lib, chunker=DateChunker(), serializer=FrametoArraySerializer()):
         self.chunker = chunker
         self.serializer = serializer
         self._arctic_lib = arctic_lib

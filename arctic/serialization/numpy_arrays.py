@@ -134,7 +134,7 @@ class FrameConverter(object):
         return pd.DataFrame(data, columns=cols)[cols]
 
 
-class NumpyString(object):
+class FrametoArraySerializer(object):
     def __init__(self):
         self.converter = FrameConverter()
 

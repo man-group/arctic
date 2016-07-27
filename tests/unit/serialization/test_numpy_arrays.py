@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 from pandas.util.testing import assert_frame_equal
 
-from arctic.serialization.numpy_strings import FrameConverter, NumpyString
+from arctic.serialization.numpy_arrays import FrameConverter, FrametoArraySerializer
 
 
 def test_frame_converter():
@@ -39,7 +39,7 @@ def test_with_objects_raises():
 def test_without_index():
     df = pd.DataFrame(np.random.randint(0, 100, size=(100, 4)),
                       columns=list('ABCD'))
-    n = NumpyString()
+    n = FrametoArraySerializer()
     a = n.serialize(df)
     assert_frame_equal(df, n.deserialize(a))
 
@@ -48,7 +48,7 @@ def test_with_index():
     df = pd.DataFrame(np.random.randint(0, 100, size=(100, 4)),
                       columns=list('ABCD'))
     df = df.set_index(['A'])
-    n = NumpyString()
+    n = FrametoArraySerializer()
     a = n.serialize(df)
     assert_frame_equal(df, n.deserialize(a))
 
@@ -57,21 +57,21 @@ def test_with_nans():
     df = pd.DataFrame(np.random.randint(0, 100, size=(100, 4)),
                       columns=list('ABCD'))
     df['A'] = np.NaN
-    n = NumpyString()
+    n = FrametoArraySerializer()
     a = n.serialize(df)
     assert_frame_equal(df, n.deserialize(a))
 
 
 def test_empty_dataframe():
     df = pd.DataFrame()
-    n = NumpyString()
+    n = FrametoArraySerializer()
     a = n.serialize(df)
     assert_frame_equal(df, n.deserialize(a))
 
 
 def test_empty_columns():
     df = pd.DataFrame(data={'A': [], 'B': [], 'C': []})
-    n = NumpyString()
+    n = FrametoArraySerializer()
     a = n.serialize(df)
     assert_frame_equal(df, n.deserialize(a))
 
