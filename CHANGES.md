@@ -1,6 +1,5 @@
 ## Changelog
 
-
 ### 1.27
 
   * Bugfix: #187 Compatibility with latest version of pytest-dbfixtures
