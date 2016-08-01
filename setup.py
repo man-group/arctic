@@ -100,7 +100,7 @@ setup(
                    "mockextras",
                    "pytest",
                    "pytest-cov",
-                   "pytest-dbfixtures",
+                   "pytest-dbfixtures=0.14.3",
                    "pytest-timeout",
                    "pytest-xdist",
                    ],
