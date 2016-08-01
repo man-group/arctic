@@ -1,3 +1,7 @@
+START = 's'
+END = 'e'
+
+
 class Chunker(object):
 
     def to_chunks(self, data, *args, **kwargs):

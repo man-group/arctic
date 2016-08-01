@@ -115,6 +115,7 @@ def test_write_read_with_daterange(chunkstore_lib):
 
     chunkstore_lib.write('test_df', df, 'D')
     read_df = chunkstore_lib.read('test_df', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 2)))
+
     assert_frame_equal(read_df, dg)
 
 

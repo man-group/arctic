@@ -1,6 +1,6 @@
 import pandas as pd
 
-from ._chunker import Chunker
+from ._chunker import Chunker, START, END
 from ..date import DateRange
 
 
@@ -36,11 +36,11 @@ class DateChunker(Chunker):
 
     def to_mongo(self, range_obj):
         if range_obj.start and range_obj.end:
-            return {'$and': [{'start': {'$lte': range_obj.end}}, {'end': {'$gte': range_obj.start}}]}
+            return {'$and': [{START: {'$lte': range_obj.end}}, {END: {'$gte': range_obj.start}}]}
         elif range_obj.start:
-            return {'end': {'$gte': range_obj.start}}
+            return {END: {'$gte': range_obj.start}}
         elif range_obj.end:
-            return {'start': {'$lte': range_obj.end}}
+            return {START: {'$lte': range_obj.end}}
         else:
             return {}
 
