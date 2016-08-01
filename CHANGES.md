@@ -1,5 +1,11 @@
 ## Changelog
 
+
+### 1.27
+
+  * Bugfix: #187 Compatibility with latest version of pytest-dbfixtures
+  * Feature: #182 Improve ChunkStore read/write performance
+
 ### 1.26 (2016-07-20)
 
   * Bugfix: Faster TickStore querying for multiple symbols simultaneously
