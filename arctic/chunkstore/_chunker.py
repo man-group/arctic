@@ -67,7 +67,7 @@ class Chunker(object):
 
     def chunk_to_str(self, chunk_id):
         """
-        Converts a parts of a chunk range (start or end) to a string. These 
+        Converts parts of a chunk range (start or end) to a string. These
         chunk ids/indexes/markers are produced by to_chunks.
         (See to_chunks)
 

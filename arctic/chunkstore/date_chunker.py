@@ -29,12 +29,38 @@ class DateChunker(Chunker):
             yield start, end, g
 
     def to_range(self, start, end):
+        """
+        takes start, end from to_chunks and returns a "range" that can be used
+        as the argument to methods require a chunk_range
+
+        returns
+        -------
+        A range object (dependent on type of chunker)
+        """
         return DateRange(start, end)
 
     def chunk_to_str(self, chunk_id):
+        """
+        Converts parts of a chunk range (start or end) to a string. These
+        chunk ids/indexes/markers are produced by to_chunks.
+        (See to_chunks)
+
+        returns
+        -------
+        string
+        """
         return chunk_id.strftime("%Y-%m-%d")
 
     def to_mongo(self, range_obj):
+        """
+        takes the range object used for this chunker type
+        and converts it into a string that can be use for a
+        mongo query that filters by the range
+
+        returns
+        -------
+        string
+        """
         if range_obj.start and range_obj.end:
             return {'$and': [{START: {'$lte': range_obj.end}}, {END: {'$gte': range_obj.start}}]}
         elif range_obj.start:
@@ -45,6 +71,18 @@ class DateChunker(Chunker):
             return {}
 
     def filter(self, data, range_obj):
+        """
+        ensures data is properly subset to the range in range_obj.
+        (Depending on how the chunking is implemented, it might be possible
+        to specify a chunk range that reads out more than the actual range
+        eg: date range, chunked monthly. read out 2016-01-01 to 2016-01-02.
+        This will read ALL of January 2016 but it should be subset to just
+        the first two days)
+
+        returns
+        -------
+        data, filtered by range_obj
+        """
         if 'date' in data.index.names:
             return data[range_obj.start:range_obj.end]
         elif 'date' in data.columns:
@@ -53,6 +91,13 @@ class DateChunker(Chunker):
             return data
 
     def exclude(self, data, range_obj):
+        """
+        Removes data within the bounds of the range object (inclusive)
+
+        returns
+        -------
+        data, filtered by range_obj
+        """
         if 'date' in data.index.names:
             return data[(data.index.get_level_values('date') < range_obj.start) | (data.index.get_level_values('date') > range_obj.end)]
         elif 'date' in data.columns:
