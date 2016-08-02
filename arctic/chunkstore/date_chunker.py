@@ -1,93 +1,106 @@
-import calendar
 import pandas as pd
-from pandas import Timestamp
-from datetime import datetime as dt
 
-from ._chunker import Chunker
+from ._chunker import Chunker, START, END
 from ..date import DateRange
 
 
 class DateChunker(Chunker):
-    def _get_date_chunk(self, date, chunk_size):
-        '''
-        format date appropriately for the chunk size
-
-        returns
-        -------
-        Formatted date string
-        '''
-        if chunk_size == 'Y':
-            return date.strftime('%Y')
-        elif chunk_size == 'M':
-            return date.strftime('%Y-%m')
-        elif chunk_size == 'D':
-            return date.strftime('%Y-%m-%d')
-
-    def _get_date_range(self, df, chunk_size):
-        """
-        get minx/max dates for the chunk
-
-        returns
-        -------
-        A tuple (start date, end date)
-        """
-        date = df.index.get_level_values('date')[0]
-
-        if isinstance(date, Timestamp):
-            date = date.to_pydatetime()
-
-        if chunk_size == 'M':
-            _, end_day = calendar.monthrange(date.year, date.month)
-            return dt(date.year, date.month, 1), dt(date.year, date.month, end_day)
-        elif chunk_size == 'Y':
-            return dt(date.year, 1, 1), dt(date.year, 12, 31)
-        else:
-            return date, date
-
     def to_chunks(self, df, chunk_size):
         """
         chunks the dataframe/series by dates
 
         returns
         -------
-        generator that produces tuples: (start dt, end dt, dataframe/series)
+        generator that produces tuples: (start date, end date,
+                  dataframe/series)
         """
         if chunk_size not in ('D', 'M', 'Y'):
             raise Exception("Chunk size must be one of D, M, Y")
 
-        if 'date' not in df.index.names:
-            raise Exception("Data must be datetime indexed and have an index column named 'date'")
+        if 'date' in df.index.names:
+            dates = df.index.get_level_values('date')
+        elif 'date' in df.columns:
+            dates = pd.DatetimeIndex(df.date)
+        else:
+            raise Exception("Data must be datetime indexed or have a column named 'date'")
 
-        dates = [pd.to_datetime(d) for d in df.index.get_level_values('date').drop_duplicates()]
-        key_array = [self._get_date_chunk(d, chunk_size) for d in dates]
-
-        for date in set(key_array):
-            if df.index.nlevels > 1:
-                '''
-                can't slice with partial date on multi-index. Support coming in
-                pandas 0.18.1
-                '''
-                ret = df.xs(slice(date, date), level='date', drop_level=False)
-            else:
-                ret = df[date: date]
-            start, end = self._get_date_range(ret, chunk_size)
-            yield start, end, ret
+        for period, g in df.groupby(dates.to_period(chunk_size)):
+            start, end = period.start_time.to_pydatetime(warn=False), period.end_time.to_pydatetime(warn=False)
+            yield start, end, g
 
     def to_range(self, start, end):
+        """
+        takes start, end from to_chunks and returns a "range" that can be used
+        as the argument to methods require a chunk_range
+
+        returns
+        -------
+        A range object (dependent on type of chunker)
+        """
         return DateRange(start, end)
 
+    def chunk_to_str(self, chunk_id):
+        """
+        Converts parts of a chunk range (start or end) to a string. These
+        chunk ids/indexes/markers are produced by to_chunks.
+        (See to_chunks)
+
+        returns
+        -------
+        string
+        """
+        return chunk_id.strftime("%Y-%m-%d")
+
     def to_mongo(self, range_obj):
+        """
+        takes the range object used for this chunker type
+        and converts it into a string that can be use for a
+        mongo query that filters by the range
+
+        returns
+        -------
+        string
+        """
         if range_obj.start and range_obj.end:
-            return {'$and': [{'start': {'$lte': range_obj.end}}, {'end': {'$gte': range_obj.start}}]}
+            return {'$and': [{START: {'$lte': range_obj.end}}, {END: {'$gte': range_obj.start}}]}
         elif range_obj.start:
-            return {'end': {'$gte': range_obj.start}}
+            return {END: {'$gte': range_obj.start}}
         elif range_obj.end:
-            return {'start': {'$lte': range_obj.end}}
+            return {START: {'$lte': range_obj.end}}
         else:
             return {}
 
     def filter(self, data, range_obj):
-        return data[range_obj.start:range_obj.end]
+        """
+        ensures data is properly subset to the range in range_obj.
+        (Depending on how the chunking is implemented, it might be possible
+        to specify a chunk range that reads out more than the actual range
+        eg: date range, chunked monthly. read out 2016-01-01 to 2016-01-02.
+        This will read ALL of January 2016 but it should be subset to just
+        the first two days)
+
+        returns
+        -------
+        data, filtered by range_obj
+        """
+        if 'date' in data.index.names:
+            return data[range_obj.start:range_obj.end]
+        elif 'date' in data.columns:
+            return data[(data.date >= range_obj.start) & (data.date <= range_obj.end)]
+        else:
+            return data
 
     def exclude(self, data, range_obj):
-        return data[(data.index.get_level_values('date') < range_obj.start) | (data.index.get_level_values('date') > range_obj.end)]
+        """
+        Removes data within the bounds of the range object (inclusive)
+
+        returns
+        -------
+        data, filtered by range_obj
+        """
+        if 'date' in data.index.names:
+            return data[(data.index.get_level_values('date') < range_obj.start) | (data.index.get_level_values('date') > range_obj.end)]
+        elif 'date' in data.columns:
+            return data[(data.date < range_obj.start) | (data.date > range_obj.end)]
+        else:
+            return data

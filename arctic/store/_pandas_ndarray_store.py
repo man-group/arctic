@@ -7,7 +7,7 @@ from pandas.tslib import Timestamp, get_timezone
 
 import numpy as np
 
-from arctic.serialization.pandas_serializer import SeriesSerializer, DataFrameSerializer
+from arctic.serialization.numpy_records import SeriesSerializer, DataFrameSerializer
 from .._compression import compress, decompress
 from ..date._util import to_pandas_closed_closed
 from ..exceptions import ArcticException

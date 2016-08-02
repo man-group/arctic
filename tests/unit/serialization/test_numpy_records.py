@@ -2,7 +2,7 @@ import numpy as np
 
 from numpy.testing import assert_array_equal
 from mock import patch, Mock, sentinel
-from arctic.serialization.pandas_serializer import PandasSerializer, _to_primitive
+from arctic.serialization.numpy_records import PandasSerializer, _to_primitive
 from pandas import Timestamp
 
 
@@ -14,7 +14,7 @@ def test_can_convert_to_records_without_objects_returns_false_on_exception_in_to
     store = PandasSerializer()
     store._to_records = Mock(side_effect=TypeError('uhoh'))
 
-    with patch('arctic.serialization.pandas_serializer.log') as mock_log:
+    with patch('arctic.serialization.numpy_records.log') as mock_log:
         assert store.can_convert_to_records_without_objects(sentinel.df, 'my_symbol') is False
 
     mock_log.info.assert_called_once_with('Pandas dataframe my_symbol caused exception "TypeError(\'uhoh\',)"'
@@ -26,7 +26,7 @@ def test_can_convert_to_records_without_objects_returns_false_when_records_have_
     store = PandasSerializer()
     store._to_records = Mock(return_value=(np.array(['a', 'b', None, 'd']), None))
 
-    with patch('arctic.serialization.pandas_serializer.log') as mock_log:
+    with patch('arctic.serialization.numpy_records.log') as mock_log:
         assert store.can_convert_to_records_without_objects(sentinel.df, 'my_symbol') is False
 
     mock_log.info.assert_called_once_with('Pandas dataframe my_symbol contains Objects, saving as Blob')
@@ -38,7 +38,7 @@ def test_can_convert_to_records_without_objects_returns_false_when_records_have_
     store._to_records = Mock(return_value=(np.rec.array([(1356998400000000000, ['A', 'BC'])],
                                                        dtype=[('index', '<M8[ns]'), ('values', 'S2', (2,))]), None))
 
-    with patch('arctic.serialization.pandas_serializer.log') as mock_log:
+    with patch('arctic.serialization.numpy_records.log') as mock_log:
         assert store.can_convert_to_records_without_objects(sentinel.df, 'my_symbol') is False
 
     mock_log.info.assert_called_once_with('Pandas dataframe my_symbol contains >1 dimensional arrays, saving as Blob')
@@ -50,7 +50,7 @@ def test_can_convert_to_records_without_objects_returns_true_otherwise():
     store._to_records = Mock(return_value=(np.rec.array([(1356998400000000000, 'a')],
                                                        dtype=[('index', '<M8[ns]'), ('values', 'S2')]), None))
 
-    with patch('arctic.serialization.pandas_serializer.log') as mock_log:
+    with patch('arctic.serialization.numpy_records.log') as mock_log:
         assert store.can_convert_to_records_without_objects(sentinel.df, 'my_symbol') is True
 
     assert mock_log.info.call_count == 0

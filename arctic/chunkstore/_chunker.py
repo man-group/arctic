@@ -1,3 +1,7 @@
+START = 's'
+END = 'e'
+
+
 class Chunker(object):
 
     def to_chunks(self, data, *args, **kwargs):
@@ -58,5 +62,17 @@ class Chunker(object):
         returns
         -------
         data, filtered by range_obj
+        """
+        raise NotImplementedError
+
+    def chunk_to_str(self, chunk_id):
+        """
+        Converts parts of a chunk range (start or end) to a string. These
+        chunk ids/indexes/markers are produced by to_chunks.
+        (See to_chunks)
+
+        returns
+        -------
+        string
         """
         raise NotImplementedError

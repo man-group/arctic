@@ -11,24 +11,6 @@ log = logging.getLogger(__name__)
 DTN64_DTYPE = 'datetime64[ns]'
 
 
-def serialize(item, string_max_len=None):
-    if isinstance(item, Series):
-        return SeriesSerializer().serialize(item, string_max_len=string_max_len)
-    if isinstance(item, DataFrame):
-        return DataFrameSerializer().serialize(item, string_max_len=string_max_len)
-    else:
-        raise Exception("Cannot serialize data of type %s" % (type(item)))
-
-
-def deserialize(item, dtype):
-    if dtype == SeriesSerializer.TYPE:
-        return SeriesSerializer().deserialize(item)
-    if dtype == DataFrameSerializer.TYPE:
-        return DataFrameSerializer().deserialize(item)
-    else:
-        raise Exception("Cannot deserialize data of type %s" % (dtype))
-
-
 def _to_primitive(arr, string_max_len=None):
     if arr.dtype.hasobject:
         if len(arr) > 0:
@@ -41,15 +23,6 @@ def _to_primitive(arr, string_max_len=None):
 
 
 class PandasSerializer(object):
-
-    @staticmethod
-    def _dtype(string, metadata=None):
-        if metadata is None:
-            metadata = {}
-        if string.startswith('['):
-            return np.dtype(eval(string), metadata=metadata)
-        return np.dtype(string, metadata=metadata)
-
     def _index_to_records(self, df):
         metadata = {}
         index = df.index
