@@ -12,7 +12,7 @@ from .mongo import mongo_proc, mongodb
 
 logger = logging.getLogger(__name__)
 
-mongo_proc2 = mongo_proc(executable="mongod", port="?",
+mongo_proc2 = mongo_proc(executable="mongod", port=-1,
                          params='--nojournal '
                                 '--noauth '
                                 '--nohttpinterface '
