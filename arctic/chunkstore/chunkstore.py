@@ -151,6 +151,7 @@ class ChunkStore(object):
 
         bulk = self._collection.initialize_unordered_bulk_op()
         for chunk in chunks:
+            chunk.pop('_id', None)
             chunk[SYMBOL] = to_symbol
             chunk[SHA] = self._checksum(to_symbol, chunk)
             bulk.find({SYMBOL: from_symbol, START: chunk[START], END: chunk[END]},).upsert().update_one({'$set': chunk})
@@ -158,6 +159,7 @@ class ChunkStore(object):
         if len(chunks) > 0:
             bulk.execute()
         sym[SYMBOL] = to_symbol
+        sym.pop('_id', None)
         mongo_retry(self._symbols.update_one)({SYMBOL: from_symbol},
                                               {'$set': sym},
                                               upsert=True)
