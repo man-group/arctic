@@ -7,6 +7,9 @@ import pandas as pd
 import numpy as np
 import random
 import pytest
+import pymongo
+
+from arctic.chunkstore.chunkstore import START, SYMBOL
 
 
 def test_write_dataframe(chunkstore_lib):
@@ -902,3 +905,43 @@ def test_read_column_subset(chunkstore_lib):
     chunkstore_lib.write('test', df, 'D')
     r = chunkstore_lib.read('test', columns=['prev_close', 'volume'])
     assert_frame_equal(r, df[['prev_close', 'volume']])
+
+
+def test_rename(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                         'open': [1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9],
+                         'close': [1.2, 2.3, 3.4, 4.5, 5.6, 6.7, 7.8, 8.9, 9.0],
+                         'prev_close': [.1, .2, .3, .4, .5, .6, .7, .8, .8],
+                         'volume': [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000]
+                         },
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1),
+                                                 (dt(2016, 2, 1), 1),
+                                                 (dt(2016, 2, 2), 1),
+                                                 (dt(2016, 2, 3), 1),
+                                                 (dt(2016, 3, 1), 1),
+                                                 (dt(2016, 3, 2), 1),
+                                                 (dt(2016, 3, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+
+    chunkstore_lib.write('test', df, 'D')
+    assert_frame_equal(chunkstore_lib.read('test'), df)
+    chunkstore_lib.rename('test', 'new_name')
+    assert_frame_equal(chunkstore_lib.read('new_name'), df)
+
+    with pytest.raises(Exception) as e:
+        chunkstore_lib.rename('new_name', 'new_name')
+    assert('already exists' in str(e))
+
+    assert('test' not in chunkstore_lib.list_symbols())
+
+    '''
+    read out all chunks that have symbol set to 'test'. List should be empty
+    '''
+    chunks = []
+    for x in chunkstore_lib._collection.find({SYMBOL: 'test'}, sort=[(START, pymongo.ASCENDING)],):
+        chunks.append(x)
+
+    assert(len(chunks) == 0)

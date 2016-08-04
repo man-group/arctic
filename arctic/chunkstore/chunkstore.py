@@ -126,6 +126,42 @@ class ChunkStore(object):
     def _get_symbol_info(self, symbol):
         return self._symbols.find_one({SYMBOL: symbol})
 
+    def rename(self, from_symbol, to_symbol):
+        """
+        Rename a symbol
+
+        Parameters
+        ----------
+        from_symbol: str
+            the existing symbol that will be renamed
+        to_symbol: str
+            the new symbol name
+        """
+
+        sym = self._get_symbol_info(from_symbol)
+        if not sym:
+            raise NoDataFoundException('No data found for %s' % (from_symbol))
+
+        if self._get_symbol_info(to_symbol) is not None:
+            raise Exception('Symbol %s already exists' % (from_symbol))
+
+        chunks = []
+        for x in self._collection.find({SYMBOL: from_symbol}, sort=[(START, pymongo.ASCENDING)],):
+            chunks.append(x)
+
+        bulk = self._collection.initialize_unordered_bulk_op()
+        for chunk in chunks:
+            chunk[SYMBOL] = to_symbol
+            chunk[SHA] = self._checksum(to_symbol, chunk)
+            bulk.find({SYMBOL: from_symbol, START: chunk[START], END: chunk[END]},).upsert().update_one({'$set': chunk})
+
+        if len(chunks) > 0:
+            bulk.execute()
+        sym[SYMBOL] = to_symbol
+        mongo_retry(self._symbols.update_one)({SYMBOL: from_symbol},
+                                              {'$set': sym},
+                                              upsert=True)
+
     def read(self, symbol, chunk_range=None, columns=None, filter_data=True):
         """
         Reads data for a given symbol from the database.
@@ -160,7 +196,7 @@ class ChunkStore(object):
             spec.update(self.chunker.to_mongo(chunk_range))
 
         segments = []
-        for _, x in enumerate(self._collection.find(spec, sort=[(START, pymongo.ASCENDING)],)):
+        for x in self._collection.find(spec, sort=[(START, pymongo.ASCENDING)],):
             segments.append(x[DATA])
 
         data = self.serializer.deserialize(segments, columns)
@@ -192,7 +228,7 @@ class ChunkStore(object):
         doc[CHUNK_SIZE] = chunk_size
         doc[ROWS] = len(item)
         doc[TYPE] = 'dataframe' if isinstance(item, DataFrame) else 'series'
-        
+
         sym = self._get_symbol_info(symbol)
         if sym:
             previous_shas = set([Binary(x[SHA]) for x in self._collection.find({SYMBOL: symbol},
