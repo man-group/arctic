@@ -141,7 +141,7 @@ class ChunkStore(object):
             raise NoDataFoundException('No data found for %s' % (from_symbol))
 
         if self._get_symbol_info(to_symbol) is not None:
-            raise Exception('Symbol %s already exists' % (from_symbol))
+            raise Exception('Symbol %s already exists' % (to_symbol))
 
         mongo_retry(self._collection.update_many)({SYMBOL: from_symbol},
                                                   {'$set': {SYMBOL: to_symbol}})
