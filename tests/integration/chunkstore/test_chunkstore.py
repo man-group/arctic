@@ -343,7 +343,7 @@ def test_update(chunkstore_lib):
     chunkstore_lib.update('chunkstore_test', df2)
     assert_frame_equal(chunkstore_lib.read('chunkstore_test'), equals)
     assert(chunkstore_lib.get_info('chunkstore_test')['rows'] == len(equals))
-    assert(chunkstore_lib.get_info('chunkstore_test')['rows'] == len(equals))
+    assert(chunkstore_lib.get_info('chunkstore_test')['chunk_count'] == len(equals))
 
 
 def test_update_no_overlap(chunkstore_lib):
