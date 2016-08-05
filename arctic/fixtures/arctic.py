@@ -6,12 +6,13 @@ import pytest as pytest
 from .. import arctic as m
 from ..store.bitemporal_store import BitemporalStore
 from ..tickstore.tickstore import TICK_STORE_TYPE
+from ..chunkstore.chunkstore import CHUNK_STORE_TYPE
 from .mongo import mongo_proc, mongodb
 
 
 logger = logging.getLogger(__name__)
 
-mongo_proc2 = mongo_proc(executable="mongod", port="?",
+mongo_proc2 = mongo_proc(executable="mongod", port=-1,
                          params='--nojournal '
                                 '--noauth '
                                 '--nohttpinterface '
@@ -21,7 +22,7 @@ mongo_proc2 = mongo_proc(executable="mongod", port="?",
                                 '--syncdelay 0 '
                                 '--nssize=1 '
                                 '--quiet '
-                        )
+                         )
 mongodb = mongodb('mongo_proc2')
 
 
@@ -106,4 +107,10 @@ def overlay_library(arctic, overlay_library_name):
 @pytest.fixture(scope="function")
 def tickstore_lib(arctic, library_name):
     arctic.initialize_library(library_name, TICK_STORE_TYPE)
+    return arctic.get_library(library_name)
+
+
+@pytest.fixture(scope="function")
+def chunkstore_lib(arctic, library_name):
+    arctic.initialize_library(library_name, CHUNK_STORE_TYPE)
     return arctic.get_library(library_name)

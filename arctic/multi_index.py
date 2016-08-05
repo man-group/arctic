@@ -9,6 +9,7 @@ from pandas.tseries.tools import to_datetime as dt
 
 import numpy as np
 import pandas as pd
+import six
 
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,7 @@ def fancy_group_by(df, grouping_level=0, aggregate_level=1, method='last', max_=
     if method not in ('first', 'last'):
         raise ValueError('Invalid method')
 
-    if isinstance(aggregate_level, basestring):
+    if isinstance(aggregate_level, six.string_types):
         aggregate_level = df.index.names.index(aggregate_level)
 
     # Trim any rows outside the aggregate value bounds

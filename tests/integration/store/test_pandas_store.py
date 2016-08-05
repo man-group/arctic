@@ -1,20 +1,22 @@
-from StringIO import StringIO
+from six import StringIO
 from datetime import datetime as dt, timedelta as dtd
-from dateutil.rrule import rrule, DAILY
-from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat
-from pandas.util.testing import assert_frame_equal, assert_series_equal
-import numpy as np
-import pytest
-import io
 import itertools
-from mock import Mock, patch
 import string
 
-from arctic.date import DateRange, mktz
+from dateutil.rrule import rrule, DAILY
+from mock import Mock, patch
+from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat
+from pandas.tseries.offsets import DateOffset
+from pandas.util.testing import assert_frame_equal, assert_series_equal
+import pytest
+import pandas as pd
+
 from arctic._compression import decompress
+from arctic.date import DateRange, mktz
 from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasStore
 from arctic.store.version_store import register_versioned_storage
-from pandas.tseries.offsets import DateOffset
+import numpy as np
+from tests.util import read_str_as_pandas
 
 
 register_versioned_storage(PandasDataFrameStore)
@@ -171,7 +173,7 @@ def test_save_read_pandas_dataframe_strings(library):
 
 
 def test_save_read_pandas_dataframe_empty_multiindex(library):
-    expected = read_csv(io.BytesIO('''\
+    expected = read_csv(StringIO(u'''\
 STRATEGY MAC INSTRUMENT CONTRACT $Price $Delta $Gamma $Vega $Theta $Notional uDelta uGamma uVega uTheta Delta Gamma Vega Theta'''),
                         delimiter=' ').set_index(['STRATEGY', 'MAC', 'INSTRUMENT', 'CONTRACT'])
     library.write('pandas', expected)
@@ -181,7 +183,7 @@ STRATEGY MAC INSTRUMENT CONTRACT $Price $Delta $Gamma $Vega $Theta $Notional uDe
 
 
 def test_save_read_pandas_dataframe_empty_multiindex_and_no_columns(library):
-    expected = read_csv(io.BytesIO('''STRATEGY MAC INSTRUMENT CONTRACT'''),
+    expected = read_csv(StringIO(u'''STRATEGY MAC INSTRUMENT CONTRACT'''),
                         delimiter=' ').set_index(['STRATEGY', 'MAC', 'INSTRUMENT', 'CONTRACT'])
     library.write('pandas', expected)
     saved_df = library.read('pandas').data
@@ -190,7 +192,7 @@ def test_save_read_pandas_dataframe_empty_multiindex_and_no_columns(library):
 
 
 def test_save_read_pandas_dataframe_multiindex_and_no_columns(library):
-    expected = read_csv(io.BytesIO('''\
+    expected = read_csv(StringIO(u'''\
 STRATEGY MAC INSTRUMENT CONTRACT
 STRAT F22 ASD 201312'''),
                         delimiter=' ').set_index(['STRATEGY', 'MAC', 'INSTRUMENT', 'CONTRACT'])
@@ -212,7 +214,6 @@ def test_append_pandas_dataframe(library):
 def test_empty_dataframe_multindex(library):
     df = DataFrame({'a': [], 'b': [], 'c': []})
     df = df.groupby(['a', 'b']).sum()
-    print df
     library.write('pandas', df)
     saved_df = library.read('pandas').data
     assert np.all(df.values == saved_df.values)
@@ -524,6 +525,7 @@ def panel(i1, i2, i3):
                  list(rrule(DAILY, count=i3, dtstart=dt(1970, 1, 1), interval=1)))
 
 
+@pytest.mark.skipif(pd.__version__ >= '0.18.0', reason="issue #115")
 @pytest.mark.parametrize("df_size", list(itertools.combinations_with_replacement([1, 2, 4], r=3)))
 def test_panel_save_read(library, df_size):
     '''Note - empties are not tested here as they don't work!'''
@@ -536,6 +538,21 @@ def test_panel_save_read(library, df_size):
         if None not in pn.axes[i].names:
             assert np.all(pn.axes[i].names == result.axes[i].names), \
                 str(pn.axes[i].names) + "!=" + str(pn.axes[i].names)
+
+
+def test_panel_save_read_with_nans(library):
+    '''Ensure that nan rows are not dropped when calling to_frame.'''
+    df1 = DataFrame(data=np.arange(4).reshape((2, 2)), index=['r1', 'r2'], columns=['c1', 'c2'])
+    df2 = DataFrame(data=np.arange(6).reshape((3, 2)), index=['r1', 'r2', 'r3'], columns=['c1', 'c2'])
+    p_in = Panel(data=dict(i1=df1, i2=df2))
+
+    library.write('pandas', p_in)
+    p_out = library.read('pandas').data
+
+    assert p_in.shape == p_out.shape
+    # check_names is False because pandas helpfully names the axes for us.
+    assert_frame_equal(p_in.iloc[0], p_out.iloc[0], check_names=False)  
+    assert_frame_equal(p_in.iloc[1], p_out.iloc[1], check_names=False)  
 
 
 def test_save_read_ints(library):
@@ -692,7 +709,7 @@ def test_daterange_large_DataFrame_middle(library):
 
 @pytest.mark.parametrize("df,assert_equal", [
     (DataFrame(index=date_range(dt(2001, 1, 1), freq='D', periods=30000),
-               data=range(30000), columns=['A']), assert_frame_equal),
+               data=list(range(30000)), columns=['A']), assert_frame_equal),
     (Series(index=date_range(dt(2001, 1, 1), freq='D', periods=30000),
             data=range(30000)), assert_series_equal),
 ])
@@ -830,10 +847,33 @@ def test_data_info_cols(library):
     s = DataFrame(data=[100, 200, 300], index=i)
     library.write('test_data', s)
     md = library.get_info('test_data')
-    assert md == {'dtype': [('level_0', '<i8'), ('level_1', 'S2'), ('0', '<i8')],
-                  'col_names': {u'index': [u'level_0', u'level_1'], u'columns': [u'0']},
-                  'type': u'pandasdf',
-                  'handler': 'PandasDataFrameStore',
-                  'rows': 3,
-                  'segment_count': 1,
-                  'size': 54}
+    # {'dtype': [('level_0', '<i8'), ('level_1', 'S2'), ('0', '<i8')],
+    #                  'col_names': {u'index': [u'level_0', u'level_1'], u'columns': [u'0'], 'index_tz': [None, None]},
+    #                  'type': u'pandasdf',
+    #                  'handler': 'PandasDataFrameStore',
+    #                  'rows': 3,
+    #                  'segment_count': 1,
+    #                  'size': 50}
+    assert 'size' in md
+    assert md['segment_count'] == 1
+    assert md['rows'] == 3
+    assert md['handler'] == 'PandasDataFrameStore'
+    assert md['type'] == 'pandasdf'
+    assert md['col_names'] == {'index': ['level_0', u'level_1'], 'columns': [u'0'], 'index_tz': [None, None]}
+    assert len(md['dtype']) == 3
+    assert md['dtype'][0][0] == 'level_0'
+    assert md['dtype'][1][0] == 'level_1'
+    assert md['dtype'][2][0] == '0'
+
+
+def test_read_write_multiindex_store_keeps_timezone(library):
+    """If I write a multi-index dataframe and reads it, the timezone of the index shouldn't change, right?"""
+    hk, ny, ldn = mktz('Asia/Hong_Kong'), mktz('America/New_York'), mktz('Europe/London')
+    row0 = [dt(2015, 1, 1, tzinfo=hk), dt(2015, 1, 1, tzinfo=ny), dt(2015, 1, 1, tzinfo=ldn), 0, 42]
+    row1 = [dt(2015, 1, 2, tzinfo=hk), dt(2015, 1, 2, tzinfo=ny), dt(2015, 1, 2, tzinfo=ldn), 1, 43]
+    df = DataFrame([row0, row1], columns=['dt_a', 'dt_b', 'dt_c', 'index_0', 'data'])
+    df = df.set_index(['dt_a', 'dt_b', 'dt_c', 'index_0'])
+    library.write('spam', df)
+    assert list(library.read('spam').data.index[0]) == row0[:-1]
+    assert list(library.read('spam').data.index[1]) == row1[:-1]
+

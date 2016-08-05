@@ -1,0 +1,29 @@
+sudo: false
+language: python
+python:
+  - "2.7"
+  - "3.4.4"
+  - "3.5.1"
+install:
+  - pip install --upgrade pip
+  - pip install python-dateutil --upgrade
+  - pip install pytz --upgrade
+  - pip install tzlocal --upgrade
+  - pip install cython --upgrade
+  - pip install pymongo --upgrade
+  - pip install numpy --upgrade
+  - pip install pandas --upgrade
+  - pip install decorator --upgrade
+  - pip install enum34 --upgrade
+  - pip install lz4 --upgrade
+  - pip install mock --upgrade
+  - pip install mockextras
+  - pip install pytest --upgrade
+  - pip install pytest-cov --upgrade
+  - pip install pytest-dbfixtures --upgrade
+  - pip install pytest-timeout --upgrade
+  - pip install pytest-xdist --upgrade
+  - pip install setuptools-git --upgrade
+script:
+  - pip freeze
+  - python setup.py test

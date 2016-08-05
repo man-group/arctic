@@ -1,5 +1,67 @@
-
 ## Changelog
+
+### 1.27
+
+  * Bugfix: #187 Compatibility with latest version of pytest-dbfixtures
+  * Feature: #182 Improve ChunkStore read/write performance
+  * Feature: #162 Rename API for ChunkStore
+  * Feature: #186 chunk_range on update
+  * Bugfix: #189 range delete does not update symbol metadata
+
+### 1.26 (2016-07-20)
+
+  * Bugfix: Faster TickStore querying for multiple symbols simultaneously
+  * Bugfix: TickStore.read now respects `allow_secondary=True`
+  * Bugfix: #147 Add get_info method to ChunkStore
+  * Bugfix: Periodically re-cache the library.quota to pick up any changes
+  * Bugfix: #166 Add index on SHA for ChunkStore
+  * Bugfix: #169 Dtype mismatch in chunkstore updates
+  * Feature: #171 allow deleting of values within a date range in ChunkStore
+  * Bugfix: #172 Fix date range bug when querying dates in the middle of chunks
+  * Bugfix: #176 Fix overwrite failures in Chunkstore
+  * Bugfix: #178 - Change how start/end dates are populated in the DB, also fix append so it works as expected.
+  * Bugfix: #43 - Remove dependency on hardcoded Linux timezone files
+
+### 1.25 (2016-05-23)
+
+  * Bugfix: Ensure that Tickstore.write doesn't allow out of order messages
+  * Bugfix: VersionStore.write now allows writing 'None' as a value
+
+### 1.24 (2016-05-10)
+  
+  * Bugfix: Backwards compatibility reading/writing documents with previous versions of Arctic
+
+### 1.22 (2016-05-09)
+  
+  * Bugfix: #109 Ensure stable sort during Arctic read
+  * Feature: New benchmark suite using ASV
+  * Bugfix: #129 Fixed an issue where some chunks could get skipped during a multiple-symbol TickStore read
+  * Bugfix: #135 Fix issue with different datatype returned from pymongo in python3
+  * Feature: #130 New Chunkstore storage type
+
+### 1.21 (2016-03-08)
+
+  * Bugfix: #106 Fix Pandas Panel storage for panels with different dimensions
+
+### 1.20 (2016-02-03)
+
+  * Feature: #98 Add initial_image as optional parameter on tickstore write()
+  * Bugfix: #100 Write error on end field when writing with pandas dataframes
+
+### 1.19 (2016-01-29)
+
+  * Feature: Add python 3.3/3.4 support
+  * Bugfix: #95 Fix raising NoDataFoundException across multiple low level libraries
+
+### 1.18 (2016-01-05)
+
+  * Bugfix: #81 Fix broken read of multi-index DataFrame written by old version of Arctic
+  * Bugfix: #49 Fix strifying tickstore
+
+### 1.17 (2015-12-24)
+
+  * Feature: Add timezone suppport to store multi-index dataframes
+  * Bugfix:  Fixed broken sdist releases
 
 ### 1.16 (2015-12-15)
 
@@ -9,12 +71,12 @@
                    ...
              ```
              This is useful for batch jobs which read-modify-write and don't want to clash with
-             concurrent writers, and which don't require keeping all versions of a symbol. 
+             concurrent writers, and which don't require keeping all versions of a symbol.
 
 ### 1.15 (2015-11-25)
 
-  * Feature: get_info API added to version_store. 
-  
+  * Feature: get_info API added to version_store.
+
 ### 1.14 (2015-11-25)
 ### 1.12 (2015-11-12)
 
@@ -76,7 +138,7 @@
 
 ### 1.2 (2015-06-29)
 
-  * Allow snapshotting a range of versions in the VersionStore, and 
+  * Allow snapshotting a range of versions in the VersionStore, and
     snapshot all versions by default.
 
 ### 1.1 (2015-06-16)

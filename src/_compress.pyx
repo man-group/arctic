@@ -18,9 +18,10 @@ cimport libc.stdio
 cimport openmp
 
 from libc.stdlib cimport malloc, free, realloc
-from libc.stdint cimport uint8_t, uint32_t
+ctypedef unsigned char  uint8_t
+ctypedef unsigned int   uint32_t
+
 from libc.stdio cimport printf
-from cpython.string cimport PyString_AsString
 from cython.view cimport array as cvarray
 from cython.parallel import prange
 from cython.parallel import threadid
@@ -45,7 +46,7 @@ cdef char ** to_cstring_array(list_str):
     """ 
     cdef char **ret = <char **>malloc(len(list_str) * sizeof(char *))
     for i in xrange(len(list_str)):
-        ret[i] = PyString_AsString(list_str[i])
+        ret[i] = list_str[i]
     return ret
 
 

@@ -1,9 +1,11 @@
 from datetime import datetime as dt
 from mock import patch
 from pytest import raises
+import tzlocal
 
 from arctic.date import mktz, TimezoneError
-from arctic.date._mktz import DEFAULT_TIME_ZONE_NAME
+
+DEFAULT_TIME_ZONE_NAME = tzlocal.get_localzone().zone  # 'Europe/London'
 
 
 def test_mktz():

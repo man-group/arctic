@@ -3,7 +3,6 @@ import pytz
 
 from datetime import datetime as dt
 from arctic.date import datetime_to_ms, ms_to_datetime, mktz, to_pandas_closed_closed, DateRange, OPEN_OPEN, CLOSED_CLOSED
-from arctic.date._mktz import DEFAULT_TIME_ZONE_NAME
 from arctic.date._util import to_dt
 
 
@@ -24,7 +23,7 @@ def test_datetime_to_ms_and_back(pdt):
 
 
 def test_datetime_to_ms_and_back_microseconds():
-    pdt = dt(2012, 8, 1, 12, 34, 56, 999999, tzinfo=mktz(DEFAULT_TIME_ZONE_NAME))
+    pdt = dt(2012, 8, 1, 12, 34, 56, 999999, tzinfo=mktz())
     i = datetime_to_ms(pdt)
     pdt2 = ms_to_datetime(i)
 
@@ -86,3 +85,23 @@ def test_to_dt_dt_tz():
 
 def test_to_dt_dt_tz_default():
     assert to_dt(dt(1970, 1, 1, tzinfo=mktz('UTC')), mktz('Europe/London')) == dt(1970, 1, 1, tzinfo=mktz('UTC'))
+
+
+def test_daterange_raises():
+    with pytest.raises(ValueError):
+        assert(DateRange(dt(2013, 1, 1), dt(2000, 1, 1)))
+
+
+def test_daterange_eq():
+    dr = DateRange(dt(2013, 1, 1))
+    assert((dr == None) == False)
+    assert(dr == dr)
+
+
+def test_daterange_lt():
+    dr = DateRange(dt(2013, 1, 1))
+    dr2 = DateRange(dt(2001, 1, 1))
+
+    assert(dr2 < dr)
+    dr.start = None
+    assert((dr2 < dr) == False)

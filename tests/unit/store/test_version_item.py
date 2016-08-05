@@ -24,3 +24,12 @@ def test_versioned_item_str_handles_none():
                          metadata=None)
 
     assert str(item)
+
+
+def test_versioned_item_metadata_dict():
+    item = VersionedItem(symbol="test",
+                         library="test_lib",
+                         data=None,
+                         version=1.2,
+                         metadata=None)
+    assert(item.metadata_dict() == {'symbol': 'test', 'library': 'test_lib', 'version': 1.2})

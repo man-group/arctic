@@ -69,22 +69,12 @@ def mongo_retry(f):
     return f_retry
 
 
-def dump_bad_documents(*document):
-    """
-    Dump bad documents to disk
-    """
-    _id = str(document[0]['_id'])
-    with open('/tmp/mongo_debug_' + str(os.getpid()) + '_' + _id + '_' + str(datetime.now()), 'a') as f:
-        for d in document:
-            f.write(str(d) + '\n')
-
-
 def _handle_error(f, e, retry_count, **kwargs):
     if retry_count > _MAX_RETRIES:
         logger.error('Too many retries %s [%s], raising' % (f.__name__, e))
         e.traceback = sys.exc_info()[2]
         raise
-    log_fn = logger.warn if retry_count > 2 else logger.debug
+    log_fn = logger.warning if retry_count > 2 else logger.debug
     log_fn('%s %s [%s], retrying %i' % (type(e), f.__name__, e, retry_count))
     # Log operation failure errors
     _log_exception(f.__name__, e, retry_count, **kwargs)

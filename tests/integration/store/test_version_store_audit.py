@@ -40,6 +40,8 @@ ts1_append = read_str_as_pandas("""         times | near
                    2012-11-09 17:06:11.040 |  3.0""")
 
 symbol = 'TS1'
+symbol2 = 'TS2'
+symbol3 = 'TS3'
 
 
 def test_ArcticTransaction_can_do_first_writes(library):
@@ -116,6 +118,53 @@ def test_metadata_changes_writes(library):
 
     assert library.read(symbol, audit_log[0]['orig_v']).metadata == {'original': 'data'}
     assert library.read(symbol, audit_log[0]['new_v']).metadata == {'some': 'data', 'original': 'data'}
+
+
+
+def test_audit_read(library):
+    with ArcticTransaction(library, symbol3, 'u3', 'foo') as mt:
+        mt.write(symbol3, ts1)
+
+    with ArcticTransaction(library, symbol, 'u1', 'l1') as mt:
+        mt.write(symbol, ts1)
+
+    with ArcticTransaction(library, symbol, 'u2', 'l2') as mt:
+        mt.write(symbol, ts2)
+
+    with ArcticTransaction(library, symbol2, 'u2', 'l2') as mt:
+        mt.write(symbol2, ts2)
+        
+    audit_log = library.read_audit_log()
+
+    assert audit_log == [{u'new_v': 1, u'symbol': u'TS2', u'message': u'l2', u'user': u'u2', u'orig_v': 0},
+                         {u'new_v': 2, u'symbol': u'TS1', u'message': u'l2', u'user': u'u2', u'orig_v': 1},
+                         {u'new_v': 1, u'symbol': u'TS1', u'message': u'l1', u'user': u'u1', u'orig_v': 0},
+                         {u'new_v': 1, u'symbol': u'TS3', u'message': u'foo', u'user': u'u3', u'orig_v': 0},
+                         ]
+
+    l2_audit_log = library.read_audit_log(message='l2')
+
+    assert l2_audit_log == [{u'new_v': 1, u'symbol': u'TS2', u'message': u'l2', u'user': u'u2', u'orig_v': 0},
+                         {u'new_v': 2, u'symbol': u'TS1', u'message': u'l2', u'user': u'u2', u'orig_v': 1},
+                         ]
+
+    symbol_audit_log = library.read_audit_log(symbol=symbol)
+
+    assert symbol_audit_log == [{u'new_v': 2, u'symbol': u'TS1', u'message': u'l2', u'user': u'u2', u'orig_v': 1},
+                         {u'new_v': 1, u'symbol': u'TS1', u'message': u'l1', u'user': u'u1', u'orig_v': 0}]
+
+
+    symbols_audit_log = library.read_audit_log(symbol=[symbol, symbol2])
+
+    assert symbols_audit_log == [{u'new_v': 1, u'symbol': u'TS2', u'message': u'l2', u'user': u'u2', u'orig_v': 0},
+                                {u'new_v': 2, u'symbol': u'TS1', u'message': u'l2', u'user': u'u2', u'orig_v': 1},
+                         {u'new_v': 1, u'symbol': u'TS1', u'message': u'l1', u'user': u'u1', u'orig_v': 0}]
+
+
+    symbol_message_audit_log = library.read_audit_log(symbol=symbol, message='l2')
+
+    assert symbol_message_audit_log == [{u'new_v': 2, u'symbol': u'TS1', u'message': u'l2', u'user': u'u2', u'orig_v': 1}, ]
+
 
 
 def test_cleanup_orphaned_versions_integration(library):

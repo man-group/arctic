@@ -1,18 +1,18 @@
 import logging
 import hashlib
-import pprint
 
 from bson.binary import Binary
 import numpy as np
 import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
-from ..decorators import mongo_retry, dump_bad_documents
+from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException
 from ._version_store_utils import checksum
 
 from .._compression import compress_array, decompress
-from ..exceptions import ConcurrentModificationException
+from six.moves import xrange
+
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,6 @@ class NdarrayStore(object):
       u'up_to': 10,  # no. of rows included in the data for this version
       u'append_count': 0,
       u'append_size': 0,
-      u'base_sha': Binary('........', 0),
       u'dtype': u'float64',
       u'dtype_metadata': {},
       u'segment_count': 1, #only 1 segment included in this version
@@ -69,7 +68,6 @@ class NdarrayStore(object):
       u'up_to': 20, # no. of rows included in the data for this version
       u'append_count': 1, # 1 append operation so far
       u'append_size': 80, # 80 bytes appended
-      u'base_sha': Binary('.........', 0), # equal to sha for version 1
       u'base_version_id': ObjectId('55fa9a7781f12654382e58b8'), # _id of version 1
       u'dtype': u'float64',
       u'dtype_metadata': {},
@@ -116,7 +114,7 @@ class NdarrayStore(object):
             collection.create_index([('symbol', pymongo.ASCENDING),
                                      ('parent', pymongo.ASCENDING),
                                      ('segment', pymongo.ASCENDING)], unique=True, background=True)
-        except OperationFailure, e:
+        except OperationFailure as e:
             if "can't use unique indexes" in str(e):
                 return
             raise
@@ -144,9 +142,6 @@ class NdarrayStore(object):
         """
         from_index = None
         if from_version:
-            if version['base_sha'] != from_version['base_sha']:
-                #give up - the data has been overwritten, so we can't tail this
-                raise ConcurrentModificationException("Concurrent modification - data has been overwritten")
             from_index = from_version['up_to']
         return from_index, None
 
@@ -192,14 +187,9 @@ class NdarrayStore(object):
         segments = []
         i = -1
         for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
-            try:
-                segments.append(decompress(x['data']) if x['compressed'] else x['data'])
-            except Exception:
-                dump_bad_documents(x, collection.find_one({'_id': x['_id']}),
-                                      collection.find_one({'_id': x['_id']}),
-                                      collection.find_one({'_id': x['_id']}))
-                raise
-        data = ''.join(segments)
+            segments.append(decompress(x['data']) if x['compressed'] else x['data'])
+
+        data = b''.join(segments)
 
         # Check that the correct number of segments has been returned
         if segment_count is not None and i + 1 != segment_count:
@@ -270,7 +260,8 @@ class NdarrayStore(object):
     def _do_append(self, collection, version, symbol, item, previous_version):
 
         data = item.tostring()
-        version['base_sha'] = previous_version['base_sha']
+        # Compatibility with Arctic 1.22.0 that didn't write base_sha into the version document
+        version['base_sha'] = previous_version.get('base_sha', Binary(b''))
         version['up_to'] = previous_version['up_to'] + len(item)
         if len(item) > 0:
             version['segment_count'] = previous_version['segment_count'] + 1
@@ -386,8 +377,7 @@ class NdarrayStore(object):
         version['sha'] = self.checksum(item)
         
         if previous_version:
-            if version['dtype'] == str(dtype) \
-                    and 'sha' in previous_version \
+            if 'sha' in previous_version \
                     and self.checksum(item[:previous_version['up_to']]) == previous_version['sha']:
                 #The first n rows are identical to the previous version, so just append.
                 self._do_append(collection, version, symbol, item[previous_version['up_to']:], previous_version)
@@ -401,11 +391,11 @@ class NdarrayStore(object):
         sze = int(item.dtype.itemsize * np.prod(item.shape[1:]))
 
         # chunk and store the data by (uncompressed) size
-        chunk_size = _CHUNK_SIZE / sze
+        chunk_size = int(_CHUNK_SIZE / sze)
 
         previous_shas = []
         if previous_version:
-            previous_shas = set([x['sha'] for x in
+            previous_shas = set([Binary(x['sha']) for x in
                                  collection.find({'symbol': symbol},
                                                  projection={'sha': 1, '_id': 0},
                                                  )

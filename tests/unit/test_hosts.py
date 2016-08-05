@@ -2,7 +2,10 @@ from mock import patch, sentinel, call, PropertyMock, Mock
 import os
 import pytest
 
-from ConfigParser import NoSectionError
+try:
+    from ConfigParser import NoSectionError
+except ImportError:
+    from configparser import NoSectionError
 from arctic.hosts import get_arctic_lib
 
 

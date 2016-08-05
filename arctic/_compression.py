@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 try:
     from . import _compress as clz4
 except ImportError:
-    logger.warn("Couldn't import cython lz4")
+    logger.warning("Couldn't import cython lz4")
     import lz4 as clz4
 
 
