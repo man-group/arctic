@@ -98,6 +98,7 @@ class ChunkStore(object):
             # read out chunks that fall within the range and filter out
             # data within the range
             df = self.read(symbol, chunk_range=chunk_range, filter_data=False)
+            row_adjust = len(df)
             df = self.chunker.exclude(df, chunk_range)
 
             # remove chunks, and update any remaining data
@@ -105,6 +106,12 @@ class ChunkStore(object):
             query.update(self.chunker.to_mongo(chunk_range))
             self._collection.delete_many(query)
             self.update(symbol, df)
+
+            # update symbol metadata (rows and chunk count)
+            sym = self._get_symbol_info(symbol)
+            sym[ROWS] -= row_adjust
+            sym[CHUNK_COUNT] = self._collection.count({SYMBOL: symbol})
+            self._symbols.replace_one({SYMBOL: symbol}, sym)
 
         else:
             query = {SYMBOL: symbol}
@@ -264,7 +271,7 @@ class ChunkStore(object):
     def __take_new(self, a, b):
         return a
 
-    def __update(self, symbol, item, combine_method=None):
+    def __update(self, symbol, item, combine_method=None, chunk_range=None):
         if not isinstance(item, (DataFrame, Series)):
             raise Exception("Can only chunk DataFrames and Series")
 
@@ -277,11 +284,16 @@ class ChunkStore(object):
         if sym[TYPE] == 'dataframe' and not isinstance(item, DataFrame):
             raise Exception("Cannot combine DataFrame and Series")
 
+        if chunk_range:
+            self.delete(symbol, chunk_range)
+            sym = self._get_symbol_info(symbol)
+
         bulk = self._collection.initialize_unordered_bulk_op()
         op = False
         for start, end, record in self.chunker.to_chunks(item, sym[CHUNK_SIZE]):
             # read out matching chunks
             df = self.read(symbol, chunk_range=self.chunker.to_range(start, end), filter_data=False)
+
             # assuming they exist, update them and store the original chunk
             # range for later use
             if not df.empty:
@@ -334,7 +346,7 @@ class ChunkStore(object):
         """
         self.__update(symbol, item, combine_method=self.__concat)
 
-    def update(self, symbol, item):
+    def update(self, symbol, item, chunk_range=None):
         """
         Overwrites data in DB with data in item for the given symbol.
 
@@ -346,9 +358,19 @@ class ChunkStore(object):
             the symbol for the given item in the DB
         item: DataFrame or Series
             the data to update
+        chunk_range: None, or a range object
+            If a range is specified, it will clear/delete the data within the
+            range and overwrite it with the data in item. This allows the user
+            to update with data that might only be a subset of the
+            original data.
         """
 
-        self.__update(symbol, item, combine_method=self.__take_new)
+        if chunk_range:
+            if self.chunker.filter(item, chunk_range).empty:
+                raise Exception('Range must be inclusive of data')
+            self.__update(symbol, item, combine_method=self.__concat, chunk_range=chunk_range)
+        else:
+            self.__update(symbol, item, combine_method=self.__take_new, chunk_range=chunk_range)
 
     def get_info(self, symbol):
         sym = self._get_symbol_info(symbol)
