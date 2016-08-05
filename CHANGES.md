@@ -5,6 +5,8 @@
   * Bugfix: #187 Compatibility with latest version of pytest-dbfixtures
   * Feature: #182 Improve ChunkStore read/write performance
   * Feature: #162 Rename API for ChunkStore
+  * Feature: #186 chunk_range on update
+  * Bugfix: #189 range delete does not update symbol metadata
 
 ### 1.26 (2016-07-20)
 
