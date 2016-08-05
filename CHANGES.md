@@ -4,6 +4,7 @@
 
   * Bugfix: #187 Compatibility with latest version of pytest-dbfixtures
   * Feature: #182 Improve ChunkStore read/write performance
+  * Feature: #162 Rename API for ChunkStore
 
 ### 1.26 (2016-07-20)
 
