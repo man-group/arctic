@@ -1,9 +1,7 @@
 import pytest
 import datetime
-from datetime import datetime as dt
 import pytz
 from arctic.date import mktz, datetime_to_ms, ms_to_datetime
-import sys
 
 
 def assert_roundtrip(tz):
@@ -11,17 +9,12 @@ def assert_roundtrip(tz):
 
     ts1 = ts.replace(tzinfo=tz)
     ts2 = ms_to_datetime(datetime_to_ms(ts1.astimezone(mktz("UTC"))), tz)
-    #logger.info(ts2.tzinfo)
 
     assert(ts2.hour == ts1.hour)
-#    assert(ts2.tzinfo == ts1.tzinfo)
     assert ts2 == ts1
 
 
 def get_tz():
-    #tz = mktz("Europe/London")
-    #tz = pytz.timezone("Europe/London")
-    #tz = pytz.timezone("UTC")
     tz = pytz.timezone("Europe/London")
     tmp = ms_to_datetime(0, tz)
     tz = tmp.tzinfo
@@ -45,8 +38,6 @@ def test_pytz_London():
     assert_roundtrip(tz)
 
 
-@pytest.mark.xfail(sys.version_info >= (3,),
-                   reason="known issue with dateutil and python3")
 def test_mktz_London():
     tz = mktz("Europe/London")
     assert_roundtrip(tz)
