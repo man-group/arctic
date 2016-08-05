@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.27
+### 1.27 (2016-08-05)
 
   * Bugfix: #187 Compatibility with latest version of pytest-dbfixtures
   * Feature: #182 Improve ChunkStore read/write performance
