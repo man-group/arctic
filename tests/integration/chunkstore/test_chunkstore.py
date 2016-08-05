@@ -342,6 +342,8 @@ def test_update(chunkstore_lib):
     chunkstore_lib.write('chunkstore_test', df, chunk_size='D')
     chunkstore_lib.update('chunkstore_test', df2)
     assert_frame_equal(chunkstore_lib.read('chunkstore_test'), equals)
+    assert(chunkstore_lib.get_info('chunkstore_test')['rows'] == len(equals))
+    assert(chunkstore_lib.get_info('chunkstore_test')['rows'] == len(equals))
 
 
 def test_update_no_overlap(chunkstore_lib):
@@ -364,8 +366,25 @@ def test_update_no_overlap(chunkstore_lib):
 
     chunkstore_lib.write('chunkstore_test', df, chunk_size='D')
     chunkstore_lib.update('chunkstore_test', df2)
-    assert_frame_equal(chunkstore_lib.read('chunkstore_test') , equals)
+    assert_frame_equal(chunkstore_lib.read('chunkstore_test'), equals)
 
+
+def test_update_chunk_range(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=pd.Index(data=[dt(2015, 1, 1),
+                                        dt(2015, 1, 2),
+                                        dt(2015, 1, 3)], name='date'))
+    df2 = DataFrame(data={'data': [30]},
+                    index=pd.Index(data=[dt(2015, 1, 2)],
+                                   name='date'))
+    equals = DataFrame(data={'data': [30, 3]},
+                       index=pd.Index(data=[dt(2015, 1, 2),
+                                            dt(2015, 1, 3)],
+                                      name='date'))
+
+    chunkstore_lib.write('chunkstore_test', df, chunk_size='M')
+    chunkstore_lib.update('chunkstore_test', df2, chunk_range=DateRange(dt(2015, 1, 1), dt(2015, 1, 2)))
+    assert_frame_equal(chunkstore_lib.read('chunkstore_test'), equals)
 
 def test_append_before(chunkstore_lib):
     df = DataFrame(data={'data': [1, 2, 3]},
@@ -664,6 +683,8 @@ def test_delete_range(chunkstore_lib):
     chunkstore_lib.write('test', df, 'M')
     chunkstore_lib.delete('test', chunk_range=DateRange(dt(2016, 1, 2), dt(2016, 3, 1)))
     assert_frame_equal(chunkstore_lib.read('test'), df_result)
+    assert(chunkstore_lib.get_info('test')['rows'] == len(df_result))
+    assert(chunkstore_lib.get_info('test')['chunk_count'] == 2)
 
 
 def test_delete_range_noindex(chunkstore_lib):
