@@ -5,7 +5,7 @@ import pandas as pd
 
 from bson import Binary, SON
 
-from .._compress import compress, decompress
+from .._compression import compress, decompress
 
 
 DATA = 'd'
