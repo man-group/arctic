@@ -8,7 +8,8 @@ from timeit import itertools
 import pandas as pd
 import pymongo
 
-from ..date import mktz, DateRange, OPEN_OPEN, CLOSED_CLOSED
+from ..date import mktz, DateRange, OPEN_OPEN, CLOSED_CLOSED, to_dt
+
 from ..exceptions import (NoDataFoundException, UnhandledDtypeException, OverlappingDataException,
                           LibraryNotFoundException)
 
@@ -113,11 +114,23 @@ overlapping libraries: {}""".format(library_name, [l.library for l in library_me
         return pd.concat(dfs)
 
     def write(self, symbol, data):
+        """
+        Split the tick data to the underlying collections and write the data to each low
+        level library.
+
+        Args:
+            symbol (str): the symbol for the timeseries data
+            data (list of dicts or pandas dataframe): Tick data to write
+                if a list of dicts is given the list must be in time order and the time must be stored in
+                an element named 'index' the value of which must be a timezone aware datetime.
+                For a pandas dataframe the index must be a datetime
+        """
+
         # get the full set of date ranges that we have
         cursor = self._collection.find()
         for res in cursor:
             library = self._arctic_lib.arctic[res['library_name']]
-            dslice = self._slice(data, res['start'], res['end'])
+            dslice = self._slice(data, to_dt(res['start'], mktz('UTC')), to_dt(res['end'], mktz('UTC')))
             if len(dslice) != 0:
                 library.write(symbol, dslice)
 
@@ -154,8 +167,8 @@ overlapping libraries: {}""".format(library_name, [l.library for l in library_me
     def _slice(self, data, start, end):
         if isinstance(data, list):
             dictlist = DictList(data, 'index')
-            slice_start = bisect.bisect_left(dictlist, start)
-            slice_end = bisect.bisect_right(dictlist, end)
+            slice_start = bisect.bisect_left(dictlist, to_dt(start, mktz('UTC')))
+            slice_end = bisect.bisect_right(dictlist, to_dt(end, mktz('UTC')))
             return data[slice_start:slice_end]
         elif isinstance(data, pd.DataFrame):
             return data[start:end]
