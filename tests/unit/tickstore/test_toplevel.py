@@ -18,6 +18,9 @@ from arctic.tickstore.tickstore import TickStore
 from arctic.exceptions import UnhandledDtypeException
 
 
+utc = mktz('UTC')
+
+
 def test_raise_exception_if_daterange_is_not_provided():
     store = TopLevelTickStore(Mock())
     with pytest.raises(Exception) as e:
@@ -121,15 +124,15 @@ def test_slice_pandas_dataframe(start, end, expected_start_index, expected_end_i
 
 
 @pytest.mark.parametrize(('start', 'end', 'expected_start_index', 'expected_end_index'),
-                         [(dt(2010, 1, 1), dt(2010, 1, 5), 0, 3),
-                          (dt(2010, 1, 1), dt(2010, 1, 6), 0, 3),
-                          (dt(2010, 1, 1, 1), dt(2010, 1, 6), 1, 3),
-                          (dt(2010, 1, 1, 1), dt(2010, 1, 4, 2), 1, 2),
-                          (dt(2009, 1, 1), dt(2010, 1, 5), 0, 3),
+                         [(dt(2010, 1, 1, tzinfo=utc), dt(2010, 1, 5, tzinfo=utc), 0, 3),
+                          (dt(2010, 1, 1, tzinfo=utc), dt(2010, 1, 6, tzinfo=utc), 0, 3),
+                          (dt(2010, 1, 1, 1, tzinfo=utc), dt(2010, 1, 6, tzinfo=utc), 1, 3),
+                          (dt(2010, 1, 1, 1, tzinfo=utc), dt(2010, 1, 4, 2, tzinfo=utc), 1, 2),
+                          (dt(2009, 1, 1, tzinfo=utc), dt(2010, 1, 5, tzinfo=utc), 0, 3),
                           ])
 def test_slice_list_of_dicts(start, end, expected_start_index, expected_end_index):
     top_level_tick_store = TopLevelTickStore(Mock())
-    dates = list(rrule(DAILY, count=5, dtstart=dt(2010, 1, 1), interval=2))
+    dates = list(rrule(DAILY, count=5, dtstart=dt(2010, 1, 1, tzinfo=utc), interval=2))
     data = [{'index': date, 'A': val} for date, val in zip(dates, range(5))]
     expected = data[expected_start_index:expected_end_index]
     result = top_level_tick_store._slice(data, start, end)
@@ -148,7 +151,9 @@ def test_write_pandas_data_to_right_libraries():
     mock_lib2 = Mock()
     when(self._arctic_lib.arctic.__getitem__).called_with(sentinel.libname1).then(mock_lib1)
     when(self._arctic_lib.arctic.__getitem__).called_with(sentinel.libname2).then(mock_lib2)
-    TopLevelTickStore.write(self, 'blah', sentinel.data)
+    with patch("arctic.tickstore.toplevel.to_dt") as patch_to_dt:
+        patch_to_dt.side_effect = [sentinel.st1, sentinel.end1, sentinel.st2, sentinel.end2]
+        TopLevelTickStore.write(self, 'blah', sentinel.data)
     mock_lib1.write.assert_called_once_with('blah', slice1)
     mock_lib2.write.assert_called_once_with('blah', slice2)
 
