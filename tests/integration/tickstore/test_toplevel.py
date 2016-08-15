@@ -131,7 +131,6 @@ def test_should_raise_exception_if_date_range_for_library_overlaps_with_existing
     assert "There are libraries that overlap with the date range:" in str(e)
 
 
-@pytest.mark.xfail
 def test_should_successfully_do_a_roundtrip_write_and_read_spanning_multiple_underlying_libraries(toplevel_tickstore, arctic):
     arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
     arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
@@ -147,10 +146,10 @@ def test_should_successfully_do_a_roundtrip_write_and_read_spanning_multiple_und
     assert_frame_equal(data, res.tz_convert(mktz('Europe/London')))
     lib2010 = arctic['FEED_2010.LEVEL1']
     res = lib2010.read('blah', DateRange(start=dt(2010, 12, 1), end=dt(2011, 1, 1)), columns=list('ABCD'))
-    assert_frame_equal(data[dt(2010, 12, 1): dt(2010, 12, 31)], res.tz_localize(mktz('Europe/London')))
+    assert_frame_equal(data[dt(2010, 12, 1): dt(2010, 12, 31)], res.tz_convert(mktz('Europe/London')))
     lib2011 = arctic['FEED_2011.LEVEL1']
     res = lib2011.read('blah', DateRange(start=dt(2011, 1, 1), end=dt(2011, 2, 1)), columns=list('ABCD'))
-    assert_frame_equal(data[dt(2011, 1, 1): dt(2011, 2, 1)], res.tz_localize(mktz('Europe/London')))
+    assert_frame_equal(data[dt(2011, 1, 1): dt(2011, 2, 1)], res.tz_convert(mktz('Europe/London')))
 
 
 @pytest.mark.parametrize(('start', 'end', 'startr', 'endr'),
@@ -183,3 +182,37 @@ def test_should_add_underlying_libraries_when_intialized(arctic):
     expected_results = {'FEED_2010.LEVEL1': {'start': dt(2010, 1, 1), 'end': dt(2010, 12, 31, 23, 59, 59, 999000)},
                         'FEED_2011.LEVEL1': {'start': dt(2011, 1, 1), 'end': dt(2011, 12, 31, 23, 59, 59, 999000)}}
     assert expected_results == results
+
+
+def test_should_write_top_level_with_list_of_dicts(arctic):
+    arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+    arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
+    arctic.initialize_library('FEED.LEVEL1', toplevel.TICK_STORE_TYPE)
+    toplevel_tickstore = arctic['FEED.LEVEL1']
+    dates = pd.date_range('20101201', periods=57, tz=mktz('Europe/London'))
+    data = [{'index': dates[i], 'a': i} for i in range(len(dates))]
+    expected = pd.DataFrame(np.arange(57, dtype=np.float64), index=dates, columns=list('a'))
+    toplevel_tickstore.write('blah', data)
+    res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 12, 1), end=dt(2011, 2, 1)), columns=list('a'))
+    assert_frame_equal(expected, res.tz_convert(mktz('Europe/London')))
+    lib2010 = arctic['FEED_2010.LEVEL1']
+    res = lib2010.read('blah', DateRange(start=dt(2010, 12, 1), end=dt(2011, 1, 1)))
+    assert_frame_equal(expected[dt(2010, 12, 1): dt(2010, 12, 31)], res.tz_convert(mktz('Europe/London')))
+
+
+def test_should_write_top_level_with_correct_timezone(arctic):
+    # Write timezone aware data and read back in UTC
+    utc = mktz('UTC')
+    arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+    arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
+    arctic.initialize_library('FEED.LEVEL1', toplevel.TICK_STORE_TYPE)
+    toplevel_tickstore = arctic['FEED.LEVEL1']
+    dates = pd.date_range('20101230220000', periods=10, tz=mktz('America/New_York'))  # 10pm New York time is 3am next day UTC 
+    data = [{'index': dates[i], 'a': i} for i in range(len(dates))]
+    expected = pd.DataFrame(np.arange(len(dates), dtype=np.float64), index=dates.tz_convert(utc), columns=list('a'))
+    toplevel_tickstore.write('blah', data)
+    res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 1, 1), end=dt(2011, 12, 31)), columns=list('a')).tz_convert(utc)
+    assert_frame_equal(expected, res)
+    lib2010 = arctic['FEED_2010.LEVEL1']
+    # Check that only one point was written into 2010 being 3am on 31st
+    assert len(lib2010.read('blah', DateRange(start=dt(2010, 12, 1), end=dt(2011, 1, 1)))) == 1
