@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.28 (2016-08-16)
+
+  * Bugfix: #195 Top level tickstore write with list of dicts now works with timezone aware datetimes
+
 ### 1.27 (2016-08-05)
 
   * Bugfix: #187 Compatibility with latest version of pytest-dbfixtures
