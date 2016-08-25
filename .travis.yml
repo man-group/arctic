@@ -18,7 +18,6 @@ install:
   - pip install lz4 --upgrade
   - pip install mock --upgrade
   - pip install mockextras
-  - pip install pytest --upgrade
   - pip install pytest-cov --upgrade
   - pip install pytest-dbfixtures --upgrade
   - pip install pytest-timeout --upgrade
