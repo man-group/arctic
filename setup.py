@@ -99,7 +99,7 @@ setup(
     tests_require=["mock",
                    "mockextras",
                    "pytest<=2.9.2",
-                   "pytest-cov<=2.3.0",
+                   "pytest-cov",
                    "pytest-dbfixtures",
                    "pytest-timeout",
                    "pytest-xdist",
