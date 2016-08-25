@@ -20,9 +20,9 @@ install:
   - pip install mockextras
   - pip install pytest==2.9.2
   - pip install pytest-cov==2.3.0
-  - pip install pytest-dbfixtures --upgrade
-  - pip install pytest-timeout --upgrade
-  - pip install pytest-xdist --upgrade
+  - pip install pytest-dbfixtures==0.15.0
+  - pip install pytest-timeout
+  - pip install pytest-xdist
   - pip install setuptools-git --upgrade
 script:
   - pip freeze
