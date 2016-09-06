@@ -120,6 +120,8 @@ def test_write_read_with_daterange(chunkstore_lib):
     read_df = chunkstore_lib.read('test_df', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 2)))
 
     assert_frame_equal(read_df, dg)
+    read_with_dr = chunkstore_lib.read('test_df', chunk_range=pd.date_range(dt(2016, 1, 1), dt(2016, 1, 2)))
+    assert_frame_equal(read_df, dg)
 
 
 def test_write_read_with_daterange_noindex(chunkstore_lib):
