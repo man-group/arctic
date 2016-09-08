@@ -363,7 +363,7 @@ class ChunkStore(object):
             range and overwrite it with the data in item. This allows the user
             to update with data that might only be a subset of the
             original data.
-        upsert: True or False
+        upsert: bool
             if True, will write the data even if the symbol does not exist.
             If true and an upsert is performed, chunk_range will be ignored
         chunk_size: ?
