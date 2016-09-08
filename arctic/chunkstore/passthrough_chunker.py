@@ -35,7 +35,7 @@ class PassthroughChunker(Chunker):
         -------
         string
         """
-        return "NA"
+        return "NA"..encode('ascii')
 
     def to_mongo(self, range_obj):
         """
