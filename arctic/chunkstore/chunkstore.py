@@ -94,7 +94,7 @@ class ChunkStore(object):
         chunk_range: range object
             a date range to delete
         """
-        if chunk_range:
+        if chunk_range is not None:
             # read out chunks that fall within the range and filter out
             # data within the range
             df = self.read(symbol, chunk_range=chunk_range, filter_data=False)
@@ -166,7 +166,8 @@ class ChunkStore(object):
             the symbol to retrieve
         chunk_range: object
             corresponding range object for the specified chunker (for
-            DateChunker it is a DateRange object)
+            DateChunker it is a DateRange object or a DatetimeIndex, 
+            as returned by pandas.date_range
         columns: list of str
             subset of columns to read back (index will always be included, if
             one exists)
@@ -186,7 +187,7 @@ class ChunkStore(object):
         spec = {SYMBOL: symbol,
                 }
 
-        if chunk_range:
+        if chunk_range is not None:
             spec.update(self.chunker.to_mongo(chunk_range))
 
         segments = []
@@ -284,7 +285,7 @@ class ChunkStore(object):
         if sym[TYPE] == 'dataframe' and not isinstance(item, DataFrame):
             raise Exception("Cannot combine DataFrame and Series")
 
-        if chunk_range:
+        if chunk_range is not None:
             self.delete(symbol, chunk_range)
             sym = self._get_symbol_info(symbol)
 
@@ -372,7 +373,7 @@ class ChunkStore(object):
         """
         if upsert and not self._get_symbol_info(symbol):
             return self.write(symbol, item, chunk_size)
-        if chunk_range:
+        if chunk_range is not None:
             if self.chunker.filter(item, chunk_range).empty:
                 raise Exception('Range must be inclusive of data')
             self.__update(symbol, item, combine_method=self.__concat, chunk_range=chunk_range)

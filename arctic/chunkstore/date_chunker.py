@@ -61,6 +61,8 @@ class DateChunker(Chunker):
         -------
         string
         """
+        if isinstance(range_obj, pd.DatetimeIndex):
+            range_obj = DateRange(range_obj.min(), range_obj.max())
         if range_obj.start and range_obj.end:
             return {'$and': [{START: {'$lte': range_obj.end}}, {END: {'$gte': range_obj.start}}]}
         elif range_obj.start:
@@ -83,6 +85,8 @@ class DateChunker(Chunker):
         -------
         data, filtered by range_obj
         """
+        if isinstance(range_obj, pd.DatetimeIndex):
+            range_obj = DateRange(range_obj.min(), range_obj.max())
         if 'date' in data.index.names:
             return data[range_obj.start:range_obj.end]
         elif 'date' in data.columns:
@@ -98,6 +102,8 @@ class DateChunker(Chunker):
         -------
         data, filtered by range_obj
         """
+        if isinstance(range_obj, pd.DatetimeIndex):
+            range_obj = DateRange(range_obj.min(), range_obj.max())
         if 'date' in data.index.names:
             return data[(data.index.get_level_values('date') < range_obj.start) | (data.index.get_level_values('date') > range_obj.end)]
         elif 'date' in data.columns:
