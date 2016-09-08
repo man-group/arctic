@@ -1,5 +1,10 @@
 ## Changelog
 
+### 1.29
+
+  * Feature: #209 Upsert capability in ChunkStore's update method
+  * Feature: #207 Support DatetimeIndexes in DateRange chunker
+
 ### 1.28 (2016-08-16)
 
   * Bugfix: #195 Top level tickstore write with list of dicts now works with timezone aware datetimes
