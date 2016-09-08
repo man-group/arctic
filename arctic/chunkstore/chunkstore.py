@@ -347,7 +347,7 @@ class ChunkStore(object):
         """
         self.__update(symbol, item, combine_method=self.__concat)
 
-    def update(self, symbol, item, chunk_range=None):
+    def update(self, symbol, item, chunk_range=None, upsert=False, chunk_size=None):
         """
         Overwrites data in DB with data in item for the given symbol.
 
@@ -364,8 +364,15 @@ class ChunkStore(object):
             range and overwrite it with the data in item. This allows the user
             to update with data that might only be a subset of the
             original data.
+        upsert: bool
+            if True, will write the data even if the symbol does not exist.
+            If true and an upsert is performed, chunk_range will be ignored
+        chunk_size: ?
+            a chunk size that will be utilized if an upsert is performed.
+            Only needs to be specified if upsert=True
         """
-
+        if upsert and not self._get_symbol_info(symbol):
+            return self.write(symbol, item, chunk_size)
         if chunk_range is not None:
             if self.chunker.filter(item, chunk_range).empty:
                 raise Exception('Range must be inclusive of data')

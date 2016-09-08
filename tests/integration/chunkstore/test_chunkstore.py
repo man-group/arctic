@@ -24,6 +24,18 @@ def test_write_dataframe(chunkstore_lib):
     assert_frame_equal(df, read_df)
 
 
+def test_upsert_dataframe(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+    chunkstore_lib.update('test_df', df, upsert=True, chunk_size='D')
+    read_df = chunkstore_lib.read('test_df')
+    assert_frame_equal(df, read_df)
+
+
 def test_write_dataframe_noindex(chunkstore_lib):
     df = DataFrame(data={'data': [1, 2, 3],
                          'date': [dt(2016, 1, 1),
