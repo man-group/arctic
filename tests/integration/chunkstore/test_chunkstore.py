@@ -10,6 +10,7 @@ import pytest
 import pymongo
 
 from arctic.chunkstore.chunkstore import START, SYMBOL
+from arctic.chunkstore.passthrough_chunker import PassthroughChunker
 
 
 def test_write_dataframe(chunkstore_lib):
@@ -356,7 +357,7 @@ def test_update(chunkstore_lib):
     chunkstore_lib.write('chunkstore_test', df, chunk_size='D')
     chunkstore_lib.update('chunkstore_test', df2)
     assert_frame_equal(chunkstore_lib.read('chunkstore_test'), equals)
-    assert(chunkstore_lib.get_info('chunkstore_test')['rows'] == len(equals))
+    assert(chunkstore_lib.get_info('chunkstore_test')['len'] == len(equals))
     assert(chunkstore_lib.get_info('chunkstore_test')['chunk_count'] == len(equals))
 
 
@@ -399,6 +400,18 @@ def test_update_chunk_range(chunkstore_lib):
     chunkstore_lib.write('chunkstore_test', df, chunk_size='M')
     chunkstore_lib.update('chunkstore_test', df2, chunk_range=DateRange(dt(2015, 1, 1), dt(2015, 1, 2)))
     assert_frame_equal(chunkstore_lib.read('chunkstore_test'), equals)
+
+
+def test_update_chunk_range_overlap(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=pd.Index(data=[dt(2015, 1, 1),
+                                        dt(2015, 1, 2),
+                                        dt(2015, 1, 3)], name='date'))
+
+    chunkstore_lib.write('chunkstore_test', df, chunk_size='M')
+    chunkstore_lib.update('chunkstore_test', df, chunk_range=DateRange(dt(2015, 1, 1), dt(2015, 1, 3)))
+    assert_frame_equal(chunkstore_lib.read('chunkstore_test'), df)
+
 
 def test_append_before(chunkstore_lib):
     df = DataFrame(data={'data': [1, 2, 3]},
@@ -621,9 +634,9 @@ def test_get_info(chunkstore_lib):
                                                 names=['date', 'id'])
                    )
     chunkstore_lib.write('test_df', df, 'D')
-    info = {'rows': 3,
+    info = {'len': 3,
             'chunk_count': 3,
-            'col_names': [u'date', u'id', u'data'],
+            'metadata': {'columns': [u'date', u'id', u'data']},
             }
     assert(chunkstore_lib.get_info('test_df') == info)
     
@@ -645,9 +658,9 @@ def test_get_info_after_append(chunkstore_lib):
     chunkstore_lib.append('test_df', df2)
     assert_frame_equal(chunkstore_lib.read('test_df'), pd.concat([df, df2]).sort_index())
 
-    info = {'rows': 6,
+    info = {'len': 6,
             'chunk_count': 4,
-            'col_names': [u'date', u'id', u'data'],
+            'metadata': {'columns': [u'date', u'id', u'data']},
             }
 
     assert(chunkstore_lib.get_info('test_df') == info)
@@ -669,9 +682,9 @@ def test_get_info_after_update(chunkstore_lib):
                     )
     chunkstore_lib.update('test_df', df2)
 
-    info = {'rows': 4,
+    info = {'len': 4,
             'chunk_count': 4,
-            'col_names': [u'date', u'id', u'data'],
+            'metadata': {'columns': [u'date', u'id', u'data']},
             }
 
     assert(chunkstore_lib.get_info('test_df') == info)
@@ -697,7 +710,7 @@ def test_delete_range(chunkstore_lib):
     chunkstore_lib.write('test', df, 'M')
     chunkstore_lib.delete('test', chunk_range=DateRange(dt(2016, 1, 2), dt(2016, 3, 1)))
     assert_frame_equal(chunkstore_lib.read('test'), df_result)
-    assert(chunkstore_lib.get_info('test')['rows'] == len(df_result))
+    assert(chunkstore_lib.get_info('test')['len'] == len(df_result))
     assert(chunkstore_lib.get_info('test')['chunk_count'] == 2)
 
 
@@ -827,32 +840,6 @@ def test_yearly_series(chunkstore_lib):
     assert_series_equal(df, ret)
 
 
-def test_append_exceptions(chunkstore_lib):
-    df = DataFrame(data=[1, 2, 3],
-                   index=Index(data=[dt(2016, 1, 1),
-                                     dt(2016, 1, 2),
-                                     dt(2016, 1, 3)],
-                               name='date'),
-                   columns=['data'])
-    s = Series(data=[1, 2, 3],
-               index=Index(data=[dt(2016, 1, 1),
-                                 dt(2016, 2, 1),
-                                 dt(2016, 3, 3)],
-                           name='date'),
-               name='data')
-
-    chunkstore_lib.write('df', df, chunk_size='D')
-    chunkstore_lib.write('s', s, chunk_size='D')
-
-    with pytest.raises(Exception) as e:
-        chunkstore_lib.append('df', s)
-    assert("Cannot combine DataFrame and Series" in str(e))
-
-    with pytest.raises(Exception) as e:
-        chunkstore_lib.append('s', df)
-    assert("Cannot combine Series and DataFrame" in str(e))
-
-
 def test_store_objects_series(chunkstore_lib):
     df = Series(data=['1', '2', '3'],
                 index=Index(data=[dt(2016, 1, 1),
@@ -980,3 +967,48 @@ def test_rename(chunkstore_lib):
         chunks.append(x)
 
     assert(len(chunks) == 0)
+
+
+def test_pass_thru_chunker(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]})
+
+    chunkstore_lib.write('test_df', df, chunker=PassthroughChunker())
+    read_df = chunkstore_lib.read('test_df')
+    assert_frame_equal(df, read_df)
+
+
+def test_pass_thru_chunker_append(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]})
+    df2 = DataFrame(data={'data': [4, 5, 6]})
+
+    chunkstore_lib.write('test_df', df, chunker=PassthroughChunker())
+    chunkstore_lib.append('test_df', df2)
+    read_df = chunkstore_lib.read('test_df')
+
+    assert_frame_equal(pd.concat([df, df2], ignore_index=True), read_df)
+
+
+def test_pass_thru_chunker_update(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]})
+    df2 = DataFrame(data={'data': [5, 6, 7]})
+
+    chunkstore_lib.write('test_df', df, chunker=PassthroughChunker())
+    chunkstore_lib.update('test_df', df2)
+    read_df = chunkstore_lib.read('test_df')
+
+    assert_frame_equal(df2, read_df)
+
+
+def test_pass_thru_chunker_update_range(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]})
+    df2 = DataFrame(data={'data': [5, 6, 7]})
+
+    chunkstore_lib.write('test_df', df, chunker=PassthroughChunker())
+    chunkstore_lib.update('test_df', df2, chunk_range="")
+    read_df = chunkstore_lib.read('test_df')
+
+    assert_frame_equal(read_df, df2)
+
+
+
+

@@ -3,13 +3,14 @@ import pymongo
 import hashlib
 
 from bson.binary import Binary
-from pandas import concat, DataFrame, Series
+from pandas import DataFrame, Series
 
 from ..decorators import mongo_retry
 from .._util import indent
-from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, VALUES, COLUMNS, TYPE
-
+from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, VALUES, TYPE, METADATA
 from .date_chunker import DateChunker, START, END
+from .passthrough_chunker import PassthroughChunker
+
 from ..exceptions import NoDataFoundException
 
 
@@ -21,7 +22,14 @@ SHA = 'sh'
 CHUNK_SIZE = 'cs'
 CHUNK_COUNT = 'cc'
 APPEND_COUNT = 'ac'
-ROWS = 'r'
+LEN = 'l'
+SERIALIZER = 'se'
+CHUNKER = 'ch'
+
+SER_MAP = {FrametoArraySerializer.TYPE: FrametoArraySerializer()}
+
+CHUNKER_MAP = {DateChunker.TYPE: DateChunker(),
+               PassthroughChunker.TYPE: PassthroughChunker()}
 
 
 class ChunkStore(object):
@@ -47,10 +55,9 @@ class ChunkStore(object):
                                       unique=True, background=True)
 
     @mongo_retry
-    def __init__(self, arctic_lib, chunker=DateChunker(), serializer=FrametoArraySerializer()):
-        self.chunker = chunker
-        self.serializer = serializer
+    def __init__(self, arctic_lib):
         self._arctic_lib = arctic_lib
+        self.serializer = FrametoArraySerializer()
 
         # Do we allow reading from secondaries
         self._allow_secondary = self._arctic_lib.arctic._allow_secondary
@@ -72,15 +79,15 @@ class ChunkStore(object):
     def __repr__(self):
         return str(self)
 
-    def _checksum(self, doc):
+    def _checksum(self, fields, doc, iterator):
         """
         Checksum the passed in dictionary
         """
         sha = hashlib.sha1()
-        sha.update(self.chunker.chunk_to_str(doc[START]).encode('ascii'))
-        sha.update(self.chunker.chunk_to_str(doc[END]).encode('ascii'))
-        for k in doc[DATA][COLUMNS]:
-            sha.update(doc[DATA][DATA][k][VALUES])
+        for field in fields:
+            sha.update(field)
+        for data in iterator(doc):
+            sha.update(data)
         return Binary(sha.digest())
 
     def delete(self, symbol, chunk_range=None):
@@ -95,21 +102,22 @@ class ChunkStore(object):
             a date range to delete
         """
         if chunk_range is not None:
+            sym = self._get_symbol_info(symbol)
             # read out chunks that fall within the range and filter out
             # data within the range
             df = self.read(symbol, chunk_range=chunk_range, filter_data=False)
             row_adjust = len(df)
-            df = self.chunker.exclude(df, chunk_range)
+            df = CHUNKER_MAP[sym[CHUNKER]].exclude(df, chunk_range)
 
             # remove chunks, and update any remaining data
             query = {SYMBOL: symbol}
-            query.update(self.chunker.to_mongo(chunk_range))
+            query.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
             self._collection.delete_many(query)
             self.update(symbol, df)
 
             # update symbol metadata (rows and chunk count)
             sym = self._get_symbol_info(symbol)
-            sym[ROWS] -= row_adjust
+            sym[LEN] -= row_adjust
             sym[CHUNK_COUNT] = self._collection.count({SYMBOL: symbol})
             self._symbols.replace_one({SYMBOL: symbol}, sym)
 
@@ -156,7 +164,7 @@ class ChunkStore(object):
         mongo_retry(self._symbols.update_one)({SYMBOL: from_symbol},
                                               {'$set': {SYMBOL: to_symbol}})
 
-    def read(self, symbol, chunk_range=None, columns=None, filter_data=True):
+    def read(self, symbol, chunk_range=None, filter_data=True, **kwargs):
         """
         Reads data for a given symbol from the database.
 
@@ -168,12 +176,11 @@ class ChunkStore(object):
             corresponding range object for the specified chunker (for
             DateChunker it is a DateRange object or a DatetimeIndex, 
             as returned by pandas.date_range
-        columns: list of str
-            subset of columns to read back (index will always be included, if
-            one exists)
-        filter: boolean
+        filter_data: boolean
             perform chunk level filtering on the data (see filter in _chunker)
             only applicable when chunk_range is specified
+        kwargs: ?
+            values passed to the serializer. Varies by serializer
 
         Returns
         -------
@@ -188,19 +195,19 @@ class ChunkStore(object):
                 }
 
         if chunk_range is not None:
-            spec.update(self.chunker.to_mongo(chunk_range))
+            spec.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
 
         segments = []
         for x in self._collection.find(spec, sort=[(START, pymongo.ASCENDING)],):
             segments.append(x[DATA])
 
-        data = self.serializer.deserialize(segments, columns)
+        data = SER_MAP[sym[SERIALIZER]].deserialize(segments, **kwargs)
 
         if not filter_data or chunk_range is None:
             return data
-        return self.chunker.filter(data, chunk_range)
+        return CHUNKER_MAP[sym[CHUNKER]].filter(data, chunk_range)
 
-    def write(self, symbol, item, chunk_size):
+    def write(self, symbol, item, chunk_size=None, chunker=DateChunker()):
         """
         Writes data from item to symbol in the database
 
@@ -220,9 +227,10 @@ class ChunkStore(object):
         doc = {}
 
         doc[SYMBOL] = symbol
-        doc[CHUNK_SIZE] = chunk_size
-        doc[ROWS] = len(item)
-        doc[TYPE] = 'dataframe' if isinstance(item, DataFrame) else 'series'
+        doc[CHUNK_SIZE] = chunk_size if chunk_size else "NA"
+        doc[LEN] = len(item)
+        doc[SERIALIZER] = self.serializer.TYPE
+        doc[CHUNKER] = chunker.TYPE
 
         sym = self._get_symbol_info(symbol)
         if sym:
@@ -234,16 +242,17 @@ class ChunkStore(object):
         bulk = self._collection.initialize_unordered_bulk_op()
         chunk_count = 0
 
-        for start, end, record in self.chunker.to_chunks(item, chunk_size):
+        for start, end, record in chunker.to_chunks(item, chunk_size):
             chunk_count += 1
             data = self.serializer.serialize(record)
-            doc[COLUMNS] = data[COLUMNS]
+            doc[METADATA] = data[METADATA]
 
             chunk = {DATA: data}
             chunk[START] = start
             chunk[END] = end
             chunk[SYMBOL] = symbol
-            chunk[SHA] = self._checksum(chunk)
+            dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end)]
+            chunk[SHA] = self._checksum(dates, chunk, self.serializer.doc_iterator)
 
             if chunk[SHA] not in previous_shas:
                 op = True
@@ -266,24 +275,14 @@ class ChunkStore(object):
                                               {'$set': doc},
                                               upsert=True)
 
-    def __concat(self, a, b):
-        return concat([a, b]).sort_index()
+    def __replace(self, old, new):
+        return new
 
-    def __take_new(self, a, b):
-        return a
-
-    def __update(self, symbol, item, combine_method=None, chunk_range=None):
+    def __update(self, sym, item, combine_method=None, chunk_range=None):
         if not isinstance(item, (DataFrame, Series)):
             raise Exception("Can only chunk DataFrames and Series")
 
-        sym = self._get_symbol_info(symbol)
-        if not sym:
-            raise NoDataFoundException("Symbol does not exist.")
-
-        if sym[TYPE] == 'series' and not isinstance(item, Series):
-            raise Exception("Cannot combine Series and DataFrame")
-        if sym[TYPE] == 'dataframe' and not isinstance(item, DataFrame):
-            raise Exception("Cannot combine DataFrame and Series")
+        symbol = sym[SYMBOL]
 
         if chunk_range is not None:
             self.delete(symbol, chunk_range)
@@ -291,33 +290,34 @@ class ChunkStore(object):
 
         bulk = self._collection.initialize_unordered_bulk_op()
         op = False
-        for start, end, record in self.chunker.to_chunks(item, sym[CHUNK_SIZE]):
+        chunker = CHUNKER_MAP[sym[CHUNKER]]
+        for start, end, record in chunker.to_chunks(item, sym[CHUNK_SIZE]):
             # read out matching chunks
-            df = self.read(symbol, chunk_range=self.chunker.to_range(start, end), filter_data=False)
+            df = self.read(symbol, chunk_range=chunker.to_range(start, end), filter_data=False)
 
             # assuming they exist, update them and store the original chunk
             # range for later use
-            if not df.empty:
-                record = combine_method(record, df)
+            if len(df) > 0:
+                record = combine_method(df, record)
                 if record is None or record.equals(df):
                     continue
 
                 sym[APPEND_COUNT] += len(record)
-                sym[ROWS] += len(record) - len(df)
+                sym[LEN] += len(record) - len(df)
                 new_chunk = False
             else:
                 new_chunk = True
                 sym[CHUNK_COUNT] += 1
-                sym[ROWS] += len(record)
+                sym[LEN] += len(record)
 
-            data = self.serializer.serialize(record)
+            data = SER_MAP[sym[SERIALIZER]].serialize(record)
             op = True
 
             chunk = {DATA: data}
-            chunk[TYPE] = 'dataframe' if isinstance(record, DataFrame) else 'series'
             chunk[START] = start
             chunk[END] = end
-            sha = self._checksum(chunk)
+            dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end)]
+            sha = self._checksum(dates, chunk, SER_MAP[sym[SERIALIZER]].doc_iterator)
             chunk[SHA] = sha
             if new_chunk:
                 # new chunk
@@ -345,7 +345,10 @@ class ChunkStore(object):
         item: DataFrame or Series
             the data to append
         """
-        self.__update(symbol, item, combine_method=self.__concat)
+        sym = self._get_symbol_info(symbol)
+        if not sym:
+            raise NoDataFoundException("Symbol does not exist.")
+        self.__update(sym, item, combine_method=SER_MAP[sym[SERIALIZER]].combine)
 
     def update(self, symbol, item, chunk_range=None, upsert=False, chunk_size=None):
         """
@@ -371,19 +374,23 @@ class ChunkStore(object):
             a chunk size that will be utilized if an upsert is performed.
             Only needs to be specified if upsert=True
         """
-        if upsert and not self._get_symbol_info(symbol):
-            return self.write(symbol, item, chunk_size)
+        sym = self._get_symbol_info(symbol)
+        if not sym:
+            if upsert:
+                return self.write(symbol, item, chunk_size)
+            else:
+                raise NoDataFoundException("Symbol does not exist.")
         if chunk_range is not None:
-            if self.chunker.filter(item, chunk_range).empty:
+            if len(CHUNKER_MAP[sym[CHUNKER]].filter(item, chunk_range)) == 0:
                 raise Exception('Range must be inclusive of data')
-            self.__update(symbol, item, combine_method=self.__concat, chunk_range=chunk_range)
+            self.__update(sym, item, combine_method=self.serializer.combine, chunk_range=chunk_range)
         else:
-            self.__update(symbol, item, combine_method=self.__take_new, chunk_range=chunk_range)
+            self.__update(sym, item, combine_method=self.__replace, chunk_range=chunk_range)
 
     def get_info(self, symbol):
         sym = self._get_symbol_info(symbol)
         ret = {}
         ret['chunk_count'] = sym[CHUNK_COUNT]
-        ret['rows'] = sym[ROWS]
-        ret['col_names'] = sym[COLUMNS]
+        ret['len'] = sym[LEN]
+        ret['metadata'] = sym[METADATA]
         return ret

@@ -1,9 +1,10 @@
 import logging
+import numpy as np
 
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex
 from pandas.tslib import Timestamp, get_timezone
 
-import numpy as np
+from ._serializer import Serializer 
 
 
 log = logging.getLogger(__name__)

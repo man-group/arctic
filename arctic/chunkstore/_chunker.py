@@ -36,7 +36,7 @@ class Chunker(object):
 
         returns
         -------
-        string
+        dict
         """
         raise NotImplementedError
 

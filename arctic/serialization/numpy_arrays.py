@@ -6,6 +6,7 @@ import pandas as pd
 from bson import Binary, SON
 
 from .._compression import compress, decompress
+from ._serializer import Serializer
 
 
 DATA = 'd'
@@ -15,6 +16,7 @@ TYPE = 't'
 NAME = 'n'
 COLUMNS = 'c'
 INDEX = 'i'
+METADATA = 'md'
 
 
 class NumpyArrayConverter(object):
@@ -141,7 +143,9 @@ class FrameConverter(object):
         return pd.DataFrame(data, columns=cols)[cols]
 
 
-class FrametoArraySerializer(object):
+class FrametoArraySerializer(Serializer):
+    TYPE = 'FrameToArray'
+
     def __init__(self):
         self.converter = FrameConverter()
 
@@ -158,9 +162,11 @@ class FrametoArraySerializer(object):
             ret = self.converter.docify(df)
             ret[INDEX] = index
             ret[TYPE] = dtype
+            ret[METADATA] = {'columns': ret[COLUMNS]}
             return ret
         ret = self.converter.docify(df)
         ret[TYPE] = dtype
+        ret[METADATA] = {'columns': ret[COLUMNS]}
         return ret
 
     def deserialize(self, data, columns=None):
@@ -184,3 +190,12 @@ class FrametoArraySerializer(object):
         if dtype == 'series':
             return df[df.columns[0]]
         return df
+
+    def combine(self, a, b):
+        if a.index.names != [None]:
+            return pd.concat([a, b]).sort_index()
+        return pd.concat([a, b])
+
+    def doc_iterator(self, doc):
+        for k in doc[DATA][COLUMNS]:
+            yield doc[DATA][DATA][k][VALUES]

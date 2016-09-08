@@ -5,6 +5,8 @@ from ..date import DateRange
 
 
 class DateChunker(Chunker):
+    TYPE = 'date'
+
     def to_chunks(self, df, chunk_size):
         """
         chunks the dataframe/series by dates
@@ -49,7 +51,7 @@ class DateChunker(Chunker):
         -------
         string
         """
-        return chunk_id.strftime("%Y-%m-%d")
+        return chunk_id.strftime("%Y-%m-%d").encode('ascii')
 
     def to_mongo(self, range_obj):
         """
@@ -59,7 +61,7 @@ class DateChunker(Chunker):
 
         returns
         -------
-        string
+        dict
         """
         if isinstance(range_obj, pd.DatetimeIndex):
             range_obj = DateRange(range_obj.min(), range_obj.max())
