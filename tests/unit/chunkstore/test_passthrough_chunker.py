@@ -1,12 +1,13 @@
 import pytest
 from pandas import DataFrame, Series
 from arctic.chunkstore.passthrough_chunker import PassthroughChunker, START, END
+import six
 
 
 def test_pass_thru():
     p = PassthroughChunker()
     with pytest.raises(StopIteration):
-        p.to_chunks([], None).next()
+        six.next(p.to_chunks([], None))
 
     assert(p.to_range(None, None) == 'NA')
     assert(p.chunk_to_str(None) == 'NA')

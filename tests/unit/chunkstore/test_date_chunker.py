@@ -5,6 +5,7 @@ from arctic.date import DateRange
 from pandas.util.testing import assert_frame_equal
 import pandas as pd
 import pytest
+import six
 
 
 def test_date_filter():
@@ -49,11 +50,11 @@ def test_to_chunks_exceptions():
     df = DataFrame(data={'data': [1, 2, 3]})
     c = DateChunker()
     with pytest.raises(Exception) as e:
-        c.to_chunks(None, None).next()
+        six.next(c.to_chunks(None, None))
     assert('Chunk size' in str(e))
 
     with pytest.raises(Exception) as e:
-        c.to_chunks(df, 'D').next()
+        six.next(c.to_chunks(df, 'D'))
     assert('datetime indexed' in str(e))
 
 
