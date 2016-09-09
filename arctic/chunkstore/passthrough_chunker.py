@@ -15,7 +15,7 @@ class PassthroughChunker(Chunker):
         ("NA", "NA", dataframe/series)
         """
         if len(df) > 0:
-            yield "NA", "NA", df
+            yield b'NA', b'NA', df
 
     def to_range(self, start, end):
         """
@@ -25,7 +25,7 @@ class PassthroughChunker(Chunker):
         -------
         string
         """
-        return "NA"
+        return b'NA'
 
     def chunk_to_str(self, chunk_id):
         """
@@ -35,7 +35,7 @@ class PassthroughChunker(Chunker):
         -------
         string
         """
-        return "NA".encode('ascii')
+        return b'NA'
 
     def to_mongo(self, range_obj):
         """
@@ -46,7 +46,7 @@ class PassthroughChunker(Chunker):
         -------
         string
         """
-        return {'$and': [{START: "NA"}, {END: "NA"}]}
+        return {'$and': [{START: b'NA'}, {END: b'NA'}]}
 
     def filter(self, data, range_obj):
         """
