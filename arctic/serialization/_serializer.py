@@ -8,5 +8,5 @@ class Serializer(object):
     def combine(self, a, b):
         raise NotImplementedError
 
-    def doc_helper(self, doc):
+    def doc_iterator(self, doc):
         raise NotImplementedError
