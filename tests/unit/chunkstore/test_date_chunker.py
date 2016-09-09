@@ -4,6 +4,7 @@ from datetime import datetime as dt
 from arctic.date import DateRange
 from pandas.util.testing import assert_frame_equal
 import pandas as pd
+import pytest
 
 
 def test_date_filter():
@@ -42,3 +43,31 @@ def test_date_filter_with_pd_date_range():
 
     assert(c.filter(df, pd.date_range(dt(2017, 1, 1), dt(2018, 1, 1))).empty)
     assert_frame_equal(c.filter(df, pd.date_range(dt(2016, 1, 1), dt(2017, 1, 1))), df)
+
+
+def test_to_chunks_exceptions():
+    df = DataFrame(data={'data': [1, 2, 3]})
+    c = DateChunker()
+    with pytest.raises(Exception) as e:
+        c.to_chunks(None, None).next()
+    assert('Chunk size' in str(e))
+
+    with pytest.raises(Exception) as e:
+        c.to_chunks(df, 'D').next()
+    assert('datetime indexed' in str(e))
+
+
+def test_exclude():
+    c = DateChunker()
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+
+    df2 = DataFrame(data={'data': [1, 2, 3]})
+
+    assert(c.exclude(df, DateRange(dt(2016, 1, 1), dt(2016, 1, 1))).equals(c.exclude(df, pd.date_range(dt(2016, 1, 1), dt(2016, 1, 1)))))
+    assert(c.exclude(df2, None).equals(df2))
+

@@ -4,7 +4,7 @@ END = 'e'
 
 class Chunker(object):
 
-    def to_chunks(self, data, *args, **kwargs):
+    def to_chunks(self, data, chunk_size, **kwargs):
         """
         Chunks data
 

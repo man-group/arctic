@@ -4,8 +4,6 @@ import numpy as np
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex
 from pandas.tslib import Timestamp, get_timezone
 
-from ._serializer import Serializer 
-
 
 log = logging.getLogger(__name__)
 
