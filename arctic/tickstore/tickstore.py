@@ -587,7 +587,7 @@ class TickStore(object):
             array = array.astype('<i8')
         elif (array.dtype.kind) == 'f':
             array = array.astype('<f8')
-        elif (array.dtype.kind) in ('U', 'S'):
+        elif (array.dtype.kind) in ('U', 'S', 'O'):
             array = array.astype(np.unicode_)
         else:
             raise UnhandledDtypeException("Unsupported dtype '%s' - only int64, float64 and U are supported" % array.dtype)
