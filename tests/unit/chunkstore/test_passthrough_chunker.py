@@ -7,7 +7,7 @@ import six
 def test_pass_thru():
     p = PassthroughChunker()
     with pytest.raises(StopIteration):
-        six.next(p.to_chunks([], None))
+        six.next(p.to_chunks([]))
 
     assert(p.to_range(None, None) == b'NA')
     assert(p.chunk_to_str(None) == b'NA')
