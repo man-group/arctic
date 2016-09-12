@@ -6,16 +6,16 @@ from ._chunker import Chunker, START, END
 class PassthroughChunker(Chunker):
     TYPE = 'passthru'
 
-    def to_chunks(self, df, chunk_size):
+    def to_chunks(self, df, **kwargs):
         """
         pass thru chunker of the dataframe/series
 
         returns
         -------
-        ("NA", "NA", dataframe/series)
+        ('NA', 'NA', 'NA', dataframe/series)
         """
         if len(df) > 0:
-            yield b'NA', b'NA', df
+            yield b'NA', b'NA', b'NA', df
 
     def to_range(self, start, end):
         """

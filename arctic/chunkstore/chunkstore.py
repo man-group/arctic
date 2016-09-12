@@ -207,7 +207,7 @@ class ChunkStore(object):
             return data
         return CHUNKER_MAP[sym[CHUNKER]].filter(data, chunk_range)
 
-    def write(self, symbol, item, chunk_size=None, chunker=DateChunker()):
+    def write(self, symbol, item, chunker=DateChunker(), **kwargs):
         """
         Writes data from item to symbol in the database
 
@@ -217,8 +217,13 @@ class ChunkStore(object):
             the symbol that will be used to reference the written data
         item: Dataframe or Series
             the data to write the database
-        chunk_size: ?
-            A chunk size that is understood by the specified chunker
+        chunker: Object of type Chunker
+            A chunker that chunks the data in item
+        kwargs:
+            optional keyword args that are passed to the chunker. Includes:
+            chunk_size:
+                used by chunker to break data into discrete chunks.
+                see specific chunkers for more information about this param.
         """
         if not isinstance(item, (DataFrame, Series)):
             raise Exception("Can only chunk DataFrames and Series")
@@ -227,7 +232,6 @@ class ChunkStore(object):
         doc = {}
 
         doc[SYMBOL] = symbol
-        doc[CHUNK_SIZE] = chunk_size if chunk_size else "NA"
         doc[LEN] = len(item)
         doc[SERIALIZER] = self.serializer.TYPE
         doc[CHUNKER] = chunker.TYPE
@@ -242,10 +246,11 @@ class ChunkStore(object):
         bulk = self._collection.initialize_unordered_bulk_op()
         chunk_count = 0
 
-        for start, end, record in chunker.to_chunks(item, chunk_size):
+        for start, end, chunk_size, record in chunker.to_chunks(item, **kwargs):
             chunk_count += 1
             data = self.serializer.serialize(record)
             doc[METADATA] = data[METADATA]
+            doc[CHUNK_SIZE] = chunk_size
 
             chunk = {DATA: data}
             chunk[START] = start
@@ -291,7 +296,7 @@ class ChunkStore(object):
         bulk = self._collection.initialize_unordered_bulk_op()
         op = False
         chunker = CHUNKER_MAP[sym[CHUNKER]]
-        for start, end, record in chunker.to_chunks(item, sym[CHUNK_SIZE]):
+        for start, end, _, record in chunker.to_chunks(item, chunk_size=sym[CHUNK_SIZE]):
             # read out matching chunks
             df = self.read(symbol, chunk_range=chunker.to_range(start, end), filter_data=False)
 
@@ -350,7 +355,7 @@ class ChunkStore(object):
             raise NoDataFoundException("Symbol does not exist.")
         self.__update(sym, item, combine_method=SER_MAP[sym[SERIALIZER]].combine)
 
-    def update(self, symbol, item, chunk_range=None, upsert=False, chunk_size=None):
+    def update(self, symbol, item, chunk_range=None, upsert=False, **kwargs):
         """
         Overwrites data in DB with data in item for the given symbol.
 
@@ -369,15 +374,15 @@ class ChunkStore(object):
             original data.
         upsert: bool
             if True, will write the data even if the symbol does not exist.
-            If true and an upsert is performed, chunk_range will be ignored
-        chunk_size: ?
-            a chunk size that will be utilized if an upsert is performed.
-            Only needs to be specified if upsert=True
+        kwargs:
+            optional keyword args passed to write during an upsert. Includes:
+            chunk_size
+            chunker
         """
         sym = self._get_symbol_info(symbol)
         if not sym:
             if upsert:
-                return self.write(symbol, item, chunk_size)
+                return self.write(symbol, item, **kwargs)
             else:
                 raise NoDataFoundException("Symbol does not exist.")
         if chunk_range is not None:

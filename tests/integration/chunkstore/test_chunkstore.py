@@ -20,7 +20,7 @@ def test_write_dataframe(chunkstore_lib):
                                                  (dt(2016, 1, 3), 1)],
                                                 names=['date', 'id'])
                    )
-    chunkstore_lib.write('test_df', df, 'D')
+    chunkstore_lib.write('test_df', df, chunk_size='D')
     read_df = chunkstore_lib.read('test_df')
     assert_frame_equal(df, read_df)
 
@@ -32,7 +32,7 @@ def test_upsert_dataframe(chunkstore_lib):
                                                  (dt(2016, 1, 3), 1)],
                                                 names=['date', 'id'])
                    )
-    chunkstore_lib.update('test_df', df, upsert=True, chunk_size='D')
+    chunkstore_lib.update('test_df', df, upsert=True)
     read_df = chunkstore_lib.read('test_df')
     assert_frame_equal(df, read_df)
 
@@ -44,7 +44,7 @@ def test_write_dataframe_noindex(chunkstore_lib):
                                   dt(2016, 1, 3)]
                          }
                    )
-    chunkstore_lib.write('test_df', df, 'D')
+    chunkstore_lib.write('test_df', df)
     read_df = chunkstore_lib.read('test_df')
     assert_frame_equal(df, read_df)
 
@@ -64,8 +64,8 @@ def test_overwrite_dataframe(chunkstore_lib):
                                                  (dt(2016, 1, 3), 1)],
                                                 names=['date', 'id'])
                    )
-    chunkstore_lib.write('test_df', df, 'D')
-    chunkstore_lib.write('test_df', dg, 'D')
+    chunkstore_lib.write('test_df', df)
+    chunkstore_lib.write('test_df', dg)
     read_df = chunkstore_lib.read('test_df')
     assert_frame_equal(dg, read_df)
 
@@ -83,8 +83,8 @@ def test_overwrite_dataframe_noindex(chunkstore_lib):
                                    dt(2016, 1, 3),
                                    dt(2016, 1, 4)]})
 
-    chunkstore_lib.write('test_df', df, 'D')
-    chunkstore_lib.write('test_df', df2, 'D')
+    chunkstore_lib.write('test_df', df)
+    chunkstore_lib.write('test_df', df2)
     read_df = chunkstore_lib.read('test_df')
     assert_frame_equal(df2, read_df)
 
@@ -109,8 +109,8 @@ def test_overwrite_dataframe_monthly(chunkstore_lib):
                                                  (dt(2016, 6, 6), 1)],
                                                 names=['date', 'id'])
                    )
-    chunkstore_lib.write('test_df', df, 'M')
-    chunkstore_lib.write('test_df', dg, 'M')
+    chunkstore_lib.write('test_df', df, chunk_size='M')
+    chunkstore_lib.write('test_df', dg, chunk_size='M')
     read_df = chunkstore_lib.read('test_df')
     assert_frame_equal(dg, read_df)
 
@@ -129,7 +129,7 @@ def test_write_read_with_daterange(chunkstore_lib):
                                                 names=['date', 'id'])
                    )
 
-    chunkstore_lib.write('test_df', df, 'D')
+    chunkstore_lib.write('test_df', df)
     read_df = chunkstore_lib.read('test_df', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 2)))
 
     assert_frame_equal(read_df, dg)
@@ -147,7 +147,7 @@ def test_write_read_with_daterange_noindex(chunkstore_lib):
                          'date': [dt(2016, 1, 1),
                                   dt(2016, 1, 2)]})
 
-    chunkstore_lib.write('test_df', df, 'D')
+    chunkstore_lib.write('test_df', df)
     read_df = chunkstore_lib.read('test_df', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 2)))
     assert_frame_equal(read_df, dg)
 
@@ -618,7 +618,7 @@ def test_delete(chunkstore_lib):
                                                  (dt(2016, 1, 3), 1)],
                                                 names=['date', 'id'])
                    )
-    chunkstore_lib.write('test_df', df, 'D')
+    chunkstore_lib.write('test_df', df)
     read_df = chunkstore_lib.read('test_df')
     assert_frame_equal(df, read_df)
     assert ('test_df' in chunkstore_lib.list_symbols())
@@ -633,7 +633,7 @@ def test_get_info(chunkstore_lib):
                                                  (dt(2016, 1, 3), 1)],
                                                 names=['date', 'id'])
                    )
-    chunkstore_lib.write('test_df', df, 'D')
+    chunkstore_lib.write('test_df', df)
     info = {'len': 3,
             'chunk_count': 3,
             'metadata': {'columns': [u'date', u'id', u'data']},
@@ -648,7 +648,7 @@ def test_get_info_after_append(chunkstore_lib):
                                                  (dt(2016, 1, 3), 1)],
                                                 names=['date', 'id'])
                    )
-    chunkstore_lib.write('test_df', df, 'D')
+    chunkstore_lib.write('test_df', df)
     df2 = DataFrame(data={'data': [1.1, 1.1, 1.1]},
                     index=MultiIndex.from_tuples([(dt(2016, 1, 1), 2),
                                                   (dt(2016, 1, 2), 2),
@@ -673,7 +673,7 @@ def test_get_info_after_update(chunkstore_lib):
                                                  (dt(2016, 1, 3), 1)],
                                                 names=['date', 'id'])
                    )
-    chunkstore_lib.write('test_df', df, 'D')
+    chunkstore_lib.write('test_df', df)
     df2 = DataFrame(data={'data': [1.1, 1.1, 1.1]},
                     index=MultiIndex.from_tuples([(dt(2016, 1, 1), 2),
                                                   (dt(2016, 1, 2), 2),
@@ -707,7 +707,7 @@ def test_delete_range(chunkstore_lib):
                                                        names=['date', 'id'])
                           )
 
-    chunkstore_lib.write('test', df, 'M')
+    chunkstore_lib.write('test', df, chunk_size='M')
     chunkstore_lib.delete('test', chunk_range=DateRange(dt(2016, 1, 2), dt(2016, 3, 1)))
     assert_frame_equal(chunkstore_lib.read('test'), df_result)
     assert(chunkstore_lib.get_info('test')['len'] == len(df_result))
@@ -727,7 +727,7 @@ def test_delete_range_noindex(chunkstore_lib):
                                 'date': [dt(2016, 1, 1),
                                          dt(2016, 3, 2)]})
 
-    chunkstore_lib.write('test', df, 'M')
+    chunkstore_lib.write('test', df, chunk_size='M')
     chunkstore_lib.delete('test', chunk_range=DateRange(dt(2016, 1, 2), dt(2016, 3, 1)))
     assert_frame_equal(chunkstore_lib.read('test'), df_result)
 
@@ -746,7 +746,7 @@ def test_read_chunk_range(chunkstore_lib):
                                                 names=['date', 'id'])
                    )
 
-    chunkstore_lib.write('test', df, 'M')
+    chunkstore_lib.write('test', df, chunk_size='M')
     assert(chunkstore_lib.read('test', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 1))).index.get_level_values('date')[0] == dt(2016,1,1))
     assert(chunkstore_lib.read('test', chunk_range=DateRange(dt(2016, 1, 2), dt(2016, 1, 2))).index.get_level_values('date')[0] == dt(2016, 1, 2))
     assert(chunkstore_lib.read('test', chunk_range=DateRange(dt(2016, 1, 3), dt(2016, 1, 3))).index.get_level_values('date')[0] == dt(2016, 1, 3))
@@ -790,7 +790,7 @@ def test_append_no_new_data(chunkstore_lib):
                                                 names=['date', 'id'])
                    )
 
-    chunkstore_lib.write('test', df, 'D')
+    chunkstore_lib.write('test', df)
     chunkstore_lib.append('test', df)
     r = chunkstore_lib.read('test')
     assert_frame_equal(pd.concat([df, df]).sort_index(), r)
@@ -802,16 +802,16 @@ def test_overwrite_series(chunkstore_lib):
                                            name='date'),
                   name='vals')
 
-    chunkstore_lib.write('test', s, 'D')
-    chunkstore_lib.write('test', s + 1, 'D')
+    chunkstore_lib.write('test', s)
+    chunkstore_lib.write('test', s + 1)
     assert_series_equal(chunkstore_lib.read('test'), s + 1)
 
 
 def test_overwrite_series_monthly(chunkstore_lib):
     s = pd.Series([1, 2], index=pd.Index(data=[dt(2016, 1, 1), dt(2016, 2, 1)], name='date'), name='vals')
 
-    chunkstore_lib.write('test', s, 'M')
-    chunkstore_lib.write('test', s + 1, 'M')
+    chunkstore_lib.write('test', s, chunk_size='M')
+    chunkstore_lib.write('test', s + 1, chunk_size='M')
     assert_series_equal(chunkstore_lib.read('test'), s + 1)
 
 
@@ -894,14 +894,14 @@ def test_dtype_mismatch(chunkstore_lib):
     s = pd.Series([1], index=pd.date_range('2016-01-01', '2016-01-01', name='date'), name='vals')
 
     # Write with an int
-    chunkstore_lib.write('test', s, 'D')
+    chunkstore_lib.write('test', s, chunk_size='D')
     assert(str(chunkstore_lib.read('test').dtype) == 'int64')
 
     # Update with a float
     chunkstore_lib.update('test', s * 1.0)
     assert(str(chunkstore_lib.read('test').dtype) == 'float64')
 
-    chunkstore_lib.write('test', s * 1.0, 'D')
+    chunkstore_lib.write('test', s * 1.0, chunk_size='D')
     assert(str(chunkstore_lib.read('test').dtype) == 'float64')
 
 
@@ -924,7 +924,7 @@ def test_read_column_subset(chunkstore_lib):
                                                 names=['date', 'id'])
                    )
 
-    chunkstore_lib.write('test', df, 'D')
+    chunkstore_lib.write('test', df, chunk_size='D')
     r = chunkstore_lib.read('test', columns=['prev_close', 'volume'])
     assert_frame_equal(r, df[['prev_close', 'volume']])
 
@@ -948,7 +948,7 @@ def test_rename(chunkstore_lib):
                                                 names=['date', 'id'])
                    )
 
-    chunkstore_lib.write('test', df, 'D')
+    chunkstore_lib.write('test', df, chunk_size='D')
     assert_frame_equal(chunkstore_lib.read('test'), df)
     chunkstore_lib.rename('test', 'new_name')
     assert_frame_equal(chunkstore_lib.read('new_name'), df)
