@@ -9,6 +9,7 @@ import pymongo
 from arctic.store._version_store_utils import checksum, pickle_compat_load
 
 _MAGIC_CHUNKED = '__chunked__'
+_MAGIC_CHUNKED_NO_COMPRESS = _MAGIC_CHUNKED + 'no_compress__'
 _CHUNK_SIZE = 15 * 1024 * 1024  # 15MB
 _MAX_BSON_ENCODE = 256 * 1024  # 256K - don't fill up the version document with encoded bson
 
@@ -28,7 +29,7 @@ class PickleStore(object):
     def read(self, mongoose_lib, version, symbol, **kwargs):
         blob = version.get("blob")
         if blob is not None:
-            if blob == _MAGIC_CHUNKED:
+            if blob == _MAGIC_CHUNKED or blob == _MAGIC_CHUNKED_NO_COMPRESS:
                 collection = mongoose_lib.get_top_level_collection()
                 data = b''.join(x['data'] for x in collection.find({'symbol': symbol,
                                                                    'parent': version['_id']},
@@ -36,7 +37,8 @@ class PickleStore(object):
             else:
                 data = blob
             # Backwards compatibility
-            data = lz4.decompress(data)
+            if blob != _MAGIC_CHUNKED_NO_COMPRESS:
+                data = lz4.decompress(data)
             return pickle_compat_load(io.BytesIO(data))
         return version['data']
 
@@ -54,12 +56,16 @@ class PickleStore(object):
         collection = arctic_lib.get_top_level_collection()
         # Try to pickle it. This is best effort
         version['blob'] = _MAGIC_CHUNKED
-        pickled = lz4.compressHC(cPickle.dumps(item, protocol=cPickle.HIGHEST_PROTOCOL))
+        try:
+            pickled = lz4.compressHC(cPickle.dumps(item, protocol=cPickle.HIGHEST_PROTOCOL))
+        except OverflowError:
+            pickled = cPickle.dumps(item, protocol=cPickle.HIGHEST_PROTOCOL)
+            version['blob'] = _MAGIC_CHUNKED_NO_COMPRESS
 
         for i in xrange(int(len(pickled) / _CHUNK_SIZE + 1)):
             segment = {'data': Binary(pickled[i * _CHUNK_SIZE : (i + 1) * _CHUNK_SIZE])}
-            sha = checksum(symbol, segment)
             segment['segment'] = i
+            sha = checksum(symbol, segment)
             collection.update_one({'symbol': symbol, 'sha': sha}, {'$set': segment,
                                                                '$addToSet': {'parent': version['_id']}},
                                        upsert=True)
