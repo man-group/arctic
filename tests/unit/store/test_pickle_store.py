@@ -35,7 +35,7 @@ def test_write_object():
     assert version['blob'] == '__chunked__'
     coll = arctic_lib.get_top_level_collection.return_value
     assert coll.update_one.call_args_list == [call({'sha': checksum('sentinel.symbol',
-                                                                    {'data': Binary(lz4.compressHC(pickle.dumps(sentinel.item, pickle.HIGHEST_PROTOCOL)))}), 'symbol': 'sentinel.symbol'},
+                                                                    {'segment':0, 'data': Binary(lz4.compressHC(pickle.dumps(sentinel.item, pickle.HIGHEST_PROTOCOL)))}), 'symbol': 'sentinel.symbol'},
                                                {'$set': {'segment': 0,
                                                          'data': Binary(lz4.compressHC(pickle.dumps(sentinel.item, pickle.HIGHEST_PROTOCOL)), 0)},
                                                          '$addToSet': {'parent': version['_id']}}, upsert=True)]
