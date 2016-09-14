@@ -3,7 +3,6 @@ import pymongo
 import hashlib
 
 from bson.binary import Binary
-from bson import SON
 from pandas import DataFrame, Series
 
 from ..decorators import mongo_retry

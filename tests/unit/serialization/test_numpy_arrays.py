@@ -80,4 +80,4 @@ def test_string_cols_with_nans():
     f = FrameConverter()
     df = pd.DataFrame(data={'one': ['a', 'b', 'c', np.NaN]})
 
-    assert_frame_equal(f.objify(f.docify(df)), df)
+    assert(df.equals(f.objify(f.docify(df))))

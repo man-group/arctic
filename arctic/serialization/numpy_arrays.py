@@ -19,49 +19,21 @@ METADATA = 'md'
 LENGTHS = 'ln'
 
 
-class NumpyArrayConverter(object):
-    """
-    Converts a Numpy ndarray to and from PyMongo SON representation:
-
-        {
-         type:        '<i8',          # Numpy dtype (str)
-         values:      '\x00\x00bb...' # Compressed bytes
-        }
-    """
-
-    def objify(self, doc):
-        """
-        Decode a Pymongo SON object into an Numpy ndarray
-        """
-        arr_data = decompress(doc[VALUES])
-        arr = np.fromstring(arr_data, doc[TYPE])
-
-        if MASK in doc:
-            mask_data = decompress(doc[MASK])
-            mask = np.fromstring(mask_data, 'bool')
-            arr = ma.masked_array(arr, mask)
-
-        return arr
-
-
-
-
 class FrameConverter(object):
     """
     Converts a Pandas Dataframe to and from PyMongo SON representation:
 
         {
-         columns: [col1, col2, col3],
-         data: {
-          col1: { <numpy array representation>,
-          col2: { <numpy array representation>,
-          col3: { <numpy array representation>,
-         }
+          METADATA: {
+                      COLUMNS: [col1, col2, ...]             list of str
+                      MASKS: {col1: mask, col2: mask, ...}   dict of str: Binary
+                      INDEX: [idx1, idx2, ...]               list of str
+                      TYPE: 'series' or 'dataframe'
+                      LENGTHS: {col1: len, col2: len, ...}   dict of str: int
+                    }
+          DATA: BINARY(....)      Compressed columns concatenated together
         }
     """
-
-    def __init__(self):
-        self.converter = NumpyArrayConverter()
 
     def _convert_types(self, a):
         """
@@ -119,7 +91,7 @@ class FrameConverter(object):
                 columns.append(str(c))
                 arr, mask = self._convert_types(df[c].values)
                 dtypes[str(c)] = arr.dtype.str
-                if mask:
+                if mask is not None:
                     masks[str(c)] = Binary(compress(mask.tostring()))
                 d = Binary(compress(arr.tostring()))
                 lengths[str(c)] = (start, start + len(d) - 1)
@@ -151,8 +123,8 @@ class FrameConverter(object):
             d = decompress(doc[DATA][doc[METADATA][LENGTHS][col][0] : doc[METADATA][LENGTHS][col][1] + 1])
             d = np.fromstring(d, doc[METADATA][DTYPE][col])
 
-            if MASK in doc and col in doc[MASK]:
-                mask_data = decompress(doc[MASK][col])
+            if MASK in doc[METADATA] and col in doc[METADATA][MASK]:
+                mask_data = decompress(doc[METADATA][MASK][col])
                 mask = np.fromstring(mask_data, 'bool')
                 d = ma.masked_array(d, mask)
             data[col] = d
@@ -200,7 +172,7 @@ class FrametoArraySerializer(Serializer):
         else:
             df = self.converter.objify(data, columns)
             dtype = data[METADATA][TYPE]
-            if INDEX in data:
+            if INDEX in data[METADATA]:
                 df = df.set_index(data[METADATA][INDEX])
         if dtype == 'series':
             return df[df.columns[0]]
