@@ -50,7 +50,7 @@ class ChunkStore(object):
         self._collection.create_index([(SYMBOL, pymongo.HASHED)],
                                       background=True)
         self._collection.create_index([(SYMBOL, pymongo.ASCENDING),
-                                      (SHA, pymongo.ASCENDING)],
+                                       (SHA, pymongo.ASCENDING)],
                                       unique=True,
                                       background=True)
         self._collection.create_index([(SYMBOL, pymongo.ASCENDING),
@@ -279,14 +279,15 @@ class ChunkStore(object):
                 chunk[START] = start
                 chunk[END] = end
                 chunk[SYMBOL] = symbol
-                dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end)]
+                dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end), str(chunk[SEGMENT])]
                 chunk[SHA] = self._checksum(dates, chunk[DATA])
                 if chunk[SHA] not in previous_shas:
                     op = True
-                    find = {SYMBOL: symbol, START: start, END: end}
-                    if size_chunked:
-                        find[SEGMENT] = chunk[SEGMENT]
-                    bulk.find(find,).upsert().update_one({'$set': chunk})
+                    find = {SYMBOL: symbol,
+                            START: start,
+                            END: end,
+                            SEGMENT: chunk[SEGMENT]}
+                    bulk.find(find).upsert().update_one({'$set': chunk})
                 else:
                     # already exists, dont need to update in mongo
                     previous_shas.remove(chunk[SHA])
@@ -319,6 +320,7 @@ class ChunkStore(object):
         bulk = self._collection.initialize_unordered_bulk_op()
         op = False
         chunker = CHUNKER_MAP[sym[CHUNKER]]
+
         for start, end, _, record in chunker.to_chunks(item, chunk_size=sym[CHUNK_SIZE]):
             # read out matching chunks
             df = self.read(symbol, chunk_range=chunker.to_range(start, end), filter_data=False)
@@ -331,32 +333,29 @@ class ChunkStore(object):
 
                 sym[APPEND_COUNT] += len(record)
                 sym[LEN] += len(record) - len(df)
-                new_chunk = False
             else:
-                new_chunk = True
                 sym[CHUNK_COUNT] += 1
                 sym[LEN] += len(record)
 
             data = SER_MAP[sym[SERIALIZER]].serialize(record)
             op = True
 
-            chunk = {DATA: Binary(data[DATA])}
-            chunk[METADATA] = data[METADATA]
-            chunk[START] = start
-            chunk[END] = end
-            chunk[SYMBOL] = symbol
-            chunk[SEGMENT] = -1
-            dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end)]
-            sha = self._checksum(dates, data[DATA])
-            chunk[SHA] = sha
-            if new_chunk:
-                # new chunk
-                bulk.find({SYMBOL: symbol, SHA: sha}
+            size_chunked = len(data[DATA]) > MAX_CHUNK_SIZE
+            for i in xrange(int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)):
+                chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE : (i + 1) * MAX_CHUNK_SIZE])}
+                chunk[METADATA] = data[METADATA]
+                if size_chunked:
+                    chunk[SEGMENT] = i
+                else:
+                    chunk[SEGMENT] = -1
+                chunk[START] = start
+                chunk[END] = end
+                chunk[SYMBOL] = symbol
+                dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end), str(chunk[SEGMENT])]
+                sha = self._checksum(dates, data[DATA])
+                chunk[SHA] = sha
+                bulk.find({SYMBOL: symbol, START: start, END: end, SEGMENT: chunk[SEGMENT]}
                           ).upsert().update_one({'$set': chunk})
-            else:
-                bulk.find({SYMBOL: symbol, START: start, END: end}
-                          ).update_one({'$set': chunk})
-
         if op:
             bulk.execute()
 

@@ -1017,3 +1017,15 @@ def test_size_chunking(chunkstore_lib):
     chunkstore_lib.write('test_df', df)
     read_df = chunkstore_lib.read('test_df')
     assert_frame_equal(df, read_df)
+
+
+def test_size_chunk_append(chunkstore_lib):
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=5500000),
+                         'date': [dt(2016, 1, 1)] * 5500000})
+    dg = DataFrame(data={'data': np.random.randint(0, 100, size=5500000),
+                         'date': [dt(2016, 1, 1)] * 5500000})
+    chunkstore_lib.write('test_df', df)
+    chunkstore_lib.append('test_df', dg)
+    read_df = chunkstore_lib.read('test_df')
+
+    assert_frame_equal(pd.concat([df, dg], ignore_index=True), read_df)
