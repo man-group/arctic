@@ -4,6 +4,7 @@ import hashlib
 
 from bson.binary import Binary
 from pandas import DataFrame, Series
+from six.moves import xrange
 
 from ..decorators import mongo_retry
 from .._util import indent
