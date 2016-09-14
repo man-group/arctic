@@ -279,7 +279,7 @@ class ChunkStore(object):
                 chunk[START] = start
                 chunk[END] = end
                 chunk[SYMBOL] = symbol
-                dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end), str(chunk[SEGMENT])]
+                dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end), str(chunk[SEGMENT]).encode('ascii')]
                 chunk[SHA] = self._checksum(dates, chunk[DATA])
                 if chunk[SHA] not in previous_shas:
                     op = True
@@ -351,7 +351,7 @@ class ChunkStore(object):
                 chunk[START] = start
                 chunk[END] = end
                 chunk[SYMBOL] = symbol
-                dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end), str(chunk[SEGMENT])]
+                dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end), str(chunk[SEGMENT]).encode('ascii')]
                 sha = self._checksum(dates, data[DATA])
                 chunk[SHA] = sha
                 bulk.find({SYMBOL: symbol, START: start, END: end, SEGMENT: chunk[SEGMENT]}
