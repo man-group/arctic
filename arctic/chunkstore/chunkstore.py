@@ -3,11 +3,12 @@ import pymongo
 import hashlib
 
 from bson.binary import Binary
+from bson import SON
 from pandas import DataFrame, Series
 
 from ..decorators import mongo_retry
 from .._util import indent
-from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, VALUES, TYPE, METADATA
+from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, TYPE, METADATA, COLUMNS
 from .date_chunker import DateChunker, START, END
 from .passthrough_chunker import PassthroughChunker
 
@@ -21,10 +22,13 @@ SYMBOL = 'sy'
 SHA = 'sh'
 CHUNK_SIZE = 'cs'
 CHUNK_COUNT = 'cc'
+SEGMENT = 'sg'
 APPEND_COUNT = 'ac'
 LEN = 'l'
 SERIALIZER = 'se'
 CHUNKER = 'ch'
+
+MAX_CHUNK_SIZE = 15 * 1024 * 1024
 
 SER_MAP = {FrametoArraySerializer.TYPE: FrametoArraySerializer()}
 
@@ -51,7 +55,8 @@ class ChunkStore(object):
                                       background=True)
         self._collection.create_index([(SYMBOL, pymongo.ASCENDING),
                                        (START, pymongo.ASCENDING),
-                                       (END, pymongo.ASCENDING)],
+                                       (END, pymongo.ASCENDING),
+                                       (SEGMENT, pymongo.ASCENDING)],
                                       unique=True, background=True)
 
     @mongo_retry
@@ -79,15 +84,14 @@ class ChunkStore(object):
     def __repr__(self):
         return str(self)
 
-    def _checksum(self, fields, doc, iterator):
+    def _checksum(self, fields, data):
         """
         Checksum the passed in dictionary
         """
         sha = hashlib.sha1()
         for field in fields:
             sha.update(field)
-        for data in iterator(doc):
-            sha.update(data)
+        sha.update(data)
         return Binary(sha.digest())
 
     def delete(self, symbol, chunk_range=None):
@@ -198,8 +202,20 @@ class ChunkStore(object):
             spec.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
 
         segments = []
-        for x in self._collection.find(spec, sort=[(START, pymongo.ASCENDING)],):
-            segments.append(x[DATA])
+        parts = []
+        for x in self._collection.find(spec, sort=[(START, pymongo.ASCENDING), (SEGMENT, pymongo.ASCENDING)],):
+            if x[SEGMENT] > -1:
+                parts.append(x[DATA])
+            else:
+                if parts:
+                    x[DATA] = b''.join(parts)
+                    parts = []
+                segments.append({DATA: x[DATA], METADATA: x[METADATA]})
+
+        if parts:
+            x[DATA] = b''.join(parts)
+            segments.append({DATA: x[DATA], METADATA: x[METADATA]})
+
 
         data = SER_MAP[sym[SERIALIZER]].deserialize(segments, **kwargs)
 
@@ -249,24 +265,31 @@ class ChunkStore(object):
         for start, end, chunk_size, record in chunker.to_chunks(item, **kwargs):
             chunk_count += 1
             data = self.serializer.serialize(record)
-            doc[METADATA] = data[METADATA]
+            doc[METADATA] = {'columns': data[METADATA][COLUMNS] if COLUMNS in data[METADATA] else ''}
             doc[CHUNK_SIZE] = chunk_size
 
-            chunk = {DATA: data}
-            chunk[START] = start
-            chunk[END] = end
-            chunk[SYMBOL] = symbol
-            dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end)]
-            chunk[SHA] = self._checksum(dates, chunk, self.serializer.doc_iterator)
-
-            if chunk[SHA] not in previous_shas:
-                op = True
-                bulk.find({SYMBOL: symbol, START: start, END: end},
-                          ).upsert().update_one({'$set': chunk})
-            else:
-                # already exists, dont need to update in mongo
-                previous_shas.remove(chunk[SHA])
-
+            size_chunked = len(data[DATA]) > MAX_CHUNK_SIZE
+            for i in xrange(int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)):
+                chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE : (i + 1) * MAX_CHUNK_SIZE])}
+                chunk[METADATA] = data[METADATA]
+                if size_chunked:
+                    chunk[SEGMENT] = i
+                else:
+                    chunk[SEGMENT] = -1
+                chunk[START] = start
+                chunk[END] = end
+                chunk[SYMBOL] = symbol
+                dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end)]
+                chunk[SHA] = self._checksum(dates, chunk[DATA])
+                if chunk[SHA] not in previous_shas:
+                    op = True
+                    find = {SYMBOL: symbol, START: start, END: end}
+                    if size_chunked:
+                        find[SEGMENT] = chunk[SEGMENT]
+                    bulk.find(find,).upsert().update_one({'$set': chunk})
+                else:
+                    # already exists, dont need to update in mongo
+                    previous_shas.remove(chunk[SHA])
         if op:
             bulk.execute()
 
@@ -299,7 +322,6 @@ class ChunkStore(object):
         for start, end, _, record in chunker.to_chunks(item, chunk_size=sym[CHUNK_SIZE]):
             # read out matching chunks
             df = self.read(symbol, chunk_range=chunker.to_range(start, end), filter_data=False)
-
             # assuming they exist, update them and store the original chunk
             # range for later use
             if len(df) > 0:
@@ -318,11 +340,14 @@ class ChunkStore(object):
             data = SER_MAP[sym[SERIALIZER]].serialize(record)
             op = True
 
-            chunk = {DATA: data}
+            chunk = {DATA: Binary(data[DATA])}
+            chunk[METADATA] = data[METADATA]
             chunk[START] = start
             chunk[END] = end
+            chunk[SYMBOL] = symbol
+            chunk[SEGMENT] = -1
             dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end)]
-            sha = self._checksum(dates, chunk, SER_MAP[sym[SERIALIZER]].doc_iterator)
+            sha = self._checksum(dates, data[DATA])
             chunk[SHA] = sha
             if new_chunk:
                 # new chunk

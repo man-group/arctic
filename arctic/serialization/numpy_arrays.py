@@ -11,12 +11,12 @@ from ._serializer import Serializer
 
 DATA = 'd'
 MASK = 'm'
-VALUES = 'v'
 TYPE = 't'
-NAME = 'n'
+DTYPE = 'dt'
 COLUMNS = 'c'
 INDEX = 'i'
 METADATA = 'md'
+LENGTHS = 'ln'
 
 
 class NumpyArrayConverter(object):
@@ -28,25 +28,6 @@ class NumpyArrayConverter(object):
          values:      '\x00\x00bb...' # Compressed bytes
         }
     """
-
-    def docify(self, arr, meta=None):
-        """
-        Convert a Numpy ndarray to SON.
-
-        Parameters
-        ----------
-        arr:  ndarray
-            The numpy array to encode
-        meta: dict
-            Optional additional key value pairs to include in the SON
-        """
-        arr, mask = self._convert_types(arr)
-        son = SON(meta,
-                  t=arr.dtype.str,
-                  v=Binary(compress(arr.tostring())))
-        if mask is not None:
-            son[MASK] = Binary(compress(mask.tostring()))
-        return son
 
     def objify(self, doc):
         """
@@ -61,6 +42,26 @@ class NumpyArrayConverter(object):
             arr = ma.masked_array(arr, mask)
 
         return arr
+
+
+
+
+class FrameConverter(object):
+    """
+    Converts a Pandas Dataframe to and from PyMongo SON representation:
+
+        {
+         columns: [col1, col2, col3],
+         data: {
+          col1: { <numpy array representation>,
+          col2: { <numpy array representation>,
+          col3: { <numpy array representation>,
+         }
+        }
+    """
+
+    def __init__(self):
+        self.converter = NumpyArrayConverter()
 
     def _convert_types(self, a):
         """
@@ -95,24 +96,6 @@ class NumpyArrayConverter(object):
         else:
             raise ValueError('Cannot store arrays with {} dtype'.format(type_))
 
-
-class FrameConverter(object):
-    """
-    Converts a Pandas Dataframe to and from PyMongo SON representation:
-
-        {
-         columns: [col1, col2, col3],
-         data: {
-          col1: { <numpy array representation>,
-          col2: { <numpy array representation>,
-          col3: { <numpy array representation>,
-         }
-        }
-    """
-
-    def __init__(self):
-        self.converter = NumpyArrayConverter()
-
     def docify(self, df):
         """
         Convert a Pandas DataFrame to SON.
@@ -122,24 +105,58 @@ class FrameConverter(object):
         df:  DataFrame
             The Pandas DataFrame to encode
         """
-        doc = SON({DATA: {}}, c=[str(c) for c in df.columns])
+        doc = SON({DATA: {}, METADATA: {}})
+
+        dtypes = {}
+        masks = {}
+        lengths = {}
+        columns = []
+        data = Binary(b'')
+        start = 0
+
         for c in df:
-            meta = {NAME: str(c)}
             try:
-                doc[DATA][str(c)] = self.converter.docify(df[c].values, meta)
+                columns.append(str(c))
+                arr, mask = self._convert_types(df[c].values)
+                dtypes[str(c)] = arr.dtype.str
+                if mask:
+                    masks[str(c)] = Binary(compress(mask.tostring()))
+                d = Binary(compress(arr.tostring()))
+                lengths[str(c)] = (start, start + len(d) - 1)
+                start += len(d)
+                data += d
             except Exception as e:
                 typ = pd.lib.infer_dtype(df[c])
                 msg = "Column '{}' type is {}".format(str(c), typ)
                 logging.info(msg)
                 raise e
+
+        doc[METADATA] = {COLUMNS: columns,
+                         MASK: masks,
+                         LENGTHS: lengths,
+                         DTYPE: dtypes
+                         }
+        doc[DATA] = data
+
         return doc
 
     def objify(self, doc, columns=None):
         """
         Decode a Pymongo SON object into an Pandas DataFrame
         """
-        cols = columns or doc[COLUMNS]
-        data = {c: self.converter.objify(doc[DATA][c]) for c in cols}
+        cols = columns or doc[METADATA][COLUMNS]
+        data = {}
+
+        for col in cols:
+            d = decompress(doc[DATA][doc[METADATA][LENGTHS][col][0] : doc[METADATA][LENGTHS][col][1] + 1])
+            d = np.fromstring(d, doc[METADATA][DTYPE][col])
+
+            if MASK in doc and col in doc[MASK]:
+                mask_data = decompress(doc[MASK][col])
+                mask = np.fromstring(mask_data, 'bool')
+                d = ma.masked_array(d, mask)
+            data[col] = d
+
         return pd.DataFrame(data, columns=cols)[cols]
 
 
@@ -160,13 +177,11 @@ class FrametoArraySerializer(Serializer):
             index = df.index.names
             df = df.reset_index()
             ret = self.converter.docify(df)
-            ret[INDEX] = index
-            ret[TYPE] = dtype
-            ret[METADATA] = {'columns': ret[COLUMNS]}
+            ret[METADATA][INDEX] = index
+            ret[METADATA][TYPE] = dtype
             return ret
         ret = self.converter.docify(df)
-        ret[TYPE] = dtype
-        ret[METADATA] = {'columns': ret[COLUMNS]}
+        ret[METADATA][TYPE] = dtype
         return ret
 
     def deserialize(self, data, columns=None):
@@ -174,19 +189,19 @@ class FrametoArraySerializer(Serializer):
             return pd.DataFrame()
 
         if isinstance(data, list):
-            if columns and INDEX in data[0]:
-                columns.extend(data[0][INDEX])
+            if columns and INDEX in data[0][METADATA]:
+                columns.extend(data[0][METADATA][INDEX])
                 df = pd.concat([self.converter.objify(d, columns) for d in data])
             else:
                 df = pd.concat([self.converter.objify(d, columns) for d in data], ignore_index=True)
-            dtype = data[0][TYPE]
-            if INDEX in data[0]:
-                df = df.set_index(data[0][INDEX])
+            dtype = data[0][METADATA][TYPE]
+            if INDEX in data[0][METADATA]:
+                df = df.set_index(data[0][METADATA][INDEX])
         else:
             df = self.converter.objify(data, columns)
-            dtype = data[TYPE]
+            dtype = data[METADATA][TYPE]
             if INDEX in data:
-                df = df.set_index(data[INDEX])
+                df = df.set_index(data[METADATA][INDEX])
         if dtype == 'series':
             return df[df.columns[0]]
         return df
@@ -195,7 +210,3 @@ class FrametoArraySerializer(Serializer):
         if a.index.names != [None]:
             return pd.concat([a, b]).sort_index()
         return pd.concat([a, b])
-
-    def doc_iterator(self, doc):
-        for k in doc[DATA][COLUMNS]:
-            yield doc[DATA][DATA][k][VALUES]

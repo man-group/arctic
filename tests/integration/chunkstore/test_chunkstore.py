@@ -1010,5 +1010,10 @@ def test_pass_thru_chunker_update_range(chunkstore_lib):
     assert_frame_equal(read_df, df2)
 
 
+def test_size_chunking(chunkstore_lib):
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=5500000),
+                         'date': [dt(2016, 1, 1)] * 5500000})
 
-
+    chunkstore_lib.write('test_df', df)
+    read_df = chunkstore_lib.read('test_df')
+    assert_frame_equal(df, read_df)
