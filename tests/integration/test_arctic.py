@@ -144,3 +144,16 @@ def test_default_mongo_retry_timout():
     with pytest.raises(LibraryNotFoundException):
         Arctic('unresolved-host', serverSelectionTimeoutMS=0)['some.lib']
     assert time.time() - now < 1.
+
+
+def test_lib_rename(arctic):
+    arctic.initialize_library('test')
+    l = arctic['test']
+    l.write('test_data', 'abc')
+    arctic.rename_library('test', 'new_name')
+    l = arctic['new_name']
+    assert(l.read('test_data').data == 'abc')
+    with pytest.raises(LibraryNotFoundException) as e:
+        l = arctic['test']
+    assert('Library test' in str(e))
+    assert('test' not in arctic.list_libraries())
