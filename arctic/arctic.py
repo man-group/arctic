@@ -302,6 +302,28 @@ class Arctic(object):
         l = ArcticLibraryBinding(self, library)
         l.check_quota()
 
+    def rename_library(self, from_lib, to_lib):
+        """
+        Renames a library
+
+        Parameters
+        ----------
+        from_lib: str
+            The name of the library to be renamed
+        to_lib: str
+            The new name of the library
+        """
+        l = ArcticLibraryBinding(self, from_lib)
+        colname = l.get_top_level_collection().name
+        logger.info('Dropping collection: %s' % colname)
+        l._db[colname].rename(to_lib)
+        for coll in l._db.collection_names():
+            if coll.startswith(colname + '.'):
+                l._db[coll].rename(coll.replace(from_lib, to_lib))
+        if from_lib in self._library_cache:
+            del self._library_cache[from_lib]
+            del self._library_cache[l.get_name()]
+
 
 class ArcticLibraryBinding(object):
     """
@@ -457,3 +479,6 @@ class ArcticLibraryBinding(object):
     def set_library_metadata(self, field, value):
         self._library_coll[self.arctic.METADATA_COLL].update_one({'_id': self.arctic.METADATA_DOC_ID},
                                                                  {'$set': {field: value}}, upsert=True)
+
+    def rename(self, to_lib):
+        self._library_coll.rename(to_lib)
