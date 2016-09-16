@@ -58,6 +58,10 @@ class ChunkStore(object):
                                        (END, pymongo.ASCENDING),
                                        (SEGMENT, pymongo.ASCENDING)],
                                       unique=True, background=True)
+        self._collection.create_index([(SYMBOL, pymongo.ASCENDING),
+                                       (START, pymongo.ASCENDING),
+                                       (SEGMENT, pymongo.ASCENDING)],
+                                      unique=True, background=True)
 
     @mongo_retry
     def __init__(self, arctic_lib):

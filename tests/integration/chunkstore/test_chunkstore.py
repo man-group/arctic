@@ -1029,3 +1029,20 @@ def test_size_chunk_append(chunkstore_lib):
     read_df = chunkstore_lib.read('test_df')
 
     assert_frame_equal(pd.concat([df, dg], ignore_index=True), read_df)
+
+
+def test_delete_range_segment(chunkstore_lib):
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=20000000),
+                         'date': [dt(2016, 1, 1)] * 20000000})
+    dg = DataFrame(data={'data': np.random.randint(0, 100, size=100),
+                         'date': [dt(2016, 1, 2)] * 100})
+    chunkstore_lib.write('test_df', pd.concat([df, dg], ignore_index=True), chunk_size='M')
+    chunkstore_lib.delete('test_df')
+    assert('test_df' not in chunkstore_lib.list_symbols())
+
+    chunkstore_lib.write('test_df', pd.concat([df, dg], ignore_index=True), chunk_size='M')
+    chunkstore_lib.delete('test_df', chunk_range=pd.date_range(dt(2016, 1, 1), dt(2016, 1, 1)))
+    read_df = chunkstore_lib.read('test_df')
+    assert(read_df.equals(dg))
+    assert(chunkstore_lib._collection.count({'sy': 'test_df'}) == 1)
+
