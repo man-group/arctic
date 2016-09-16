@@ -32,7 +32,7 @@ def test_write_object():
     PickleStore.write(self, arctic_lib, version, 'sentinel.symbol', sentinel.item, sentinel.previous_version)
     assert 'data' not in version
 
-    assert version['blob'] == '__chunked__'
+    assert version['blob'] == '__chunked__V2'
     coll = arctic_lib.get_top_level_collection.return_value
     assert coll.update_one.call_args_list == [call({'sha': checksum('sentinel.symbol',
                                                                     {'segment':0, 'data': Binary(lz4.compressHC(pickle.dumps(sentinel.item, pickle.HIGHEST_PROTOCOL)))}), 'symbol': 'sentinel.symbol'},

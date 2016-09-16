@@ -3,13 +3,13 @@ from bson.binary import Binary
 from bson.errors import InvalidDocument
 from six.moves import cPickle, xrange
 import io
-import lz4
+from .._compression import compress, decompress
 import pymongo
 
 from arctic.store._version_store_utils import checksum, pickle_compat_load
 
 _MAGIC_CHUNKED = '__chunked__'
-_MAGIC_CHUNKED_NO_COMPRESS = _MAGIC_CHUNKED + 'no_compress__'
+_MAGIC_CHUNKEDV2 = '__chunked__V2'
 _CHUNK_SIZE = 15 * 1024 * 1024  # 15MB
 _MAX_BSON_ENCODE = 256 * 1024  # 256K - don't fill up the version document with encoded bson
 
@@ -29,16 +29,19 @@ class PickleStore(object):
     def read(self, mongoose_lib, version, symbol, **kwargs):
         blob = version.get("blob")
         if blob is not None:
-            if blob == _MAGIC_CHUNKED or blob == _MAGIC_CHUNKED_NO_COMPRESS:
+            if blob == _MAGIC_CHUNKEDV2:
+                collection = mongoose_lib.get_top_level_collection()
+                data = b''.join(decompress(x['data']) for x in collection.find({'symbol': symbol,
+                                                                                'parent': version['_id']},
+                                                                               sort=[('segment', pymongo.ASCENDING)]))
+            elif blob == _MAGIC_CHUNKED:
                 collection = mongoose_lib.get_top_level_collection()
                 data = b''.join(x['data'] for x in collection.find({'symbol': symbol,
-                                                                   'parent': version['_id']},
+                                                                    'parent': version['_id']},
                                                                    sort=[('segment', pymongo.ASCENDING)]))
+                data = decompress(data)
             else:
-                data = blob
-            # Backwards compatibility
-            if blob != _MAGIC_CHUNKED_NO_COMPRESS:
-                data = lz4.decompress(data)
+                data = decompress(blob)
             return pickle_compat_load(io.BytesIO(data))
         return version['data']
 
@@ -55,17 +58,14 @@ class PickleStore(object):
         # Pickle, chunk and store the data
         collection = arctic_lib.get_top_level_collection()
         # Try to pickle it. This is best effort
-        version['blob'] = _MAGIC_CHUNKED
-        try:
-            pickled = lz4.compressHC(cPickle.dumps(item, protocol=cPickle.HIGHEST_PROTOCOL))
-        except OverflowError:
-            pickled = cPickle.dumps(item, protocol=cPickle.HIGHEST_PROTOCOL)
-            version['blob'] = _MAGIC_CHUNKED_NO_COMPRESS
+        version['blob'] = _MAGIC_CHUNKEDV2
+        pickled = cPickle.dumps(item, protocol=cPickle.HIGHEST_PROTOCOL)
 
         for i in xrange(int(len(pickled) / _CHUNK_SIZE + 1)):
-            segment = {'data': Binary(pickled[i * _CHUNK_SIZE : (i + 1) * _CHUNK_SIZE])}
+            data = compress(pickled[i * _CHUNK_SIZE: (i + 1) * _CHUNK_SIZE])
+            segment = {'data': Binary(data)}
             segment['segment'] = i
             sha = checksum(symbol, segment)
-            collection.update_one({'symbol': symbol, 'sha': sha}, {'$set': segment,
-                                                               '$addToSet': {'parent': version['_id']}},
-                                       upsert=True)
+            collection.update_one({'symbol': symbol, 'sha': sha},
+                                  {'$set': segment, '$addToSet': {'parent': version['_id']}},
+                                  upsert=True)

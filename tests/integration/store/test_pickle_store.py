@@ -13,7 +13,7 @@ def test_save_read_bson(library):
     assert blob == saved_blob
 
 '''
-Run test at your own discretion. Takes roughly 250-350 seconds
+Run test at your own discretion. Takes > 60 secs
 def test_save_read_MASSIVE(library):
     import pandas as pd
     df = pd.DataFrame(data={'data': [1] * 150000000})
