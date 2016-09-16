@@ -1,8 +1,5 @@
 import pandas as pd
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+from six.moves import cPickle
 import lz4
 import pytest
 import sys
@@ -12,6 +9,7 @@ from bson.objectid import ObjectId
 from distutils.version import LooseVersion
 from mock import create_autospec, sentinel, Mock, call
 
+from arctic._compression import compress, decompress
 from arctic.store._pickle_store import PickleStore
 from arctic.store._version_store_utils import checksum
 
@@ -34,11 +32,10 @@ def test_write_object():
 
     assert version['blob'] == '__chunked__V2'
     coll = arctic_lib.get_top_level_collection.return_value
-    assert coll.update_one.call_args_list == [call({'sha': checksum('sentinel.symbol',
-                                                                    {'segment':0, 'data': Binary(lz4.compressHC(pickle.dumps(sentinel.item, pickle.HIGHEST_PROTOCOL)))}), 'symbol': 'sentinel.symbol'},
-                                               {'$set': {'segment': 0,
-                                                         'data': Binary(lz4.compressHC(pickle.dumps(sentinel.item, pickle.HIGHEST_PROTOCOL)), 0)},
-                                                         '$addToSet': {'parent': version['_id']}}, upsert=True)]
+    assert coll.update_one.call_args_list == [call({'sha': checksum('sentinel.symbol', {'segment':0, 'data': Binary(compress(cPickle.dumps(sentinel.item, cPickle.HIGHEST_PROTOCOL)))}),
+                                                    'symbol': 'sentinel.symbol'},
+                                                   {'$set': {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, cPickle.HIGHEST_PROTOCOL)), 0)},
+                                                    '$addToSet': {'parent': version['_id']}}, upsert=True)]
 
 
 def test_read():
@@ -49,7 +46,7 @@ def test_read():
 
 def test_read_object_backwards_compat():
     self = create_autospec(PickleStore)
-    version = {'blob': Binary(lz4.compressHC(pickle.dumps(object)))}
+    version = {'blob': Binary(lz4.compressHC(cPickle.dumps(object)))}
     assert PickleStore.read(self, sentinel.arctic_lib, version, sentinel.symbol) == object
 
 
@@ -59,7 +56,7 @@ def test_read_object_2():
                'blob': '__chunked__'}
     coll = Mock()
     arctic_lib = Mock()
-    coll.find.return_value = [{'data': Binary(lz4.compressHC(pickle.dumps(object))),
+    coll.find.return_value = [{'data': Binary(lz4.compressHC(cPickle.dumps(object))),
                                'symbol': 'sentinel.symbol'}
                               ]
     arctic_lib.get_top_level_collection.return_value = coll
@@ -79,10 +76,10 @@ def test_read_backward_compatibility():
     if PANDAS_VERSION >= LooseVersion("0.16.1"):
         if sys.version_info[0] >= 3:
             with pytest.raises(UnicodeDecodeError), open(fname) as fh:
-                pickle.load(fh)
+                cPickle.load(fh)
         else:    
             with pytest.raises(TypeError), open(fname) as fh:
-                pickle.load(fh)
+                cPickle.load(fh)
 
     # Verify that PickleStore() uses a backwards compatible unpickler.
     store = PickleStore()
@@ -101,7 +98,7 @@ def test_unpickle_highest_protocol():
     container has been pickled with HIGHEST_PROTOCOL.
     """
     version = {
-        'blob': lz4.compressHC(pickle.dumps(pd.Series(), protocol=pickle.HIGHEST_PROTOCOL)),
+        'blob': lz4.compressHC(cPickle.dumps(pd.Series(), protocol=cPickle.HIGHEST_PROTOCOL)),
     }
 
     store = PickleStore()
@@ -111,3 +108,16 @@ def test_unpickle_highest_protocol():
     assert (ps == expected).all()
 
 
+def test_pickle_chunk_V1_read():
+    data = {'foo': b'abcdefghijklmnopqrstuvwxyz'}
+    version = {'_id': sentinel._id,
+               'blob': '__chunked__'}
+    coll = Mock()
+    arctic_lib = Mock()
+    coll.find.return_value = [{'data': Binary(lz4.compressHC(cPickle.dumps(data, protocol=cPickle.HIGHEST_PROTOCOL))),
+                               'symbol': 'sentinel.symbol'}
+                              ]
+    arctic_lib.get_top_level_collection.return_value = coll
+
+    ps = PickleStore()
+    assert(data == ps.read(arctic_lib, version, sentinel.symbol))
