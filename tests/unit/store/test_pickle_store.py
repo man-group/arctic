@@ -114,8 +114,15 @@ def test_pickle_chunk_V1_read():
                'blob': '__chunked__'}
     coll = Mock()
     arctic_lib = Mock()
-    coll.find.return_value = [{'data': Binary(lz4.compressHC(cPickle.dumps(data, protocol=cPickle.HIGHEST_PROTOCOL))),
-                               'symbol': 'sentinel.symbol'}
+    datap = lz4.compressHC(cPickle.dumps(data, protocol=cPickle.HIGHEST_PROTOCOL))
+    data_1 = datap[0:5]
+    data_2 = datap[5:]
+    coll.find.return_value = [{'data': Binary(data_1),
+                               'symbol': 'sentinel.symbol',
+                               'segment': 0},
+                              {'data': Binary(data_2),
+                               'symbol': 'sentinel.symbol',
+                               'segment': 1},
                               ]
     arctic_lib.get_top_level_collection.return_value = coll
 
