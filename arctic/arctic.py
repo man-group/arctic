@@ -479,6 +479,3 @@ class ArcticLibraryBinding(object):
     def set_library_metadata(self, field, value):
         self._library_coll[self.arctic.METADATA_COLL].update_one({'_id': self.arctic.METADATA_DOC_ID},
                                                                  {'$set': {field: value}}, upsert=True)
-
-    def rename(self, to_lib):
-        self._library_coll.rename(to_lib)
