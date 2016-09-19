@@ -2,7 +2,6 @@ import bson
 from datetime import datetime as dt, timedelta
 from mock import patch
 import numpy as np
-import re
 
 from arctic.arctic import Arctic
 
@@ -13,13 +12,25 @@ def test_save_read_bson(library):
     saved_blob = library.read('BLOB').data
     assert blob == saved_blob
 
+'''
+Run test at your own discretion. Takes > 60 secs
+def test_save_read_MASSIVE(library):
+    import pandas as pd
+    df = pd.DataFrame(data={'data': [1] * 150000000})
+    data = (df, df)
+    library.write('BLOB', data)
+    saved_blob = library.read('BLOB').data
+    assert(saved_blob[0].equals(df))
+    assert(saved_blob[1].equals(df))
+'''
+
 
 def test_save_read_big_encodable(library):
     blob = {'foo': 'a' * 1024 * 1024 * 20}
     library.write('BLOB', blob)
     saved_blob = library.read('BLOB').data
     assert blob == saved_blob
-    
+
 
 def test_save_read_bson_object(library):
     blob = {'foo': dt(2015, 1, 1), 'object': Arctic}
