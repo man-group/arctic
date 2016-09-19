@@ -3,7 +3,7 @@ from bson.binary import Binary
 from bson.errors import InvalidDocument
 from six.moves import cPickle, xrange
 import io
-from .._compression import compress, decompress
+from .._compression import compress, decompress, compress_array
 import pymongo
 
 from arctic.store._version_store_utils import checksum, pickle_compat_load
@@ -61,10 +61,12 @@ class PickleStore(object):
         version['blob'] = _MAGIC_CHUNKEDV2
         pickled = cPickle.dumps(item, protocol=cPickle.HIGHEST_PROTOCOL)
 
-        for i in xrange(int(len(pickled) / _CHUNK_SIZE + 1)):
-            data = compress(pickled[i * _CHUNK_SIZE: (i + 1) * _CHUNK_SIZE])
-            segment = {'data': Binary(data)}
-            segment['segment'] = i
+        data = compress_array([pickled[i * _CHUNK_SIZE: (i + 1) * _CHUNK_SIZE] for i in xrange(int(len(pickled) / _CHUNK_SIZE + 1))])
+
+        for seg, d in enumerate(data):
+            segment = {'data': Binary(d)}
+            segment['segment'] = seg
+            seg += 1
             sha = checksum(symbol, segment)
             collection.update_one({'symbol': symbol, 'sha': sha},
                                   {'$set': segment, '$addToSet': {'parent': version['_id']}},
