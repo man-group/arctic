@@ -12,6 +12,7 @@ from mock import create_autospec, sentinel, Mock, call
 from arctic._compression import compress, decompress
 from arctic.store._pickle_store import PickleStore
 from arctic.store._version_store_utils import checksum
+from arctic.exceptions import UnsupportedPickleStoreVersion
 
 PANDAS_VERSION = LooseVersion(pd.__version__)
 
@@ -128,3 +129,29 @@ def test_pickle_chunk_V1_read():
 
     ps = PickleStore()
     assert(data == ps.read(arctic_lib, version, sentinel.symbol))
+
+
+def test_pickle_store_future_version():
+    data = {'foo': b'abcdefghijklmnopqrstuvwxyz'}
+    version = {'_id': sentinel._id,
+               'blob': '__chunked__VERSION_ONE_MILLION'}
+    coll = Mock()
+    arctic_lib = Mock()
+    datap = lz4.compressHC(cPickle.dumps(data, protocol=cPickle.HIGHEST_PROTOCOL))
+    data_1 = datap[0:5]
+    data_2 = datap[5:]
+    coll.find.return_value = [{'data': Binary(data_1),
+                               'symbol': 'sentinel.symbol',
+                               'segment': 0},
+                              {'data': Binary(data_2),
+                               'symbol': 'sentinel.symbol',
+                               'segment': 1},
+                              ]
+    arctic_lib.get_top_level_collection.return_value = coll
+
+    ps = PickleStore()
+    with pytest.raises(UnsupportedPickleStoreVersion) as e:
+        ps.read(arctic_lib, version, sentinel.symbol)
+    assert('unsupported version of pickle store' in str(e))
+
+
