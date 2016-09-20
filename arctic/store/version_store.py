@@ -482,12 +482,12 @@ class VersionStore(object):
 
         assert previous_version is not None
 
-        next_ver = self._version_nums.find_one({'symbol': symbol, 'version': previous_version['version']})
-
-        if next_ver is None:
-            raise ArcticException('''version_nums is out of sync with previous version document. 
+        # If the version numbers aren't in line, then we've lost some data.
+        next_ver = self._version_nums.find_one({'symbol': symbol})['version']
+        if next_ver != previous_version['version']:
+            logger.error('''version_nums is out of sync with previous version document. 
             This probably means that either a version document write has previously failed, or the previous version has been deleted.
-            Append not possible - please call write() to get versions back in sync''')
+            There will be a gap in the data.''')
 
         # if the symbol has previously been deleted then overwrite
         previous_metadata = previous_version.get('metadata', None)
@@ -507,12 +507,11 @@ class VersionStore(object):
         else:
             raise Exception("Append not implemented for handler %s" % handler)
 
-        next_ver = self._version_nums.find_one_and_update({'symbol': symbol, 'version': previous_version['version']},
+        # Get the next version number  - check there hasn't been a concurrent write
+        next_ver = self._version_nums.find_one_and_update({'symbol': symbol, 'version': next_ver},
                                                       {'$inc': {'version': 1}},
                                                       upsert=False, new=True)
-
         if next_ver is None:
-            #Latest version has changed during this operation
             raise OptimisticLockException()
 
         version['version'] = next_ver['version']
