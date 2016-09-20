@@ -1,17 +1,23 @@
 import bson
+import logging
 from bson.binary import Binary
 from bson.errors import InvalidDocument
 from six.moves import cPickle, xrange
 import io
-from .._compression import compress, decompress, compress_array
+from .._compression import decompress, compress_array
 import pymongo
 
-from arctic.store._version_store_utils import checksum, pickle_compat_load
+from ._version_store_utils import checksum, pickle_compat_load
+from ..exceptions import UnsupportedPickleStoreVersion
 
+
+# new versions of chunked pickled objects MUST begin with __chunked__
 _MAGIC_CHUNKED = '__chunked__'
 _MAGIC_CHUNKEDV2 = '__chunked__V2'
 _CHUNK_SIZE = 15 * 1024 * 1024  # 15MB
 _MAX_BSON_ENCODE = 256 * 1024  # 256K - don't fill up the version document with encoded bson
+
+logger = logging.getLogger(__name__)
 
 
 class PickleStore(object):
@@ -41,7 +47,13 @@ class PickleStore(object):
                                                                    sort=[('segment', pymongo.ASCENDING)]))
                 data = decompress(data)
             else:
-                data = decompress(blob)
+                if blob[:len(_MAGIC_CHUNKED)] == _MAGIC_CHUNKED:
+                    logger.error("Data was written by unsupported version of pickle store for symbol %s. Upgrade Arctic and try again" % symbol)
+                    raise UnsupportedPickleStoreVersion("Data was written by unsupported version of pickle store")
+                try:
+                    data = decompress(blob)
+                except:
+                    logger.error("Failed to read symbol %s" % symbol)
             return pickle_compat_load(io.BytesIO(data))
         return version['data']
 

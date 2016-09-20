@@ -40,3 +40,7 @@ class UnorderedDataException(ArcticException):
 
 class OverlappingDataException(ArcticException):
     pass
+
+
+class UnsupportedPickleStoreVersion(ArcticException):
+    pass
