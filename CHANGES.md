@@ -8,6 +8,7 @@
   * Feature: #204 Add support for library renaming
   * Feature: #209 Upsert capability in ChunkStore's update method
   * Feature: #207 Support DatetimeIndexes in DateRange chunker
+  * Bugfix:  #232 Don't raise during VersionStore #append(...) if the previous append failed
 
 ### 1.28 (2016-08-16)
 
