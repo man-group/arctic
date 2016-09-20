@@ -483,8 +483,8 @@ class VersionStore(object):
         assert previous_version is not None
 
         # If the version numbers aren't in line, then we've lost some data.
-        next_ver = self._version_nums.find_one({'symbol': symbol, 'version': previous_version['version']})
-        if next_ver is None:
+        next_ver = self._version_nums.find_one({'symbol': symbol})['version']
+        if next_ver != previous_version['version']:
             logger.error('''version_nums is out of sync with previous version document. 
             This probably means that either a version document write has previously failed, or the previous version has been deleted.
             There will be a gap in the data.''')
@@ -508,7 +508,7 @@ class VersionStore(object):
             raise Exception("Append not implemented for handler %s" % handler)
 
         # Get the next version number  - check there hasn't been a concurrent write
-        next_ver = self._version_nums.find_one_and_update({'symbol': symbol, 'version': previous_version['version']},
+        next_ver = self._version_nums.find_one_and_update({'symbol': symbol, 'version': next_ver},
                                                       {'$inc': {'version': 1}},
                                                       upsert=False, new=True)
         if next_ver is None:
