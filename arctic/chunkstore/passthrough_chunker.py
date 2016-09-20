@@ -46,7 +46,7 @@ class PassthroughChunker(Chunker):
         -------
         string
         """
-        return {'$and': [{START: b'NA'}, {END: b'NA'}]}
+        return {}
 
     def filter(self, data, range_obj):
         """

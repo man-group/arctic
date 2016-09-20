@@ -5,7 +5,7 @@ import pandas as pd
 
 from bson import Binary, SON
 
-from .._compression import compress, decompress
+from .._compression import compress, decompress, compress_array
 from ._serializer import Serializer
 
 
@@ -86,6 +86,7 @@ class FrameConverter(object):
         data = Binary(b'')
         start = 0
 
+        arrays = []
         for c in df:
             try:
                 columns.append(str(c))
@@ -93,15 +94,19 @@ class FrameConverter(object):
                 dtypes[str(c)] = arr.dtype.str
                 if mask is not None:
                     masks[str(c)] = Binary(compress(mask.tostring()))
-                d = Binary(compress(arr.tostring()))
-                lengths[str(c)] = (start, start + len(d) - 1)
-                start += len(d)
-                data += d
+                arrays.append(arr.tostring())
             except Exception as e:
                 typ = pd.lib.infer_dtype(df[c])
                 msg = "Column '{}' type is {}".format(str(c), typ)
                 logging.info(msg)
                 raise e
+
+        arrays = compress_array(arrays)
+        for index, c in enumerate(df):
+            d = Binary(arrays[index])
+            lengths[str(c)] = (start, start + len(d) - 1)
+            start += len(d)
+            data += d
 
         doc[METADATA] = {COLUMNS: columns,
                          MASK: masks,

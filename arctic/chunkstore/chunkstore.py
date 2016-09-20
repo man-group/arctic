@@ -344,8 +344,16 @@ class ChunkStore(object):
             data = SER_MAP[sym[SERIALIZER]].serialize(record)
             op = True
 
-            size_chunked = len(data[DATA]) > MAX_CHUNK_SIZE
-            for i in xrange(int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)):
+            # remove old segments for this chunk in case we now have less
+            # segments than we did before
+            chunk_count = int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)
+            seg_count = self._collection.count({SYMBOL: symbol, START: start, END: end})
+            if  seg_count > chunk_count:
+                # if chunk count is 1, the segment id will be -1, not 1
+                self._collection.delete_many({SYMBOL: symbol, START: start, END: end, SEGMENT: {'$gt': seg_count if chunk_count > 1 else -1}})
+
+            size_chunked = chunk_count > 1
+            for i in xrange(chunk_count):
                 chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE : (i + 1) * MAX_CHUNK_SIZE])}
                 chunk[METADATA] = data[METADATA]
                 if size_chunked:
