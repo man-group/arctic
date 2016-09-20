@@ -1,7 +1,8 @@
 ## Changelog
 
-### 1.29
+### 1.29 (2016-09-20)
 
+  * Bugfix: #228 Mongo fail-over during append can leave a Version in an inconsistent state
   * Feature: #193 Support for different Chunkers and Serializers by symbol in ChunkStore
   * Feature: #220 Raise exception if older version of arctic attempts to read unsupported pickled data
   * Feature: #219 and #220 Support for pickling large data (>2GB)
