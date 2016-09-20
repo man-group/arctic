@@ -5,14 +5,16 @@ from ..date import DateRange
 
 
 class DateChunker(Chunker):
-    def to_chunks(self, df, chunk_size):
+    TYPE = 'date'
+
+    def to_chunks(self, df, chunk_size='D', **kwargs):
         """
         chunks the dataframe/series by dates
 
         returns
         -------
         generator that produces tuples: (start date, end date,
-                  dataframe/series)
+                  chunk_size, dataframe/series)
         """
         if chunk_size not in ('D', 'M', 'Y'):
             raise Exception("Chunk size must be one of D, M, Y")
@@ -26,7 +28,7 @@ class DateChunker(Chunker):
 
         for period, g in df.groupby(dates.to_period(chunk_size)):
             start, end = period.start_time.to_pydatetime(warn=False), period.end_time.to_pydatetime(warn=False)
-            yield start, end, g
+            yield start, end, chunk_size, g
 
     def to_range(self, start, end):
         """
@@ -49,7 +51,7 @@ class DateChunker(Chunker):
         -------
         string
         """
-        return chunk_id.strftime("%Y-%m-%d")
+        return chunk_id.strftime("%Y-%m-%d").encode('ascii')
 
     def to_mongo(self, range_obj):
         """
@@ -59,7 +61,7 @@ class DateChunker(Chunker):
 
         returns
         -------
-        string
+        dict
         """
         if isinstance(range_obj, pd.DatetimeIndex):
             range_obj = DateRange(range_obj.min(), range_obj.max())

@@ -4,15 +4,16 @@ END = 'e'
 
 class Chunker(object):
 
-    def to_chunks(self, data, *args, **kwargs):
+    def to_chunks(self, data, **kwargs):
         """
-        Chunks data
+        Chunks data. keyword args passed in from write API
 
         returns
         -------
-        generator that produces 3-tuples
+        generator that produces 4-tuples
             (chunk start index/marker/key,
             chunk end index/marker/key,
+            chunk_size,
             chunked data)
         """
         raise NotImplementedError
@@ -36,7 +37,7 @@ class Chunker(object):
 
         returns
         -------
-        string
+        dict
         """
         raise NotImplementedError
 
