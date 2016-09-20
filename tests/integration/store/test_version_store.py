@@ -16,6 +16,7 @@ from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException
 
 from ...util import read_str_as_pandas
 from arctic.date._mktz import mktz
+import pymongo
 
 
 ts1 = read_str_as_pandas("""         times | near
@@ -273,6 +274,23 @@ def test_append_empty_ts(library):
     library.append(symbol, ts1, upsert=True)
     library.append(symbol, pd.DataFrame(), upsert=True)
     assert len(library.read(symbol).data) == len(ts1)
+
+
+def test_append_corrupted_new_version(library):
+    to_append = read_str_as_pandas("""  times | near
+                      2012-11-09 17:06:11.040 |  30.0""")
+    to_append_2 = read_str_as_pandas("""  times | near
+                      2012-11-10 17:06:11.040 |  40.0""")
+    library.write(symbol, ts1)
+    # Append version
+    library.append(symbol, to_append)
+    # The append went wrong, and the new version document (written last), not available
+    library._versions.find_one_and_delete({'symbol': symbol}, sort=[('version', pymongo.DESCENDING)])
+
+    # Should still be able to append new data
+    library.append(symbol, to_append_2, upsert=True)
+    assert library.read(symbol).data['near'][-1] == 40.
+    assert len(library.read(symbol).data) == len(ts1) + 1
 
 
 def test_query_version_as_of_int(library):
