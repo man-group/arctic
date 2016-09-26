@@ -429,9 +429,86 @@ class ChunkStore(object):
             self.__update(sym, item, combine_method=self.__replace, chunk_range=chunk_range)
 
     def get_info(self, symbol):
+        """
+        Returns information about the symbol, in a dictionary
+
+        Parameters
+        ----------
+        symbol: str
+            the symbol for the given item in the DB
+        """
         sym = self._get_symbol_info(symbol)
+        if not sym:
+            raise NoDataFoundException("Symbol does not exist.")
         ret = {}
         ret['chunk_count'] = sym[CHUNK_COUNT]
         ret['len'] = sym[LEN]
         ret['metadata'] = sym[METADATA]
         return ret
+
+    def get_chunk_ranges(self, symbol, chunk_range=None, reverse=False):
+        """
+        Returns a generator of (Start, End) tuples for each chunk in the symbol
+
+        Parameters
+        ----------
+        symbol: str
+            the symbol for the given item in the DB
+        chunk_range: None, or a range object
+            allows you to subset the chunks by range
+        reverse: boolean
+            return the chunk ranges in reverse order
+        """
+        sym = self._get_symbol_info(symbol)
+        if not sym:
+            raise NoDataFoundException("Symbol does not exist.")
+        c = CHUNKER_MAP[sym[CHUNKER]]
+
+        spec = {SYMBOL: symbol}
+        if chunk_range:
+            spec.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
+
+        for x in self._collection.find(spec, projection=[START, END], sort=[(START, pymongo.ASCENDING if not reverse else pymongo.DESCENDING)]):
+            yield (c.chunk_to_str(x[START]), c.chunk_to_str(x[END]))
+
+    def iterator(self, symbol, chunk_range=None):
+        """
+        Returns a generator that accesses each chunk in ascending order
+
+        Parameters
+        ----------
+        symbol: str
+            the symbol for the given item in the DB
+        chunk_range: None, or a range object
+            allows you to subset the chunks by range
+        """
+        sym = self._get_symbol_info(symbol)
+        if not sym:
+            raise NoDataFoundException("Symbol does not exist.")
+
+        c = CHUNKER_MAP[sym[CHUNKER]]
+        chunks = list(self.get_chunk_ranges(symbol, chunk_range=chunk_range))
+
+        for chunk in chunks:
+            yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]))
+
+    def reverse_iterator(self, symbol, chunk_range=None):
+        """
+        Returns a generator that accesses each chunk in descending order
+
+        Parameters
+        ----------
+        symbol: str
+            the symbol for the given item in the DB
+        chunk_range: None, or a range object
+            allows you to subset the chunks by range
+        """
+        sym = self._get_symbol_info(symbol)
+        if not sym:
+            raise NoDataFoundException("Symbol does not exist.")
+
+        c = CHUNKER_MAP[sym[CHUNKER]]
+        chunks = list(self.get_chunk_ranges(symbol, chunk_range=chunk_range, reverse=True))
+
+        for chunk in chunks:
+            yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]))
