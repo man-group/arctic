@@ -471,7 +471,7 @@ class ChunkStore(object):
         for x in self._collection.find(spec, projection=[START, END], sort=[(START, pymongo.ASCENDING if not reverse else pymongo.DESCENDING)]):
             yield (c.chunk_to_str(x[START]), c.chunk_to_str(x[END]))
 
-    def start_iterator(self, symbol, chunk_range=None):
+    def iterator(self, symbol, chunk_range=None):
         """
         Returns a generator that accesses each chunk in ascending order
 
@@ -487,12 +487,12 @@ class ChunkStore(object):
             raise NoDataFoundException("Symbol does not exist.")
 
         c = CHUNKER_MAP[sym[CHUNKER]]
-        chunks = self.get_chunk_ranges(symbol, chunk_range=chunk_range)
+        chunks = list(self.get_chunk_ranges(symbol, chunk_range=chunk_range))
 
         for chunk in chunks:
             yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]))
 
-    def end_iterator(self, symbol, chunk_range=None):
+    def reverse_iterator(self, symbol, chunk_range=None):
         """
         Returns a generator that accesses each chunk in descending order
 
@@ -508,7 +508,7 @@ class ChunkStore(object):
             raise NoDataFoundException("Symbol does not exist.")
 
         c = CHUNKER_MAP[sym[CHUNKER]]
-        chunks = self.get_chunk_ranges(symbol, chunk_range=chunk_range, reverse=True)
+        chunks = list(self.get_chunk_ranges(symbol, chunk_range=chunk_range, reverse=True))
 
         for chunk in chunks:
             yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]))
