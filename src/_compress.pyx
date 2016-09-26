@@ -101,7 +101,6 @@ def decompress(pString):
     # sizes
     cdef uint32_t compressed_size = len(pString)
     cdef uint32_t original_size
-    cdef int ret;
 
     # buffers
     cdef char *cString    # *char pStr
@@ -115,8 +114,7 @@ def decompress(pString):
     # malloc 
     result = <char*>malloc(original_size)
     # decompress
-    ret = LZ4_decompress_safe(cString + hdr_size, result, compressed_size - hdr_size, original_size)
-    if ret < 0:
+    if LZ4_decompress_safe(cString + hdr_size, result, compressed_size - hdr_size, original_size) < 0:
         free(result)
         raise Exception("Error decompressing")
     # cast back into python string
