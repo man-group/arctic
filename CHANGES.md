@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.30
+
+  * Bugfix: #236 Cython not handling errors from LZ4 function calls
+  
 ### 1.29 (2016-09-20)
 
   * Bugfix: #228 Mongo fail-over during append can leave a Version in an inconsistent state
