@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.30
+### 1.30 (2016-09-26)
 
   * Feature: #235 method to return chunk ranges on a symbol in ChunkStore
   * Feature: #234 Iterator access to ChunkStore
