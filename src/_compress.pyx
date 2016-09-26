@@ -211,7 +211,7 @@ def decompressarr(pStrList):
     cdef uint32_t compressed_size
     cdef char *result
     cdef Py_ssize_t i
-    cdef ret = 0
+    cdef int ret = 0
 
     # output parameters
     cdef char **cResult = <char **>malloc(n * sizeof(char *))
