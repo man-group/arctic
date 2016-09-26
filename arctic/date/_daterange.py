@@ -1,4 +1,5 @@
 import datetime
+from six import string_types
 
 from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN, GeneralSlice
 from ._parse import parse
@@ -53,7 +54,7 @@ class DateRange(GeneralSlice):
             return isinstance(x, (datetime.datetime, datetime.date))
 
         def _compute_bound(value, desc):
-            if isinstance(value, (int, str)):
+            if isinstance(value, (int, string_types)):
                 return parse(str(value))
             elif _is_dt_type(value):
                 return value
