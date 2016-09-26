@@ -2,6 +2,8 @@
 
 ### 1.30
 
+  * Feature: #235 method to return chunk ranges on a symbol in ChunkStore
+  * Feature: #234 Iterator access to ChunkStore
   * Bugfix: #236 Cython not handling errors from LZ4 function calls
   
 ### 1.29 (2016-09-20)
