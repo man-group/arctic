@@ -233,8 +233,7 @@ def decompressarr(pStrList):
             result = <char*>malloc(original_size)
             # decompress
             if LZ4_decompress_safe(cString + hdr_size, result, compressed_size - hdr_size, original_size) < 0:
-                with gil:
-                    ret = -1
+                ret = -1
             # assign to result
             cResult[i] = result
             lengths[i] = original_size
