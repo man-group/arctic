@@ -36,3 +36,17 @@ def test_performance_sequential(n, length):
 def random_string(N):
     _str = ''.join(random.choice(list(string.printable) + ['hello', 'world', 'hellworld', 'Hello', 'w0rld']) for _ in six.moves.xrange(int(N)))
     return _str.encode('ascii')
+
+
+def test_exceptions():
+    data = c.compress(b'1010101010100000000000000000000000000000000000000000000000000000000011111111111111111111111111111')
+    data = data[0:16]
+    with pytest.raises(Exception) as e:
+        c.decompress(data)
+    assert("decompressing" in str(e))
+
+    data = c.compress(b'1010101010100000000000000000000000000000000000000000000000000000000011111111111111111111111111111')
+    data = [data[0:16] for x in (1, 2, 3)]
+    with pytest.raises(Exception) as e:
+        c.decompressarr(data)
+    assert("decompressing" in str(e))
