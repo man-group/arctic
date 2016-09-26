@@ -1074,9 +1074,9 @@ def test_get_chunk_range(chunkstore_lib):
     chunkstore_lib.write('test_df', df, chunk_size='D')
     x = list(chunkstore_lib.get_chunk_ranges('test_df'))
     assert(len(x) == 3)
-    assert(('2016-01-01', '2016-01-01') in x)
-    assert(('2016-01-02', '2016-01-02') in x)
-    assert(('2016-01-03', '2016-01-03') in x)
+    assert((b'2016-01-01', b'2016-01-01') in x)
+    assert((b'2016-01-02', b'2016-01-02') in x)
+    assert((b'2016-01-03', b'2016-01-03') in x)
 
 
 def test_iterators(chunkstore_lib):
