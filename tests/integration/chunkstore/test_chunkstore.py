@@ -1088,14 +1088,14 @@ def test_iterators(chunkstore_lib):
                    )
     chunkstore_lib.write('test_df', df, chunk_size='D')
 
-    for x, d in enumerate(chunkstore_lib.start_iterator('test_df')):
+    for x, d in enumerate(chunkstore_lib.iterator('test_df')):
         assert(len(d) == 1)
         assert(d.data[0] == x + 1)
 
-    for x, d in enumerate(chunkstore_lib.end_iterator('test_df')):
+    for x, d in enumerate(chunkstore_lib.reverse_iterator('test_df')):
         assert(len(d) == 1)
         assert(d.data[0] == len(df) - x)
 
     dr = DateRange(dt(2016, 1, 2), dt(2016, 1, 2))
-    assert(len(list(chunkstore_lib.start_iterator('test_df', chunk_range=dr))) == 1)
-    assert(len(list(chunkstore_lib.end_iterator('test_df', chunk_range=dr))) == 1)
+    assert(len(list(chunkstore_lib.iterator('test_df', chunk_range=dr))) == 1)
+    assert(len(list(chunkstore_lib.reverse_iterator('test_df', chunk_range=dr))) == 1)
