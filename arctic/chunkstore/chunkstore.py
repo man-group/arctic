@@ -448,7 +448,7 @@ class ChunkStore(object):
 
     def get_chunk_ranges(self, symbol, chunk_range=None, reverse=False):
         """
-        Returns a list of (Start, End) tuples for each chunk in the symbol
+        Returns a generator of (Start, End) tuples for each chunk in the symbol
 
         Parameters
         ----------
@@ -473,7 +473,7 @@ class ChunkStore(object):
 
     def start_iterator(self, symbol, chunk_range=None):
         """
-        Returns a generator that access each chunk in ascending order
+        Returns a generator that accesses each chunk in ascending order
 
         Parameters
         ----------
@@ -494,7 +494,7 @@ class ChunkStore(object):
 
     def end_iterator(self, symbol, chunk_range=None):
         """
-        Returns a generator that access each chunk in descending order
+        Returns a generator that accesses each chunk in descending order
 
         Parameters
         ----------
