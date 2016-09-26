@@ -1063,3 +1063,39 @@ def test_size_chunk_update(chunkstore_lib):
     assert_frame_equal(dh, read_df)
     assert(chunkstore_lib._collection.count({'sy': 'test_df'}) == 1)
 
+
+def test_get_chunk_range(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+    chunkstore_lib.write('test_df', df, chunk_size='D')
+    x = list(chunkstore_lib.get_chunk_ranges('test_df'))
+    assert(len(x) == 3)
+    assert(('2016-01-01', '2016-01-01') in x)
+    assert(('2016-01-02', '2016-01-02') in x)
+    assert(('2016-01-03', '2016-01-03') in x)
+
+
+def test_iterators(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+    chunkstore_lib.write('test_df', df, chunk_size='D')
+
+    for x, d in enumerate(chunkstore_lib.start_iterator('test_df')):
+        assert(len(d) == 1)
+        assert(d.data[0] == x + 1)
+
+    for x, d in enumerate(chunkstore_lib.end_iterator('test_df')):
+        assert(len(d) == 1)
+        assert(d.data[0] == len(df) - x)
+
+    dr = DateRange(dt(2016, 1, 2), dt(2016, 1, 2))
+    assert(len(list(chunkstore_lib.start_iterator('test_df', chunk_range=dr))) == 1)
+    assert(len(list(chunkstore_lib.end_iterator('test_df', chunk_range=dr))) == 1)
