@@ -114,7 +114,9 @@ def decompress(pString):
     # malloc 
     result = <char*>malloc(original_size)
     # decompress
-    LZ4_decompress_safe(cString + hdr_size, result, compressed_size - hdr_size, original_size)
+    if LZ4_decompress_safe(cString + hdr_size, result, compressed_size - hdr_size, original_size) < 0:
+        free(result)
+        raise Exception("Error decompressing")
     # cast back into python string
     pyResult = result[:original_size]
 
@@ -209,6 +211,7 @@ def decompressarr(pStrList):
     cdef uint32_t compressed_size
     cdef char *result
     cdef Py_ssize_t i
+    cdef int ret = 0
 
     # output parameters
     cdef char **cResult = <char **>malloc(n * sizeof(char *))
@@ -229,7 +232,8 @@ def decompressarr(pStrList):
             # malloc 
             result = <char*>malloc(original_size)
             # decompress
-            LZ4_decompress_safe(cString + hdr_size, result, compressed_size - hdr_size, original_size)
+            if LZ4_decompress_safe(cString + hdr_size, result, compressed_size - hdr_size, original_size) < 0:
+                ret = -1
             # assign to result
             cResult[i] = result
             lengths[i] = original_size
@@ -243,5 +247,8 @@ def decompressarr(pStrList):
 
     free(cResult)
     free(cStrList)
+
+    if ret == -1:
+        raise Exception("Error decompressing array")
 
     return result_list
