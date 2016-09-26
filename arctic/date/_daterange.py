@@ -54,7 +54,9 @@ class DateRange(GeneralSlice):
             return isinstance(x, (datetime.datetime, datetime.date))
 
         def _compute_bound(value, desc):
-            if isinstance(value, (int, string_types)):
+            if isinstance(value, bytes):
+                return parse(value.decode('ascii'))
+            elif isinstance(value, (int, string_types)):
                 return parse(str(value))
             elif _is_dt_type(value):
                 return value
