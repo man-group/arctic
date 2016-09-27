@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.31
+
+  * Feature: #239 improve chunkstore's get_info method
+
 ### 1.30 (2016-09-26)
 
   * Feature: #235 method to return chunk ranges on a symbol in ChunkStore
