@@ -444,6 +444,9 @@ class ChunkStore(object):
         ret['chunk_count'] = sym[CHUNK_COUNT]
         ret['len'] = sym[LEN]
         ret['metadata'] = sym[METADATA]
+        ret['chunker'] = sym[CHUNKER]
+        ret['chunk_size'] = sym[CHUNK_SIZE]
+        ret['serializer'] = sym[SERIALIZER]
         return ret
 
     def get_chunk_ranges(self, symbol, chunk_range=None, reverse=False):
