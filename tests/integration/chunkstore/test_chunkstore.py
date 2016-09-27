@@ -637,6 +637,9 @@ def test_get_info(chunkstore_lib):
     info = {'len': 3,
             'chunk_count': 3,
             'metadata': {'columns': [u'date', u'id', u'data']},
+            'chunker': u'date',
+            'chunk_size': 'D',
+            'serializer': u'FrameToArray'
             }
     assert(chunkstore_lib.get_info('test_df') == info)
     
@@ -661,6 +664,9 @@ def test_get_info_after_append(chunkstore_lib):
     info = {'len': 6,
             'chunk_count': 4,
             'metadata': {'columns': [u'date', u'id', u'data']},
+            'chunker': u'date',
+            'chunk_size': u'D',
+            'serializer': u'FrameToArray'
             }
 
     assert(chunkstore_lib.get_info('test_df') == info)
@@ -685,6 +691,9 @@ def test_get_info_after_update(chunkstore_lib):
     info = {'len': 4,
             'chunk_count': 4,
             'metadata': {'columns': [u'date', u'id', u'data']},
+            'chunker': u'date',
+            'chunk_size': u'D',
+            'serializer': u'FrameToArray'
             }
 
     assert(chunkstore_lib.get_info('test_df') == info)
