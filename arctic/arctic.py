@@ -15,7 +15,7 @@ from .chunkstore import chunkstore
 from six import string_types
 
 
-__all__ = ['Arctic', 'VERSION_STORE', 'TICK_STORE', 'register_library_type']
+__all__ = ['Arctic', 'VERSION_STORE', 'TICK_STORE', 'CHUNK_STORE', 'register_library_type']
 
 logger = logging.getLogger(__name__)
 
