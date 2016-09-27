@@ -16,8 +16,8 @@ class DateChunker(Chunker):
         generator that produces tuples: (start date, end date,
                   chunk_size, dataframe/series)
         """
-        if chunk_size not in ('D', 'M', 'Y'):
-            raise Exception("Chunk size must be one of D, M, Y")
+        if chunk_size not in ('D', 'M', 'Y', 'A'):
+            raise Exception("Chunk size must be one of D, M, Y, A")
 
         if 'date' in df.index.names:
             dates = df.index.get_level_values('date')
