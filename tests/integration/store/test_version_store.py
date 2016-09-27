@@ -112,9 +112,10 @@ def test_read_item_read_preference_SECONDARY(library_secondary, library_name):
 def test_query_falls_back_to_primary(library_secondary, library_name):
     allow_secondary = [True]
     def _query(options, *args, **kwargs):
-        # If we're allowing secondary read then raise when reading a chunk.
+        # If we're allowing secondary read and an error occurs when reading a chunk.
         # We should attempt a call to primary only subsequently.
-        if args[0] == 'arctic_{}'.format(library_name) and \
+        # In newer MongoDBs we query <database>.$cmd rather than <database>.<collection>
+        if args[0].startswith('arctic_{}.'.format(library_name.split('.')[0])) and \
                     bool(options & _QUERY_OPTIONS['slave_okay']) == True:
             allow_secondary[0] = False
             raise OperationFailure("some_error")
