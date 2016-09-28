@@ -1,7 +1,7 @@
 ## Changelog
 
 ### 1.31
-
+  * Bugfix: more cython changes to handle LZ4 errors properly
   * Feature: #239 improve chunkstore's get_info method
 
 ### 1.30 (2016-09-26)
