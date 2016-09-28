@@ -157,3 +157,8 @@ def test_lib_rename(arctic):
         l = arctic['test']
     assert('Library test' in str(e))
     assert('test' not in arctic.list_libraries())
+
+
+def test_lib_type(arctic):
+    arctic.initialize_library('test')
+    assert(arctic.get_library_type('test') == VERSION_STORE)
