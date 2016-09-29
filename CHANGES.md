@@ -1,6 +1,8 @@
 ## Changelog
 
 ### 1.31
+  
+  * Feature: #243 add get_library_type method
   * Bugfix: more cython changes to handle LZ4 errors properly
   * Feature: #239 improve chunkstore's get_info method
 
