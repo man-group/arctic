@@ -11,7 +11,7 @@ from pymongo.errors import OperationFailure
 
 from ..decorators import mongo_retry
 from .._util import indent
-from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, METADATA, COLUMNS
+from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, TYPE, METADATA, COLUMNS
 from .date_chunker import DateChunker, START, END
 from .passthrough_chunker import PassthroughChunker
 
