@@ -324,6 +324,18 @@ class Arctic(object):
             del self._library_cache[from_lib]
             del self._library_cache[l.get_name()]
 
+    def get_library_type(self, lib):
+        """
+        Returns the type of the library
+
+        Parameters
+        ----------
+        lib: str
+            the library
+        """
+        l = ArcticLibraryBinding(self, lib)
+        return l.get_library_type()
+
 
 class ArcticLibraryBinding(object):
     """

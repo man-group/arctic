@@ -1,10 +1,9 @@
-from datetime import datetime as dt, timedelta as dtd
+from datetime import datetime as dt
 from mock import patch
-from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 import pytest
 import time
-import numpy as np
+
 
 from arctic.arctic import Arctic, VERSION_STORE
 from arctic.exceptions import LibraryNotFoundException, QuotaExceededException
@@ -157,3 +156,8 @@ def test_lib_rename(arctic):
         l = arctic['test']
     assert('Library test' in str(e))
     assert('test' not in arctic.list_libraries())
+
+
+def test_lib_type(arctic):
+    arctic.initialize_library('test')
+    assert(arctic.get_library_type('test') == VERSION_STORE)
