@@ -233,6 +233,8 @@ class ChunkStore(object):
             segments = list(segments)
             mdata = self._mdata.find_one({SYMBOL: symbol, START: segments[0][START], END: segments[0][END]})
 
+            segments = list(segments)
+
             # when len(segments) == 1, this is essentially a no-op
             # otherwise, take all segments and reassemble the data to one chunk
             chunk_data = b''.join([doc[DATA] for doc in segments])
