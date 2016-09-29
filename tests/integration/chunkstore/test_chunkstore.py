@@ -1073,6 +1073,22 @@ def test_size_chunk_update(chunkstore_lib):
     assert(chunkstore_lib._collection.count({'sy': 'test_df'}) == 1)
 
 
+def test_size_chunk_multiple_update(chunkstore_lib):
+    df_large = DataFrame(data={'data': np.random.randint(0, 100, size=5500000),
+                               'date': [dt(2015, 1, 1)] * 5500000})
+    df_small = DataFrame(data={'data': np.random.randint(0, 100, size=100),
+                               'date': [dt(2016, 1, 1)] * 100})
+    chunkstore_lib.update('test_df', df_large, upsert=True)
+    chunkstore_lib.update('test_df', df_small, upsert=True)
+
+    read_df = chunkstore_lib.read('test_df')
+
+    expected = pd.concat([df_large, df_small]).reset_index(drop=True)
+
+    assert_frame_equal(expected, read_df)
+    assert(chunkstore_lib._collection.count({'sy': 'test_df'}) == 3)
+
+
 def test_get_chunk_range(chunkstore_lib):
     df = DataFrame(data={'data': [1, 2, 3]},
                    index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
