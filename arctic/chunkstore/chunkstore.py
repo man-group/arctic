@@ -213,11 +213,13 @@ class ChunkStore(object):
         chunks = []
         for _, segments in groupby(segment_cursor, key=lambda x: x[START]):
 
+            segments = list(segments)
+
             # when len(segments) == 1, this is essentially a no-op
             # otherwise, take all segments and reassemble the data to one chunk
             chunk_data = b''.join([doc[DATA] for doc in segments])
 
-            chunks.append({DATA: chunk_data, METADATA: doc[METADATA]})
+            chunks.append({DATA: chunk_data, METADATA: segments[0][METADATA]})
 
         data = SER_MAP[sym[SERIALIZER]].deserialize(chunks, **kwargs)
 
