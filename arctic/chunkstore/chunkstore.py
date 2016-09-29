@@ -5,6 +5,7 @@ import hashlib
 from bson.binary import Binary
 from pandas import DataFrame, Series
 from six.moves import xrange
+from itertools import groupby
 
 from ..decorators import mongo_retry
 from .._util import indent
@@ -205,23 +206,22 @@ class ChunkStore(object):
         if chunk_range is not None:
             spec.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
 
-        segments = []
-        parts = []
-        for x in self._collection.find(spec, sort=[(START, pymongo.ASCENDING), (SEGMENT, pymongo.ASCENDING)],):
-            if x[SEGMENT] > -1:
-                parts.append(x[DATA])
-            else:
-                if parts:
-                    x[DATA] = b''.join(parts)
-                    parts = []
-                segments.append({DATA: x[DATA], METADATA: x[METADATA]})
+        by_start_segment = [(START, pymongo.ASCENDING), 
+                            (SEGMENT, pymongo.ASCENDING)]
+        segment_cursor = self._collection.find(spec, sort=by_start_segment)
 
-        if parts:
-            x[DATA] = b''.join(parts)
-            segments.append({DATA: x[DATA], METADATA: x[METADATA]})
+        chunks = []
+        for _, segments in groupby(segment_cursor, key=lambda x: x[START]):
 
+            segments = list(segments)
 
-        data = SER_MAP[sym[SERIALIZER]].deserialize(segments, **kwargs)
+            # when len(segments) == 1, this is essentially a no-op
+            # otherwise, take all segments and reassemble the data to one chunk
+            chunk_data = b''.join([doc[DATA] for doc in segments])
+
+            chunks.append({DATA: chunk_data, METADATA: segments[0][METADATA]})
+
+        data = SER_MAP[sym[SERIALIZER]].deserialize(chunks, **kwargs)
 
         if not filter_data or chunk_range is None:
             return data
