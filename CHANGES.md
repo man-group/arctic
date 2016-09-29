@@ -1,7 +1,8 @@
 ## Changelog
 
-### 1.31
+### 1.31 (2016-09-29)
   
+  * Bugfix: #247 segmentation read fix in chunkstore
   * Feature: #243 add get_library_type method
   * Bugfix: more cython changes to handle LZ4 errors properly
   * Feature: #239 improve chunkstore's get_info method
