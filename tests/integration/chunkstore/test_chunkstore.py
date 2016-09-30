@@ -216,7 +216,7 @@ def test_closed_open_no_index(chunkstore_lib):
     assert_frame_equal(df, ret)
 
 
-def test_open_closed_no_index(chunkstore_lib):
+def test_open_open_no_index(chunkstore_lib):
     df = DataFrame(data={'date': [1, 2, 3],
                          'date': [dt(2016, 1, 1),
                                   dt(2016, 1, 2),
@@ -225,7 +225,7 @@ def test_open_closed_no_index(chunkstore_lib):
                    )
 
     chunkstore_lib.write('chunkstore_test', df, chunk_size='D')
-    ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(None, dt(2017, 1, 1)))
+    ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(None, None))
     assert_frame_equal(df, ret)
 
 

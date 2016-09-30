@@ -92,7 +92,10 @@ class DateChunker(Chunker):
         if 'date' in data.index.names:
             return data[range_obj.start:range_obj.end]
         elif 'date' in data.columns:
-            return data[(data.date >= range_obj.start) & (data.date <= range_obj.end)]
+            if range_obj.end:
+                return data[(data.date >= range_obj.start) & (data.date <= range_obj.end)]
+            else:
+                return data[(data.date >= range_obj.start)]
         else:
             return data
 
