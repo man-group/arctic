@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.32
+  
+  * Bugfix: #249 open ended range reads on data without index fail
+  
 ### 1.31 (2016-09-29)
   
   * Bugfix: #247 segmentation read fix in chunkstore
