@@ -29,7 +29,7 @@ class DateChunker(Chunker):
         period_obj = dates.to_period(chunk_size)
         period_obj_reduced = period_obj.drop_duplicates()
         count = 0
-        for period, g in df.groupby(period_obj._values):
+        for period, g in df.groupby(period_obj._data):
             start = period_obj_reduced[count].start_time.to_pydatetime(warn=False)
             end = period_obj_reduced[count].end_time.to_pydatetime(warn=False)
             count += 1

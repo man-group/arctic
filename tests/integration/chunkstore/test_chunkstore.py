@@ -220,7 +220,6 @@ def test_monthly_df(chunkstore_lib):
 
     chunkstore_lib.write('chunkstore_test', df, chunk_size='M')
     ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 2)))
-    print(ret)
     assert len(ret) == 2
     assert_frame_equal(df, chunkstore_lib.read('chunkstore_test'))
 
