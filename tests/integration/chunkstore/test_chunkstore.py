@@ -1041,8 +1041,8 @@ def test_size_chunk_append(chunkstore_lib):
 
 
 def test_delete_range_segment(chunkstore_lib):
-    df = DataFrame(data={'data': np.random.randint(0, 100, size=20000000),
-                         'date': [dt(2016, 1, 1)] * 20000000})
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=7000000),
+                         'date': [dt(2016, 1, 1)] * 7000000})
     dg = DataFrame(data={'data': np.random.randint(0, 100, size=100),
                          'date': [dt(2016, 1, 2)] * 100})
     chunkstore_lib.write('test_df', pd.concat([df, dg], ignore_index=True), chunk_size='M')
