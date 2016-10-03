@@ -232,7 +232,7 @@ def test_yearly_df(chunkstore_lib):
                                name='date'),
                    columns=['data'])
 
-    chunkstore_lib.write('chunkstore_test', df, chunk_size='A')
+    chunkstore_lib.write('chunkstore_test', df, chunk_size='Y')
     ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 3, 3)))
     assert_frame_equal(df, ret)
 
