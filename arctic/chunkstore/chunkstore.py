@@ -308,10 +308,14 @@ class ChunkStore(object):
                                               {'$set': doc},
                                               upsert=True)
 
-    def __replace(self, old, new):
-        return new
-
     def __update(self, sym, item, combine_method=None, chunk_range=None):
+        '''
+        helper method used by update and append since they very closely
+        resemble eachother. Really differ only by the combine method.
+        append will combine existing date with new data (within a chunk),
+        whereas update will replace existing data with new data (within a
+        chunk).
+        '''
         if not isinstance(item, (DataFrame, Series)):
             raise Exception("Can only chunk DataFrames and Series")
 
@@ -426,7 +430,7 @@ class ChunkStore(object):
                 raise Exception('Range must be inclusive of data')
             self.__update(sym, item, combine_method=self.serializer.combine, chunk_range=chunk_range)
         else:
-            self.__update(sym, item, combine_method=self.__replace, chunk_range=chunk_range)
+            self.__update(sym, item, combine_method=lambda old, new: new, chunk_range=chunk_range)
 
     def get_info(self, symbol):
         """
@@ -436,6 +440,10 @@ class ChunkStore(object):
         ----------
         symbol: str
             the symbol for the given item in the DB
+
+        Returns
+        -------
+        dictionary
         """
         sym = self._get_symbol_info(symbol)
         if not sym:
@@ -461,6 +469,10 @@ class ChunkStore(object):
             allows you to subset the chunks by range
         reverse: boolean
             return the chunk ranges in reverse order
+
+        Returns
+        -------
+        generator
         """
         sym = self._get_symbol_info(symbol)
         if not sym:
@@ -484,6 +496,10 @@ class ChunkStore(object):
             the symbol for the given item in the DB
         chunk_range: None, or a range object
             allows you to subset the chunks by range
+
+        Returns
+        -------
+        generator
         """
         sym = self._get_symbol_info(symbol)
         if not sym:
@@ -505,6 +521,10 @@ class ChunkStore(object):
             the symbol for the given item in the DB
         chunk_range: None, or a range object
             allows you to subset the chunks by range
+
+        Returns
+        -------
+        generator
         """
         sym = self._get_symbol_info(symbol)
         if not sym:
