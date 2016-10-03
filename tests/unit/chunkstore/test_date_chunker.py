@@ -33,6 +33,31 @@ def test_date_filter():
     assert(c.filter(df, DateRange(dt(2017, 1, 1), dt(2018, 1, 1))).empty)
 
 
+def test_date_filter_no_index():
+    c = DateChunker()
+    df = DataFrame(data={'data': [1, 2, 3],
+                         'date': [dt(2016, 1, 1),
+                                  dt(2016, 1, 2),
+                                  dt(2016, 1, 3)]
+                         }
+                   )
+
+    # OPEN - CLOSED
+    assert_frame_equal(c.filter(df, DateRange(None, dt(2016, 1, 3))), df)
+    # CLOSED - OPEN
+    assert_frame_equal(c.filter(df, DateRange(dt(2016, 1, 1), None)), df)
+    # OPEN - OPEN
+    assert_frame_equal(c.filter(df, DateRange(None, None)), df)
+    # CLOSED - OPEN (far before data range)
+    assert_frame_equal(c.filter(df, DateRange(dt(2000, 1, 1), None)), df)
+    # CLOSED - OPEN (far after range)
+    assert(c.filter(df, DateRange(dt(2020, 1, 2), None)).empty)
+    # OPEN - CLOSED
+    assert_frame_equal(c.filter(df, DateRange(None, dt(2020, 1, 1))), df)
+    # CLOSED - CLOSED (after range)
+    assert(c.filter(df, DateRange(dt(2017, 1, 1), dt(2018, 1, 1))).empty)
+
+
 def test_date_filter_with_pd_date_range():
     c = DateChunker()
     df = DataFrame(data={'data': [1, 2, 3]},
@@ -72,3 +97,17 @@ def test_exclude():
     assert(c.exclude(df, DateRange(dt(2016, 1, 1), dt(2016, 1, 1))).equals(c.exclude(df, pd.date_range(dt(2016, 1, 1), dt(2016, 1, 1)))))
     assert(c.exclude(df2, None).equals(df2))
 
+
+def test_exclude_no_index():
+    c = DateChunker()
+    df = DataFrame(data={'data': [1, 2, 3],
+                         'date': [dt(2016, 1, 1),
+                                  dt(2016, 1, 2),
+                                  dt(2016, 1, 3)]
+                         }
+                   )
+
+    df2 = DataFrame(data={'data': [1, 2, 3]})
+
+    assert(c.exclude(df, DateRange(dt(2016, 1, 1), dt(2016, 1, 1))).equals(c.exclude(df, pd.date_range(dt(2016, 1, 1), dt(2016, 1, 1)))))
+    assert(c.exclude(df2, None).equals(df2))
