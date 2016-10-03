@@ -18,6 +18,9 @@ class DateChunker(Chunker):
         """
         if chunk_size not in ('D', 'M', 'Y', 'A'):
             raise Exception("Chunk size must be one of D, M, Y, A")
+        
+        if chunk_size == 'Y':
+            chunk_size = 'A'
 
         if 'date' in df.index.names:
             dates = df.index.get_level_values('date')
