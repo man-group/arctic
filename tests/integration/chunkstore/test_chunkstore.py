@@ -232,7 +232,7 @@ def test_yearly_df(chunkstore_lib):
                                name='date'),
                    columns=['data'])
 
-    chunkstore_lib.write('chunkstore_test', df, chunk_size='Y')
+    chunkstore_lib.write('chunkstore_test', df, chunk_size='A')
     ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 3, 3)))
     assert_frame_equal(df, ret)
 
@@ -285,7 +285,7 @@ def test_append_yearly(chunkstore_lib):
                                name='date'),
                    columns=['data'])
 
-    chunkstore_lib.write('chunkstore_test', df, chunk_size='Y')
+    chunkstore_lib.write('chunkstore_test', df, chunk_size='A')
     df2 = DataFrame(data=[4, 5, 6],
                     index=Index(data=[dt(2013, 1, 1),
                                       dt(2014, 1, 1),
@@ -537,7 +537,7 @@ def write_random_data(chunkstore_lib, name, month, days, securities, chunk_size=
     month: integer
     days: list of integers
     securities: list of integers
-    chunk_size: one of 'D', 'M', 'Y'
+    chunk_size: one of 'D', 'M', 'A'
     update: force update for each daily write
     append: force append for each daily write
     '''
@@ -571,7 +571,7 @@ def test_multiple_actions(chunkstore_lib):
         read_info = chunkstore_lib.read(name)
         assert_frame_equal(pd.concat([r, df]), read_info)
 
-    for chunk_size in ['D', 'M', 'Y']:
+    for chunk_size in ['D', 'M', 'A']:
         helper(chunkstore_lib, 'test_data_' + chunk_size, chunk_size)
 
 
@@ -588,7 +588,7 @@ def test_multiple_actions_monthly_data(chunkstore_lib):
 
         chunkstore_lib.update(name, append)
 
-        if chunk_size is not "Y":
+        if chunk_size is not 'A':
             assert_frame_equal(chunkstore_lib.read(name), pd.concat([df, append]))
         else:
             # chunksize is the entire DF, so we'll overwrite the whole thing
@@ -607,7 +607,7 @@ def test_multiple_actions_monthly_data(chunkstore_lib):
 
     append = pd.concat(append)
 
-    for chunk_size in ['D', 'M', 'Y']:
+    for chunk_size in ['D', 'M', 'A']:
         helper(chunkstore_lib, chunk_size, 'test_monthly_' + chunk_size, df, append)
 
 
@@ -844,7 +844,7 @@ def test_yearly_series(chunkstore_lib):
                             name='date'),
                 name='data')
 
-    chunkstore_lib.write('chunkstore_test', df, chunk_size='Y')
+    chunkstore_lib.write('chunkstore_test', df, chunk_size='A')
     ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 3, 3)))
     assert_series_equal(df, ret)
 
