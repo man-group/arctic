@@ -2,6 +2,7 @@
 
 ### 1.32
   
+  * Bugfix: #252 pandas 0.19.0 compatibility fixes
   * Bugfix: #249 open ended range reads on data without index fail
   
 ### 1.31 (2016-09-29)
