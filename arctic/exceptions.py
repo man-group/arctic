@@ -26,21 +26,29 @@ class OptimisticLockException(ArcticException):
     pass
 
 
-class ConcurrentModificationException(ArcticException):
-    pass
-
-
 class QuotaExceededException(ArcticException):
-    pass
-
-
-class UnorderedDataException(ArcticException):
-    pass
-
-
-class OverlappingDataException(ArcticException):
     pass
 
 
 class UnsupportedPickleStoreVersion(ArcticException):
     pass
+
+
+class DataIntegrityException(ArcticException):
+    """
+    Base class for data integrity issues.
+    """
+    pass
+
+
+class ConcurrentModificationException(DataIntegrityException):
+    pass
+
+
+class UnorderedDataException(DataIntegrityException):
+    pass
+
+
+class OverlappingDataException(DataIntegrityException):
+    pass
+

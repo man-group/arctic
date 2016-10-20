@@ -7,7 +7,7 @@ import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
 from ..decorators import mongo_retry
-from ..exceptions import UnhandledDtypeException
+from ..exceptions import UnhandledDtypeException, DataIntegrityException
 from ._version_store_utils import checksum
 
 from .._compression import compress_array, decompress
@@ -324,6 +324,14 @@ class NdarrayStore(object):
         unchanged_segment_ids = list(collection.find(spec, projection={'_id':1, 'segment':1},
                                                      sort=[('segment', pymongo.ASCENDING)],))\
                                                      [:-1 * (previous_version['append_count'] + 1)]
+
+        # Found all the chunks which aren't part of an append
+        if len(unchanged_segment_ids) != previous_version['segment_count'] - previous_version['append_count'] - 1:
+            raise DataIntegrityException("Symbol: %s:%s expected %s segments but found %s" %
+                                         (symbol, previous_version['version'],
+                                          previous_version['segment_count'] - previous_version['append_count'] - 1,
+                                          len(unchanged_segment_ids)
+                                          ))
         if unchanged_segment_ids:
             read_index_range[0] = unchanged_segment_ids[-1]['segment'] + 1
 
@@ -343,6 +351,7 @@ class NdarrayStore(object):
             collection.update_many({'symbol': symbol, '_id': {'$in': [x['_id'] for x in unchanged_segment_ids]}},
                                    {'$addToSet': {'parent': version['_id']}})
             version['segment_count'] = version['segment_count'] + len(unchanged_segment_ids)
+            self.check_written(collection, symbol, version)
 
     def check_written(self, collection, symbol, version):
         # Check all the chunks are in place
