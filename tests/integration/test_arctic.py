@@ -17,8 +17,8 @@ def test_connect_to_Arctic_string(mongo_host):
     assert arctic.mongo_host == mongo_host
 
 
-def test_connect_to_Arctic_connection(mongodb, mongo_host):
-    arctic = Arctic(mongodb)
+def test_connect_to_Arctic_connection(mongo_server, mongo_host):
+    arctic = Arctic(mongo_server.api)
     assert arctic.list_libraries() == []
     assert arctic.mongo_host == mongo_host
 
