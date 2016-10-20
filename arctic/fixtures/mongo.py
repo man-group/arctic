@@ -24,7 +24,7 @@ from tempfile import mkdtemp
 
 from pytest_dbfixtures.executors import TCPExecutor
 from pytest_dbfixtures.port import get_port
-from pytest_dbfixtures.utils import get_config, try_import, get_process_fixture
+from pytest_dbfixtures.utils import get_config, try_import
 
 
 def mongo_proc(executable=None, params=None, host=None, port=-1,
@@ -122,7 +122,9 @@ def mongodb(process_fixture_name):
         :rtype: pymongo.connection.Connection
         :returns: connection to mongo database
         """
-        proc_fixture = get_process_fixture(request, process_fixture_name)
+        proc_fixture = request.getfixturevalue(process_fixture_name)
+        if not proc_fixture.running():
+            proc_fixture.start()
 
         pymongo, _ = try_import('pymongo', request)
 
