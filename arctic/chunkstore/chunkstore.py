@@ -6,6 +6,7 @@ from bson.binary import Binary
 from pandas import DataFrame, Series
 from six.moves import xrange
 from itertools import groupby
+from pymongo.errors import OperationFailure
 
 from ..decorators import mongo_retry
 from .._util import indent
@@ -248,6 +249,8 @@ class ChunkStore(object):
         if not isinstance(item, (DataFrame, Series)):
             raise Exception("Can only chunk DataFrames and Series")
 
+        self._arctic_lib.check_quota()
+
         previous_shas = []
         doc = {}
 
@@ -318,6 +321,8 @@ class ChunkStore(object):
         '''
         if not isinstance(item, (DataFrame, Series)):
             raise Exception("Can only chunk DataFrames and Series")
+
+        self._arctic_lib.check_quota()
 
         symbol = sym[SYMBOL]
 
@@ -535,3 +540,32 @@ class ChunkStore(object):
 
         for chunk in chunks:
             yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]))
+            
+    def stats(self):
+        """
+        Return storage statistics about the library
+
+        Returns
+        -------
+        dictionary of storage stats
+        """
+
+        res = {}
+        db = self._collection.database
+        conn = db.connection
+        res['sharding'] = {}
+        try:
+            sharding = conn.config.databases.find_one({'_id': db.name})
+            if sharding:
+                res['sharding'].update(sharding)
+            res['sharding']['collections'] = list(conn.config.collections.find({'_id': {'$regex': '^' + db.name + "\..*"}}))
+        except OperationFailure:
+            # Access denied
+            pass
+        res['dbstats'] = db.command('dbstats')
+        res['chunks'] = db.command('collstats', self._collection.name)
+        res['symbols'] = db.command('collstats', self._symbols.name)
+        res['totals'] = {'count': res['chunks']['count'],
+                         'size': res['chunks']['size'] + res['symbols']['size'],
+                         }
+        return res

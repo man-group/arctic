@@ -1150,3 +1150,25 @@ def test_iterators(chunkstore_lib):
     dr = DateRange(dt(2016, 1, 2), dt(2016, 1, 2))
     assert(len(list(chunkstore_lib.iterator('test_df', chunk_range=dr))) == 1)
     assert(len(list(chunkstore_lib.reverse_iterator('test_df', chunk_range=dr))) == 1)
+
+
+def test_unnamed_colums(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1)],
+                                                names=['date', None])
+                   )
+    with pytest.raises(Exception) as e:
+        chunkstore_lib.write('test_df', df, chunk_size='D')
+    assert('must be named' in str(e))
+
+    df = DataFrame(data={None: [1, 2, 3]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+    with pytest.raises(Exception) as e:
+        chunkstore_lib.write('test_df', df, chunk_size='D')
+    assert('must be named' in str(e))
