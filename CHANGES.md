@@ -2,6 +2,8 @@
 
 ### 1.32
   
+  * Feature: #260 quota support on Chunkstore
+  * Bugfix: #259 prevent write of unnamed columns/indexes
   * Bugfix: #252 pandas 0.19.0 compatibility fixes
   * Bugfix: #249 open ended range reads on data without index fail
   
