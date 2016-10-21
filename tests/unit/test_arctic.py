@@ -196,7 +196,8 @@ def test_check_quota_countdown():
 
 
 def test_check_quota():
-    self = create_autospec(ArcticLibraryBinding)
+    self = create_autospec(ArcticLibraryBinding, database_name='arctic_db',
+                           library='lib')
     self.arctic = create_autospec(Arctic)
     self.get_library_metadata.return_value = 1024 * 1024 * 1024
     self.quota_countdown = 0
@@ -208,12 +209,13 @@ def test_check_quota():
     with patch('arctic.arctic.logger.warning') as warn:
         ArcticLibraryBinding.check_quota(self)
     self.arctic.__getitem__.assert_called_once_with(self.get_name.return_value)
-    warn.assert_called_once_with('Mongo Quota: 0.879 / 1 GB used')
+    warn.assert_called_once_with('Mongo Quota: arctic_db.lib 0.879 / 1 GB used')
     assert self.quota_countdown == 6
 
 
 def test_check_quota_info():
-    self = create_autospec(ArcticLibraryBinding)
+    self = create_autospec(ArcticLibraryBinding, database_name='arctic_db',
+                           library='lib')
     self.arctic = create_autospec(Arctic)
     self.get_library_metadata.return_value = 1024 * 1024 * 1024
     self.quota_countdown = 0
@@ -225,12 +227,13 @@ def test_check_quota_info():
     with patch('arctic.arctic.logger.info') as info:
         ArcticLibraryBinding.check_quota(self)
     self.arctic.__getitem__.assert_called_once_with(self.get_name.return_value)
-    info.assert_called_once_with('Mongo Quota: 0.001 / 1 GB used')
+    info.assert_called_once_with('Mongo Quota: arctic_db.lib 0.001 / 1 GB used')
     assert self.quota_countdown == 51153
 
 
 def test_check_quota_exceeded():
-    self = create_autospec(ArcticLibraryBinding)
+    self = create_autospec(ArcticLibraryBinding, database_name='arctic_db',
+                           library='lib')
     self.arctic = create_autospec(Arctic)
     self.get_library_metadata.return_value = 1024 * 1024 * 1024
     self.quota_countdown = 0
@@ -241,7 +244,7 @@ def test_check_quota_exceeded():
                                                                              }))
     with pytest.raises(QuotaExceededException) as e:
         ArcticLibraryBinding.check_quota(self)
-    assert "Quota Exceeded: 1.000 / 1 GB used" in str(e)
+    assert "Quota Exceeded: arctic_db.lib 1.000 / 1 GB used" in str(e)
 
 
 def test_initialize_library():
