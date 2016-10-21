@@ -454,20 +454,25 @@ class ArcticLibraryBinding(object):
         size = stats['totals']['size']
         count = stats['totals']['count']
         if size >= self.quota:
-            raise QuotaExceededException("Quota Exceeded: %.3f / %.0f GB used" %
-                                         (to_gigabytes(size),
-                                          to_gigabytes(self.quota)))
+            raise QuotaExceededException("Mongo Quota Exceeded: %s %.3f / %.0f GB used" % (
+                                         '.'.join([self.database_name, self.library]),
+                                         to_gigabytes(size),
+                                         to_gigabytes(self.quota)))
 
         # Quota not exceeded, print an informational message and return
         avg_size = size // count if count > 1 else 100 * 1024
         remaining = self.quota - size
         remaining_count = remaining / avg_size
-        if remaining_count < 100:
-            logger.warning("Mongo Quota: %.3f / %.0f GB used" % (to_gigabytes(size),
-                                                              to_gigabytes(self.quota)))
+        if remaining_count < 100 or float(remaining) / self.quota < 0.1:
+            logger.warning("Mongo Quota: %s %.3f / %.0f GB used" % (
+                            '.'.join([self.database_name, self.library]),
+                            to_gigabytes(size),
+                            to_gigabytes(self.quota)))
         else:
-            logger.info("Mongo Quota: %.3f / %.0f GB used" % (to_gigabytes(size),
-                                                              to_gigabytes(self.quota)))
+            logger.info("Mongo Quota: %s %.3f / %.0f GB used" % (
+                            '.'.join([self.database_name, self.library]),
+                            to_gigabytes(size),
+                            to_gigabytes(self.quota)))
 
         # Set-up a timer to prevent us for checking for a few writes.
         # This will check every average half-life
