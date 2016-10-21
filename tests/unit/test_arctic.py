@@ -213,6 +213,23 @@ def test_check_quota():
     assert self.quota_countdown == 6
 
 
+def test_check_quota_90_percent():
+    self = create_autospec(ArcticLibraryBinding, database_name='arctic_db',
+                           library='lib')
+    self.arctic = create_autospec(Arctic)
+    self.get_library_metadata.return_value = 1024 * 1024 * 1024
+    self.quota_countdown = 0
+    self.arctic.__getitem__.return_value = Mock(stats=Mock(return_value={'totals':
+                                                                             {'size': 0.91 * 1024 * 1024 * 1024,
+                                                                              'count': 1000000,
+                                                                              }
+                                                                             }))
+    with patch('arctic.arctic.logger.warning') as warn:
+        ArcticLibraryBinding.check_quota(self)
+    self.arctic.__getitem__.assert_called_once_with(self.get_name.return_value)
+    warn.assert_called_once_with('Mongo Quota: arctic_db.lib 0.910 / 1 GB used')
+
+
 def test_check_quota_info():
     self = create_autospec(ArcticLibraryBinding, database_name='arctic_db',
                            library='lib')
