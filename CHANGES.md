@@ -7,6 +7,8 @@
   * Bugfix: #259 prevent write of unnamed columns/indexes
   * Bugfix: #252 pandas 0.19.0 compatibility fixes
   * Bugfix: #249 open ended range reads on data without index fail
+  * Bugfix: #262 VersionStore.append must check data is written correctly during repack
+  * Bugfix: #263 Quota: Improve the error message when near soft-quota limit
   
 ### 1.31 (2016-09-29)
   

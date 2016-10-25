@@ -407,6 +407,13 @@ class ArcticLibraryBinding(object):
         return self._db.name + '.' + self._library_coll.name
 
     def get_top_level_collection(self):
+        """
+        Return the top-level collection for the Library.  This collection is to be used
+        for storing data.  
+
+        Note we expect (and callers require) this collection to have default read-preference: primary
+        The read path may choose to reduce this if secondary reads are allowed.
+        """
         return self._library_coll
 
     def set_quota(self, quota_bytes):
