@@ -465,7 +465,6 @@ class VersionStore(object):
         upsert : `bool`
             Write 'data' if no previous version exists.
         """
-        self._ensure_index()
         self._arctic_lib.check_quota()
         version = {'_id': bson.ObjectId()}
         version['symbol'] = symbol
@@ -556,7 +555,6 @@ class VersionStore(object):
         VersionedItem named tuple containing the metadata and verison number
         of the written symbol in the store.
         """
-        self._ensure_index()
         self._arctic_lib.check_quota()
         version = {'_id': bson.ObjectId()}
         version['symbol'] = symbol
