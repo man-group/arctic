@@ -6,6 +6,7 @@ from pytest import raises
 
 from arctic.exceptions import DataIntegrityException
 from arctic.store._ndarray_store import NdarrayStore, _promote_struct_dtypes
+from pymongo.results import UpdateResult
 
 
 def test_dtype_parsing():
@@ -78,12 +79,13 @@ def test_concat_and_rewrite_checks_chunk_count():
     previous_version = {'_id': sentinel.id,
                         'base_version_id': sentinel.base_version_id,
                         'version': sentinel.version,
-                        'segment_count' : 5,
-                        'append_count' : 3}
+                        'segment_count' : 3,
+                        'append_count' : 1}
     symbol = sentinel.symbol
     item = sentinel.item
 
-    collection.find.return_value = [sentinel.chunk1, sentinel.chunk2, sentinel.chunk3, sentinel.chunk4]
+    collection.find.return_value = [{'compressed': True},
+                                    {'compressed': False}]
     with pytest.raises(DataIntegrityException) as e:
         NdarrayStore._concat_and_rewrite(self, collection, version, symbol, item, previous_version)
     assert str(e.value) == 'Symbol: sentinel.symbol:sentinel.version expected 1 segments but found 0'
@@ -104,7 +106,35 @@ def test_concat_and_rewrite_checks_written():
     item = []
 
     collection.find.return_value = [{'_id': sentinel.id,
-                                     'segment' : 47},
-                                    sentinel.chunk2, sentinel.chunk3, sentinel.chunk4, sentinel.chunk5]
+                                     'segment' : 47, 'compressed': True},
+                                    {'compressed': True},
+                                    # 3 appended items
+                                    {'compressed': False}, {'compressed': False}, {'compressed': False}]
+    collection.update_many.return_value = create_autospec(UpdateResult, matched_count=1)
     NdarrayStore._concat_and_rewrite(self, collection, version, symbol, item, previous_version)
     assert self.check_written.call_count == 1
+
+
+def test_concat_and_rewrite_checks_updated():
+    self = create_autospec(NdarrayStore)
+    collection = create_autospec(Collection)
+    version = {'_id': sentinel.version_id,
+               'up_to': sentinel.up_to,
+               'segment_count': 1}
+    previous_version = {'_id': sentinel.id,
+                        'base_version_id': sentinel.base_version_id,
+                        'version': sentinel.version,
+                        'segment_count' : 5,
+                        'append_count' : 3}
+    symbol = sentinel.symbol
+    item = []
+
+    collection.find.return_value = [{'_id': sentinel.id,
+                                     'segment' : 47, 'compressed': True},
+                                    {'compressed': True},
+                                    # 3 appended items
+                                    {'compressed': False}, {'compressed': False}, {'compressed': False}]
+    collection.update_many.return_value = create_autospec(UpdateResult, matched_count=0)
+    with pytest.raises(DataIntegrityException) as e:
+        NdarrayStore._concat_and_rewrite(self, collection, version, symbol, item, previous_version)
+    assert str(e.value) == 'Symbol: sentinel.symbol:sentinel.version update_many updated 0 segments instead of 1'
