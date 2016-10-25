@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.32
+### 1.32 (2016-10-25)
   
   * Feature: #260 quota support on Chunkstore
   * Bugfix: #259 prevent write of unnamed columns/indexes
