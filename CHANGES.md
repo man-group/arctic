@@ -2,6 +2,7 @@
 
 ### 1.32 (2016-10-25)
   
+  * Depndcy: #266 Remove pytest-dbfixtures in favor of pytest-server-fixtures
   * Feature: #260 quota support on Chunkstore
   * Bugfix: #259 prevent write of unnamed columns/indexes
   * Bugfix: #252 pandas 0.19.0 compatibility fixes
