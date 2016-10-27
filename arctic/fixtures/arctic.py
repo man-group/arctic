@@ -20,7 +20,7 @@ def mongo_host(mongo_server):
 def arctic(mongo_server):
     logger.info('arctic.fixtures: arctic init()')
     retry_count = 0
-    while retry_count < 10
+    while retry_count < 10:
         try:
             mongo_server.api.drop_database('arctic')
         except:
