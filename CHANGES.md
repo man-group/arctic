@@ -1,9 +1,14 @@
 ## Changelog
 
-### 1.32
+### 1.32 (2016-10-25)
   
+  * Feature: #260 quota support on Chunkstore
+  * Bugfix: #259 prevent write of unnamed columns/indexes
   * Bugfix: #252 pandas 0.19.0 compatibility fixes
   * Bugfix: #249 open ended range reads on data without index fail
+  * Bugfix: #262 VersionStore.append must check data is written correctly during repack
+  * Bugfix: #263 Quota: Improve the error message when near soft-quota limit
+  * Perf:   #265 VersionStore.write / append don't aggressively add indexes on each write
   
 ### 1.31 (2016-09-29)
   

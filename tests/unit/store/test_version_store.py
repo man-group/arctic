@@ -129,20 +129,6 @@ def test_read_metadata_no_asof():
                                                          sort=[('version', pymongo.DESCENDING)])]
 
 
-def test_write_ensure_index():
-    write_handler = Mock(write=Mock(__name__=""))
-    vs = create_autospec(VersionStore, instance=True,
-                     _collection=Mock(),
-                     _version_nums=Mock(find_one_and_update=Mock(return_value={'version':1})),
-                     _versions=Mock(insert_one=lambda x:None),
-                     _arctic_lib=Mock(),
-                     _publish_changes=False)
-    vs._collection.database.connection.nodes = []
-    vs._write_handler.return_value = write_handler
-    VersionStore.write(vs, 'sym', sentinel.data, prune_previous_version=False)
-    vs._ensure_index.assert_called_once_with()
-
-
 def test_write_check_quota():
     write_handler = Mock(write=Mock(__name__=""))
     vs = create_autospec(VersionStore, instance=True,

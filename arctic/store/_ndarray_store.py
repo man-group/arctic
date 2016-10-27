@@ -7,7 +7,7 @@ import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
 from ..decorators import mongo_retry
-from ..exceptions import UnhandledDtypeException
+from ..exceptions import UnhandledDtypeException, DataIntegrityException
 from ._version_store_utils import checksum
 
 from .._compression import compress_array, decompress
@@ -321,9 +321,27 @@ class NdarrayStore(object):
                 'segment': {'$lt': version['up_to']}}
 
         read_index_range = [0, None]
-        unchanged_segment_ids = list(collection.find(spec, projection={'_id':1, 'segment':1},
-                                                     sort=[('segment', pymongo.ASCENDING)],))\
-                                                     [:-1 * (previous_version['append_count'] + 1)]
+        # The unchanged segments are those not yet compressed
+        unchanged_segment_ids = []
+        for segment in collection.find(spec, projection={'_id':1,
+                                                         'segment':1,
+                                                         'compressed': 1
+                                                         },
+                                       sort=[('segment', pymongo.ASCENDING)]):
+            # We want to stop iterating when we find the first uncompressed chunks
+            if not segment['compressed']:
+                # We include the last chunk in the recompression
+                unchanged_segment_ids.pop()
+                break
+            unchanged_segment_ids.append(segment)
+
+        # Found all the chunks which aren't part of an append
+        if len(unchanged_segment_ids) < previous_version['segment_count'] - previous_version['append_count'] - 1:
+            raise DataIntegrityException("Symbol: %s:%s expected %s segments but found %s" %
+                                         (symbol, previous_version['version'],
+                                          previous_version['segment_count'] - previous_version['append_count'] - 1,
+                                          len(unchanged_segment_ids)
+                                          ))
         if unchanged_segment_ids:
             read_index_range[0] = unchanged_segment_ids[-1]['segment'] + 1
 
@@ -340,9 +358,16 @@ class NdarrayStore(object):
             self._do_write(collection, version, symbol, np.concatenate([old_arr, item]), previous_version,
                            segment_offset=read_index_range[0])
         if unchanged_segment_ids:
-            collection.update_many({'symbol': symbol, '_id': {'$in': [x['_id'] for x in unchanged_segment_ids]}},
-                                   {'$addToSet': {'parent': version['_id']}})
+            result = collection.update_many({'_id': {'$in': [x['_id'] for x in unchanged_segment_ids]}},
+                                            {'$addToSet': {'parent': version['_id']}})
+            if result.matched_count != len(unchanged_segment_ids):
+                raise DataIntegrityException("Symbol: %s:%s update_many updated %s segments instead of %s" %
+                                                (symbol, previous_version['version'],
+                                                 result.matched_count,
+                                                 len(unchanged_segment_ids)
+                                                 ))
             version['segment_count'] = version['segment_count'] + len(unchanged_segment_ids)
+            self.check_written(collection, symbol, version)
 
     def check_written(self, collection, symbol, version):
         # Check all the chunks are in place
