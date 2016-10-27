@@ -7,7 +7,6 @@ from .. import arctic as m
 from ..store.bitemporal_store import BitemporalStore
 from ..tickstore.tickstore import TICK_STORE_TYPE
 from ..chunkstore.chunkstore import CHUNK_STORE_TYPE
-from ..decorators import mongo_retry
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +19,15 @@ def mongo_host(mongo_server):
 @pytest.fixture(scope="function")
 def arctic(mongo_server):
     logger.info('arctic.fixtures: arctic init()')
-    mongo_retry(mongo_server.api.drop_database)('arctic')
-    mongo_retry(mongo_server.api.drop_database)('arctic_{}'.format(getpass.getuser()))
+    retry_count = 0
+    while retry_count < 10
+        try:
+            mongo_server.api.drop_database('arctic')
+        except:
+            retry_count += 1
+            continue
+        break
+    mongo_server.api.drop_database('arctic_{}'.format(getpass.getuser()))
     arctic = m.Arctic(mongo_host=mongo_server.api)
     # Do not add global libraries here: use specific fixtures below.
     # Remember, for testing it does not usually matter what your libraries are called.
