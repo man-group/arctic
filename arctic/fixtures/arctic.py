@@ -18,11 +18,10 @@ def mongo_host(mongo_server):
 
 
 @pytest.fixture(scope="function")
-@mongo_retry
 def arctic(mongo_server):
     logger.info('arctic.fixtures: arctic init()')
-    mongo_server.api.drop_database('arctic')
-    mongo_server.api.drop_database('arctic_{}'.format(getpass.getuser()))
+    mongo_retry(mongo_server.api.drop_database)('arctic')
+    mongo_retry(mongo_server.api.drop_database)('arctic_{}'.format(getpass.getuser()))
     arctic = m.Arctic(mongo_host=mongo_server.api)
     # Do not add global libraries here: use specific fixtures below.
     # Remember, for testing it does not usually matter what your libraries are called.
