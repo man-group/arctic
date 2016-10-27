@@ -7,6 +7,7 @@ from .. import arctic as m
 from ..store.bitemporal_store import BitemporalStore
 from ..tickstore.tickstore import TICK_STORE_TYPE
 from ..chunkstore.chunkstore import CHUNK_STORE_TYPE
+from ..decorators import mongo_retry
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ def mongo_host(mongo_server):
 
 
 @pytest.fixture(scope="function")
+@mongo_retry
 def arctic(mongo_server):
     logger.info('arctic.fixtures: arctic init()')
     mongo_server.api.drop_database('arctic')
