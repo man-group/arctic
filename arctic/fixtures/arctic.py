@@ -1,5 +1,6 @@
 import getpass
 import logging
+import time
 
 import pytest as pytest
 
@@ -20,11 +21,14 @@ def mongo_host(mongo_server):
 def arctic(mongo_server):
     logger.info('arctic.fixtures: arctic init()')
     retry_count = 0
-    while retry_count < 10:
+    while True:
         try:
             mongo_server.api.drop_database('arctic')
-        except:
+        except Exception as e:
             retry_count += 1
+            if retry_count > 10:
+                raise e
+            time.sleep(1)
             continue
         break
     mongo_server.api.drop_database('arctic_{}'.format(getpass.getuser()))
