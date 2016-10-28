@@ -1,5 +1,6 @@
 import getpass
 import logging
+import time
 
 import pytest as pytest
 
@@ -7,40 +8,21 @@ from .. import arctic as m
 from ..store.bitemporal_store import BitemporalStore
 from ..tickstore.tickstore import TICK_STORE_TYPE
 from ..chunkstore.chunkstore import CHUNK_STORE_TYPE
-from .mongo import mongo_proc, mongodb
-
 
 logger = logging.getLogger(__name__)
 
-mongo_proc2 = mongo_proc(executable="mongod", port=-1,
-                         params='--nojournal '
-                                '--noauth '
-                                '--nohttpinterface '
-                                '--noprealloc '
-                                '--nounixsocket '
-                                '--smallfiles '
-                                '--syncdelay 0 '
-                                '--nssize=1 '
-                                '--quiet '
-                         )
-mongodb = mongodb('mongo_proc2')
-
-
-#
-# TODO: Using mongo_server_session here would be more efficient
-#
 
 @pytest.fixture(scope="function")
-def mongo_host(mongo_proc2):
-    return mongo_proc2.host + ":" + str(mongo_proc2.port)
+def mongo_host(mongo_server):
+    return str(mongo_server.hostname) + ":" + str(mongo_server.port)
 
 
 @pytest.fixture(scope="function")
-def arctic(mongodb):
+def arctic(mongo_server):
     logger.info('arctic.fixtures: arctic init()')
-    mongodb.drop_database('arctic')
-    mongodb.drop_database('arctic_{}'.format(getpass.getuser()))
-    arctic = m.Arctic(mongo_host=mongodb)
+    mongo_server.api.drop_database('arctic')
+    mongo_server.api.drop_database('arctic_{}'.format(getpass.getuser()))
+    arctic = m.Arctic(mongo_host=mongo_server.api)
     # Do not add global libraries here: use specific fixtures below.
     # Remember, for testing it does not usually matter what your libraries are called.
     return arctic
@@ -48,8 +30,8 @@ def arctic(mongodb):
 
 # A arctic which allows reads to hit the secondary
 @pytest.fixture(scope="function")
-def arctic_secondary(mongodb, arctic):
-    arctic = m.Arctic(mongo_host=mongodb, allow_secondary=True)
+def arctic_secondary(mongo_server, arctic):
+    arctic = m.Arctic(mongo_host=mongo_server.api, allow_secondary=True)
     return arctic
 
 

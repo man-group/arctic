@@ -2,8 +2,8 @@ sudo: false
 language: python
 python:
   - "2.7"
-  - "3.4.4"
-  - "3.5.1"
+  - "3.4.5"
+  - "3.5.2"
 install:
   - pip install --upgrade pip
   - pip install python-dateutil --upgrade
@@ -18,9 +18,9 @@ install:
   - pip install lz4 --upgrade
   - pip install mock --upgrade
   - pip install mockextras
-  - pip install pytest==2.9.2
+  - pip install pytest --upgrade
   - pip install pytest-cov==2.3.0
-  - pip install pytest-dbfixtures==0.15.0
+  - pip install pytest-server-fixtures --upgrade
   - pip install pytest-timeout==1.0.0
   - pip install pytest-xdist==1.15.0
   - pip install setuptools-git --upgrade

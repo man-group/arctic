@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.33
+  
+  * Dependency: #266 Remove pytest-dbfixtures in favor of pytest-server-fixtures
+
 ### 1.32 (2016-10-25)
   
   * Feature: #260 quota support on Chunkstore
