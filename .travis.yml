@@ -19,10 +19,10 @@ install:
   - pip install mock --upgrade
   - pip install mockextras
   - pip install pytest --upgrade
-  - pip install pytest-cov==2.3.0
+  - pip install pytest-cov --upgrade
   - pip install pytest-server-fixtures --upgrade
-  - pip install pytest-timeout==1.0.0
-  - pip install pytest-xdist==1.15.0
+  - pip install pytest-timeout --upgrade
+  - pip install pytest-xdist --upgrade
   - pip install setuptools-git --upgrade
 script:
   - pip freeze
