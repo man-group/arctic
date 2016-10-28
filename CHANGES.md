@@ -2,6 +2,7 @@
 
 ### 1.33
   
+  * Feature:    #267 Tickstore.delete returns deleted data
   * Dependency: #266 Remove pytest-dbfixtures in favor of pytest-server-fixtures
 
 ### 1.32 (2016-10-25)
