@@ -144,7 +144,7 @@ class TickStore(object):
             assert date_range.start and date_range.end
             query[START] = {'$gte': date_range.start}
             query[END] = {'$lte': date_range.end}
-        self._collection.delete_many(query)
+        return self._collection.delete_many(query)
 
     def list_symbols(self, date_range=None):
         return self._collection.distinct(SYMBOL)
