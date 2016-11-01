@@ -125,7 +125,7 @@ class FrameConverter(object):
         data = {}
 
         for col in cols:
-            d = decompress(doc[DATA][doc[METADATA][LENGTHS][col][0] : doc[METADATA][LENGTHS][col][1] + 1])
+            d = decompress(doc[DATA][doc[METADATA][LENGTHS][col][0]: doc[METADATA][LENGTHS][col][1] + 1])
             d = np.fromstring(d, doc[METADATA][DTYPE][col])
 
             if MASK in doc[METADATA] and col in doc[METADATA][MASK]:

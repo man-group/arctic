@@ -10,7 +10,7 @@ from pymongo.errors import OperationFailure
 
 from ..decorators import mongo_retry
 from .._util import indent
-from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, TYPE, METADATA, COLUMNS
+from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, METADATA, COLUMNS
 from .date_chunker import DateChunker, START, END
 from .passthrough_chunker import PassthroughChunker
 
@@ -184,7 +184,7 @@ class ChunkStore(object):
             the symbol to retrieve
         chunk_range: object
             corresponding range object for the specified chunker (for
-            DateChunker it is a DateRange object or a DatetimeIndex, 
+            DateChunker it is a DateRange object or a DatetimeIndex,
             as returned by pandas.date_range
         filter_data: boolean
             perform chunk level filtering on the data (see filter in _chunker)
@@ -207,7 +207,7 @@ class ChunkStore(object):
         if chunk_range is not None:
             spec.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
 
-        by_start_segment = [(START, pymongo.ASCENDING), 
+        by_start_segment = [(START, pymongo.ASCENDING),
                             (SEGMENT, pymongo.ASCENDING)]
         segment_cursor = self._collection.find(spec, sort=by_start_segment)
 
@@ -262,8 +262,8 @@ class ChunkStore(object):
         sym = self._get_symbol_info(symbol)
         if sym:
             previous_shas = set([Binary(x[SHA]) for x in self._collection.find({SYMBOL: symbol},
-                                                                         projection={SHA: True, '_id': False},
-                                                                         )])
+                                                                               projection={SHA: True, '_id': False},
+                                                                               )])
 
         op = False
         bulk = self._collection.initialize_unordered_bulk_op()
@@ -277,7 +277,7 @@ class ChunkStore(object):
 
             size_chunked = len(data[DATA]) > MAX_CHUNK_SIZE
             for i in xrange(int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)):
-                chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE : (i + 1) * MAX_CHUNK_SIZE])}
+                chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE: (i + 1) * MAX_CHUNK_SIZE])}
                 chunk[METADATA] = data[METADATA]
                 if size_chunked:
                     chunk[SEGMENT] = i
@@ -357,13 +357,16 @@ class ChunkStore(object):
             # segments than we did before
             chunk_count = int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)
             seg_count = self._collection.count({SYMBOL: symbol, START: start, END: end})
-            if  seg_count > chunk_count:
+            if seg_count > chunk_count:
                 # if chunk count is 1, the segment id will be -1, not 1
-                self._collection.delete_many({SYMBOL: symbol, START: start, END: end, SEGMENT: {'$gt': seg_count if chunk_count > 1 else -1}})
+                self._collection.delete_many({SYMBOL: symbol,
+                                              START: start,
+                                              END: end,
+                                              SEGMENT: {'$gt': seg_count if chunk_count > 1 else -1}})
 
             size_chunked = chunk_count > 1
             for i in xrange(chunk_count):
-                chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE : (i + 1) * MAX_CHUNK_SIZE])}
+                chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE: (i + 1) * MAX_CHUNK_SIZE])}
                 chunk[METADATA] = data[METADATA]
                 if size_chunked:
                     chunk[SEGMENT] = i
@@ -488,7 +491,9 @@ class ChunkStore(object):
         if chunk_range:
             spec.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
 
-        for x in self._collection.find(spec, projection=[START, END], sort=[(START, pymongo.ASCENDING if not reverse else pymongo.DESCENDING)]):
+        for x in self._collection.find(spec,
+                                       projection=[START, END],
+                                       sort=[(START, pymongo.ASCENDING if not reverse else pymongo.DESCENDING)]):
             yield (c.chunk_to_str(x[START]), c.chunk_to_str(x[END]))
 
     def iterator(self, symbol, chunk_range=None):
@@ -540,7 +545,7 @@ class ChunkStore(object):
 
         for chunk in chunks:
             yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]))
-            
+
     def stats(self):
         """
         Return storage statistics about the library

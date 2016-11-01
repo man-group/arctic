@@ -1,6 +1,6 @@
 import pytest
 from pandas import DataFrame, Series
-from arctic.chunkstore.passthrough_chunker import PassthroughChunker, START, END
+from arctic.chunkstore.passthrough_chunker import PassthroughChunker
 import six
 
 
