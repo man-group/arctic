@@ -1,6 +1,6 @@
 from pandas import DataFrame, Series
 
-from ._chunker import Chunker, START, END
+from ._chunker import Chunker
 
 
 class PassthroughChunker(Chunker):
