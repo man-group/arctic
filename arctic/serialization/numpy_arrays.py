@@ -182,7 +182,7 @@ class FrametoArraySerializer(Serializer):
         if data == []:
             return pd.DataFrame()
 
-        meta = data[0][METADATA]
+        meta = data[0][METADATA] if isinstance(data, list) else data[METADATA]
         index = INDEX in meta
 
         if columns:
