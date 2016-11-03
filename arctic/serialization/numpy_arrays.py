@@ -182,22 +182,22 @@ class FrametoArraySerializer(Serializer):
         if data == []:
             return pd.DataFrame()
 
-        if not isinstance(data, list):
-            data = [data]
         meta = data[0][METADATA]
+        index = INDEX in meta
 
         if columns:
-            if INDEX in meta:
+            if index:
                 columns.extend(meta[INDEX])
             if len(columns) > len(set(columns)):
                 raise Exception("Duplicate columns specified, cannot de-serialize")
 
-        if INDEX in meta:
-            df = pd.concat([self.converter.objify(d, columns) for d in data])
-            df = df.set_index(meta[INDEX])
+        if not isinstance(data, list):
+            df = self.converter.objify(data, columns)
         else:
-            df = pd.concat([self.converter.objify(d, columns) for d in data], ignore_index=True)
+            df = pd.concat([self.converter.objify(d, columns) for d in data], ignore_index=not index)
 
+        if index:
+            df = df.set_index(meta[INDEX])
         if meta[TYPE] == 'series':
             return df[df.columns[0]]
         return df
