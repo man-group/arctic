@@ -81,3 +81,14 @@ def test_string_cols_with_nans():
     df = pd.DataFrame(data={'one': ['a', 'b', 'c', np.NaN]})
 
     assert(df.equals(f.objify(f.docify(df))))
+
+
+def test_multi_column_fail():
+    df = pd.DataFrame(data={'A': [1, 2, 3], 'B': [2, 3, 4], 'C': [3, 4, 5]})
+    df = df.set_index(['A'])
+    n = FrametoArraySerializer()
+    a = n.serialize(df)
+
+    with pytest.raises(Exception) as e:
+        n.deserialize(a, columns=['A', 'B'])
+    assert('Duplicate' in str(e))

@@ -165,24 +165,40 @@ class FrametoArraySerializer(Serializer):
         return ret
 
     def deserialize(self, data, columns=None):
+        '''
+        Deserializes SON to a DataFrame
+
+        Parameters
+        ----------
+        data: SON data
+        columns: None, or list of strings
+            optionally you can deserialize a subset of the data in the SON. Index
+            columns are ALWAYS deserialized, and should not be specified
+
+        Returns
+        -------
+        pandas dataframe or series
+        '''
         if data == []:
             return pd.DataFrame()
 
-        if isinstance(data, list):
-            if columns and INDEX in data[0][METADATA]:
-                columns.extend(data[0][METADATA][INDEX])
-                df = pd.concat([self.converter.objify(d, columns) for d in data])
-            else:
-                df = pd.concat([self.converter.objify(d, columns) for d in data], ignore_index=True)
-            dtype = data[0][METADATA][TYPE]
-            if INDEX in data[0][METADATA]:
-                df = df.set_index(data[0][METADATA][INDEX])
+        if not isinstance(data, list):
+            data = [data]
+        meta = data[0][METADATA]
+
+        if columns:
+            if INDEX in meta:
+                columns.extend(meta[INDEX])
+            if len(columns) > len(set(columns)):
+                raise Exception("Duplicate columns specified, cannot de-serialize")
+
+        if INDEX in meta:
+            df = pd.concat([self.converter.objify(d, columns) for d in data])
+            df = df.set_index(meta[INDEX])
         else:
-            df = self.converter.objify(data, columns)
-            dtype = data[METADATA][TYPE]
-            if INDEX in data[METADATA]:
-                df = df.set_index(data[METADATA][INDEX])
-        if dtype == 'series':
+            df = pd.concat([self.converter.objify(d, columns) for d in data], ignore_index=True)
+
+        if meta[TYPE] == 'series':
             return df[df.columns[0]]
         return df
 
