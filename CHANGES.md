@@ -2,6 +2,8 @@
 
 ### 1.33
   
+  * Feature:    #275 Tuple range object support in DateChunker
+  * Bugfix:     #273 Duplicate columns breaking serializer
   * Feature:    #267 Tickstore.delete returns deleted data
   * Dependency: #266 Remove pytest-dbfixtures in favor of pytest-server-fixtures
 

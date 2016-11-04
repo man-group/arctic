@@ -111,3 +111,28 @@ def test_exclude_no_index():
 
     assert(c.exclude(df, DateRange(dt(2016, 1, 1), dt(2016, 1, 1))).equals(c.exclude(df, pd.date_range(dt(2016, 1, 1), dt(2016, 1, 1)))))
     assert(c.exclude(df2, None).equals(df2))
+
+
+def test_with_tuples():
+    c = DateChunker()
+    df = DataFrame(data={'data': [1, 2, 3],
+                         'date': [dt(2016, 1, 1),
+                                  dt(2016, 1, 2),
+                                  dt(2016, 1, 3)]
+                         }
+                   )
+
+    # OPEN - CLOSED
+    assert_frame_equal(c.filter(df, (None, dt(2016, 1, 3))), df)
+    # CLOSED - OPEN
+    assert_frame_equal(c.filter(df, (dt(2016, 1, 1), None)), df)
+    # OPEN - OPEN
+    assert_frame_equal(c.filter(df, (None, None)), df)
+    # CLOSED - OPEN (far before data range)
+    assert_frame_equal(c.filter(df, (dt(2000, 1, 1), None)), df)
+    # CLOSED - OPEN (far after range)
+    assert(c.filter(df, (dt(2020, 1, 2), None)).empty)
+    # OPEN - CLOSED
+    assert_frame_equal(c.filter(df, (None, dt(2020, 1, 1))), df)
+    # CLOSED - CLOSED (after range)
+    assert(c.filter(df, (dt(2017, 1, 1), dt(2018, 1, 1))).empty)
