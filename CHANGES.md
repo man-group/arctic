@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.33
+### 1.33 (2016-11-07)
   
   * Feature:    #275 Tuple range object support in DateChunker
   * Bugfix:     #273 Duplicate columns breaking serializer
