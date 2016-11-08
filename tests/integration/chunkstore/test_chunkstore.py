@@ -258,7 +258,7 @@ def test_yearly_df(chunkstore_lib):
                                name='date'),
                    columns=['data'])
 
-    chunkstore_lib.write('chunkstore_test', df, chunk_size='Y')
+    chunkstore_lib.write('chunkstore_test', df, chunk_size='A')
     ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 3, 3)))
     assert_frame_equal(df, ret)
 
@@ -1172,3 +1172,18 @@ def test_unnamed_colums(chunkstore_lib):
     with pytest.raises(Exception) as e:
         chunkstore_lib.write('test_df', df, chunk_size='D')
     assert('must be named' in str(e))
+
+
+def test_quarterly_data(chunkstore_lib):
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=366)},
+                   index=pd.date_range('2016-01-01', '2016-12-31'))
+    df.index.name = 'date'
+
+    chunkstore_lib.write('quarterly', df, chunk_size='Q')
+    assert_frame_equal(df, chunkstore_lib.read('quarterly'))
+    assert(len(chunkstore_lib.read('quarterly', chunk_range=(None, '2016-01-05'))) == 5)
+    count = 0
+    for _ in chunkstore_lib._collection.find({SYMBOL: 'quarterly'}, sort=[(START, pymongo.ASCENDING)],):
+        count += 1
+
+    assert(count == 4)

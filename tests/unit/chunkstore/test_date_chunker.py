@@ -74,13 +74,15 @@ def test_date_filter_with_pd_date_range():
 def test_to_chunks_exceptions():
     df = DataFrame(data={'data': [1, 2, 3]})
     c = DateChunker()
-    with pytest.raises(Exception) as e:
-        six.next(c.to_chunks(None, None))
-    assert('Chunk size' in str(e))
 
     with pytest.raises(Exception) as e:
         six.next(c.to_chunks(df, 'D'))
     assert('datetime indexed' in str(e))
+
+    df.columns = ['date']
+    with pytest.raises(Exception) as e:
+        six.next(c.to_chunks(df, 'ZSDFG'))
+    assert('Unknown freqstr' in str(e) or 'Invalid frequency' in str(e))
 
 
 def test_exclude():
