@@ -82,7 +82,7 @@ def test_to_chunks_exceptions():
     df.columns = ['date']
     with pytest.raises(Exception) as e:
         six.next(c.to_chunks(df, 'ZSDFG'))
-    assert('Unknown freqstr' in str(e))
+    assert('Unknown freqstr' in str(e) or 'Invalid frequency' in str(e))
 
 
 def test_exclude():
