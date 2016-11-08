@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.34
+
+  * Feature: #283 Support for all pandas frequency strings in ChunkStore DateChunker
+
 ### 1.33 (2016-11-07)
   
   * Feature:    #275 Tuple range object support in DateChunker

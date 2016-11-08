@@ -11,17 +11,17 @@ class DateChunker(Chunker):
         """
         chunks the dataframe/series by dates
 
-        returns
+        Parameters
+        ----------
+        df: pandas dataframe or series
+        chunk_size: str
+            any valid Pandas frequency string
+
+        Returns
         -------
         generator that produces tuples: (start date, end date,
                   chunk_size, dataframe/series)
         """
-        if chunk_size not in ('D', 'M', 'Y', 'A'):
-            raise Exception("Chunk size must be one of D, M, Y, A")
-
-        if chunk_size == 'Y':
-            chunk_size = 'A'
-
         if 'date' in df.index.names:
             dates = df.index.get_level_values('date')
         elif 'date' in df.columns:
