@@ -136,15 +136,23 @@ class ChunkStore(object):
             self._collection.delete_many(query)
             self._collection.symbols.delete_many(query)
 
-    def list_symbols(self):
+    def list_symbols(self, partial_match=None):
         """
         Returns all symbols in the library
+
+        Parameters
+        ----------
+        partial: None or str
+            if not none, use this string to do a partial match on symbol names
 
         Returns
         -------
         list of str
         """
-        return self._symbols.distinct(SYMBOL)
+        symbols = self._symbols.distinct(SYMBOL)
+        if partial_match is None:
+            return symbols
+        return [x for x in symbols if partial_match in x]
 
     def _get_symbol_info(self, symbol):
         return self._symbols.find_one({SYMBOL: symbol})
@@ -574,3 +582,18 @@ class ChunkStore(object):
                          'size': res['chunks']['size'] + res['symbols']['size'],
                          }
         return res
+
+    def has_symbol(self, symbol):
+        '''
+        Check if symbol exists in collection
+
+        Parameters
+        ----------
+        symbol: str
+            The symbol to look up in the collection
+
+        Returns
+        -------
+        bool
+        '''
+        return self._get_symbol_info(symbol) is not None

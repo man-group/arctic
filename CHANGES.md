@@ -3,6 +3,7 @@
 ### 1.34
 
   * Feature: #283 Support for all pandas frequency strings in ChunkStore DateChunker
+  * Feature: #286 Add has_symbol to ChunkStore and support for partial symbol matching in list_symbols
 
 ### 1.33 (2016-11-07)
   
