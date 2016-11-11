@@ -11,7 +11,7 @@ from .._util import indent, enable_powerof2sizes, \
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
-    OptimisticLockException, ArcticException
+    OptimisticLockException
 from ..hooks import log_exception
 from ._pickle_store import PickleStore
 from ._version_store_utils import cleanup
@@ -105,7 +105,7 @@ class VersionStore(object):
 
     def __repr__(self):
         return str(self)
-    
+
     def _read_preference(self, allow_secondary):
         """ Return the mongo read preference given an 'allow_secondary' argument
         """
@@ -136,7 +136,7 @@ class VersionStore(object):
         """
         query = {}
         if regex is not None:
-            query ['symbol'] = {'$regex' : regex}
+            query['symbol'] = {'$regex': regex}
         if kwargs:
             for k, v in six.iteritems(kwargs):
                 query['metadata.' + k] = v
@@ -154,19 +154,19 @@ class VersionStore(object):
             # Match based on user criteria first
             pipeline.append({'$match': query})
         pipeline.extend([
-                         # Id is by insert time which matches version order
-                         {'$sort': {'_id':-1}},
-                         # Group by 'symbol'
-                         {'$group': {'_id': '$symbol',
-                                     'deleted': {'$first': '$metadata.deleted'},
-                                     },
-                          },
-                         # Don't include symbols which are part of some snapshot, but really deleted...
-                         {'$match': {'deleted': {'$ne': True}}},
-                         {'$project': {'_id': 0,
-                                       'symbol':  '$_id',
-                                       }
-                          }])
+                        # Id is by insert time which matches version order
+                        {'$sort': {'_id':-1}},
+                        # Group by 'symbol'
+                        {'$group': {'_id': '$symbol',
+                                    'deleted': {'$first': '$metadata.deleted'},
+                                    },
+                         },
+                        # Don't include symbols which are part of some snapshot, but really deleted...
+                        {'$match': {'deleted': {'$ne': True}}},
+                        {'$project': {'_id': 0,
+                                      'symbol':  '$_id',
+                                      }
+                         }])
 
         results = self._versions.aggregate(pipeline)
         return sorted([x['symbol'] for x in results])
@@ -371,8 +371,6 @@ class VersionStore(object):
             return handler.get_info(version)
         return {}
 
-
-
     def _do_read(self, symbol, version, from_version=None, **kwargs):
         if version.get('deleted'):
             raise NoDataFoundException("No data found for %s in library %s" % (symbol, self._arctic_lib.get_name()))
@@ -429,8 +427,8 @@ class VersionStore(object):
             if not as_of.tzinfo:
                 as_of = as_of.replace(tzinfo=mktz())
             _version = versions_coll.find_one({'symbol': symbol,
-                                                '_id': {'$lt': bson.ObjectId.from_datetime(as_of + timedelta(seconds=1))}},
-                                               sort=[('_id', pymongo.DESCENDING)])
+                                               '_id': {'$lt': bson.ObjectId.from_datetime(as_of + timedelta(seconds=1))}},
+                                              sort=[('_id', pymongo.DESCENDING)])
         else:
             # Backward compatibility - as of is a version number
             _version = versions_coll.find_one({'symbol': symbol, 'version': as_of})
@@ -484,7 +482,7 @@ class VersionStore(object):
         # If the version numbers aren't in line, then we've lost some data.
         next_ver = self._version_nums.find_one({'symbol': symbol})['version']
         if next_ver != previous_version['version']:
-            logger.error('''version_nums is out of sync with previous version document. 
+            logger.error('''version_nums is out of sync with previous version document.
             This probably means that either a version document write has previously failed, or the previous version has been deleted.
             There will be a gap in the data.''')
 
@@ -508,8 +506,8 @@ class VersionStore(object):
 
         # Get the next version number  - check there hasn't been a concurrent write
         next_ver = self._version_nums.find_one_and_update({'symbol': symbol, 'version': next_ver},
-                                                      {'$inc': {'version': 1}},
-                                                      upsert=False, new=True)
+                                                          {'$inc': {'version': 1}},
+                                                          upsert=False, new=True)
         if next_ver is None:
             raise OptimisticLockException()
 
@@ -549,7 +547,7 @@ class VersionStore(object):
             Default: True
         kwargs :
             passed through to the write handler
-            
+
         Returns
         -------
         VersionedItem named tuple containing the metadata and verison number
@@ -559,13 +557,13 @@ class VersionStore(object):
         version = {'_id': bson.ObjectId()}
         version['symbol'] = symbol
         version['version'] = self._version_nums.find_one_and_update({'symbol': symbol},
-                                                                {'$inc': {'version': 1}},
-                                                                upsert=True, new=True)['version']
+                                                                    {'$inc': {'version': 1}},
+                                                                    upsert=True, new=True)['version']
         version['metadata'] = metadata
 
         previous_version = self._versions.find_one({'symbol': symbol, 'version': {'$lt': version['version']}},
-                                                  sort=[('version', pymongo.DESCENDING)],
-                                                  )
+                                                   sort=[('version', pymongo.DESCENDING)],
+                                                   )
 
         handler = self._write_handler(version, symbol, data, **kwargs)
         mongo_retry(handler.write)(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
@@ -590,34 +588,34 @@ class VersionStore(object):
         # Find all non-snapshotted versions older than a version that's at least keep_mins minutes old
         # Based on documents available on the secondary
         versions_find = mongo_retry(self._versions.with_options(read_preference=ReadPreference.SECONDARY_PREFERRED if keep_mins > 0 else
-                                                                                ReadPreference.PRIMARY)
+                                                                ReadPreference.PRIMARY)
                                     .find)
         versions = list(versions_find({  # Find versions of this symbol
-                                        'symbol': symbol,
-                                        # Not snapshotted
-                                        '$or': [{'parent': {'$exists': False}}, {'parent': {'$size': 0}}],
-                                        # At least 'keep_mins' old
-                                        '_id': {'$lt': bson.ObjectId.from_datetime(
+                                       'symbol': symbol,
+                                       # Not snapshotted
+                                       '$or': [{'parent': {'$exists': False}}, {'parent': {'$size': 0}}],
+                                       # At least 'keep_mins' old
+                                       '_id': {'$lt': bson.ObjectId.from_datetime(
                                                         dt.utcnow()
-                                                        # Add one second as the ObjectId str has random fuzz 
+                                                        # Add one second as the ObjectId str has random fuzz
                                                         + timedelta(seconds=1)
                                                         - timedelta(minutes=keep_mins))
-                                                }
-                                        },
-                                        # Using version number here instead of _id as there's a very unlikely case
-                                        # where the versions are created on different hosts or processes at exactly
-                                        # the same time.
-                                        sort=[('version', pymongo.DESCENDING)],
-                                        # Keep one, that's at least 10 mins old, around
-                                        # (cope with replication delay)
-                                        skip=1,
-                                        projection=['_id', 'type'],
-                                        ))
+                                               }
+                                       },
+                                      # Using version number here instead of _id as there's a very unlikely case
+                                      # where the versions are created on different hosts or processes at exactly
+                                      # the same time.
+                                      sort=[('version', pymongo.DESCENDING)],
+                                      # Keep one, that's at least 10 mins old, around
+                                      # (cope with replication delay)
+                                      skip=1,
+                                      projection=['_id', 'type'],
+                                      ))
         if not versions:
             return
         version_ids = [v['_id'] for v in versions]
 
-        #Find any version_ids that are the basis of other, 'current' versions - don't prune these.
+        # Find any version_ids that are the basis of other, 'current' versions - don't prune these.
         base_versions = set([x['base_version_id'] for x in mongo_retry(self._versions.find)({
                                             'symbol': symbol,
                                             '_id': {'$nin': version_ids},
@@ -728,8 +726,8 @@ class VersionStore(object):
         snapshot = {'_id': bson.ObjectId()}
         snapshot['name'] = snap_name
         snapshot['metadata'] = metadata
-        
-        skip_symbols = set() if skip_symbols is None else set(skip_symbols) 
+
+        skip_symbols = set() if skip_symbols is None else set(skip_symbols)
 
         if versions is None:
             versions = {sym: None for sym in set(self.list_symbols()) - skip_symbols}
