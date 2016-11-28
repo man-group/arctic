@@ -1,6 +1,7 @@
 import logging
 import pymongo
 import hashlib
+import bson
 
 from bson.binary import Binary
 from pandas import DataFrame, Series
@@ -283,10 +284,13 @@ class ChunkStore(object):
             doc[METADATA] = {'columns': data[METADATA][COLUMNS] if COLUMNS in data[METADATA] else ''}
             doc[CHUNK_SIZE] = chunk_size
 
-            size_chunked = len(data[DATA]) > MAX_CHUNK_SIZE
-            for i in xrange(int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)):
-                chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE: (i + 1) * MAX_CHUNK_SIZE])}
-                chunk[METADATA] = data[METADATA]
+            metadata_len = len(bson.BSON.encode(data[METADATA]))
+
+            size_chunked = len(data[DATA]) + metadata_len > MAX_CHUNK_SIZE
+            for i in xrange(int(len(data[DATA]) / (MAX_CHUNK_SIZE - metadata_len) + 1)):
+                chunk = {DATA: Binary(data[DATA][i * (MAX_CHUNK_SIZE - metadata_len) : (i + 1) * (MAX_CHUNK_SIZE - metadata_len)])}
+                if i is 0:
+                    chunk[METADATA] = data[METADATA]
                 if size_chunked:
                     chunk[SEGMENT] = i
                 else:
@@ -363,7 +367,8 @@ class ChunkStore(object):
 
             # remove old segments for this chunk in case we now have less
             # segments than we did before
-            chunk_count = int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)
+            metadata_len = len(bson.BSON.encode(data[METADATA]))
+            chunk_count = int(len(data[DATA]) / (MAX_CHUNK_SIZE - metadata_len) + 1)
             seg_count = self._collection.count({SYMBOL: symbol, START: start, END: end})
             if seg_count > chunk_count:
                 # if chunk count is 1, the segment id will be -1, not 1
@@ -374,8 +379,9 @@ class ChunkStore(object):
 
             size_chunked = chunk_count > 1
             for i in xrange(chunk_count):
-                chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE: (i + 1) * MAX_CHUNK_SIZE])}
-                chunk[METADATA] = data[METADATA]
+                chunk = {DATA: Binary(data[DATA][i * (MAX_CHUNK_SIZE - metadata_len): (i + 1) * (MAX_CHUNK_SIZE - metadata_len)])}
+                if i is 0:
+                    chunk[METADATA] = data[METADATA]
                 if size_chunked:
                     chunk[SEGMENT] = i
                 else:
