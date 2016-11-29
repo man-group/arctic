@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.34
+### 1.34 (2016-11-29)
 
   * Feature: #294 Move per-chunk metadata for chunkstore to a separate collection
   * Bugfix:  #292 Account for metadata size during size chunking in ChunkStore
