@@ -81,4 +81,4 @@ def test_enable_parallel_lz4():
 
 
 def test_compress_empty_string():
-    assert(decompress(compress('')) == '')
+    assert(decompress(compress(b'')) == b'')
