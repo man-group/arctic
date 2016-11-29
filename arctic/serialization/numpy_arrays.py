@@ -77,8 +77,6 @@ class FrameConverter(object):
         df:  DataFrame
             The Pandas DataFrame to encode
         """
-        doc = SON({DATA: {}, METADATA: {}})
-
         dtypes = {}
         masks = {}
         lengths = {}
@@ -108,12 +106,12 @@ class FrameConverter(object):
             start += len(d)
             data += d
 
+        doc = SON({DATA: data, METADATA: {}})
         doc[METADATA] = {COLUMNS: columns,
                          MASK: masks,
                          LENGTHS: lengths,
                          DTYPE: dtypes
                          }
-        doc[DATA] = data
 
         return doc
 
