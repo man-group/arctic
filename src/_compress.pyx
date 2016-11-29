@@ -116,7 +116,7 @@ def decompress(pString):
     result = <char*>malloc(original_size)
     # decompress
     ret = LZ4_decompress_safe(cString + hdr_size, result, compressed_size - hdr_size, original_size)
-    if ret <= 0 or ret != original_size:
+    if ret != original_size:
         free(result)
         raise Exception("Error decompressing")
     # cast back into python string
