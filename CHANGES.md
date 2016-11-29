@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.35
+### 1.35 (2016-11-29)
 
   * Bugfix:  #296 Cannot compress/decompress empty string
 
