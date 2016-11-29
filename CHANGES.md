@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.35
+
+  * Bugfix:  #296 Cannot compress/decompress empty string
+
 ### 1.34 (2016-11-29)
 
   * Feature: #294 Move per-chunk metadata for chunkstore to a separate collection
