@@ -65,6 +65,10 @@ class ChunkStore(object):
                                        (START, pymongo.ASCENDING),
                                        (SEGMENT, pymongo.ASCENDING)],
                                       unique=True, background=True)
+        self._mdata.create_index([(SYMBOL, pymongo.ASCENDING),
+                                  (START, pymongo.ASCENDING),
+                                  (END, pymongo.ASCENDING)],
+                                 unique=True, background=True)
 
     @mongo_retry
     def __init__(self, arctic_lib):
@@ -77,6 +81,7 @@ class ChunkStore(object):
         # The default collection
         self._collection = arctic_lib.get_top_level_collection()
         self._symbols = self._collection.symbols
+        self._mdata = self._collection.metadata
 
     def __getstate__(self):
         return {'arctic_lib': self._arctic_lib}
@@ -124,6 +129,7 @@ class ChunkStore(object):
             query = {SYMBOL: symbol}
             query.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
             self._collection.delete_many(query)
+            self._mdata.delete_many(query)
             self.update(symbol, df)
 
             # update symbol metadata (rows and chunk count)
@@ -135,7 +141,8 @@ class ChunkStore(object):
         else:
             query = {SYMBOL: symbol}
             self._collection.delete_many(query)
-            self._collection.symbols.delete_many(query)
+            self._symbols.delete_many(query)
+            self._mdata.delete_many(query)
 
     def list_symbols(self, partial_match=None):
         """
@@ -179,9 +186,10 @@ class ChunkStore(object):
 
         mongo_retry(self._collection.update_many)({SYMBOL: from_symbol},
                                                   {'$set': {SYMBOL: to_symbol}})
-
         mongo_retry(self._symbols.update_one)({SYMBOL: from_symbol},
                                               {'$set': {SYMBOL: to_symbol}})
+        mongo_retry(self._mdata.update_many)({SYMBOL: from_symbol},
+                                             {'$set': {SYMBOL: to_symbol}})
 
     def read(self, symbol, chunk_range=None, filter_data=True, **kwargs):
         """
@@ -222,14 +230,14 @@ class ChunkStore(object):
 
         chunks = []
         for _, segments in groupby(segment_cursor, key=lambda x: x[START]):
-
             segments = list(segments)
+            mdata = self._mdata.find_one({SYMBOL: symbol, START: segments[0][START], END: segments[0][END]})
 
             # when len(segments) == 1, this is essentially a no-op
             # otherwise, take all segments and reassemble the data to one chunk
             chunk_data = b''.join([doc[DATA] for doc in segments])
 
-            chunks.append({DATA: chunk_data, METADATA: segments[0][METADATA]})
+            chunks.append({DATA: chunk_data, METADATA: mdata})
 
         data = SER_MAP[sym[SERIALIZER]].deserialize(chunks, **kwargs)
 
@@ -262,6 +270,7 @@ class ChunkStore(object):
 
         previous_shas = []
         doc = {}
+        meta = {}
 
         doc[SYMBOL] = symbol
         doc[LEN] = len(item)
@@ -276,21 +285,19 @@ class ChunkStore(object):
 
         op = False
         bulk = self._collection.initialize_unordered_bulk_op()
+        meta_bulk = self._mdata.initialize_unordered_bulk_op()
         chunk_count = 0
 
         for start, end, chunk_size, record in chunker.to_chunks(item, **kwargs):
             chunk_count += 1
             data = self.serializer.serialize(record)
-            doc[METADATA] = {'columns': data[METADATA][COLUMNS] if COLUMNS in data[METADATA] else ''}
             doc[CHUNK_SIZE] = chunk_size
+            doc[METADATA] = {'columns': data[METADATA][COLUMNS] if COLUMNS in data[METADATA] else ''}
+            meta = data[METADATA]
 
-            metadata_len = len(bson.BSON.encode(data[METADATA]))
-
-            size_chunked = len(data[DATA]) + metadata_len > MAX_CHUNK_SIZE
-            for i in xrange(int(len(data[DATA]) / (MAX_CHUNK_SIZE - metadata_len) + 1)):
-                chunk = {DATA: Binary(data[DATA][i * (MAX_CHUNK_SIZE - metadata_len) : (i + 1) * (MAX_CHUNK_SIZE - metadata_len)])}
-                if i is 0:
-                    chunk[METADATA] = data[METADATA]
+            size_chunked = len(data[DATA]) > MAX_CHUNK_SIZE
+            for i in xrange(int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)):
+                chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE: (i + 1) * MAX_CHUNK_SIZE])}
                 if size_chunked:
                     chunk[SEGMENT] = i
                 else:
@@ -307,11 +314,15 @@ class ChunkStore(object):
                             END: end,
                             SEGMENT: chunk[SEGMENT]}
                     bulk.find(find).upsert().update_one({'$set': chunk})
+                    meta_bulk.find({SYMBOL: symbol,
+                                    START: start,
+                                    END: end}).upsert().update_one({'$set': meta})
                 else:
                     # already exists, dont need to update in mongo
                     previous_shas.remove(chunk[SHA])
         if op:
             bulk.execute()
+            meta_bulk.execute()
 
         doc[CHUNK_COUNT] = chunk_count
         doc[APPEND_COUNT] = 0
@@ -343,6 +354,7 @@ class ChunkStore(object):
             sym = self._get_symbol_info(symbol)
 
         bulk = self._collection.initialize_unordered_bulk_op()
+        meta_bulk = self._mdata.initialize_unordered_bulk_op()
         op = False
         chunker = CHUNKER_MAP[sym[CHUNKER]]
 
@@ -363,12 +375,13 @@ class ChunkStore(object):
                 sym[LEN] += len(record)
 
             data = SER_MAP[sym[SERIALIZER]].serialize(record)
+            meta = data[METADATA]
             op = True
 
             # remove old segments for this chunk in case we now have less
             # segments than we did before
-            metadata_len = len(bson.BSON.encode(data[METADATA]))
-            chunk_count = int(len(data[DATA]) / (MAX_CHUNK_SIZE - metadata_len) + 1)
+
+            chunk_count = int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)
             seg_count = self._collection.count({SYMBOL: symbol, START: start, END: end})
             if seg_count > chunk_count:
                 # if chunk count is 1, the segment id will be -1, not 1
@@ -379,9 +392,7 @@ class ChunkStore(object):
 
             size_chunked = chunk_count > 1
             for i in xrange(chunk_count):
-                chunk = {DATA: Binary(data[DATA][i * (MAX_CHUNK_SIZE - metadata_len): (i + 1) * (MAX_CHUNK_SIZE - metadata_len)])}
-                if i is 0:
-                    chunk[METADATA] = data[METADATA]
+                chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE: (i + 1) * MAX_CHUNK_SIZE])}
                 if size_chunked:
                     chunk[SEGMENT] = i
                 else:
@@ -392,10 +403,17 @@ class ChunkStore(object):
                 dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end), str(chunk[SEGMENT]).encode('ascii')]
                 sha = self._checksum(dates, data[DATA])
                 chunk[SHA] = sha
-                bulk.find({SYMBOL: symbol, START: start, END: end, SEGMENT: chunk[SEGMENT]}
-                          ).upsert().update_one({'$set': chunk})
+                bulk.find({SYMBOL: symbol,
+                           START: start,
+                           END: end,
+                           SEGMENT: chunk[SEGMENT]}).upsert().update_one({'$set': chunk})
+                meta_bulk.find({SYMBOL: symbol,
+                                START: start,
+                                END: end}).upsert().update_one({'$set': meta})
+
         if op:
             bulk.execute()
+            meta_bulk.execute()
 
         self._symbols.replace_one({SYMBOL: symbol}, sym)
 
@@ -584,8 +602,9 @@ class ChunkStore(object):
         res['dbstats'] = db.command('dbstats')
         res['chunks'] = db.command('collstats', self._collection.name)
         res['symbols'] = db.command('collstats', self._symbols.name)
+        res['metadata'] = db.command('collstats', self._mdata.name)
         res['totals'] = {'count': res['chunks']['count'],
-                         'size': res['chunks']['size'] + res['symbols']['size'],
+                         'size': res['chunks']['size'] + res['symbols']['size'] + res['metadata']['size'],
                          }
         return res
 

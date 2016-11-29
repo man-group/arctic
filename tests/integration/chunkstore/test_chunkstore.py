@@ -1205,3 +1205,20 @@ def test_list_symbols(chunkstore_lib):
 
     assert(chunkstore_lib.has_symbol('dragon'))
     assert(chunkstore_lib.has_symbol('marmot') is False)
+
+
+def test_stats(chunkstore_lib):
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=366)},
+                   index=pd.date_range('2016-01-01', '2016-12-31'))
+    df.index.name = 'date'
+
+    chunkstore_lib.write('rabbit', df)
+    chunkstore_lib.write('dragon', df)
+    chunkstore_lib.write('snake', df)
+    chunkstore_lib.write('wolf', df)
+    chunkstore_lib.write('bear', df)
+
+    s = chunkstore_lib.stats()
+    assert(s['symbols']['count'] == 5)
+    assert(s['chunks']['count'] == 366 * 5)
+    assert(s['chunks']['count'] == s['metadata']['count'])
