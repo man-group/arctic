@@ -23,7 +23,7 @@ def are_equals(o1, o2, **kwargs):
         return False
 
 
-def enable_sharding(arctic, library_name, hashed=False):
+def enable_sharding(arctic, library_name, hashed=True):
     c = arctic._conn
     lib = arctic[library_name]._arctic_lib
     dbname = lib._db.name
@@ -31,7 +31,7 @@ def enable_sharding(arctic, library_name, hashed=False):
     try:
         c.admin.command('enablesharding', dbname)
     except OperationFailure as e:
-        if not 'failed: already enabled' in str(e):
+        if not 'already enabled' in str(e):
             raise
     if not hashed:
         logger.info("Range sharding 'symbol' on: " + dbname + '.' + library_name)

@@ -39,7 +39,7 @@ class VersionStore(object):
     _bson_handler = PickleStore()
 
     @classmethod
-    def initialize_library(cls, arctic_lib, hashed=False, **kwargs):
+    def initialize_library(cls, arctic_lib, hashed=True, **kwargs):
         c = arctic_lib.get_top_level_collection()
 
         if '%s.changes' % c.name not in mongo_retry(c.database.collection_names)():

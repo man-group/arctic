@@ -18,7 +18,7 @@ def test_enable_sharding(mongo_host, arctic, mongo_server, user_library, user_li
     assert mc.call_args_list == [call(get_mongodb_uri(mongo_host))]
     assert admin.command.call_args_list == [call('buildinfo', read_preference=Primary()),
                                             call('enablesharding', 'arctic_' + getpass.getuser()),
-                                            call('shardCollection', 'arctic_' + user_library_name, key={'symbol': 1})]
+                                            call('shardCollection', 'arctic_' + user_library_name, key={'symbol': 'hashed'})]
 
 
 def test_enable_sharding_already_on_db(mongo_host, arctic, mongo_server, user_library, user_library_name):
@@ -31,7 +31,7 @@ def test_enable_sharding_already_on_db(mongo_host, arctic, mongo_server, user_li
     assert mc.call_args_list == [call(get_mongodb_uri(mongo_host))]
     assert admin.command.call_args_list == [call('buildinfo', read_preference=Primary()),
                                             call('enablesharding', 'arctic_' + getpass.getuser()),
-                                            call('shardCollection', 'arctic_' + user_library_name, key={'symbol': 1})]
+                                            call('shardCollection', 'arctic_' + user_library_name, key={'symbol': 'hashed'})]
 
 
 def test_enable_sharding_on_db_other_failure(mongo_host, arctic, mongo_server, user_library, user_library_name):
