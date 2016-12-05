@@ -3,6 +3,7 @@
 ### 1.36
   
   * Feature: Default to hashed based sharding
+  * Bugfix: retry socket errors during VersionStore snapshot operations
 
 ### 1.35 (2016-11-29)
 
