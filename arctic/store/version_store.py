@@ -702,6 +702,7 @@ class VersionStore(object):
         # Create the audit entry
         mongo_retry(self._audit.insert_one)(audit)
 
+    @mongo_retry
     def snapshot(self, snap_name, metadata=None, skip_symbols=None, versions=None):
         """
         Snapshot versions of symbols in the library.  Can be used like:
@@ -745,6 +746,7 @@ class VersionStore(object):
 
         mongo_retry(self._snapshots.insert_one)(snapshot)
 
+    @mongo_retry
     def delete_snapshot(self, snap_name):
         """
         Delete a named snapshot
@@ -764,6 +766,7 @@ class VersionStore(object):
 
         self._snapshots.delete_one({'name': snap_name})
 
+    @mongo_retry
     def list_snapshots(self):
         """
         List the snapshots in the library
@@ -774,6 +777,7 @@ class VersionStore(object):
         """
         return dict((i['name'], i['metadata']) for i in self._snapshots.find())
 
+    @mongo_retry
     def stats(self):
         """
         Return storage statistics about the library
