@@ -520,8 +520,8 @@ class TickStore(object):
             start = data[0]['index']
             end = data[-1]['index']
         elif isinstance(data, pd.DataFrame):
-            start = data.index[0].to_datetime()
-            end = data.index[-1].to_datetime()
+            start = data.index[0].to_pydatetime()
+            end = data.index[-1].to_pydatetime()
             pandas = True
         else:
             raise UnhandledDtypeException("Can't persist type %s to tickstore" % type(data))
@@ -609,18 +609,18 @@ class TickStore(object):
     @staticmethod
     def _pandas_to_bucket(df, symbol, initial_image):
         rtn = {SYMBOL: symbol, VERSION: CHUNK_VERSION_NUMBER, COLUMNS: {}, COUNT: len(df)}
-        end = to_dt(df.index[-1].to_datetime())
+        end = to_dt(df.index[-1].to_pydatetime())
         if initial_image :
             if 'index' in initial_image:
-                start = min(to_dt(df.index[0].to_datetime()), initial_image['index'])
+                start = min(to_dt(df.index[0].to_pydatetime()), initial_image['index'])
             else:
-                start = to_dt(df.index[0].to_datetime())
+                start = to_dt(df.index[0].to_pydatetime())
             image_start = initial_image.get('index', start)
             image = {k: v for k, v in initial_image.items() if k != 'index'}
             rtn[IMAGE_DOC] = {IMAGE_TIME: image_start, IMAGE: initial_image}
             final_image = TickStore._pandas_compute_final_image(df, initial_image, end)
         else:
-            start = to_dt(df.index[0].to_datetime())
+            start = to_dt(df.index[0].to_pydatetime())
             final_image = {}
         rtn[END] = end
         rtn[START] = start
