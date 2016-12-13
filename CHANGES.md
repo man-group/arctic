@@ -1,6 +1,8 @@
 ## Changelog
 
-### 1.36
+### 1.37
+
+### 1.36 (2016-12-13)
   
   * Feature: Default to hashed based sharding
   * Bugfix: retry socket errors during VersionStore snapshot operations
