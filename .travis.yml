@@ -1,12 +1,21 @@
-dist: trusty
+dist: precise
 sudo: false
 language: python
 python:
   - "2.7"
   - "3.4.5"
   - "3.5.2"
+
+addons:
+  apt:
+    sources:
+      - mongodb-3.2-precise
+    packages:
+      - mongodb-org-server
+services:
+   - mongodb
+
 install:
-  - sudo apt-get update && sudo apt-get --assume-yes install mongodb-org
   - mongo --version
   - pip install --upgrade pip
   - pip install python-dateutil --upgrade
