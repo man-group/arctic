@@ -1,13 +1,11 @@
-sudo: required
 dist: trusty
+sudo: false
 language: python
 python:
   - "2.7"
   - "3.4.5"
   - "3.5.2"
 before_install:
-  - sudo apt-key adv --keyserver keys.gnupg.net --recv 6DA70622
-  - sudo echo "deb http://downloads.ortussolutions.com/debs/noarch /" | sudo tee -a /etc/apt/sources.list.d/commandbox.list
   - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
   - sudo echo "deb http://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.2 multiverse" | sudo tee -a /etc/apt/sources.list.d/mongodb-org-3.2.list
 install:
