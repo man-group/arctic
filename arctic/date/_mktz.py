@@ -1,18 +1,24 @@
-import bisect
-import os
 import dateutil
 import tzlocal
 import six
-import weakref
-
-
-_TZ_CACHE = weakref.WeakValueDictionary()
 
 
 class TimezoneError(Exception):
     pass
 
 
+def memoize(f):
+    class cache(dict):
+        def __getitem__(self, *k):
+            return dict.__getitem__(self, k)
+
+        def __missing__(self, k):
+            v = self[k] = f(*k)
+            return v
+    return cache().__getitem__
+
+
+@memoize
 def mktz(zone=None):
     """
     Return a new timezone (tzinfo object) based on the zone using the python-dateutil
@@ -39,10 +45,6 @@ def mktz(zone=None):
         zone = tzlocal.get_localzone().zone
     zone = six.u(zone)
 
-    cached = _TZ_CACHE.get(zone)
-    if cached is not None:
-        return cached
-
     tz = dateutil.tz.gettz(zone)
     if not tz:
         raise TimezoneError('Timezone "%s" can not be read' % (zone))
@@ -53,5 +55,4 @@ def mktz(zone=None):
             if zone.startswith(p):
                 tz.zone = zone[len(p) + 1:]
                 break
-    _TZ_CACHE[zone] = tz
     return tz

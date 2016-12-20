@@ -1,5 +1,4 @@
 import pytest
-import pytz
 
 from datetime import datetime as dt
 from arctic.date import datetime_to_ms, ms_to_datetime, mktz, to_pandas_closed_closed, DateRange, OPEN_OPEN, CLOSED_CLOSED
