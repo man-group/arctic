@@ -1,6 +1,7 @@
 ## Changelog
 
 ### 1.37
+  * Feature 303: Cache timezones in mktz for improved performance
 
 ### 1.36 (2016-12-13)
   
