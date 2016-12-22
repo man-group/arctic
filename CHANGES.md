@@ -2,7 +2,6 @@
 
 ### 1.37
   * Bugfix:  #300 to_datetime deprecated in pandas, use to_pydatetime instead
-  * Feature: #303 Cache timezones in mktz for improved performance
 
 ### 1.36 (2016-12-13)
   
