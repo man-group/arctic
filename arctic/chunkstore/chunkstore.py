@@ -11,7 +11,7 @@ from pymongo.errors import OperationFailure
 
 from ..decorators import mongo_retry
 from .._util import indent
-from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, TYPE, METADATA, COLUMNS
+from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, METADATA, COLUMNS
 from .date_chunker import DateChunker, START, END
 from .passthrough_chunker import PassthroughChunker
 
@@ -232,8 +232,6 @@ class ChunkStore(object):
         for _, segments in groupby(segment_cursor, key=lambda x: x[START]):
             segments = list(segments)
             mdata = self._mdata.find_one({SYMBOL: symbol, START: segments[0][START], END: segments[0][END]})
-
-            segments = list(segments)
 
             # when len(segments) == 1, this is essentially a no-op
             # otherwise, take all segments and reassemble the data to one chunk
