@@ -3,10 +3,6 @@ import os
 import dateutil
 import tzlocal
 import six
-import weakref
-
-
-_TZ_CACHE = weakref.WeakValueDictionary()
 
 
 class TimezoneError(Exception):
@@ -38,11 +34,6 @@ def mktz(zone=None):
     if zone is None:
         zone = tzlocal.get_localzone().zone
     zone = six.u(zone)
-
-    cached = _TZ_CACHE.get(zone)
-    if cached is not None:
-        return cached
-
     tz = dateutil.tz.gettz(zone)
     if not tz:
         raise TimezoneError('Timezone "%s" can not be read' % (zone))
@@ -53,5 +44,4 @@ def mktz(zone=None):
             if zone.startswith(p):
                 tz.zone = zone[len(p) + 1:]
                 break
-    _TZ_CACHE[zone] = tz
     return tz
