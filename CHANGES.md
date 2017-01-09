@@ -2,6 +2,7 @@
 
 ### 1.37
   * Bugfix:  #300 to_datetime deprecated in pandas, use to_pydatetime instead
+  * Bugfix:  #309 formatting change for DateRange __str__
 
 ### 1.36 (2016-12-13)
   
