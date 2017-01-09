@@ -191,7 +191,13 @@ class DateRange(GeneralSlice):
         else:
             raise IndexError('Index %s not in range (0:1)' % key)
 
-    __str__ = __repr__
+    def __str__(self):
+        return "%s%s, %s%s" % (
+            "(" if self.startopen else "[",
+            self.start,
+            self.end,
+            ")" if self.endopen else "]",
+        )
 
     def __setstate__(self, state):
         """Called by pickle, PyYAML etc to set state."""
