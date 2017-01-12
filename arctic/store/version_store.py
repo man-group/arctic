@@ -795,7 +795,7 @@ class VersionStore(object):
             sharding = conn.config.databases.find_one({'_id': db.name})
             if sharding:
                 res['sharding'].update(sharding)
-            res['sharding']['collections'] = list(conn.config.collections.find({'_id': {'$regex': '^' + db.name + '\..*'}}))
+            res['sharding']['collections'] = list(conn.config.collections.find({'_id': {'$regex': '^' + db.name + r"\..*"}}))
         except OperationFailure:
             # Access denied
             pass
