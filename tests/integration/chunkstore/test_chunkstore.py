@@ -1222,3 +1222,41 @@ def test_stats(chunkstore_lib):
     assert(s['symbols']['count'] == 5)
     assert(s['chunks']['count'] == 366 * 5)
     assert(s['chunks']['count'] == s['metadata']['count'])
+
+
+def test_metadata(chunkstore_lib):
+     df = DataFrame(data={'data': np.random.randint(0, 100, size=2)},
+                   index=pd.date_range('2016-01-01', '2016-01-02'))
+     df.index.name = 'date'
+     chunkstore_lib.write('data', df, metadata = 'some metadata')
+     m = chunkstore_lib.read_metadata('data')
+     assert(m[0]['metadata'] == u'some metadata')
+     assert(len(m) == 2)
+
+
+def test_metadata_update(chunkstore_lib):
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=2)},
+                   index=pd.date_range('2016-01-01', '2016-01-02'))
+    df.index.name = 'date'
+    chunkstore_lib.write('data', df, metadata = 'some metadata', chunk_size='M')
+   
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=1)},
+                   index=pd.date_range('2016-01-02', '2016-01-02'))
+    df.index.name = 'date'
+    chunkstore_lib.update('data', df, metadata='different metadata')
+    m = chunkstore_lib.read_metadata('data')
+    assert(len(m) == 1)
+    assert(m[0]['metadata'] == u'different metadata') 
+
+
+def test_metadata_nosymbol(chunkstore_lib):
+    with pytest.raises(NoDataFoundException):
+        chunkstore_lib.read_metadata('None')
+
+
+def test_metadata_none(chunkstore_lib):
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=2)},
+                   index=pd.date_range('2016-01-01', '2016-01-02'))
+    df.index.name = 'date'
+    chunkstore_lib.write('data', df, chunk_size='M')
+    assert(chunkstore_lib.read_metadata('data') == [])
