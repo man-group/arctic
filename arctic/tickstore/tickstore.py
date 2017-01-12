@@ -460,7 +460,7 @@ class TickStore(object):
             if sharding:
                 res['sharding'].update(sharding)
             res['sharding']['collections'] = list(conn.config.collections.find(
-                                                  {'_id': {'$regex': '^' + db.name + "\..*"}}))
+                                                  {'_id': {'$regex': '^' + db.name + r"\..*"}}))
         except OperationFailure:
             # Access denied
             pass
