@@ -1230,8 +1230,7 @@ def test_metadata(chunkstore_lib):
      df.index.name = 'date'
      chunkstore_lib.write('data', df, metadata = 'some metadata')
      m = chunkstore_lib.read_metadata('data')
-     assert(m[0]['metadata'] == u'some metadata')
-     assert(len(m) == 2)
+     assert(m == u'some metadata')
 
 
 def test_metadata_update(chunkstore_lib):
@@ -1245,8 +1244,7 @@ def test_metadata_update(chunkstore_lib):
     df.index.name = 'date'
     chunkstore_lib.update('data', df, metadata='different metadata')
     m = chunkstore_lib.read_metadata('data')
-    assert(len(m) == 1)
-    assert(m[0]['metadata'] == u'different metadata') 
+    assert(m == u'different metadata') 
 
 
 def test_metadata_nosymbol(chunkstore_lib):
@@ -1259,4 +1257,27 @@ def test_metadata_none(chunkstore_lib):
                    index=pd.date_range('2016-01-01', '2016-01-02'))
     df.index.name = 'date'
     chunkstore_lib.write('data', df, chunk_size='M')
-    assert(chunkstore_lib.read_metadata('data') == [])
+    assert(chunkstore_lib.read_metadata('data') == None)
+
+
+def test_metadata_invalid(chunkstore_lib):
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=2)},
+                   index=pd.date_range('2016-01-01', '2016-01-02'))
+    df.index.name = 'date'
+    with pytest.raises(Exception) as e:
+        chunkstore_lib.write('data', df, chunk_size='M', metadata=df)
+
+
+def test_write_metadata(chunkstore_lib):
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=2)},
+                   index=pd.date_range('2016-01-01', '2016-01-02'))
+    df.index.name = 'date'
+    chunkstore_lib.write('data', df)
+    chunkstore_lib.write_metadata('data', 'meta')
+    m = chunkstore_lib.read_metadata('data')
+    assert(m == u'meta')
+
+
+def test_write_metadata_nosymbol(chunkstore_lib):
+    with pytest.raises(NoDataFoundException):
+        chunkstore_lib.write_metadata('doesnt_exist', 'meta')

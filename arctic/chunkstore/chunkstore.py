@@ -257,7 +257,7 @@ class ChunkStore(object):
         item: Dataframe or Series
             the data to write the database
         metadata: ?
-            optional per chunk metadata
+            optional per symbol metadata
         chunker: Object of type Chunker
             A chunker that chunks the data in item
         kwargs:
@@ -279,13 +279,13 @@ class ChunkStore(object):
         doc[LEN] = len(item)
         doc[SERIALIZER] = self.serializer.TYPE
         doc[CHUNKER] = chunker.TYPE
+        doc[USERMETA] = metadata
 
         sym = self._get_symbol_info(symbol)
         if sym:
             previous_shas = set([Binary(x[SHA]) for x in self._collection.find({SYMBOL: symbol},
                                                                                projection={SHA: True, '_id': False},
                                                                                )])
-
         op = False
         bulk = self._collection.initialize_unordered_bulk_op()
         meta_bulk = self._mdata.initialize_unordered_bulk_op()
@@ -297,8 +297,6 @@ class ChunkStore(object):
             doc[CHUNK_SIZE] = chunk_size
             doc[METADATA] = {'columns': data[METADATA][COLUMNS] if COLUMNS in data[METADATA] else ''}
             meta = data[METADATA]
-            if metadata is not None:
-                meta[USERMETA] = metadata
 
             size_chunked = len(data[DATA]) > MAX_CHUNK_SIZE
             for i in xrange(int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)):
@@ -381,8 +379,6 @@ class ChunkStore(object):
 
             data = SER_MAP[sym[SERIALIZER]].serialize(record)
             meta = data[METADATA]
-            if metadata is not None:
-                meta[USERMETA] = metadata
             op = True
 
             # remove old segments for this chunk in case we now have less
@@ -422,6 +418,7 @@ class ChunkStore(object):
             bulk.execute()
             meta_bulk.execute()
 
+        sym[USERMETA] = metadata
         self._symbols.replace_one({SYMBOL: symbol}, sym)
 
     def append(self, symbol, item, metadata=None):
@@ -437,7 +434,7 @@ class ChunkStore(object):
         item: DataFrame or Series
             the data to append
         metadata: ?
-            optional per chunk metadata
+            optional per symbol metadata
         """
         sym = self._get_symbol_info(symbol)
         if not sym:
@@ -457,7 +454,7 @@ class ChunkStore(object):
         item: DataFrame or Series
             the data to update
         metadata: ?
-            optional per chunk metadata
+            optional per symbol metadata
         chunk_range: None, or a range object
             If a range is specified, it will clear/delete the data within the
             range and overwrite it with the data in item. This allows the user
@@ -508,7 +505,7 @@ class ChunkStore(object):
         ret['serializer'] = sym[SERIALIZER]
         return ret
 
-    def read_metadata(self, symbol, chunk_range=None):
+    def read_metadata(self, symbol):
         '''
         Reads user defined metadata out for the given symbol
         
@@ -516,27 +513,34 @@ class ChunkStore(object):
         ----------
         symbol: str
             symbol for the given item in the DB
-        chunk_range: None, or a range object
-            subset chunks by range
         
         Returns
         -------
-        List of dict
+        ?
         '''
         sym = self._get_symbol_info(symbol)
         if not sym:
             raise NoDataFoundException("Symbol does not exist.")
-        c = CHUNKER_MAP[sym[CHUNKER]]
+        x = self._symbols.find_one({SYMBOL: symbol})
+        return x[USERMETA] if USERMETA in x else None
 
-        spec = {SYMBOL: symbol, USERMETA: {'$exists': True}}
-        if chunk_range:
-            spec.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
+    def write_metadata(self, symbol, metadata):
+        '''
+        writes user defined metadata for the given symbol
 
-        x = [{'start': x[START], 'end': x[END], 'metadata': x[USERMETA]} for x in self._mdata.find(spec,
-                                         projection={START: True, END: True, USERMETA: True, '_id': False},
-                                         sort=[(START, pymongo.ASCENDING)])]
-        return x
- 
+        Parameters
+        ----------
+        symbol: str
+            symbol for the given item in the DB
+        metadata: ?
+            metadata to write
+        '''
+        sym = self._get_symbol_info(symbol)
+        if not sym:
+            raise NoDataFoundException("Symbol does not exist.")
+
+        sym[USERMETA] = metadata
+        self._symbols.replace_one({SYMBOL: symbol}, sym)
 
     def get_chunk_ranges(self, symbol, chunk_range=None, reverse=False):
         """
