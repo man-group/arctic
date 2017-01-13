@@ -19,8 +19,8 @@ TickStoreLibrary = namedtuple("TickStoreLibrary", ["library", "date_range"])
 
 TICK_STORE_TYPE = 'TopLevelTickStore'
 
-PATTERN = "^%s_\d{4}.%s"
-YEAR_REGEX = re.compile("\d{4}")
+PATTERN = r"^%s_\d{4}.%s"
+YEAR_REGEX = re.compile(r"\d{4}")
 
 end_time_min = (dt.combine(date.today(), time.min) - timedelta(milliseconds=1)).time()
 
