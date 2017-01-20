@@ -30,6 +30,7 @@ APPEND_COUNT = 'ac'
 LEN = 'l'
 SERIALIZER = 'se'
 CHUNKER = 'ch'
+USERMETA = 'u'
 
 MAX_CHUNK_SIZE = 15 * 1024 * 1024
 
@@ -245,7 +246,7 @@ class ChunkStore(object):
             return data
         return CHUNKER_MAP[sym[CHUNKER]].filter(data, chunk_range)
 
-    def write(self, symbol, item, chunker=DateChunker(), **kwargs):
+    def write(self, symbol, item, metadata=None, chunker=DateChunker(), **kwargs):
         """
         Writes data from item to symbol in the database
 
@@ -255,6 +256,8 @@ class ChunkStore(object):
             the symbol that will be used to reference the written data
         item: Dataframe or Series
             the data to write the database
+        metadata: ?
+            optional per symbol metadata
         chunker: Object of type Chunker
             A chunker that chunks the data in item
         kwargs:
@@ -276,13 +279,13 @@ class ChunkStore(object):
         doc[LEN] = len(item)
         doc[SERIALIZER] = self.serializer.TYPE
         doc[CHUNKER] = chunker.TYPE
+        doc[USERMETA] = metadata
 
         sym = self._get_symbol_info(symbol)
         if sym:
             previous_shas = set([Binary(x[SHA]) for x in self._collection.find({SYMBOL: symbol},
                                                                                projection={SHA: True, '_id': False},
                                                                                )])
-
         op = False
         bulk = self._collection.initialize_unordered_bulk_op()
         meta_bulk = self._mdata.initialize_unordered_bulk_op()
@@ -334,7 +337,7 @@ class ChunkStore(object):
                                               {'$set': doc},
                                               upsert=True)
 
-    def __update(self, sym, item, combine_method=None, chunk_range=None):
+    def __update(self, sym, item, metadata=None, combine_method=None, chunk_range=None):
         '''
         helper method used by update and append since they very closely
         resemble eachother. Really differ only by the combine method.
@@ -415,9 +418,10 @@ class ChunkStore(object):
             bulk.execute()
             meta_bulk.execute()
 
+        sym[USERMETA] = metadata
         self._symbols.replace_one({SYMBOL: symbol}, sym)
 
-    def append(self, symbol, item):
+    def append(self, symbol, item, metadata=None):
         """
         Appends data from item to symbol's data in the database.
 
@@ -429,13 +433,15 @@ class ChunkStore(object):
             the symbol for the given item in the DB
         item: DataFrame or Series
             the data to append
+        metadata: ?
+            optional per symbol metadata
         """
         sym = self._get_symbol_info(symbol)
         if not sym:
             raise NoDataFoundException("Symbol does not exist.")
-        self.__update(sym, item, combine_method=SER_MAP[sym[SERIALIZER]].combine)
+        self.__update(sym, item, metadata=metadata, combine_method=SER_MAP[sym[SERIALIZER]].combine)
 
-    def update(self, symbol, item, chunk_range=None, upsert=False, **kwargs):
+    def update(self, symbol, item, metadata=None, chunk_range=None, upsert=False, **kwargs):
         """
         Overwrites data in DB with data in item for the given symbol.
 
@@ -447,6 +453,8 @@ class ChunkStore(object):
             the symbol for the given item in the DB
         item: DataFrame or Series
             the data to update
+        metadata: ?
+            optional per symbol metadata
         chunk_range: None, or a range object
             If a range is specified, it will clear/delete the data within the
             range and overwrite it with the data in item. This allows the user
@@ -462,15 +470,15 @@ class ChunkStore(object):
         sym = self._get_symbol_info(symbol)
         if not sym:
             if upsert:
-                return self.write(symbol, item, **kwargs)
+                return self.write(symbol, item, metadata=metadata, **kwargs)
             else:
                 raise NoDataFoundException("Symbol does not exist.")
         if chunk_range is not None:
             if len(CHUNKER_MAP[sym[CHUNKER]].filter(item, chunk_range)) == 0:
                 raise Exception('Range must be inclusive of data')
-            self.__update(sym, item, combine_method=self.serializer.combine, chunk_range=chunk_range)
+            self.__update(sym, item, metadata=metadata, combine_method=self.serializer.combine, chunk_range=chunk_range)
         else:
-            self.__update(sym, item, combine_method=lambda old, new: new, chunk_range=chunk_range)
+            self.__update(sym, item, metadata=metadata, combine_method=lambda old, new: new, chunk_range=chunk_range)
 
     def get_info(self, symbol):
         """
@@ -496,6 +504,43 @@ class ChunkStore(object):
         ret['chunk_size'] = sym[CHUNK_SIZE]
         ret['serializer'] = sym[SERIALIZER]
         return ret
+
+    def read_metadata(self, symbol):
+        '''
+        Reads user defined metadata out for the given symbol
+        
+        Parameters
+        ----------
+        symbol: str
+            symbol for the given item in the DB
+        
+        Returns
+        -------
+        ?
+        '''
+        sym = self._get_symbol_info(symbol)
+        if not sym:
+            raise NoDataFoundException("Symbol does not exist.")
+        x = self._symbols.find_one({SYMBOL: symbol})
+        return x[USERMETA] if USERMETA in x else None
+
+    def write_metadata(self, symbol, metadata):
+        '''
+        writes user defined metadata for the given symbol
+
+        Parameters
+        ----------
+        symbol: str
+            symbol for the given item in the DB
+        metadata: ?
+            metadata to write
+        '''
+        sym = self._get_symbol_info(symbol)
+        if not sym:
+            raise NoDataFoundException("Symbol does not exist.")
+
+        sym[USERMETA] = metadata
+        self._symbols.replace_one({SYMBOL: symbol}, sym)
 
     def get_chunk_ranges(self, symbol, chunk_range=None, reverse=False):
         """
