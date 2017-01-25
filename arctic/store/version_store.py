@@ -6,8 +6,7 @@ from pymongo import ReadPreference
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect
 
-from .._util import indent, enable_powerof2sizes, \
-    enable_sharding
+from .._util import indent, enable_sharding
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
@@ -50,12 +49,6 @@ class VersionStore(object):
             th.initialize_library(arctic_lib, **kwargs)
         VersionStore._bson_handler.initialize_library(arctic_lib, **kwargs)
         VersionStore(arctic_lib)._ensure_index()
-
-        logger.info("Trying to enable usePowerOf2Sizes...")
-        try:
-            enable_powerof2sizes(arctic_lib.arctic, arctic_lib.get_name())
-        except OperationFailure as e:
-            logger.error("Library created, but couldn't enable usePowerOf2Sizes: %s" % str(e))
 
         logger.info("Trying to enable sharding...")
         try:
