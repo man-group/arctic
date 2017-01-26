@@ -118,8 +118,8 @@ class ChunkStore(object):
             symbol name for the item
         chunk_range: range object
             a date range to delete
-        audit: json
-            json to store in the audit log
+        audit: dict
+            dict to store in the audit log
         """
         if chunk_range is not None:
             sym = self._get_symbol_info(symbol)
@@ -178,9 +178,6 @@ class ChunkStore(object):
 
     def _get_symbol_info(self, symbol):
         return self._symbols.find_one({SYMBOL: symbol})
-    
-    def _get_audit_info(self, symbol):
-        return self._audit.find_one({SYMBOL: symbol})
 
     def rename(self, from_symbol, to_symbol, audit=None):
         """

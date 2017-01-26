@@ -8,6 +8,7 @@ import numpy as np
 import random
 import pytest
 import pymongo
+import pickle
 
 from arctic.chunkstore.chunkstore import START, SYMBOL
 from arctic.chunkstore.passthrough_chunker import PassthroughChunker
@@ -994,6 +995,10 @@ def test_rename(chunkstore_lib):
     with pytest.raises(Exception) as e:
         chunkstore_lib.rename('new_name', 'new_name')
     assert('already exists' in str(e))
+    
+    with pytest.raises(NoDataFoundException) as e:
+        chunkstore_lib.rename('doesnt_exist', 'temp')
+    assert('No data found for doesnt_exist' in str(e))
 
     assert('test' not in chunkstore_lib.list_symbols())
 
@@ -1297,6 +1302,8 @@ def test_audit(chunkstore_lib):
     chunkstore_lib.write('data', df, audit={'user': 'other_user'})    
     
     assert(len(chunkstore_lib.read_audit_log()) == 2)
+    assert(len(chunkstore_lib.read_audit_log(symbol='data')) == 2)
+    assert(len(chunkstore_lib.read_audit_log(symbol='none')) == 0)
     
     chunkstore_lib.append('data', df, audit={'user': 'test_user'})
     assert(chunkstore_lib.read_audit_log()[-1]['appended_rows'] == 10)
@@ -1306,3 +1313,23 @@ def test_audit(chunkstore_lib):
     df.index.name = 'date'
     chunkstore_lib.update('data', df, audit={'user': 'other_user'})    
     assert(chunkstore_lib.read_audit_log()[-1]['new_chunks'] == 5)
+    
+    chunkstore_lib.rename('data', 'data_new', audit={'user': 'temp_user'})
+    assert(chunkstore_lib.read_audit_log()[-1]['action'] == 'symbol rename')
+    
+    chunkstore_lib.delete('data_new', chunk_range=DateRange('2016-01-01', '2016-01-02'), audit={'user': 'test_user'})
+    chunkstore_lib.delete('data_new', audit={'user': 'test_user'})
+    assert(chunkstore_lib.read_audit_log()[-1]['action'] == 'symbol delete')
+    assert(chunkstore_lib.read_audit_log()[-2]['action'] == 'range delete')
+
+
+def test_chunkstore_misc(chunkstore_lib):
+    
+    p = pickle.dumps(chunkstore_lib)
+    c = pickle.loads(p)
+    assert(chunkstore_lib._arctic_lib.get_name() == c._arctic_lib.get_name())
+    
+    assert("arctic_test.TEST" in str(chunkstore_lib))
+    assert(str(chunkstore_lib) == repr(chunkstore_lib))
+    
+    
