@@ -83,6 +83,7 @@ class ChunkStore(object):
         self._collection = arctic_lib.get_top_level_collection()
         self._symbols = self._collection.symbols
         self._mdata = self._collection.metadata
+        self._audit = self._collection.audit
 
     def __getstate__(self):
         return {'arctic_lib': self._arctic_lib}
@@ -107,7 +108,7 @@ class ChunkStore(object):
         sha.update(data)
         return Binary(sha.digest())
 
-    def delete(self, symbol, chunk_range=None):
+    def delete(self, symbol, chunk_range=None, audit=None):
         """
         Delete all chunks for a symbol, or optionally, chunks within a range
 
@@ -117,6 +118,8 @@ class ChunkStore(object):
             symbol name for the item
         chunk_range: range object
             a date range to delete
+        audit: json
+            json to store in the audit log
         """
         if chunk_range is not None:
             sym = self._get_symbol_info(symbol)
@@ -144,6 +147,16 @@ class ChunkStore(object):
             self._collection.delete_many(query)
             self._symbols.delete_many(query)
             self._mdata.delete_many(query)
+        
+        if audit is not None:
+            audit['symbol'] = symbol
+            if chunk_range is not None:
+                audit['rows_deleted'] = row_adjust
+                audit['action'] = 'range delete'
+            else:
+                audit['action'] = 'symbol delete'
+            
+            self._audit.insert_one(audit)
 
     def list_symbols(self, partial_match=None):
         """
@@ -165,8 +178,11 @@ class ChunkStore(object):
 
     def _get_symbol_info(self, symbol):
         return self._symbols.find_one({SYMBOL: symbol})
+    
+    def _get_audit_info(self, symbol):
+        return self._audit.find_one({SYMBOL: symbol})
 
-    def rename(self, from_symbol, to_symbol):
+    def rename(self, from_symbol, to_symbol, audit=None):
         """
         Rename a symbol
 
@@ -176,6 +192,8 @@ class ChunkStore(object):
             the existing symbol that will be renamed
         to_symbol: str
             the new symbol name
+        audit: dict
+            audit information
         """
 
         sym = self._get_symbol_info(from_symbol)
@@ -191,6 +209,14 @@ class ChunkStore(object):
                                               {'$set': {SYMBOL: to_symbol}})
         mongo_retry(self._mdata.update_many)({SYMBOL: from_symbol},
                                              {'$set': {SYMBOL: to_symbol}})
+        mongo_retry(self._audit.update_many)({'symbol': from_symbol},
+                                             {'$set': {'symbol': to_symbol}})
+        if audit is not None:
+            audit['symbol'] = to_symbol
+            audit['action'] = 'symbol rename'
+            audit['old_symbol'] = from_symbol
+            self._audit.insert_one(audit)
+        
 
     def read(self, symbol, chunk_range=None, filter_data=True, **kwargs):
         """
@@ -245,8 +271,25 @@ class ChunkStore(object):
         if not filter_data or chunk_range is None:
             return data
         return CHUNKER_MAP[sym[CHUNKER]].filter(data, chunk_range)
+    
+    def read_audit_log(self, symbol=None):
+        """
+        Reads the audit log
+        
+        Parameters
+        ----------
+        symbol: str
+            optionally only retrieve specific symbol's audit information
+            
+        Returns
+        -------
+        list of dicts
+        """
+        if symbol:
+            return [x for x in self._audit.find({'symbol': symbol}, {'_id': False})]
+        return [x for x in self._audit.find({}, {'_id': False})]
 
-    def write(self, symbol, item, metadata=None, chunker=DateChunker(), **kwargs):
+    def write(self, symbol, item, metadata=None, chunker=DateChunker(), audit=None, **kwargs):
         """
         Writes data from item to symbol in the database
 
@@ -260,6 +303,8 @@ class ChunkStore(object):
             optional per symbol metadata
         chunker: Object of type Chunker
             A chunker that chunks the data in item
+        audit: dict
+            audit information
         kwargs:
             optional keyword args that are passed to the chunker. Includes:
             chunk_size:
@@ -336,8 +381,13 @@ class ChunkStore(object):
         mongo_retry(self._symbols.update_one)({SYMBOL: symbol},
                                               {'$set': doc},
                                               upsert=True)
+        if audit is not None:
+            audit['symbol'] = symbol
+            audit['action'] = 'write'
+            audit['chunks'] = chunk_count
+            self._audit.insert_one(audit)
 
-    def __update(self, sym, item, metadata=None, combine_method=None, chunk_range=None):
+    def __update(self, sym, item, metadata=None, combine_method=None, chunk_range=None, audit=None):
         '''
         helper method used by update and append since they very closely
         resemble eachother. Really differ only by the combine method.
@@ -361,6 +411,8 @@ class ChunkStore(object):
         op = False
         chunker = CHUNKER_MAP[sym[CHUNKER]]
 
+        appended = 0
+        new_chunks = 0
         for start, end, _, record in chunker.to_chunks(item, chunk_size=sym[CHUNK_SIZE]):
             # read out matching chunks
             df = self.read(symbol, chunk_range=chunker.to_range(start, end), filter_data=False)
@@ -371,10 +423,12 @@ class ChunkStore(object):
                 if record is None or record.equals(df):
                     continue
 
-                sym[APPEND_COUNT] += len(record)
+                sym[APPEND_COUNT] += len(record) - len(df)
+                appended += len(record) - len(df)
                 sym[LEN] += len(record) - len(df)
             else:
                 sym[CHUNK_COUNT] += 1
+                new_chunks += 1
                 sym[LEN] += len(record)
 
             data = SER_MAP[sym[SERIALIZER]].serialize(record)
@@ -420,8 +474,14 @@ class ChunkStore(object):
 
         sym[USERMETA] = metadata
         self._symbols.replace_one({SYMBOL: symbol}, sym)
+        if audit is not None:
+            if new_chunks > 0:
+                audit['new_chunks'] = new_chunks
+            if appended > 0:
+                audit['appended_rows'] = appended
+            self._audit.insert_one(audit)
 
-    def append(self, symbol, item, metadata=None):
+    def append(self, symbol, item, metadata=None, audit=None):
         """
         Appends data from item to symbol's data in the database.
 
@@ -435,13 +495,18 @@ class ChunkStore(object):
             the data to append
         metadata: ?
             optional per symbol metadata
+        audit: dict
+            optional audit information
         """
         sym = self._get_symbol_info(symbol)
         if not sym:
             raise NoDataFoundException("Symbol does not exist.")
-        self.__update(sym, item, metadata=metadata, combine_method=SER_MAP[sym[SERIALIZER]].combine)
+        if audit is not None:
+            audit['symbol'] = symbol
+            audit['action'] = 'append'
+        self.__update(sym, item, metadata=metadata, combine_method=SER_MAP[sym[SERIALIZER]].combine, audit=audit)
 
-    def update(self, symbol, item, metadata=None, chunk_range=None, upsert=False, **kwargs):
+    def update(self, symbol, item, metadata=None, chunk_range=None, upsert=False, audit=None, **kwargs):
         """
         Overwrites data in DB with data in item for the given symbol.
 
@@ -462,6 +527,8 @@ class ChunkStore(object):
             original data.
         upsert: bool
             if True, will write the data even if the symbol does not exist.
+        audit: dict
+            optional audit information
         kwargs:
             optional keyword args passed to write during an upsert. Includes:
             chunk_size
@@ -470,15 +537,18 @@ class ChunkStore(object):
         sym = self._get_symbol_info(symbol)
         if not sym:
             if upsert:
-                return self.write(symbol, item, metadata=metadata, **kwargs)
+                return self.write(symbol, item, metadata=metadata, audit=audit, **kwargs)
             else:
                 raise NoDataFoundException("Symbol does not exist.")
+        if audit is not None:
+            audit['symbol'] = symbol
+            audit['action'] = 'update'
         if chunk_range is not None:
             if len(CHUNKER_MAP[sym[CHUNKER]].filter(item, chunk_range)) == 0:
                 raise Exception('Range must be inclusive of data')
-            self.__update(sym, item, metadata=metadata, combine_method=self.serializer.combine, chunk_range=chunk_range)
+            self.__update(sym, item, metadata=metadata, combine_method=self.serializer.combine, chunk_range=chunk_range, audit=audit)
         else:
-            self.__update(sym, item, metadata=metadata, combine_method=lambda old, new: new, chunk_range=chunk_range)
+            self.__update(sym, item, metadata=metadata, combine_method=lambda old, new: new, chunk_range=chunk_range, audit=audit)
 
     def get_info(self, symbol):
         """
@@ -499,6 +569,7 @@ class ChunkStore(object):
         ret = {}
         ret['chunk_count'] = sym[CHUNK_COUNT]
         ret['len'] = sym[LEN]
+        ret['appended_rows'] = sym[APPEND_COUNT]
         ret['metadata'] = sym[METADATA]
         ret['chunker'] = sym[CHUNKER]
         ret['chunk_size'] = sym[CHUNK_SIZE]

@@ -661,6 +661,7 @@ def test_get_info(chunkstore_lib):
                    )
     chunkstore_lib.write('test_df', df)
     info = {'len': 3,
+            'appended_rows': 0,
             'chunk_count': 3,
             'metadata': {'columns': [u'date', u'id', u'data']},
             'chunker': u'date',
@@ -688,6 +689,7 @@ def test_get_info_after_append(chunkstore_lib):
     assert_frame_equal(chunkstore_lib.read('test_df'), pd.concat([df, df2]).sort_index())
 
     info = {'len': 6,
+            'appended_rows': 2,
             'chunk_count': 4,
             'metadata': {'columns': [u'date', u'id', u'data']},
             'chunker': u'date',
@@ -715,6 +717,7 @@ def test_get_info_after_update(chunkstore_lib):
     chunkstore_lib.update('test_df', df2)
 
     info = {'len': 4,
+            'appended_rows': 0,
             'chunk_count': 4,
             'metadata': {'columns': [u'date', u'id', u'data']},
             'chunker': u'date',
@@ -1225,12 +1228,12 @@ def test_stats(chunkstore_lib):
 
 
 def test_metadata(chunkstore_lib):
-     df = DataFrame(data={'data': np.random.randint(0, 100, size=2)},
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=2)},
                    index=pd.date_range('2016-01-01', '2016-01-02'))
-     df.index.name = 'date'
-     chunkstore_lib.write('data', df, metadata = 'some metadata')
-     m = chunkstore_lib.read_metadata('data')
-     assert(m == u'some metadata')
+    df.index.name = 'date'
+    chunkstore_lib.write('data', df, metadata = 'some metadata')
+    m = chunkstore_lib.read_metadata('data')
+    assert(m == u'some metadata')
 
 
 def test_metadata_update(chunkstore_lib):
@@ -1281,3 +1284,25 @@ def test_write_metadata(chunkstore_lib):
 def test_write_metadata_nosymbol(chunkstore_lib):
     with pytest.raises(NoDataFoundException):
         chunkstore_lib.write_metadata('doesnt_exist', 'meta')
+
+
+def test_audit(chunkstore_lib):
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=2)},
+                   index=pd.date_range('2016-01-01', '2016-01-02'))
+    df.index.name = 'date'
+    chunkstore_lib.write('data', df, audit={'user': 'test_user'})
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=10)},
+                   index=pd.date_range('2016-01-01', '2016-01-10'))
+    df.index.name = 'date'
+    chunkstore_lib.write('data', df, audit={'user': 'other_user'})    
+    
+    assert(len(chunkstore_lib.read_audit_log()) == 2)
+    
+    chunkstore_lib.append('data', df, audit={'user': 'test_user'})
+    assert(chunkstore_lib.read_audit_log()[-1]['appended_rows'] == 10)
+
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=5)},
+                   index=pd.date_range('2017-01-01', '2017-01-5'))
+    df.index.name = 'date'
+    chunkstore_lib.update('data', df, audit={'user': 'other_user'})    
+    assert(chunkstore_lib.read_audit_log()[-1]['new_chunks'] == 5)
