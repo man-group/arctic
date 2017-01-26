@@ -90,7 +90,6 @@ def test_ts_write_named_col(tickstore_lib):
     assert data.a[0] == 1
     assert(data.index.name is None)
     data.index.name = 'IndexName'
-    print data.index.names[0]
     
     tickstore_lib.delete('SYM')
     tickstore_lib.write('SYM', data)
