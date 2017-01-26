@@ -4,6 +4,7 @@
   * Bugfix:  #300 to_datetime deprecated in pandas, use to_pydatetime instead
   * Bugfix:  #309 formatting change for DateRange ```__str__```
   * Feature: #313 set and read user specified metadata in chunkstore
+  * Feature: #319 Audit log support in ChunkStore
 
 ### 1.36 (2016-12-13)
   
