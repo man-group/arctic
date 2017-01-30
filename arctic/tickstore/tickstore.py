@@ -509,7 +509,8 @@ class TickStore(object):
         data : list of dicts or a pandas.DataFrame
             List of ticks to store to the tick-store.
             if a list of dicts, each dict must contain a 'index' datetime
-            if a pandas.DataFrame the index must be a Timestamp that can be converted to a datetime
+            if a pandas.DataFrame the index must be a Timestamp that can be converted to a datetime.
+            Index names will not be preserved.
         initial_image : dict
             Dict of the initial image at the start of the document. If this contains a 'index' entry it is
             assumed to be the time of the timestamp of the index
@@ -628,6 +629,7 @@ class TickStore(object):
         logger.warning("NB treating all values as 'exists' - no longer sparse")
         rowmask = Binary(lz4.compressHC(np.packbits(np.ones(len(df), dtype='uint8'))))
 
+        index_name = df.index.names[0] or "index"
         recs = df.to_records(convert_datetime64=False)
         for col in df:
             array = TickStore._ensure_supported_dtypes(recs[col])
@@ -636,9 +638,8 @@ class TickStore(object):
             col_data[ROWMASK] = rowmask
             col_data[DTYPE] = TickStore._str_dtype(array.dtype)
             rtn[COLUMNS][col] = col_data
-        rtn[INDEX] = Binary(lz4.compressHC(np.concatenate(([recs['index'][0].astype('datetime64[ms]').view('uint64')],
-                                                           np.diff(recs['index'].astype('datetime64[ms]').view('uint64')))
-                                                          ).tostring()))
+        rtn[INDEX] = Binary(lz4.compressHC(np.concatenate(([recs[index_name][0].astype('datetime64[ms]').view('uint64')],
+                                                           np.diff(recs[index_name].astype('datetime64[ms]').view('uint64')))).tostring()))
         return rtn, final_image
 
     @staticmethod
