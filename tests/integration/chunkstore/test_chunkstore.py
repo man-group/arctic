@@ -8,6 +8,7 @@ import numpy as np
 import random
 import pytest
 import pymongo
+import pickle
 
 from arctic.chunkstore.chunkstore import START, SYMBOL
 from arctic.chunkstore.passthrough_chunker import PassthroughChunker
@@ -661,6 +662,7 @@ def test_get_info(chunkstore_lib):
                    )
     chunkstore_lib.write('test_df', df)
     info = {'len': 3,
+            'appended_rows': 0,
             'chunk_count': 3,
             'metadata': {'columns': [u'date', u'id', u'data']},
             'chunker': u'date',
@@ -688,6 +690,7 @@ def test_get_info_after_append(chunkstore_lib):
     assert_frame_equal(chunkstore_lib.read('test_df'), pd.concat([df, df2]).sort_index())
 
     info = {'len': 6,
+            'appended_rows': 2,
             'chunk_count': 4,
             'metadata': {'columns': [u'date', u'id', u'data']},
             'chunker': u'date',
@@ -715,6 +718,7 @@ def test_get_info_after_update(chunkstore_lib):
     chunkstore_lib.update('test_df', df2)
 
     info = {'len': 4,
+            'appended_rows': 0,
             'chunk_count': 4,
             'metadata': {'columns': [u'date', u'id', u'data']},
             'chunker': u'date',
@@ -991,6 +995,10 @@ def test_rename(chunkstore_lib):
     with pytest.raises(Exception) as e:
         chunkstore_lib.rename('new_name', 'new_name')
     assert('already exists' in str(e))
+    
+    with pytest.raises(NoDataFoundException) as e:
+        chunkstore_lib.rename('doesnt_exist', 'temp')
+    assert('No data found for doesnt_exist' in str(e))
 
     assert('test' not in chunkstore_lib.list_symbols())
 
@@ -1225,12 +1233,12 @@ def test_stats(chunkstore_lib):
 
 
 def test_metadata(chunkstore_lib):
-     df = DataFrame(data={'data': np.random.randint(0, 100, size=2)},
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=2)},
                    index=pd.date_range('2016-01-01', '2016-01-02'))
-     df.index.name = 'date'
-     chunkstore_lib.write('data', df, metadata = 'some metadata')
-     m = chunkstore_lib.read_metadata('data')
-     assert(m == u'some metadata')
+    df.index.name = 'date'
+    chunkstore_lib.write('data', df, metadata = 'some metadata')
+    m = chunkstore_lib.read_metadata('data')
+    assert(m == u'some metadata')
 
 
 def test_metadata_update(chunkstore_lib):
@@ -1281,3 +1289,47 @@ def test_write_metadata(chunkstore_lib):
 def test_write_metadata_nosymbol(chunkstore_lib):
     with pytest.raises(NoDataFoundException):
         chunkstore_lib.write_metadata('doesnt_exist', 'meta')
+
+
+def test_audit(chunkstore_lib):
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=2)},
+                   index=pd.date_range('2016-01-01', '2016-01-02'))
+    df.index.name = 'date'
+    chunkstore_lib.write('data', df, audit={'user': 'test_user'})
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=10)},
+                   index=pd.date_range('2016-01-01', '2016-01-10'))
+    df.index.name = 'date'
+    chunkstore_lib.write('data', df, audit={'user': 'other_user'})    
+    
+    assert(len(chunkstore_lib.read_audit_log()) == 2)
+    assert(len(chunkstore_lib.read_audit_log(symbol='data')) == 2)
+    assert(len(chunkstore_lib.read_audit_log(symbol='none')) == 0)
+    
+    chunkstore_lib.append('data', df, audit={'user': 'test_user'})
+    assert(chunkstore_lib.read_audit_log()[-1]['appended_rows'] == 10)
+
+    df = DataFrame(data={'data': np.random.randint(0, 100, size=5)},
+                   index=pd.date_range('2017-01-01', '2017-01-5'))
+    df.index.name = 'date'
+    chunkstore_lib.update('data', df, audit={'user': 'other_user'})    
+    assert(chunkstore_lib.read_audit_log()[-1]['new_chunks'] == 5)
+    
+    chunkstore_lib.rename('data', 'data_new', audit={'user': 'temp_user'})
+    assert(chunkstore_lib.read_audit_log()[-1]['action'] == 'symbol rename')
+    
+    chunkstore_lib.delete('data_new', chunk_range=DateRange('2016-01-01', '2016-01-02'), audit={'user': 'test_user'})
+    chunkstore_lib.delete('data_new', audit={'user': 'test_user'})
+    assert(chunkstore_lib.read_audit_log()[-1]['action'] == 'symbol delete')
+    assert(chunkstore_lib.read_audit_log()[-2]['action'] == 'range delete')
+
+
+def test_chunkstore_misc(chunkstore_lib):
+    
+    p = pickle.dumps(chunkstore_lib)
+    c = pickle.loads(p)
+    assert(chunkstore_lib._arctic_lib.get_name() == c._arctic_lib.get_name())
+    
+    assert("arctic_test.TEST" in str(chunkstore_lib))
+    assert(str(chunkstore_lib) == repr(chunkstore_lib))
+    
+    
