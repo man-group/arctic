@@ -1,6 +1,8 @@
 ## Changelog
 
-### 1.37
+### 1.38
+
+### 1.37 (2017-1-31)
   * Bugfix:  #300 to_datetime deprecated in pandas, use to_pydatetime instead
   * Bugfix:  #309 formatting change for DateRange ```__str__```
   * Feature: #313 set and read user specified metadata in chunkstore
