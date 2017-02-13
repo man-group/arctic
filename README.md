@@ -126,7 +126,7 @@ It wouldn't be possible without the work of the AHL Data Engineering Team includ
  * [Vlad Mereuta](https://github.com/vmereuta)
  * [Tom Taylor](https://github.com/TomTaylorLondon)
  * Tope Olukemi
- * Drake Siard
+ * [Drake Siard](https://github.com/drakesiard)
  * [Slavi Marinov](https://github.com/slavi)
  * [Wilfred Hughes](https://github.com/wilfred)
  * [Edward Easton](https://github.com/eeaston)
