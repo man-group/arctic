@@ -1,6 +1,7 @@
 ## Changelog
 
 ### 1.38
+  * Bugfix:  #324 Datetime indexes must be sorted in chunkstore
 
 ### 1.37 (2017-1-31)
   * Bugfix:  #300 to_datetime deprecated in pandas, use to_pydatetime instead
