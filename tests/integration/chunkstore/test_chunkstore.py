@@ -1331,5 +1331,33 @@ def test_chunkstore_misc(chunkstore_lib):
     
     assert("arctic_test.TEST" in str(chunkstore_lib))
     assert(str(chunkstore_lib) == repr(chunkstore_lib))
+
+
+def test_unsorted_index(chunkstore_lib):
+    df = pd.DataFrame({'date': [dt(2016,9,1), dt(2016,8,31)],
+                       'vals': range(2)}).set_index('date')
+    df2 = pd.DataFrame({'date': [dt(2016,9,2), dt(2016,9,1)],
+                        'vals': range(2)}).set_index('date')
     
+    chunkstore_lib.write('test_symbol', df)
+    assert_frame_equal(df.sort_index(), chunkstore_lib.read('test_symbol'))
+    chunkstore_lib.update('test_symbol', df2)
+    assert_frame_equal(chunkstore_lib.read('test_symbol'), 
+                       pd.DataFrame({'date': pd.date_range('2016-8-31',
+                                                           '2016-9-2'),
+                                     'vals': [1,1,0]}).set_index('date'))
     
+def test_unsorted_date_col(chunkstore_lib):
+    df = pd.DataFrame({'date': [dt(2016,9,1), dt(2016,8,31)],
+                       'vals': range(2)})
+    df2 = pd.DataFrame({'date': [dt(2016,9,2), dt(2016,9,1)],
+                        'vals': range(2)})
+
+    chunkstore_lib.write('test_symbol', df)
+    assert_frame_equal(df.sort(columns='date').reset_index(drop=True), chunkstore_lib.read('test_symbol'))
+    chunkstore_lib.update('test_symbol', df2)
+    assert_frame_equal(chunkstore_lib.read('test_symbol'), 
+                       pd.DataFrame({'date': pd.date_range('2016-8-31',
+                                                           '2016-9-2'),
+                                     'vals': [1,1,0]}))
+
