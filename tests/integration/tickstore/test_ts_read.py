@@ -85,12 +85,12 @@ def test_read_allow_secondary(tickstore_lib):
 
 def test_read_symbol_as_column(tickstore_lib):
     data = [{'ASK': 1545.25,
-                  'index': 1185076787070},
-                 {'CUMVOL': 354.0,
-                  'index': 1185141600600}]
+             'index': 1185076787070},
+            {'CUMVOL': 354.0,
+             'index': 1185141600600}]
     tickstore_lib.write('FEED::SYMBOL', data)
 
-    df = tickstore_lib.read('FEED::SYMBOL', columns=['SYMBOL'])
+    df = tickstore_lib.read('FEED::SYMBOL', columns=['SYMBOL', 'CUMVOL'])
     assert all(df['SYMBOL'].values == ['FEED::SYMBOL'])
 
 
@@ -596,15 +596,12 @@ def test_read_with_image(tickstore_lib):
     # Read one column from the updates
     df = tickstore_lib.read('SYM', columns=('a',), date_range=dr, include_images=True)
     assert set(df.columns) == set(('a',))
-    assert_array_equal(df['a'].values, np.array([37, 1, np.nan]))
+    assert_array_equal(df['a'].values, np.array([37, 1]))
     assert df.index[0] == dt(2013, 1, 1, 10, tzinfo=mktz('Europe/London'))
     assert df.index[1] == dt(2013, 1, 1, 11, tzinfo=mktz('Europe/London'))
-    assert df.index[2] == dt(2013, 1, 1, 12, tzinfo=mktz('Europe/London'))
 
     # Read just the image column
     df = tickstore_lib.read('SYM', columns=['c'], date_range=dr, include_images=True)
     assert set(df.columns) == set(['c'])
-    assert_array_equal(df['c'].values, np.array([2, np.nan, np.nan]))
+    assert_array_equal(df['c'].values, np.array([2]))
     assert df.index[0] == dt(2013, 1, 1, 10, tzinfo=mktz('Europe/London'))
-    assert df.index[1] == dt(2013, 1, 1, 11, tzinfo=mktz('Europe/London'))
-    assert df.index[2] == dt(2013, 1, 1, 12, tzinfo=mktz('Europe/London'))
