@@ -2,6 +2,8 @@
 
 ### 1.38
 
+  * Feature: #290 improve performance of tickstore column reads
+
 ### 1.37 (2017-1-31)
   * Bugfix:  #300 to_datetime deprecated in pandas, use to_pydatetime instead
   * Bugfix:  #309 formatting change for DateRange ```__str__```
