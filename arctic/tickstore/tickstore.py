@@ -414,10 +414,25 @@ class TickStore(object):
             raise ArcticException("Unhandled document version: %s" % doc[VERSION])
         rtn[INDEX] = np.cumsum(np.fromstring(lz4.decompress(doc[INDEX]), dtype='uint64'))
         doc_length = len(rtn[INDEX])
-        rtn_length = len(rtn[INDEX])
+        column_set.update(doc[COLUMNS].keys())
+
+        # get the mask for the columns we're about to load
+        union_mask = np.zeros((doc_length + 7) // 8, dtype='uint8')
+        for c in column_set:
+            try:
+                coldata = doc[COLUMNS][c]
+                mask = np.fromstring(lz4.decompress(coldata[ROWMASK]), dtype='uint8')
+                union_mask = union_mask | mask
+            except KeyError:
+                rtn[c] = None
+        union_mask = np.unpackbits(union_mask)[:doc_length].astype('bool')
+        rtn_length = np.sum(union_mask)
+
+        rtn[INDEX] = rtn[INDEX][union_mask]
         if include_symbol:
             rtn['SYMBOL'] = [doc[SYMBOL], ] * rtn_length
-        column_set.update(doc[COLUMNS].keys())
+
+        # Unpack each requested column in turn
         for c in column_set:
             try:
                 coldata = doc[COLUMNS][c]
@@ -427,6 +442,7 @@ class TickStore(object):
                 rtn[c] = self._empty(rtn_length, dtype=column_dtypes[c])
                 rowmask = np.unpackbits(np.fromstring(lz4.decompress(coldata[ROWMASK]),
                                                       dtype='uint8'))[:doc_length].astype('bool')
+                rowmask = rowmask[union_mask]
                 rtn[c][rowmask] = values
             except KeyError:
                 rtn[c] = None

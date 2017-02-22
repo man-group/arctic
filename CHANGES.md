@@ -3,6 +3,8 @@
 ### 1.38
   * Bugfix:  #324 Datetime indexes must be sorted in chunkstore
 
+  * Feature: #290 improve performance of tickstore column reads
+
 ### 1.37 (2017-1-31)
   * Bugfix:  #300 to_datetime deprecated in pandas, use to_pydatetime instead
   * Bugfix:  #309 formatting change for DateRange ```__str__```
