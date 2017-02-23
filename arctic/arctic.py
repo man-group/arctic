@@ -65,7 +65,7 @@ class Arctic(object):
 
     def __init__(self, mongo_host, app_name=APPLICATION_NAME, allow_secondary=False,
                  socketTimeoutMS=10 * 60 * 1000, connectTimeoutMS=2 * 1000,
-                 serverSelectionTimeoutMS=30 * 1000):
+                 serverSelectionTimeoutMS=30 * 1000, replicaSet=None):
         """
         Constructs a Arctic Datastore.
 
@@ -95,6 +95,7 @@ class Arctic(object):
         self._connect_timeout = connectTimeoutMS
         self._server_selection_timeout = serverSelectionTimeoutMS
         self._lock = threading.Lock()
+        self._replicaSet = replicaSet
 
         if isinstance(mongo_host, string_types):
             self.mongo_host = mongo_host
@@ -113,10 +114,11 @@ class Arctic(object):
                 host = get_mongodb_uri(self.mongo_host)
                 logger.info("Connecting to mongo: {0} ({1})".format(self.mongo_host, host))
                 self.__conn = pymongo.MongoClient(host=host,
-                                                   maxPoolSize=self._MAX_CONNS,
-                                                   socketTimeoutMS=self._socket_timeout,
-                                                   connectTimeoutMS=self._connect_timeout,
-                                                   serverSelectionTimeoutMS=self._server_selection_timeout)
+                                                  maxPoolSize=self._MAX_CONNS,
+                                                  socketTimeoutMS=self._socket_timeout,
+                                                  connectTimeoutMS=self._connect_timeout,
+                                                  serverSelectionTimeoutMS=self._server_selection_timeout,
+                                                  replicaSet=self._replicaSet)
                 self._adminDB = self.__conn.admin
 
                 # Authenticate against admin for the user
