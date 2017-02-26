@@ -21,8 +21,6 @@ from setuptools import setup
 from setuptools.extension import Extension
 from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
-from Cython.Build import cythonize
-import six
 import sys
 
 # Convert Markdown to RST for PyPI
@@ -34,6 +32,12 @@ try:
 except (IOError, ImportError, OSError):
     long_description = open('README.md').read()
     changelog = open('CHANGES.md').read()
+
+# setuptools DWIM monkey-patch madness: http://dou.bz/37m3XL
+# https://pypi.python.org/pypi/setuptools_cython/
+if 'setuptools.extension' in sys.modules:
+    m = sys.modules['setuptools.extension']
+    m.Extension.__dict__ = m._Extension.__dict__
 
 
 class PyTest(TestCommand):
@@ -53,6 +57,7 @@ class PyTest(TestCommand):
 
         # import here, cause outside the eggs aren't loaded
         import pytest
+        import six
 
         args = [self.pytest_args] if isinstance(self.pytest_args, six.string_types) else list(self.pytest_args)
         args.extend(['--cov', 'arctic',
@@ -81,9 +86,10 @@ setup(
     packages=find_packages(exclude=['tests', 'tests.*', 'benchmarks']),
     long_description='\n'.join((long_description, changelog)),
     cmdclass={'test': PyTest},
-    ext_modules=cythonize(compress),
+    ext_modules=[compress],
     setup_requires=["Cython",
                     "numpy",
+                    "setuptools_cython",
                     "setuptools-git",
                     ],
     install_requires=["decorator",
@@ -94,6 +100,7 @@ setup(
                       "pymongo>=3.0",
                       "python-dateutil",
                       "pytz",
+                      "six",
                       "tzlocal",
                       ],
     tests_require=["mock",
