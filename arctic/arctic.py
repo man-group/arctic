@@ -130,6 +130,12 @@ class Arctic(object):
 
             return self.__conn
 
+    def close(self):
+        with self._lock:
+            if self.__conn is not None:
+                self.__conn.close()
+                self.__conn = None
+
     def __str__(self):
         return "<Arctic at %s, connected to %s>" % (hex(id(self)), str(self._conn))
 

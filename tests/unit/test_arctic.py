@@ -382,3 +382,15 @@ def test__conn_auth_issue():
         a._conn
         assert he.call_count == 1
         assert auth_timeout[0]
+
+
+def test_close():
+    c = MagicMock()
+    with patch('pymongo.MongoClient', return_value=c, autospec=True) as mc:
+                store = Arctic('hostname')
+                # do something to trigger lazy arctic init
+                store.list_libraries()
+                store.close()
+                # Doesn't matter how many times we call it:
+                store.close()
+                c.close.assert_called_once()
