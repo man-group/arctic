@@ -71,16 +71,18 @@ class ChunkStore(object):
                                   (END, pymongo.ASCENDING)],
                                  unique=True, background=True)
 
-    @mongo_retry
     def __init__(self, arctic_lib):
         self._arctic_lib = arctic_lib
         self.serializer = FrametoArraySerializer()
 
         # Do we allow reading from secondaries
         self._allow_secondary = self._arctic_lib.arctic._allow_secondary
+        self._reset()
 
+    @mongo_retry
+    def _reset(self):
         # The default collection
-        self._collection = arctic_lib.get_top_level_collection()
+        self._collection = self._arctic_lib.get_top_level_collection()
         self._symbols = self._collection.symbols
         self._mdata = self._collection.metadata
         self._audit = self._collection.audit

@@ -9,7 +9,7 @@ import pandas as pd
 import pymongo
 
 from ..date import mktz, DateRange, OPEN_OPEN, CLOSED_CLOSED, to_dt
-
+from ..decorators import mongo_retry
 from ..exceptions import (NoDataFoundException, UnhandledDtypeException, OverlappingDataException,
                           LibraryNotFoundException)
 
@@ -61,9 +61,12 @@ class TopLevelTickStore(object):
 
     def __init__(self, arctic_lib):
         self._arctic_lib = arctic_lib
+        self._reset()
 
+    @mongo_retry
+    def _reset(self):
         # The default collections
-        self._collection = arctic_lib.get_top_level_collection()
+        self._collection = self._arctic_lib.get_top_level_collection()
 
     def add(self, date_range, library_name):
         """

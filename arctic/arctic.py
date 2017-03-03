@@ -130,6 +130,14 @@ class Arctic(object):
 
             return self.__conn
 
+    def reset(self):
+        with self._lock:
+            if self.__conn is not None:
+                self.__conn.close()
+                self.__conn = None
+            for _, l in self._library_cache.items():
+                l._reset()
+
     def __str__(self):
         return "<Arctic at %s, connected to %s>" % (hex(id(self)), str(self._conn))
 
@@ -376,9 +384,17 @@ class ArcticLibraryBinding(object):
         database_name, library = self._parse_db_lib(library)
         self.library = library
         self.database_name = database_name
-        self._db = self.arctic._conn[database_name]
-        self._auth(self._db)
-        self._library_coll = self._db[library]
+        self.get_top_level_collection()  # Eagerly trigger auth
+
+    @property
+    def _db(self):
+        db = self.arctic._conn[self.database_name]
+        self._auth(db)
+        return db
+
+    @property
+    def _library_coll(self):
+        return self._db[self.library]
 
     def __str__(self):
         return """<ArcticLibrary at %s, %s.%s>
