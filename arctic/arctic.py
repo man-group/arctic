@@ -94,7 +94,7 @@ class Arctic(object):
         self._socket_timeout = socketTimeoutMS
         self._connect_timeout = connectTimeoutMS
         self._server_selection_timeout = serverSelectionTimeoutMS
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
         if isinstance(mongo_host, string_types):
             self.mongo_host = mongo_host
