@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.40
+  * BugFix: #330 Make Arctic._lock reentrant 
+
 ### 1.39
   * Feature:  #329 Add reset() method to Arctic 
 
