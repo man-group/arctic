@@ -69,15 +69,16 @@ class VersionStore(object):
         for th in _TYPE_HANDLERS:
             th._ensure_index(collection)
 
-    @mongo_retry
     def __init__(self, arctic_lib):
         self._arctic_lib = arctic_lib
-
         # Do we allow reading from secondaries
         self._allow_secondary = self._arctic_lib.arctic._allow_secondary
+        self._reset()
 
+    @mongo_retry
+    def _reset(self):
         # The default collections
-        self._collection = arctic_lib.get_top_level_collection()
+        self._collection = self._arctic_lib.get_top_level_collection()
         self._audit = self._collection.audit
         self._snapshots = self._collection.snapshots
         self._versions = self._collection.versions

@@ -102,14 +102,15 @@ class TickStore(object):
             if the library was obtained through get_library then set with: self._chuck_size = 10000
         """
         self._arctic_lib = arctic_lib
-
         # Do we allow reading from secondaries
         self._allow_secondary = self._arctic_lib.arctic._allow_secondary
-
-        # The default collections
-        self._collection = arctic_lib.get_top_level_collection()
-
         self._chunk_size = chunk_size
+        self._reset()
+
+    @mongo_retry
+    def _reset(self):
+        # The default collections
+        self._collection = self._arctic_lib.get_top_level_collection()
 
     def __getstate__(self):
         return {'arctic_lib': self._arctic_lib}
