@@ -1,8 +1,10 @@
 ## Changelog
 
+### 1.39
+  * Feature:  #329 Add reset() method to Arctic 
+
 ### 1.38
   * Bugfix:  #324 Datetime indexes must be sorted in chunkstore
-
   * Feature: #290 improve performance of tickstore column reads
 
 ### 1.37 (2017-1-31)
