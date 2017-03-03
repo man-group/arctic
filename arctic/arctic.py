@@ -132,6 +132,7 @@ class Arctic(object):
 
     def close(self):
         with self._lock:
+            self._library_cache = {}
             if self.__conn is not None:
                 self.__conn.close()
                 self.__conn = None
