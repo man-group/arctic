@@ -23,11 +23,11 @@ def test_connect_to_Arctic_connection(mongo_server, mongo_host):
     assert arctic.mongo_host == mongo_host
 
 
-def test_close_Arctic(mongo_host):
+def test_reset_Arctic(mongo_host):
     arctic = Arctic(mongo_host=mongo_host)
     arctic.list_libraries()
     c = arctic._conn
-    arctic.close()
+    arctic.reset()
     assert len(c.nodes) == 0
 
 
