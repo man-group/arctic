@@ -635,7 +635,7 @@ class ChunkStore(object):
         c = CHUNKER_MAP[sym[CHUNKER]]
 
         spec = {SYMBOL: symbol}
-        if chunk_range:
+        if chunk_range is not None:
             spec.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
 
         for x in self._collection.find(spec,

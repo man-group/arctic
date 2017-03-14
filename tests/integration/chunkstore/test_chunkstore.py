@@ -1361,3 +1361,9 @@ def test_unsorted_date_col(chunkstore_lib):
                                                            '2016-9-2'),
                                      'vals': [1,1,0]}))
 
+
+def test_chunk_range_with_dti(chunkstore_lib):
+    df = pd.DataFrame({'date': [dt(2016,9,1), dt(2016,8,31)],
+                       'vals': range(2)})
+    chunkstore_lib.write('data', df)
+    assert(len(list(chunkstore_lib.get_chunk_ranges('data', chunk_range=pd.date_range(dt(2016,1,1), dt(2016, 12, 31))))) == 2)
