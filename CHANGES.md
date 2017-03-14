@@ -1,12 +1,15 @@
 ## Changelog
 
-### 1.40
+### 1.41
+  * Bugfix: #334 Chunk range param with pandas object fails in chunkstore.get_chunk_ranges
+
+### 1.40 (2017-03-03)
   * BugFix: #330 Make Arctic._lock reentrant 
 
-### 1.39
+### 1.39 (2017-03-03)
   * Feature:  #329 Add reset() method to Arctic 
 
-### 1.38
+### 1.38 (2017-02-22)
   * Bugfix:  #324 Datetime indexes must be sorted in chunkstore
   * Feature: #290 improve performance of tickstore column reads
 
