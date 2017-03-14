@@ -1366,4 +1366,4 @@ def test_chunk_range_with_dti(chunkstore_lib):
     df = pd.DataFrame({'date': [dt(2016,9,1), dt(2016,8,31)],
                        'vals': range(2)})
     chunkstore_lib.write('data', df)
-    assert(len(chunkstore_lib.get_chunk_rages('data', pd.date_range(dt(2016,1,1), dt(2016, 12, 31)))) == 2)
+    assert(len(chunkstore_lib.get_chunk_ranges('data', pd.date_range(dt(2016,1,1), dt(2016, 12, 31)))) == 2)
