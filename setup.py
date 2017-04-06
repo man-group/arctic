@@ -23,8 +23,9 @@ from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
 from Cython.Build import cythonize
 import six
-import sys, os
-os.environ["CC"] = "g++-6"; os.environ["CXX"] = "g++-6" # gcc-4.2 on Mac OS X does not work with OpenMP
+import sys, os, platform
+if platform.system().lower() == 'darwin':
+    os.environ["CC"] = "g++-6"; os.environ["CXX"] = "g++-6" # gcc-4.2 on Mac OS X does not work with OpenMP
 
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672
