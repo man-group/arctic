@@ -231,3 +231,21 @@ def test_save_append_delete_append(library):
     # Check that we don't get the orphaned chunk from v2 back again.
     assert np.all(np.concatenate([ndarr, sliver2]) == library.read('MYARR', as_of=v3.version).data)
 
+
+def test_append_after_failed_append(library):
+    dtype = np.dtype([('abc', 'int64')])
+    ndarr = np.arange(30 / dtype.itemsize).view(dtype=dtype)
+
+    v1 = library.write('MYARR', ndarr)
+
+    sliver = np.arange(3, 4).view(dtype=dtype)
+    v2 = library.append('MYARR', sliver)
+
+    # simulate a failed append - intentionally leave an orphaned chunk lying around here
+    library._delete_version('MYARR', v2.version, do_cleanup=False)
+
+    sliver2 = np.arange(3, 5).view(dtype=dtype)
+    v3 = library.append('MYARR', sliver2)
+
+    assert np.all(ndarr == library.read('MYARR', as_of=v1.version).data)
+    assert np.all(np.concatenate([ndarr, sliver2]) == library.read('MYARR', as_of=v3.version).data)

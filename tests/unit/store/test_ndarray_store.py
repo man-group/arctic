@@ -75,12 +75,13 @@ def test_promote_dtype_throws_if_column_is_removed():
 def test_concat_and_rewrite_checks_chunk_count():
     self = create_autospec(NdarrayStore)
     collection = create_autospec(Collection)
-    version = {'up_to': sentinel.up_to}
+    version = {}
     previous_version = {'_id': sentinel.id,
                         'base_version_id': sentinel.base_version_id,
                         'version': sentinel.version,
                         'segment_count' : 3,
-                        'append_count' : 1}
+                        'append_count' : 1,
+                        'up_to': sentinel.up_to}
     symbol = sentinel.symbol
     item = sentinel.item
 
@@ -95,9 +96,9 @@ def test_concat_and_rewrite_checks_written():
     self = create_autospec(NdarrayStore)
     collection = create_autospec(Collection)
     version = {'_id': sentinel.version_id,
-               'up_to': sentinel.up_to,
                'segment_count': 1}
     previous_version = {'_id': sentinel.id,
+                       'up_to': sentinel.up_to,
                         'base_version_id': sentinel.base_version_id,
                         'version': sentinel.version,
                         'segment_count' : 5,
@@ -119,9 +120,9 @@ def test_concat_and_rewrite_checks_updated():
     self = create_autospec(NdarrayStore)
     collection = create_autospec(Collection)
     version = {'_id': sentinel.version_id,
-               'up_to': sentinel.up_to,
                'segment_count': 1}
     previous_version = {'_id': sentinel.id,
+                        'up_to': sentinel.up_to,
                         'base_version_id': sentinel.base_version_id,
                         'version': sentinel.version,
                         'segment_count' : 5,

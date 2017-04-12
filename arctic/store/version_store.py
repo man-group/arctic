@@ -472,10 +472,16 @@ class VersionStore(object):
             return self.write(symbol=symbol, data=data, prune_previous_version=prune_previous_version, metadata=metadata)
 
         assert previous_version is not None
+        dirty_append = False
 
-        # If the version numbers aren't in line, then we've lost some data.
-        next_ver = self._version_nums.find_one({'symbol': symbol})['version']
-        if next_ver != previous_version['version']:
+        # Take a version number for the append.
+        # If the version numbers aren't in line, then we've either had a failed append in the past,
+        # we're in the midst of a concurrent update, we've deleted a version and are somehow 'forking' history
+        next_ver = self._version_nums.find_one_and_update({'symbol': symbol, },
+                                                          {'$inc': {'version': 1}},
+                                                          upsert=False, new=True)['version']
+        if next_ver != previous_version['version'] + 1:
+            dirty_append = True
             logger.error('''version_nums is out of sync with previous version document.
             This probably means that either a version document write has previously failed, or the previous version has been deleted.
             There will be a gap in the data.''')
@@ -494,18 +500,12 @@ class VersionStore(object):
             version['metadata'] = previous_version['metadata']
 
         if handler and hasattr(handler, 'append'):
-            mongo_retry(handler.append)(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
+            mongo_retry(handler.append)(self._arctic_lib, version, symbol, data,
+                                        previous_version, dirty_append=dirty_append, **kwargs)
         else:
             raise Exception("Append not implemented for handler %s" % handler)
 
-        # Get the next version number  - check there hasn't been a concurrent write
-        next_ver = self._version_nums.find_one_and_update({'symbol': symbol, 'version': next_ver},
-                                                          {'$inc': {'version': 1}},
-                                                          upsert=False, new=True)
-        if next_ver is None:
-            raise OptimisticLockException()
-
-        version['version'] = next_ver['version']
+        version['version'] = next_ver
 
         # Insert the new version into the version DB
         mongo_retry(self._versions.insert_one)(version)
