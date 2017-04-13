@@ -61,7 +61,7 @@ def test_append_kill(library, mongo_host, library_name):
 
     def check_written():
         sym = library.read('symbol')
-        print "Checking written %d" % len(sym.data)
+        print("Checking written %d" % len(sym.data))
 
     # time how long it takes to do an append operation
     start = datetime.now()
@@ -71,7 +71,7 @@ def test_append_kill(library, mongo_host, library_name):
     time_taken = (datetime.now() - start).total_seconds()
 
     for i in xrange(100):
-        print "Loop %d" % i
+        print("Loop %d" % i)
         proc = run_append(100)
         # kill it randomly
         time.sleep(2 * (random.random() * time_taken))
