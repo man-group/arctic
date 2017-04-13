@@ -70,7 +70,7 @@ def test_append_kill(library, mongo_host, library_name):
     check_written()
     time_taken = (datetime.now() - start).total_seconds()
 
-    for i in xrange(100):
+    for i in range(100):
         print("Loop %d" % i)
         proc = run_append(100)
         # kill it randomly
