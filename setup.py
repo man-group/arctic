@@ -23,7 +23,9 @@ from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
 from Cython.Build import cythonize
 import six
-import sys
+import sys, os, platform
+if platform.system().lower() == 'darwin':
+    os.environ["CC"] = "g++-6"; os.environ["CXX"] = "g++-6" # gcc-4.2 on Mac OS X does not work with OpenMP
 
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672
@@ -66,7 +68,7 @@ class PyTest(TestCommand):
 # Cython lz4
 compress = Extension('arctic._compress',
                      sources=["src/_compress.pyx", "src/lz4.c", "src/lz4hc.c"],
-                     extra_compile_args=['-fopenmp'],
+                     extra_compile_args=['-fopenmp', '-fpermissive'], # Avoid compiling error with prange. Similar to http://stackoverflow.com/questions/36577182/unable-to-assign-value-to-array-in-prange
                      extra_link_args=['-fopenmp'])
 
 setup(
