@@ -25,7 +25,11 @@ from Cython.Build import cythonize
 import six
 import sys, os, platform
 if platform.system().lower() == 'darwin':
-    os.environ["CC"] = "g++-6"; os.environ["CXX"] = "g++-6" # gcc-4.2 on Mac OS X does not work with OpenMP
+    # gcc-4.2 on Mac OS X does not work with OpenMP
+    os.environ["CC"] = "g++-6"; os.environ["CXX"] = "g++-6"
+    # not all OSX/clang compiler flags supported by GCC. For some reason
+    # these sometimes are generated and used. Cython will still add more flags.
+    os.environ["CFLAGS"] = "-fno-common -fno-strict-aliasing -DENABLE_DTRACE -DMACOSX -DNDEBUG -Wall -g -fwrapv -Os"
 
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672
