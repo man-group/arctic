@@ -154,9 +154,9 @@ class PandasSeriesStore(PandasStore):
         item, md = self.SERIALIZER.serialize(item)
         super(PandasSeriesStore, self).write(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
-    def append(self, arctic_lib, version, symbol, item, previous_version):
+    def append(self, arctic_lib, version, symbol, item, previous_version, **kwargs):
         item, md = self.SERIALIZER.serialize(item)
-        super(PandasSeriesStore, self).append(arctic_lib, version, symbol, item, previous_version, dtype=md)
+        super(PandasSeriesStore, self).append(arctic_lib, version, symbol, item, previous_version, dtype=md, **kwargs)
 
     def read(self, arctic_lib, version, symbol, **kwargs):
         item = super(PandasSeriesStore, self).read(arctic_lib, version, symbol, **kwargs)
@@ -178,9 +178,9 @@ class PandasDataFrameStore(PandasStore):
         item, md = self.SERIALIZER.serialize(item)
         super(PandasDataFrameStore, self).write(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
-    def append(self, arctic_lib, version, symbol, item, previous_version):
+    def append(self, arctic_lib, version, symbol, item, previous_version, **kwargs):
         item, md = self.SERIALIZER.serialize(item)
-        super(PandasDataFrameStore, self).append(arctic_lib, version, symbol, item, previous_version, dtype=md)
+        super(PandasDataFrameStore, self).append(arctic_lib, version, symbol, item, previous_version, dtype=md, **kwargs)
 
     def read(self, arctic_lib, version, symbol, **kwargs):
         item = super(PandasDataFrameStore, self).read(arctic_lib, version, symbol, **kwargs)
@@ -220,5 +220,5 @@ class PandasPanelStore(PandasDataFrameStore):
             return item.iloc[:, 0].unstack().to_panel()
         return item.to_panel()
 
-    def append(self, arctic_lib, version, symbol, item, previous_version):
+    def append(self, arctic_lib, version, symbol, item, previous_version, **kwargs):
         raise ValueError('Appending not supported for pandas.Panel')
