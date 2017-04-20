@@ -2,6 +2,9 @@
 
 ### 1.41
   * Bugfix: #334 Chunk range param with pandas object fails in chunkstore.get_chunk_ranges
+  * Bugfix: #339 Depending on lz4<=0.8.2 to fix build errors
+  * Bugfix: #342 fixed compilation errors on Mac OSX
+  * Bugfix: #344 fixed data corruption problem with concurrent appends
 
 ### 1.40 (2017-03-03)
   * BugFix: #330 Make Arctic._lock reentrant 
