@@ -84,7 +84,7 @@ class PandasStore(NdarrayStore):
                 if start > dts[-1]:
                     return -1, -1
                 idxstart = min(np.searchsorted(dts, start), len(dts) - 1)
-                idxend = min(np.searchsorted(dts, end), len(dts) - 1)
+                idxend = min(np.searchsorted(dts, end, side='right'), len(dts) - 1)
                 return int(index['index'][idxstart]), int(index['index'][idxend] + 1)
         return super(PandasStore, self)._index_range(version, symbol, **kwargs)
 
