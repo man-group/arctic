@@ -588,7 +588,7 @@ class VersionStore(object):
         versions = list(versions_find({  # Find versions of this symbol
                                        'symbol': symbol,
                                        # Not snapshotted
-                                       '$or': [{'parent': {'$exists': False}}, {'parent': {'$size': 0}}],
+                                       '$or': [{'parent': {'$exists': False}}, {'parent': []}],
                                        # At least 'keep_mins' old
                                        '_id': {'$lt': bson.ObjectId.from_datetime(
                                                         dt.utcnow()
