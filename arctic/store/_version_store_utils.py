@@ -6,6 +6,7 @@ import pandas as pd
 import functools
 import six
 from pandas.compat import pickle_compat
+from ..decorators import mongo_retry
 
 
 def _split_arrs(array_2d, slices):
@@ -40,6 +41,7 @@ def checksum(symbol, doc):
     return Binary(sha.digest())
 
 
+@mongo_retry
 def cleanup(arctic_lib, symbol, version_ids):
     """
     Helper method for cleaning up chunks from a version store
@@ -54,7 +56,7 @@ def cleanup(arctic_lib, symbol, version_ids):
         collection.delete_many({'symbol': symbol,
                                'parent': {'$all': [v],
                                           '$size': 1},
-                               })
+                                })
         # Pull the parent from the parents field
         collection.update_many({'symbol': symbol,
                                 'parent': v},
