@@ -5,6 +5,7 @@
   * Bugfix: #339 Depending on lz4<=0.8.2 to fix build errors
   * Bugfix: #342 fixed compilation errors on Mac OSX
   * Bugfix: #344 fixed data corruption problem with concurrent appends
+  * Bugfix: #346 fixed daterange subsetting error on very large dateframes in version store
 
 ### 1.40 (2017-03-03)
   * BugFix: #330 Make Arctic._lock reentrant 
