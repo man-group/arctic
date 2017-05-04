@@ -952,4 +952,4 @@ def test_date_range_large(library):
     df = pd.DataFrame(index=index, data=data)
     library.write('test', df)
     r = library.read('test', date_range=DateRange(dt(2017,1,1), dt(2017,1,2)))
-    assert(len(df) == len(r.data))
+    assert_frame_equal(df, r.data)
