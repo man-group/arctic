@@ -11,8 +11,10 @@ from datetime import datetime
 from mock import patch
 import time
 import pytest
+import numpy as np
 
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException
+from arctic.date import DateRange
 
 from ...util import read_str_as_pandas
 from arctic.date._mktz import mktz
@@ -942,3 +944,12 @@ def test_list_symbols_regex(library):
     assert 'furble' not in library.list_symbols(a=1, regex='asd')
     assert library.list_symbols(a={'$gt': 5}, regex='asd') == []
     assert library.list_symbols(b={'$gt': 5}, regex='asd') == ['asdf']
+
+
+def test_date_range_large(library):
+    index = [dt(2017,1,1)]*20000 + [dt(2017,1,2)]*20000
+    data = np.random.random((40000, 10))
+    df = pd.DataFrame(index=index, data=data)
+    library.write('test', df)
+    r = library.read('test', date_range=DateRange(dt(2017,1,1), dt(2017,1,2)))
+    assert(len(df) == len(r.data))
