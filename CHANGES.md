@@ -6,6 +6,7 @@
   * Bugfix: #342 fixed compilation errors on Mac OSX
   * Bugfix: #344 fixed data corruption problem with concurrent appends
   * Bugfix: #346 fixed daterange subsetting error on very large dateframes in version store
+  * Bugfix: #351 $size queries can't use indexes, use alternative queries
 
 ### 1.40 (2017-03-03)
   * BugFix: #330 Make Arctic._lock reentrant 
