@@ -177,7 +177,7 @@ def test_prune_previous_versions_0_timeout():
     assert self._versions.with_options.call_args_list == [call(read_preference=ReadPreference.PRIMARY)]
     assert self._versions.with_options.return_value.find.call_args_list == [
                                                   call({'$or': [{'parent': {'$exists': False}},
-                                                                {'parent': {'$size': 0}}],
+                                                                {'parent': []}],
                                                         'symbol': sentinel.symbol,
                                                         '_id': {'$lt': bson.ObjectId('524a10810000000000000000')}},
                                                        sort=[('version', -1)],

@@ -52,9 +52,7 @@ def cleanup(arctic_lib, symbol, version_ids):
     for v in version_ids:
         # Remove all documents which only contain the parent
         collection.delete_many({'symbol': symbol,
-                               'parent': {'$all': [v],
-                                          '$size': 1},
-                               })
+                               'parent': [v]})
         # Pull the parent from the parents field
         collection.update_many({'symbol': symbol,
                                 'parent': v},
@@ -62,7 +60,7 @@ def cleanup(arctic_lib, symbol, version_ids):
 
     # Now remove all chunks which aren't parented - this is unlikely, as they will
     # have been removed by the above
-    collection.delete_one({'symbol':  symbol, 'parent': {'$size': 0}})
+    collection.delete_one({'symbol':  symbol, 'parent': []})
 
 
 def _define_compat_pickle_load():
