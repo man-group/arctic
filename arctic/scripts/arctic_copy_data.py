@@ -47,8 +47,8 @@ def copy_symbols_helper(src, dest, log, force, splice):
                         # No timezone on the original, should we even allow this?
                         preserve_start = preserve_start.replace(tzinfo=None)
                         preserve_end = preserve_end.replace(tzinfo=None)
-                    before = original_data.ix[:preserve_start]
-                    after = original_data.ix[preserve_end:]
+                    before = original_data[:preserve_start]
+                    after = original_data[preserve_end:]
                     new_data = before.append(new_data).append(after)
 
                 mt.write(symbol, new_data, metadata=version.metadata)
