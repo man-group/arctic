@@ -2,7 +2,10 @@ import logging
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex
-from pandas.tslib import Timestamp, get_timezone
+try:
+    from pandas.tslib import Timestamp, get_timezone
+except ImportError:
+    from pandas._libs.tslib import Timestamp, get_timezone
 
 
 log = logging.getLogger(__name__)
