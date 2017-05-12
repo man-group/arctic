@@ -5,7 +5,7 @@ from datetime import datetime
 import logging
 import types
 
-from pandas.tseries.tools import to_datetime as dt
+from pandas import to_datetime as dt
 
 import numpy as np
 import pandas as pd
