@@ -118,7 +118,7 @@ def test_slice_pandas_dataframe(start, end, expected_start_index, expected_end_i
     top_level_tick_store = TopLevelTickStore(Mock())
     dates = pd.date_range('20100101', periods=5, freq='2D')
     data = pd.DataFrame(np.random.randn(5, 4), index=dates, columns=list('ABCD'))
-    expected = data.ix[expected_start_index:expected_end_index]
+    expected = data.iloc[expected_start_index:expected_end_index]
     result = top_level_tick_store._slice(data, start, end)
     assert_frame_equal(expected, result), '{}\n{}'.format(expected, result)
 

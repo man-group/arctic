@@ -1354,7 +1354,7 @@ def test_unsorted_date_col(chunkstore_lib):
                         'vals': range(2)})
 
     chunkstore_lib.write('test_symbol', df)
-    assert_frame_equal(df.sort(columns='date').reset_index(drop=True), chunkstore_lib.read('test_symbol'))
+    assert_frame_equal(df.sort_values('date').reset_index(drop=True), chunkstore_lib.read('test_symbol'))
     chunkstore_lib.update('test_symbol', df2)
     assert_frame_equal(chunkstore_lib.read('test_symbol'), 
                        pd.DataFrame({'date': pd.date_range('2016-8-31',
