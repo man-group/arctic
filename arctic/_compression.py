@@ -4,16 +4,16 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# switch to parallel LZ4 compress (and potentially other parallel stuff), Default True
+ENABLE_PARALLEL = not os.environ.get('DISABLE_PARALLEL')
+LZ4_N_PARALLEL = 50  # No. of elements to use parellel compression in LZ4 mode
+
 try:
     from . import _compress as clz4
 except ImportError:
     logger.warning("Couldn't import cython lz4")
     import lz4 as clz4
-
-
-# switch to parallel LZ4 compress (and potentially other parallel stuff), Default True
-ENABLE_PARALLEL = not os.environ.get('DISABLE_PARALLEL')
-LZ4_N_PARALLEL = 50  # No. of elements to use parellel compression in LZ4 mode
+    ENABLE_PARALLEL = False
 
 
 def enable_parallel_lz4(mode):
