@@ -4,7 +4,7 @@ import numpy as np
 from numpy.testing.utils import assert_array_equal
 from pandas.util.testing import assert_frame_equal
 import pandas as pd
-from pandas.tseries.index import DatetimeIndex
+from pandas import DatetimeIndex
 from pymongo import ReadPreference
 import pytest
 import pytz
