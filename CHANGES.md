@@ -1,12 +1,14 @@
 ## Changelog
 
-### 1.41
+### 1.42 (2017-05-12)
+  * Bugfix: #346 fixed daterange subsetting error on very large dateframes in version store
+  * Bugfix: #351 $size queries can't use indexes, use alternative queries
+
+### 1.41 (2017-04-20)
   * Bugfix: #334 Chunk range param with pandas object fails in chunkstore.get_chunk_ranges
   * Bugfix: #339 Depending on lz4<=0.8.2 to fix build errors
   * Bugfix: #342 fixed compilation errors on Mac OSX
   * Bugfix: #344 fixed data corruption problem with concurrent appends
-  * Bugfix: #346 fixed daterange subsetting error on very large dateframes in version store
-  * Bugfix: #351 $size queries can't use indexes, use alternative queries
 
 ### 1.40 (2017-03-03)
   * BugFix: #330 Make Arctic._lock reentrant 
