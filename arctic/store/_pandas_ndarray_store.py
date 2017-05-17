@@ -3,8 +3,6 @@ import logging
 
 from bson.binary import Binary
 from pandas import DataFrame, Series, Panel
-from pandas.tslib import Timestamp, get_timezone
-
 import numpy as np
 
 from arctic.serialization.numpy_records import SeriesSerializer, DataFrameSerializer

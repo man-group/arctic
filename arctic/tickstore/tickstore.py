@@ -343,7 +343,7 @@ class TickStore(object):
             rtn = rtn.sort_index(kind='mergesort')
         if date_range:
             # FIXME: support DateRange.interval...
-            rtn = rtn.ix[date_range.start:date_range.end]
+            rtn = rtn.loc[date_range.start:date_range.end]
         return rtn
 
     def _pad_and_fix_dtypes(self, cols, column_dtypes):

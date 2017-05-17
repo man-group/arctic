@@ -29,7 +29,12 @@ class DateChunker(Chunker):
         elif 'date' in df.columns:
             dates = pd.DatetimeIndex(df.date)
             if not dates.is_monotonic_increasing:
-                df = df.sort(columns='date')
+                # providing support for pandas 0.16.2 to 0.20.x
+                # neither sort method exists in both
+                try:
+                    df = df.sort_values('date')
+                except AttributeError:
+                    df = df.sort(columns='date')
                 dates = pd.DatetimeIndex(df.date)
         else:
             raise Exception("Data must be datetime indexed or have a column named 'date'")

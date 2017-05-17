@@ -1,7 +1,7 @@
 from datetime import timedelta
 import itertools
 
-from pandas.tseries.tools import to_datetime as dt
+from pandas import to_datetime as dt
 from pandas.util.testing import assert_frame_equal
 
 from arctic.multi_index import groupby_asof, fancy_group_by, insert_at

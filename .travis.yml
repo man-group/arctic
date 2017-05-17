@@ -25,7 +25,7 @@ install:
   - pip install cython --upgrade
   - pip install pymongo --upgrade
   - pip install numpy --upgrade
-  - pip install pandas==0.19.2
+  - pip install pandas --upgrade
   - pip install decorator --upgrade
   - pip install enum34 --upgrade
   - pip install lz4==0.8.2

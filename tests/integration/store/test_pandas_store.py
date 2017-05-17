@@ -525,7 +525,7 @@ def panel(i1, i2, i3):
                  list(rrule(DAILY, count=i3, dtstart=dt(1970, 1, 1), interval=1)))
 
 
-@pytest.mark.skipif(pd.__version__ >= '0.18.0', reason="issue #115")
+@pytest.mark.xfail(pd.__version__ >= '0.18.0', reason="see issue #115")
 @pytest.mark.parametrize("df_size", list(itertools.combinations_with_replacement([1, 2, 4], r=3)))
 def test_panel_save_read(library, df_size):
     '''Note - empties are not tested here as they don't work!'''
@@ -540,6 +540,7 @@ def test_panel_save_read(library, df_size):
                 str(pn.axes[i].names) + "!=" + str(pn.axes[i].names)
 
 
+@pytest.mark.xfail(pd.__version__ >= '0.20.0', reason='Panel is deprecated')
 def test_panel_save_read_with_nans(library):
     '''Ensure that nan rows are not dropped when calling to_frame.'''
     df1 = DataFrame(data=np.arange(4).reshape((2, 2)), index=['r1', 'r2'], columns=['c1', 'c2'])
@@ -747,7 +748,7 @@ def test_daterange_append(library):
     saved_arr = library.read('MYARR').data
     assert_frame_equal(df, saved_arr, check_names=False)
     # append two more rows
-    rows = df.ix[-2:].copy()
+    rows = df.iloc[-2:].copy()
     rows.index = rows.index + dtd(days=1)
     library.append('MYARR', rows)
     # assert we can rows back out
@@ -755,7 +756,7 @@ def test_daterange_append(library):
     # assert we can read back the first array
     assert_frame_equal(df, library.read('MYARR', date_range=DateRange(df.index[0], df.index[-1])).data)
     # append two more rows
-    rows1 = df.ix[-2:].copy()
+    rows1 = df.iloc[-2:].copy()
     rows1.index = rows1.index + dtd(days=2)
     library.append('MYARR', rows1)
     # assert we can read a mix of data
