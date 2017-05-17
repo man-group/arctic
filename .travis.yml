@@ -28,7 +28,7 @@ install:
   - pip install pandas==0.19.2
   - pip install decorator --upgrade
   - pip install enum34 --upgrade
-  - pip install lz4 --upgrade
+  - pip install lz4==0.8.2
   - pip install mock --upgrade
   - pip install mockextras
   - pip install pytest --upgrade

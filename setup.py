@@ -94,7 +94,7 @@ setup(
                     ],
     install_requires=["decorator",
                       "enum34",
-                      "lz4",
+                      "lz4<=0.8.2",
                       "mockextras",
                       "pandas<=0.19.2",
                       "pymongo>=3.0",
