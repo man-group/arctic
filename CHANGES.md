@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.43
+  * Bugfix: #336 lz4 regression
+
 ### 1.42 (2017-05-12)
   * Bugfix: #346 fixed daterange subsetting error on very large dateframes in version store
   * Bugfix: #351 $size queries can't use indexes, use alternative queries
