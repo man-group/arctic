@@ -2,6 +2,7 @@
 
 ### 1.43
   * Bugfix: #350 remove deprecated pandas calls
+  * Bugfix: #360 version incorrect in empty append in VersionStore
 
 ### 1.42 (2017-05-12)
   * Bugfix: #346 fixed daterange subsetting error on very large dateframes in version store
