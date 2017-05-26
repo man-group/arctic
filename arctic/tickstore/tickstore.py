@@ -643,7 +643,7 @@ class TickStore(object):
         rtn[START] = start
 
         logger.warning("NB treating all values as 'exists' - no longer sparse")
-        rowmask = Binary(compressHC(np.packbits(np.ones(len(df), dtype='uint8'))))
+        rowmask = Binary(compressHC(np.packbits(np.ones(len(df), dtype='uint8')).tostring()))
 
         index_name = df.index.names[0] or "index"
         recs = df.to_records(convert_datetime64=False)
