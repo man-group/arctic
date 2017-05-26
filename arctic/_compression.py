@@ -27,9 +27,6 @@ def enable_parallel_lz4(mode):
 def compress_array(str_list):
     """
     Compress an array of strings
-
-    By default LZ4 mode is standard in interactive mode,
-    and high compresion in applications/scripts
     """
     if not ENABLE_PARALLEL:
         return [clz4.compress(s) for s in str_list]
