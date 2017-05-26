@@ -70,6 +70,6 @@ def decompress_array(str_list):
 def compressHC(_str):
     """
     HC compression
-   """
-   return clz4.compressHC(_str)
+    """
+    return clz4.compressHC(_str)
 
