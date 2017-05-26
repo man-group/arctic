@@ -4,7 +4,6 @@ import logging
 from bson.binary import Binary
 import copy
 from datetime import datetime as dt, timedelta
-import lz4
 import numpy as np
 import pandas as pd
 from pandas.core.frame import _arrays_to_mgr
@@ -17,7 +16,7 @@ from ..date import DateRange, to_pandas_closed_closed, mktz, datetime_to_ms, ms_
 from ..decorators import mongo_retry
 from ..exceptions import OverlappingDataException, NoDataFoundException, UnorderedDataException, UnhandledDtypeException, ArcticException
 from .._util import indent
-
+from arctic._compression import compress, compressHC, decompress
 
 logger = logging.getLogger(__name__)
 
@@ -413,7 +412,7 @@ class TickStore(object):
         rtn = {}
         if doc[VERSION] != 3:
             raise ArcticException("Unhandled document version: %s" % doc[VERSION])
-        rtn[INDEX] = np.cumsum(np.fromstring(lz4.decompress(doc[INDEX]), dtype='uint64'))
+        rtn[INDEX] = np.cumsum(np.fromstring(decompress(doc[INDEX]), dtype='uint64'))
         doc_length = len(rtn[INDEX])
         column_set.update(doc[COLUMNS].keys())
 
@@ -422,7 +421,7 @@ class TickStore(object):
         for c in column_set:
             try:
                 coldata = doc[COLUMNS][c]
-                mask = np.fromstring(lz4.decompress(coldata[ROWMASK]), dtype='uint8')
+                mask = np.fromstring(decompress(coldata[ROWMASK]), dtype='uint8')
                 union_mask = union_mask | mask
             except KeyError:
                 rtn[c] = None
@@ -438,11 +437,11 @@ class TickStore(object):
             try:
                 coldata = doc[COLUMNS][c]
                 dtype = np.dtype(coldata[DTYPE])
-                values = np.fromstring(lz4.decompress(coldata[DATA]), dtype=dtype)
+                values = np.fromstring(decompress(coldata[DATA]), dtype=dtype)
                 self._set_or_promote_dtype(column_dtypes, c, dtype)
                 rtn[c] = self._empty(rtn_length, dtype=column_dtypes[c])
-                rowmask = np.unpackbits(np.fromstring(lz4.decompress(coldata[ROWMASK]),
-                                                      dtype='uint8'))[:doc_length].astype('bool')
+                rowmask = np.unpackbits(np.fromstring(decompress(coldata[ROWMASK]),
+                                        dtype='uint8'))[:doc_length].astype('bool')
                 rowmask = rowmask[union_mask]
                 rtn[c][rowmask] = values
             except KeyError:
@@ -644,18 +643,18 @@ class TickStore(object):
         rtn[START] = start
 
         logger.warning("NB treating all values as 'exists' - no longer sparse")
-        rowmask = Binary(lz4.compressHC(np.packbits(np.ones(len(df), dtype='uint8'))))
+        rowmask = Binary(compressHC(np.packbits(np.ones(len(df), dtype='uint8'))))
 
         index_name = df.index.names[0] or "index"
         recs = df.to_records(convert_datetime64=False)
         for col in df:
             array = TickStore._ensure_supported_dtypes(recs[col])
             col_data = {}
-            col_data[DATA] = Binary(lz4.compressHC(array.tostring()))
+            col_data[DATA] = Binary(compressHC(array.tostring()))
             col_data[ROWMASK] = rowmask
             col_data[DTYPE] = TickStore._str_dtype(array.dtype)
             rtn[COLUMNS][col] = col_data
-        rtn[INDEX] = Binary(lz4.compressHC(np.concatenate(([recs[index_name][0].astype('datetime64[ms]').view('uint64')],
+        rtn[INDEX] = Binary(compressHC(np.concatenate(([recs[index_name][0].astype('datetime64[ms]').view('uint64')],
                                                            np.diff(recs[index_name].astype('datetime64[ms]').view('uint64')))).tostring()))
         return rtn, final_image
 
@@ -686,13 +685,13 @@ class TickStore(object):
                         rowmask[k][i] = 1
                     data[k] = [v]
 
-        rowmask = dict([(k, Binary(lz4.compressHC(np.packbits(v).tostring())))
+        rowmask = dict([(k, Binary(compressHC(np.packbits(v).tostring())))
                         for k, v in iteritems(rowmask)])
         for k, v in iteritems(data):
             if k != 'index':
                 v = np.array(v)
                 v = TickStore._ensure_supported_dtypes(v)
-                rtn[COLUMNS][k] = {DATA: Binary(lz4.compressHC(v.tostring())),
+                rtn[COLUMNS][k] = {DATA: Binary(compressHC(v.tostring())),
                                    DTYPE: TickStore._str_dtype(v.dtype),
                                    ROWMASK: rowmask[k]}
 
@@ -705,7 +704,7 @@ class TickStore(object):
             rtn[IMAGE_DOC] = {IMAGE_TIME: image_start, IMAGE: initial_image}
         rtn[END] = end
         rtn[START] =  start
-        rtn[INDEX] = Binary(lz4.compressHC(np.concatenate(([data['index'][0]], np.diff(data['index']))).tostring()))
+        rtn[INDEX] = Binary(compressHC(np.concatenate(([data['index'][0]], np.diff(data['index']))).tostring()))
         return rtn, final_image
 
     def max_date(self, symbol):

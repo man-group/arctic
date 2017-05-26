@@ -94,7 +94,6 @@ setup(
                     ],
     install_requires=["decorator",
                       "enum34",
-                      "lz4<=0.8.2",
                       "mockextras",
                       "pandas",
                       "pymongo>=3.0",
@@ -109,6 +108,7 @@ setup(
                    "pytest-server-fixtures",
                    "pytest-timeout",
                    "pytest-xdist",
+                   "lz4"
                    ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',

@@ -1,6 +1,5 @@
 import pandas as pd
 from six.moves import cPickle
-import lz4
 import pytest
 import sys
 from os import path
@@ -9,10 +8,11 @@ from bson.objectid import ObjectId
 from distutils.version import LooseVersion
 from mock import create_autospec, sentinel, Mock, call
 
-from arctic._compression import compress, decompress
+from arctic._compression import compress, decompress, compressHC
 from arctic.store._pickle_store import PickleStore
 from arctic.store._version_store_utils import checksum
 from arctic.exceptions import UnsupportedPickleStoreVersion
+
 
 PANDAS_VERSION = LooseVersion(pd.__version__)
 
@@ -47,7 +47,7 @@ def test_read():
 
 def test_read_object_backwards_compat():
     self = create_autospec(PickleStore)
-    version = {'blob': Binary(lz4.compressHC(cPickle.dumps(object)))}
+    version = {'blob': Binary(compressHC(cPickle.dumps(object)))}
     assert PickleStore.read(self, sentinel.arctic_lib, version, sentinel.symbol) == object
 
 
@@ -57,7 +57,7 @@ def test_read_object_2():
                'blob': '__chunked__'}
     coll = Mock()
     arctic_lib = Mock()
-    coll.find.return_value = [{'data': Binary(lz4.compressHC(cPickle.dumps(object))),
+    coll.find.return_value = [{'data': Binary(compressHC(cPickle.dumps(object))),
                                'symbol': 'sentinel.symbol'}
                               ]
     arctic_lib.get_top_level_collection.return_value = coll
@@ -87,7 +87,7 @@ def test_read_backward_compatibility():
 
     with open(fname) as fh:
         # PickleStore compresses data with lz4
-        version = {'blob': lz4.compressHC(fh.read())}
+        version = {'blob': compressHC(fh.read())}
     df = store.read(sentinel.arctic_lib, version, sentinel.symbol)
 
     expected = pd.DataFrame(range(4), pd.date_range(start="20150101", periods=4))
@@ -99,7 +99,7 @@ def test_unpickle_highest_protocol():
     container has been pickled with HIGHEST_PROTOCOL.
     """
     version = {
-        'blob': lz4.compressHC(cPickle.dumps(pd.Series(), protocol=cPickle.HIGHEST_PROTOCOL)),
+        'blob': compressHC(cPickle.dumps(pd.Series(), protocol=cPickle.HIGHEST_PROTOCOL)),
     }
 
     store = PickleStore()
@@ -115,7 +115,7 @@ def test_pickle_chunk_V1_read():
                'blob': '__chunked__'}
     coll = Mock()
     arctic_lib = Mock()
-    datap = lz4.compressHC(cPickle.dumps(data, protocol=cPickle.HIGHEST_PROTOCOL))
+    datap = compressHC(cPickle.dumps(data, protocol=cPickle.HIGHEST_PROTOCOL))
     data_1 = datap[0:5]
     data_2 = datap[5:]
     coll.find.return_value = [{'data': Binary(data_1),
@@ -137,7 +137,7 @@ def test_pickle_store_future_version():
                'blob': '__chunked__VERSION_ONE_MILLION'}
     coll = Mock()
     arctic_lib = Mock()
-    datap = lz4.compressHC(cPickle.dumps(data, protocol=cPickle.HIGHEST_PROTOCOL))
+    datap = compressHC(cPickle.dumps(data, protocol=cPickle.HIGHEST_PROTOCOL))
     data_1 = datap[0:5]
     data_2 = datap[5:]
     coll.find.return_value = [{'data': Binary(data_1),
