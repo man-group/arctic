@@ -1,10 +1,12 @@
 ## Changelog
 
 ### 1.43
+  * Feature: Appending older data (compare to what's exist in library) will raise. Use `concat=True` to append only the
+             new bits
   * Bugfix: #350 remove deprecated pandas calls
 
 ### 1.42 (2017-05-12)
-  * Bugfix: #346 fixed daterange subsetting error on very large dateframes in version store
+  * Bugfix: #346 fixed daterange subsetting error on very large dataframes in version store
   * Bugfix: #351 $size queries can't use indexes, use alternative queries
 
 ### 1.41 (2017-04-20)
