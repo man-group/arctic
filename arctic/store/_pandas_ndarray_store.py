@@ -1,16 +1,17 @@
 import ast
 import logging
 
+import lz4
+import numpy as np
 from bson.binary import Binary
 from pandas import DataFrame, Series, Panel
-import numpy as np
 
+from arctic.exceptions import UnorderedDataException
 from arctic.serialization.numpy_records import SeriesSerializer, DataFrameSerializer
+from ._ndarray_store import NdarrayStore
 from .._compression import compress, decompress
 from ..date._util import to_pandas_closed_closed
 from ..exceptions import ArcticException
-from ._ndarray_store import NdarrayStore
-
 
 log = logging.getLogger(__name__)
 
@@ -116,6 +117,24 @@ class PandasStore(NdarrayStore):
         ret['dtype'] = ast.literal_eval(version['dtype'])
         return ret
 
+    def read_segment_last_dt(self, version):
+        if 'segment_index' in version:
+            index = np.fromstring(lz4.decompress(version['segment_index']), dtype=INDEX_DTYPE)
+            dt_index = self._datetime64_index(index)
+            if dt_index:
+                return index[dt_index][-1]
+        return None
+
+    def slice_overlap_item_or_raise(self, item, previous_version, concat):
+        """If new item has overlap dt with previous version, keep only new bits if concat=True; raise if concat=False"""
+        prev_version_last_dt = self.read_segment_last_dt(previous_version)
+        if prev_version_last_dt and len(item) > 0 and item.index[0] <= prev_version_last_dt:
+            if concat:
+                item = item[item.index > prev_version_last_dt]
+            else:
+                raise UnorderedDataException(
+                    "new data {} before to symbol ending {}".format(item.index[0], prev_version_last_dt))
+        return item
 
 def _start_end(date_range, dts):
     """
@@ -152,7 +171,8 @@ class PandasSeriesStore(PandasStore):
         item, md = self.SERIALIZER.serialize(item)
         super(PandasSeriesStore, self).write(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
-    def append(self, arctic_lib, version, symbol, item, previous_version, **kwargs):
+    def append(self, arctic_lib, version, symbol, item, previous_version, concat=False, **kwargs):
+        item = self.slice_overlap_item_or_raise(item, previous_version, concat)
         item, md = self.SERIALIZER.serialize(item)
         super(PandasSeriesStore, self).append(arctic_lib, version, symbol, item, previous_version, dtype=md, **kwargs)
 
@@ -176,7 +196,8 @@ class PandasDataFrameStore(PandasStore):
         item, md = self.SERIALIZER.serialize(item)
         super(PandasDataFrameStore, self).write(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
-    def append(self, arctic_lib, version, symbol, item, previous_version, **kwargs):
+    def append(self, arctic_lib, version, symbol, item, previous_version, concat=False, **kwargs):
+        item = self.slice_overlap_item_or_raise(item, previous_version, concat)
         item, md = self.SERIALIZER.serialize(item)
         super(PandasDataFrameStore, self).append(arctic_lib, version, symbol, item, previous_version, dtype=md, **kwargs)
 

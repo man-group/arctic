@@ -344,6 +344,52 @@ def test_dataframe_append_should_add_new_columns_and_reorder(library):
     assert_frame_equal(expected, actual)
 
 
+def test_series_append_concat(library):
+    s1 = Series(data=[1.0], index=[dt(2012, 1, 1)])
+    s2 = Series([1.0, 2.0], [dt(2012, 1, 1), dt(2012, 1, 2)])
+    s2.index.name = 'index'
+    s2.name = 'values'
+    library.write('TEST_1', s1)
+    library.append('TEST_1', s2, concat=True)
+    result = library.read('TEST_1').data
+    assert_series_equal(s2, result)
+
+
+def test_series_append_concat_only_appends_end(library):
+    s1 = Series([1.0], [dt(2012, 1, 1)])
+    s2 = Series([2.0, 2.0], [dt(2012, 1, 1), dt(2012, 1, 2)])
+    library.write('TEST_1', s1)
+    library.append('TEST_1', s2, concat=True)
+
+    result = library.read('TEST_1').data
+    expected = Series([1.0, 2.0], [dt(2012, 1, 1), dt(2012, 1, 2)])
+    expected.index.name = 'index'
+    expected.name = 'values'
+    assert_series_equal(expected, result)
+
+
+def test_frame_append_concat(library):
+    df1 = DataFrame(data=[1.0], index=[dt(2012, 1, 1)], columns=['a'])
+    df2 = DataFrame([1.0, 2.0], [dt(2012, 1, 1), dt(2012, 1, 2)], columns=['a'])
+    df2.index.name = 'index'
+    library.write('TEST_1', df1)
+    library.append('TEST_1', df2, concat=True)
+    result = library.read('TEST_1').data
+    assert_frame_equal(df2, result)
+
+
+def test_frame_append_concat_only_appends_end(library):
+    df1 = DataFrame([1.0], [dt(2012, 1, 1)], columns=['a'])
+    df2 = DataFrame([2.0, 2.0], [dt(2012, 1, 1), dt(2012, 1, 2)], columns=['a'])
+    library.write('TEST_1', df1)
+    library.append('TEST_1', df2, concat=True)
+
+    result = library.read('TEST_1').data
+    expected = DataFrame([1.0, 2.0], [dt(2012, 1, 1), dt(2012, 1, 2)], columns=['a'])
+    expected.index.name = 'index'
+    assert_frame_equal(expected, result)
+
+
 # -- auto generated tests --- #
 def dataframe(columns, length, index):
     df = DataFrame(np.ones((length, columns)), columns=list(string.ascii_lowercase[:columns]))
