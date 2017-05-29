@@ -1,7 +1,6 @@
 import ast
 import logging
 
-import lz4
 import numpy as np
 from bson.binary import Binary
 from pandas import DataFrame, Series, Panel
@@ -119,7 +118,7 @@ class PandasStore(NdarrayStore):
 
     def read_segment_last_dt(self, version):
         if 'segment_index' in version:
-            index = np.fromstring(lz4.decompress(version['segment_index']), dtype=INDEX_DTYPE)
+            index = np.fromstring(decompress(version['segment_index']), dtype=INDEX_DTYPE)
             dt_index = self._datetime64_index(index)
             if dt_index:
                 return index[dt_index][-1]
