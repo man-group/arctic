@@ -23,7 +23,7 @@ def test_find():
 
     bsons = BSONStore(arctic_lib)
 
-    assert bsons.find(sentinel.filter).next() == sentinel.document
+    assert list(bsons.find(sentinel.filter)) == [sentinel.document]
     assert collection.find.call_count == 1
 
 
