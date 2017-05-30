@@ -465,7 +465,7 @@ class VersionStore(object):
                                                    sort=[('version', pymongo.DESCENDING)])
 
         if len(data) == 0 and previous_version is not None:
-            return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=previous_version,
+            return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=previous_version['version'],
                                  metadata=version.pop('metadata', None), data=None)
 
         if upsert and previous_version is None:
