@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.43
+### 1.43 (2017-05-30)
   * Bugfix:  #350 remove deprecated pandas calls
   * Bugfix:  #360 version incorrect in empty append in VersionStore
   * Feature: #365 add generic BSON store
