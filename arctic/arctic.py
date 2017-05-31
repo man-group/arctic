@@ -9,7 +9,7 @@ from .auth import authenticate, get_auth
 from .decorators import mongo_retry
 from .exceptions import LibraryNotFoundException, ArcticException, QuotaExceededException
 from .hooks import get_mongodb_uri
-from .store import version_store
+from .store import version_store, bson_store
 from .tickstore import tickstore, toplevel
 from .chunkstore import chunkstore
 from six import string_types
@@ -27,7 +27,8 @@ CHUNK_STORE = chunkstore.CHUNK_STORE_TYPE
 LIBRARY_TYPES = {version_store.VERSION_STORE_TYPE: version_store.VersionStore,
                  tickstore.TICK_STORE_TYPE: tickstore.TickStore,
                  toplevel.TICK_STORE_TYPE: toplevel.TopLevelTickStore,
-                 chunkstore.CHUNK_STORE_TYPE: chunkstore.ChunkStore
+                 chunkstore.CHUNK_STORE_TYPE: chunkstore.ChunkStore,
+                 bson_store.BSON_STORE_TYPE: bson_store.BSONStore
                  }
 
 
