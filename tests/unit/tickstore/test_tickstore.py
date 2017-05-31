@@ -6,7 +6,8 @@ from pymongo import ReadPreference
 from pymongo.collection import Collection
 import numpy as np
 import pandas as pd
-import lz4
+from arctic._compression import decompress
+
 
 from arctic.tickstore.tickstore import TickStore, IMAGE_DOC, IMAGE, START, \
     DTYPE, END, COUNT, SYMBOL, COLUMNS, ROWMASK, DATA, INDEX, IMAGE_TIME
@@ -93,7 +94,7 @@ def test_tickstore_to_bucket_with_image():
     assert get_coldata(bucket[COLUMNS]['B']) == ([27.2], [0, 1, 0, 0, 0, 0, 0, 0])
     assert get_coldata(bucket[COLUMNS]['D']) == ([0], [1, 0, 0, 0, 0, 0, 0, 0])
     index = [dt.fromtimestamp(int(i/1000)).replace(tzinfo=mktz(tz)) for i in
-             list(np.cumsum(np.fromstring(lz4.decompress(bucket[INDEX]), dtype='uint64')))]
+             list(np.cumsum(np.fromstring(decompress(bucket[INDEX]), dtype='uint64')))]
     assert index == [i['index'] for i in data]
     assert bucket[COLUMNS]['A'][DTYPE] == 'int64'
     assert bucket[COLUMNS]['B'][DTYPE] == 'float64'
@@ -127,8 +128,8 @@ def test_tickstore_to_bucket_always_forwards_image():
 def get_coldata(coldata):
     """ return values and rowmask """
     dtype = np.dtype(coldata[DTYPE])
-    values = np.fromstring(lz4.decompress(coldata[DATA]), dtype=dtype)
-    rowmask = np.unpackbits(np.fromstring(lz4.decompress(coldata[ROWMASK]), dtype='uint8'))
+    values = np.fromstring(decompress(coldata[DATA]), dtype=dtype)
+    rowmask = np.unpackbits(np.fromstring(decompress(coldata[ROWMASK]), dtype='uint8'))
     return list(values), list(rowmask)
 
 
@@ -158,7 +159,7 @@ def test_tickstore_pandas_to_bucket_image():
     assert values[0] == 1 and values[2] == 1
     assert rowmask == [1, 1, 1, 0, 0, 0, 0, 0]
     index = [dt.fromtimestamp(int(i/1000)).replace(tzinfo=mktz(tz)) for i in
-             list(np.cumsum(np.fromstring(lz4.decompress(bucket[INDEX]), dtype='uint64')))]
+             list(np.cumsum(np.fromstring(decompress(bucket[INDEX]), dtype='uint64')))]
     assert index == tick_index
     assert bucket[COLUMNS]['A'][DTYPE] == 'int64'
     assert bucket[COLUMNS]['B'][DTYPE] == 'float64'

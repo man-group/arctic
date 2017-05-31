@@ -1,9 +1,14 @@
 ## Changelog
 
-### 1.43
+### 1.44
+  * Feature: Expose compressHC from internal arctic LZ4 and remove external LZ4 dependency
   * Feature: Appending older data (compare to what's exist in library) will raise. Use `concat=True` to append only the
              new bits
-  * Bugfix: #350 remove deprecated pandas calls
+  
+### 1.43 (2017-05-30)
+  * Bugfix:  #350 remove deprecated pandas calls
+  * Bugfix:  #360 version incorrect in empty append in VersionStore
+  * Feature: #365 add generic BSON store
 
 ### 1.42 (2017-05-12)
   * Bugfix: #346 fixed daterange subsetting error on very large dataframes in version store

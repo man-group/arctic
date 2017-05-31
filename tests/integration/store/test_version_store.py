@@ -274,8 +274,10 @@ def test_append_should_overwrite_after_delete(library):
 
 
 def test_append_empty_ts(library):
-    library.append(symbol, ts1, upsert=True)
-    library.append(symbol, pd.DataFrame(), upsert=True)
+    data = library.append(symbol, ts1, upsert=True)
+    assert(data.version == 1)
+    data = library.append(symbol, pd.DataFrame(), upsert=True)
+    assert(data.version == 1)
     assert len(library.read(symbol).data) == len(ts1)
 
 
