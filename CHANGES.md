@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.44
+  * Feature: Expose compressHC from internal arctic LZ4 and remove external LZ4 dependency
+  
 ### 1.43 (2017-05-30)
   * Bugfix:  #350 remove deprecated pandas calls
   * Bugfix:  #360 version incorrect in empty append in VersionStore
