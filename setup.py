@@ -22,7 +22,6 @@ from setuptools.extension import Extension
 from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
 from Cython.Build import cythonize
-import six
 import sys, os, platform
 if platform.system().lower() == 'darwin':
     # gcc-4.2 on Mac OS X does not work with OpenMP
@@ -59,6 +58,7 @@ class PyTest(TestCommand):
 
         # import here, cause outside the eggs aren't loaded
         import pytest
+        import six
 
         args = [self.pytest_args] if isinstance(self.pytest_args, six.string_types) else list(self.pytest_args)
         args.extend(['--cov', 'arctic',
@@ -88,7 +88,8 @@ setup(
     long_description='\n'.join((long_description, changelog)),
     cmdclass={'test': PyTest},
     ext_modules=cythonize(compress),
-    setup_requires=["Cython",
+    setup_requires=["six",
+                    "Cython",
                     "numpy",
                     "setuptools-git",
                     ],
