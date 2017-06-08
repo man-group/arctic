@@ -1,9 +1,10 @@
 ## Changelog
 
-### 1.44
+### 1.44 (2017-06-08)
   * Feature: Expose compressHC from internal arctic LZ4 and remove external LZ4 dependency
   * Feature: Appending older data (compare to what's exist in library) will raise. Use `concat=True` to append only the
              new bits
+  * Feature: #371 Expose more functionality in BSONStore
   
 ### 1.43 (2017-05-30)
   * Bugfix:  #350 remove deprecated pandas calls
