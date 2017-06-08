@@ -23,9 +23,9 @@ def test_find():
 
     bsons = BSONStore(arctic_lib)
 
-    assert list(bsons.find(sentinel.filter_)) == [sentinel.document]
+    assert list(bsons.find(sentinel.filter)) == [sentinel.document]
     assert collection.find.call_count == 1
-    assert collection.find.call_args_list == [call(sentinel.filter_)]
+    assert collection.find.call_args_list == [call(sentinel.filter)]
 
 
 def test_insert_one():
@@ -60,11 +60,11 @@ def test_update_one():
     arctic_lib.get_top_level_collection.return_value = collection
 
     bsons = BSONStore(arctic_lib)
-    bsons.update_one(sentinel.filter_, sentinel.replacement)
+    bsons.update_one(sentinel.filter, sentinel.replacement)
 
     assert arctic_lib.check_quota.call_count == 1
     assert collection.update_one.call_count == 1
-    assert collection.update_one.call_args_list == [call(sentinel.filter_, sentinel.replacement)]
+    assert collection.update_one.call_args_list == [call(sentinel.filter, sentinel.replacement)]
 
 
 def test_update_many():
@@ -73,11 +73,11 @@ def test_update_many():
     arctic_lib.get_top_level_collection.return_value = collection
 
     bsons = BSONStore(arctic_lib)
-    bsons.update_many(sentinel.filter_, sentinel.replacements)
+    bsons.update_many(sentinel.filter, sentinel.replacements)
 
     assert arctic_lib.check_quota.call_count == 1
     assert collection.update_many.call_count == 1
-    assert collection.update_many.call_args_list == [call(sentinel.filter_, sentinel.replacements)]
+    assert collection.update_many.call_args_list == [call(sentinel.filter, sentinel.replacements)]
 
 
 def test_find_one_and_replace():
@@ -86,11 +86,11 @@ def test_find_one_and_replace():
     arctic_lib.get_top_level_collection.return_value = collection
 
     bsons = BSONStore(arctic_lib)
-    bsons.find_one_and_replace(sentinel.filter_, sentinel.replacement)
+    bsons.find_one_and_replace(sentinel.filter, sentinel.replacement)
 
     assert arctic_lib.check_quota.call_count == 1
     assert collection.find_one_and_replace.call_count == 1
-    assert collection.find_one_and_replace.call_args_list == [call(sentinel.filter_, sentinel.replacement)]
+    assert collection.find_one_and_replace.call_args_list == [call(sentinel.filter, sentinel.replacement)]
 
 
 def test_delete_one():
@@ -99,10 +99,10 @@ def test_delete_one():
     arctic_lib.get_top_level_collection.return_value = collection
 
     bsons = BSONStore(arctic_lib)
-    bsons.delete_one(sentinel.filter_)
+    bsons.delete_one(sentinel.filter)
 
     assert collection.delete_one.call_count == 1
-    assert collection.delete_one.call_args_list == [call(sentinel.filter_)]
+    assert collection.delete_one.call_args_list == [call(sentinel.filter)]
 
 
 def test_count():
@@ -111,10 +111,10 @@ def test_count():
     arctic_lib.get_top_level_collection.return_value = collection
 
     bsons = BSONStore(arctic_lib)
-    bsons.count(sentinel.filter_)
+    bsons.count(sentinel.filter)
 
     assert collection.count.call_count == 1
-    assert collection.count.call_args_list == [call(sentinel.filter_)]
+    assert collection.count.call_args_list == [call(sentinel.filter)]
 
 
 def test_distinct():
@@ -135,10 +135,10 @@ def test_delete_many():
     arctic_lib.get_top_level_collection.return_value = collection
 
     bsons = BSONStore(arctic_lib)
-    bsons.delete_many(sentinel.filter_)
+    bsons.delete_many(sentinel.filter)
 
     assert collection.delete_many.call_count == 1
-    assert collection.delete_many.call_args_list == [call(sentinel.filter_)]
+    assert collection.delete_many.call_args_list == [call(sentinel.filter)]
 
 
 def test_create_index():
