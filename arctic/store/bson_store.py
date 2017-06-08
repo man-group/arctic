@@ -56,35 +56,89 @@ class BSONStore(object):
         return self._collection.find(*args, **kwargs)
 
     @mongo_retry
-    def insert_one(self, value):
+    def insert_one(self, document, **kwargs):
         """
         See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.insert_one
         """
         self._arctic_lib.check_quota()
-        return self._collection.insert_one(value)
+        return self._collection.insert_one(document, **kwargs)
 
     @mongo_retry
-    def insert_many(self, values):
+    def insert_many(self, documents, **kwargs):
         """
         See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.insert_many
         """
         self._arctic_lib.check_quota()
-        return self._collection.insert_many(values)
+        return self._collection.insert_many(documents, **kwargs)
 
     @mongo_retry
-    def delete_one(self, query):
+    def delete_one(self, filter_, **kwargs):
         """
         See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.delete_one
         """
-        return self._collection.delete_one(query)
+        return self._collection.delete_one(filter_, **kwargs)
 
     @mongo_retry
-    def delete_many(self, query):
+    def delete_many(self, filter_, **kwargs):
         """
         See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.delete_many
         """
-        return self._collection.delete_many(query)
+        return self._collection.delete_many(filter_, **kwargs)
 
+    @mongo_retry
+    def update_one(self, filter_, update, **kwargs):
+        """
+        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.update_one
+        """
+        self._arctic_lib.check_quota()
+        return self._collection.update_one(filter_, update, **kwargs)
+
+    @mongo_retry
+    def update_many(self, filter_, update, **kwargs):
+        """
+        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.update_many
+        """
+        self._arctic_lib.check_quota()
+        return self._collection.update_many(filter_, update, **kwargs)
+
+    @mongo_retry
+    def replace_one(self, filter_, replacement, **kwargs):
+        """
+        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.replace_one
+        """
+        self._arctic_lib.check_quota()
+        return self._collection.update_one(filter_, replacement, **kwargs)
+
+    @mongo_retry
+    def replace_many(self, filter_, replacement, **kwargs):
+        """
+        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.replace_many
+        """
+        self._arctic_lib.check_quota()
+        return self._collection.replace_many(filter_, replacement, **kwargs)
+
+    @mongo_retry
+    def find_one_and_replace(self, filter_, replacement, **kwargs):
+        """
+        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.find_one_and_replace
+        """
+        self._arctic_lib.check_quota()
+        return self._collection.find_one_and_replace(filter_, replacement, **kwargs)
+
+    @mongo_retry
+    def count(self, filter_, **kwargs):
+        """
+        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.count
+        """
+        return self._collection.count(filter_, **kwargs)
+
+    @mongo_retry
+    def distinct(self, key, **kwargs):
+        """
+        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.distinct
+        """
+        return self._collection.distinct(key, **kwargs)
+    
     @mongo_retry
     def create_index(self, keys, **kwargs):
         """
