@@ -1,8 +1,12 @@
 ## Changelog
 
+### 1.45 (2017-06-09)
+  * BugFix: Rollback #363, which can cause ordering issues on append
+
+
 ### 1.44 (2017-06-08)
-  * Feature: Expose compressHC from internal arctic LZ4 and remove external LZ4 dependency
-  * Feature: Appending older data (compare to what's exist in library) will raise. Use `concat=True` to append only the
+  * Feature: #364 Expose compressHC from internal arctic LZ4 and remove external LZ4 dependency
+  * Feature: #363 Appending older data (compare to what's exist in library) will raise. Use `concat=True` to append only the
              new bits
   * Feature: #371 Expose more functionality in BSONStore
   
@@ -12,7 +16,7 @@
   * Feature: #365 add generic BSON store
 
 ### 1.42 (2017-05-12)
-  * Bugfix: #346 fixed daterange subsetting error on very large dataframes in version store
+  * Bugfix: #346 fixed daterange subsetting error on very large dateframes in version store
   * Bugfix: #351 $size queries can't use indexes, use alternative queries
 
 ### 1.41 (2017-04-20)
