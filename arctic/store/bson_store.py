@@ -30,7 +30,7 @@ class BSONStore(object):
     def initialize_library(cls, arctic_lib, hashed=True, **kwargs):
         logger.info("Trying to enable sharding...")
         try:
-            enable_sharding(arctic_lib.arctic, arctic_lib.get_name(), hashed=hashed)
+            enable_sharding(arctic_lib.arctic, arctic_lib.get_name(), hashed=hashed, key='_id')
         except OperationFailure as exception:
             logger.warning(("Library created, but couldn't enable sharding: "
                             "%s. This is OK if you're not 'admin'"), exception)

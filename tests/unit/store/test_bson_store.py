@@ -12,7 +12,7 @@ def test_initialize_library():
         arctic_lib.get_top_level_collection.return_value.database.create_collection.__name__ = 'some_name'
         arctic_lib.get_top_level_collection.return_value.database.collection_names.__name__ = 'some_name'
         BSONStore.initialize_library(arctic_lib, hashed=sentinel.hashed)
-        assert enable_sharding.call_args_list == [call(arctic_lib.arctic, arctic_lib.get_name(), hashed=sentinel.hashed)]
+        assert enable_sharding.call_args_list == [call(arctic_lib.arctic, arctic_lib.get_name(), hashed=sentinel.hashed, key='_id')]
 
 
 def test_find():
