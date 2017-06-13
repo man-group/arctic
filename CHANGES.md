@@ -1,8 +1,10 @@
 ## Changelog
 
+### 1.46 (2017-06-13)
+  * Feature: #374 Shard BSONStore on `_id` rather than `symbol`
+
 ### 1.45 (2017-06-09)
   * BugFix: Rollback #363, which can cause ordering issues on append
-
 
 ### 1.44 (2017-06-08)
   * Feature: #364 Expose compressHC from internal arctic LZ4 and remove external LZ4 dependency
