@@ -24,6 +24,23 @@ def are_equals(o1, o2, **kwargs):
 
 
 def enable_sharding(arctic, library_name, hashed=True, key='symbol'):
+    """
+    Enable sharding on a library
+
+    Parameters:
+    -----------
+    arctic: `arctic.Arctic` Arctic class
+
+    library_name: `basestring` library name
+
+    hashed: `bool` if True, use hashed sharding, if False, use range sharding
+            See https://docs.mongodb.com/manual/core/hashed-sharding/,
+            as well as https://docs.mongodb.com/manual/core/ranged-sharding/ for details.
+
+    key: `basestring` key to be used for sharding. Defaults to 'symbol', applicable to
+         all of Arctic's built-in stores except for BSONStore, which typically uses '_id'.
+         See https://docs.mongodb.com/manual/core/sharding-shard-key/ for details.
+    """
     c = arctic._conn
     lib = arctic[library_name]._arctic_lib
     dbname = lib._db.name
