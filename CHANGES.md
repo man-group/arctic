@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.47 (2017-06-19)
+  * Feature: Re-introduce #363 `concat` flag, essentially undo-ing 1.45
+
 ### 1.46 (2017-06-13)
   * Feature: #374 Shard BSONStore on `_id` rather than `symbol`
 
@@ -7,8 +10,8 @@
   * BugFix: Rollback #363, which can cause ordering issues on append
 
 ### 1.44 (2017-06-08)
-  * Feature: Expose compressHC from internal arctic LZ4 and remove external LZ4 dependency
-  * Feature: Appending older data (compare to what's exist in library) will raise. Use `concat=True` to append only the
+  * Feature: #364 Expose compressHC from internal arctic LZ4 and remove external LZ4 dependency
+  * Feature: #363 Appending older data (compare to what's exist in library) will raise. Use `concat=True` to append only the
              new bits
   * Feature: #371 Expose more functionality in BSONStore
   
