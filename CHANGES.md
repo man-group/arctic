@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.47 (2017-06-19)
+  * Feature: Re-introduce #363 `concat` flag, essentially undo-ing 1.45
+
 ### 1.46 (2017-06-13)
   * Feature: #374 Shard BSONStore on `_id` rather than `symbol`
 
@@ -18,7 +21,7 @@
   * Feature: #365 add generic BSON store
 
 ### 1.42 (2017-05-12)
-  * Bugfix: #346 fixed daterange subsetting error on very large dateframes in version store
+  * Bugfix: #346 fixed daterange subsetting error on very large dataframes in version store
   * Bugfix: #351 $size queries can't use indexes, use alternative queries
 
 ### 1.41 (2017-04-20)
