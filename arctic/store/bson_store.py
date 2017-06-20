@@ -109,15 +109,7 @@ class BSONStore(object):
         See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.replace_one
         """
         self._arctic_lib.check_quota()
-        return self._collection.update_one(filter, replacement, **kwargs)
-
-    @mongo_retry
-    def replace_many(self, filter, replacement, **kwargs):
-        """
-        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.replace_many
-        """
-        self._arctic_lib.check_quota()
-        return self._collection.replace_many(filter, replacement, **kwargs)
+        return self._collection.replace_one(filter, replacement, **kwargs)
 
     @mongo_retry
     def find_one_and_replace(self, filter, replacement, **kwargs):
@@ -126,6 +118,17 @@ class BSONStore(object):
         """
         self._arctic_lib.check_quota()
         return self._collection.find_one_and_replace(filter, replacement, **kwargs)
+
+    @mongo_retry
+    def bulk_write(self, requests, **kwargs):
+        """
+        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.bulk_write
+
+        Warning: this is wrapped in mongo_retry, and is therefore potentially unsafe if the write you want to execute
+        isn't idempotent.
+        """
+        self._arctic_lib.check_quota()
+        return self._collection.bulk_write(requests, **kwargs)
 
     @mongo_retry
     def count(self, filter, **kwargs):

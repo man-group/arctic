@@ -57,6 +57,19 @@ def test_insert_many():
     assert collection.insert_many.call_args_list == [call(sentinel.documents)]
 
 
+def test_replace_one():
+    arctic_lib = create_autospec(ArcticLibraryBinding, instance=True)
+    collection = create_autospec(Collection, instance=True)
+    arctic_lib.get_top_level_collection.return_value = collection
+
+    bsons = BSONStore(arctic_lib)
+    bsons.replace_one(sentinel.filter, sentinel.replacement)
+
+    assert arctic_lib.check_quota.call_count == 1
+    assert collection.replace_one.call_count == 1
+    assert collection.replace_one.call_args_list == [call(sentinel.filter, sentinel.replacement)]
+
+
 def test_update_one():
     arctic_lib = create_autospec(ArcticLibraryBinding, instance=True)
     collection = create_autospec(Collection, instance=True)
@@ -94,6 +107,19 @@ def test_find_one_and_replace():
     assert arctic_lib.check_quota.call_count == 1
     assert collection.find_one_and_replace.call_count == 1
     assert collection.find_one_and_replace.call_args_list == [call(sentinel.filter, sentinel.replacement)]
+
+
+def test_bulk_write():
+    arctic_lib = create_autospec(ArcticLibraryBinding, instance=True)
+    collection = create_autospec(Collection, instance=True)
+    arctic_lib.get_top_level_collection.return_value = collection
+
+    bsons = BSONStore(arctic_lib)
+    bsons.bulk_write(sentinel.requests)
+
+    assert arctic_lib.check_quota.call_count == 1
+    assert collection.bulk_write.call_count == 1
+    assert collection.bulk_write.call_args_list == [call(sentinel.requests)]
 
 
 def test_delete_one():
