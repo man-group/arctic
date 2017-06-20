@@ -2,6 +2,7 @@
 
 ### 1.47 (2017-06-19)
   * Feature: Re-introduce #363 `concat` flag, essentially undo-ing 1.45
+  * BugFix: #377 Fix broken `replace_one` on BSONStore and add `bulk_write`
 
 ### 1.46 (2017-06-13)
   * Feature: #374 Shard BSONStore on `_id` rather than `symbol`
