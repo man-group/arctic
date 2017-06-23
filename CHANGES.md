@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.48 (2017-06-23)
+  * BugFix: Rollback #363, as it breaks multi-index dataframe
+
 ### 1.47 (2017-06-19)
   * Feature: Re-introduce #363 `concat` flag, essentially undo-ing 1.45
   * BugFix: #377 Fix broken `replace_one` on BSONStore and add `bulk_write`
