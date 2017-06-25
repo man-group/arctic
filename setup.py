@@ -21,7 +21,6 @@ from setuptools import setup
 from setuptools.extension import Extension
 from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
-from Cython.Build import cythonize
 import sys, os, platform
 
 
@@ -97,9 +96,9 @@ setup(
     packages=find_packages(exclude=['tests', 'tests.*', 'benchmarks']),
     long_description='\n'.join((long_description, changelog)),
     cmdclass={'test': PyTest},
-    ext_modules=cythonize(compress),
+    ext_modules=[compress],
     setup_requires=["six",
-                    "Cython",
+                    "cython",
                     "numpy",
                     "setuptools-git",
                     ],
