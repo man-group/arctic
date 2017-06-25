@@ -34,7 +34,7 @@ if platform.system().lower() == 'darwin':
             cc = compiler
     if cc is None:
         raise ValueError("You must install gcc/g++. You can install with homebrew: brew install gcc --without-multilib")
-    os.environ["CC"] = cc
+    os.environ["CC"] = cc.replace("g++", "gcc")
     os.environ["CXX"] = cc
     # not all OSX/clang compiler flags supported by GCC. For some reason
     # these sometimes are generated and used. Cython will still add more flags.
