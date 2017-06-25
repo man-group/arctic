@@ -2,6 +2,7 @@
 
 ### 1.48
   * Bugfix:  #372 OSX build improvements
+  * Bugfix:  #382 Remove dependency on cython being pre-installed
 
 ### 1.47 (2017-06-19)
   * Feature: Re-introduce #363 `concat` flag, essentially undo-ing 1.45

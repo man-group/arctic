@@ -22,7 +22,6 @@ install:
   - pip install python-dateutil --upgrade
   - pip install pytz --upgrade
   - pip install tzlocal --upgrade
-  - pip install cython --upgrade
   - pip install pymongo --upgrade
   - pip install numpy --upgrade
   - pip install pandas --upgrade
