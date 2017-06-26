@@ -115,6 +115,10 @@ Arctic currently works with:
  * MongoDB >= 2.4.x
 
 
+Operating Systems:
+ * Linux
+ * macOS
+
 ## Acknowledgements
 
 Arctic has been under active development at [Man AHL](http://www.ahl.com/) since 2012.

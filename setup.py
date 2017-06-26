@@ -23,9 +23,19 @@ from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
 from Cython.Build import cythonize
 import sys, os, platform
+
+
 if platform.system().lower() == 'darwin':
-    # gcc-4.2 on Mac OS X does not work with OpenMP
-    os.environ["CC"] = "g++-6"; os.environ["CXX"] = "g++-6"
+    # clang on macOS does not work with OpenMP
+    ccs = ["/usr/local/bin/g++-5", "/usr/local/bin/g++-6", "/usr/local/bin/g++-7"]
+    cc = None
+    for compiler in ccs:
+        if os.path.isfile(compiler):
+            cc = compiler
+    if cc is None:
+        raise ValueError("You must install gcc/g++. You can install with homebrew: brew install gcc --without-multilib")
+    os.environ["CC"] = cc.replace("g++", "gcc")
+    os.environ["CXX"] = cc
     # not all OSX/clang compiler flags supported by GCC. For some reason
     # these sometimes are generated and used. Cython will still add more flags.
     os.environ["CFLAGS"] = "-fno-common -fno-strict-aliasing -DENABLE_DTRACE -DMACOSX -DNDEBUG -Wall -g -fwrapv -Os"

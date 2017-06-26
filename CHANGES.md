@@ -1,7 +1,8 @@
 ## Changelog
 
-### 1.48 (2017-06-23)
+### 1.48 (2017-06-26)
   * BugFix: Rollback #363, as it breaks multi-index dataframe
+  * Bugfix:  #372 OSX build improvements
 
 ### 1.47 (2017-06-19)
   * Feature: Re-introduce #363 `concat` flag, essentially undo-ing 1.45
