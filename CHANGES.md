@@ -1,9 +1,11 @@
 ## Changelog
 
+### 1.49
+  * Bugfix:  #382 Remove dependency on cython being pre-installed
+
 ### 1.48 (2017-06-26)
   * BugFix: Rollback #363, as it breaks multi-index dataframe
   * Bugfix:  #372 OSX build improvements
-  * Bugfix:  #382 Remove dependency on cython being pre-installed
 
 ### 1.47 (2017-06-19)
   * Feature: Re-introduce #363 `concat` flag, essentially undo-ing 1.45
