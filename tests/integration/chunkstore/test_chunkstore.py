@@ -1133,9 +1133,9 @@ def test_get_chunk_range(chunkstore_lib):
     chunkstore_lib.write('test_df', df, chunk_size='D')
     x = list(chunkstore_lib.get_chunk_ranges('test_df'))
     assert(len(x) == 3)
-    assert((b'2016-01-01', b'2016-01-01') in x)
-    assert((b'2016-01-02', b'2016-01-02') in x)
-    assert((b'2016-01-03', b'2016-01-03') in x)
+    assert((b'2016-01-01 00:00:00', b'2016-01-01 23:59:59.999000') in x)
+    assert((b'2016-01-02 00:00:00', b'2016-01-02 23:59:59.999000') in x)
+    assert((b'2016-01-03 00:00:00', b'2016-01-03 23:59:59.999000') in x)
 
 
 def test_iterators(chunkstore_lib):
@@ -1324,7 +1324,7 @@ def test_audit(chunkstore_lib):
 
 
 def test_chunkstore_misc(chunkstore_lib):
-    
+
     p = pickle.dumps(chunkstore_lib)
     c = pickle.loads(p)
     assert(chunkstore_lib._arctic_lib.get_name() == c._arctic_lib.get_name())

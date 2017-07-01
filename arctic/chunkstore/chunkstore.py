@@ -149,7 +149,7 @@ class ChunkStore(object):
             self._collection.delete_many(query)
             self._symbols.delete_many(query)
             self._mdata.delete_many(query)
-        
+
         if audit is not None:
             audit['symbol'] = symbol
             if chunk_range is not None:
@@ -157,7 +157,7 @@ class ChunkStore(object):
                 audit['action'] = 'range delete'
             else:
                 audit['action'] = 'symbol delete'
-            
+
             self._audit.insert_one(audit)
 
     def list_symbols(self, partial_match=None):
@@ -215,7 +215,7 @@ class ChunkStore(object):
             audit['action'] = 'symbol rename'
             audit['old_symbol'] = from_symbol
             self._audit.insert_one(audit)
-        
+
 
     def read(self, symbol, chunk_range=None, filter_data=True, **kwargs):
         """
@@ -245,7 +245,7 @@ class ChunkStore(object):
             raise NoDataFoundException('No data found for %s' % (symbol))
 
         spec = {SYMBOL: symbol,
-                }
+               }
 
         if chunk_range is not None:
             spec.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
@@ -270,16 +270,16 @@ class ChunkStore(object):
         if not filter_data or chunk_range is None:
             return data
         return CHUNKER_MAP[sym[CHUNKER]].filter(data, chunk_range)
-    
+
     def read_audit_log(self, symbol=None):
         """
         Reads the audit log
-        
+
         Parameters
         ----------
         symbol: str
             optionally only retrieve specific symbol's audit information
-            
+
         Returns
         -------
         list of dicts
@@ -578,12 +578,12 @@ class ChunkStore(object):
     def read_metadata(self, symbol):
         '''
         Reads user defined metadata out for the given symbol
-        
+
         Parameters
         ----------
         symbol: str
             symbol for the given item in the DB
-        
+
         Returns
         -------
         ?
@@ -720,7 +720,7 @@ class ChunkStore(object):
         res['metadata'] = db.command('collstats', self._mdata.name)
         res['totals'] = {'count': res['chunks']['count'],
                          'size': res['chunks']['size'] + res['symbols']['size'] + res['metadata']['size'],
-                         }
+                        }
         return res
 
     def has_symbol(self, symbol):

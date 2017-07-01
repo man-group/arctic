@@ -69,7 +69,7 @@ class DateChunker(Chunker):
         -------
         string
         """
-        return chunk_id.strftime("%Y-%m-%d").encode('ascii')
+        return str(chunk_id).encode('ascii')
 
     def to_mongo(self, range_obj):
         """
