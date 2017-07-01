@@ -5,8 +5,7 @@ Unit tests for bugfixes
 from datetime import datetime
 
 import pandas as pd
-from pandas import DataFrame
-from pandas.tseries.index import DatetimeIndex
+from pandas import DataFrame, DatetimeIndex
 
 
 # Issue 384
