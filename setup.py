@@ -74,15 +74,38 @@ class PyTest(TestCommand):
                      '--cov-report', 'xml',
                      '--cov-report', 'html',
                      '--junitxml', 'junit.xml',
-                     ])
+                    ])
         errno = pytest.main(args)
         sys.exit(errno)
 
-# Cython lz4
-compress = Extension('arctic._compress',
-                     sources=["src/_compress.pyx", "src/lz4.c", "src/lz4hc.c"],
-                     extra_compile_args=['-fopenmp', '-fpermissive'], # Avoid compiling error with prange. Similar to http://stackoverflow.com/questions/36577182/unable-to-assign-value-to-array-in-prange
-                     extra_link_args=['-fopenmp'])
+
+class defer_cythonize(list):
+    def __init__(self, callback):
+        self._list, self.callback = None, callback
+
+    def c_list(self):
+        if self._list is None:
+            self._list = self.callback()
+        return self._list
+
+    def __iter__(self):
+        for elem in self.c_list():
+            yield elem
+
+    def __getitem__(self, ii):
+        return self.c_list()[ii]
+
+    def __len__(self):
+        return len(self.c_list())
+
+
+def extensions():
+    from Cython.Build import cythonize
+    cythonize(Extension('arctic._compress',
+                        sources=["src/_compress.pyx", "src/lz4.c", "src/lz4hc.c"],
+                        extra_compile_args=['-fopenmp', '-fpermissive'], # Avoid compiling error with prange. Similar to http://stackoverflow.com/questions/36577182/unable-to-assign-value-to-array-in-prange
+                        extra_link_args=['-fopenmp']))
+
 
 setup(
     name="arctic",
@@ -96,13 +119,14 @@ setup(
     packages=find_packages(exclude=['tests', 'tests.*', 'benchmarks']),
     long_description='\n'.join((long_description, changelog)),
     cmdclass={'test': PyTest},
-    ext_modules=[compress],
+    ext_modules=defer_cythonize(extensions),
     setup_requires=["six",
                     "cython",
                     "numpy",
                     "setuptools-git",
-                    ],
-    install_requires=["decorator",
+                   ],
+    install_requires=["cython",
+                      "decorator",
                       "enum34",
                       "mockextras",
                       "pandas",
@@ -110,7 +134,7 @@ setup(
                       "python-dateutil",
                       "pytz",
                       "tzlocal",
-                      ],
+                     ],
     tests_require=["mock",
                    "mockextras",
                    "pytest",
@@ -119,7 +143,7 @@ setup(
                    "pytest-timeout",
                    "pytest-xdist",
                    "lz4"
-                   ],
+                  ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',
                                         'arctic_list_libraries = arctic.scripts.arctic_list_libraries:main',
