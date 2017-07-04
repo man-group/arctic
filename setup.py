@@ -21,7 +21,9 @@ from setuptools import setup
 from setuptools.extension import Extension
 from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
-import sys, os, platform
+import sys
+import os
+import platform
 
 
 if platform.system().lower() == 'darwin':
@@ -101,10 +103,10 @@ class defer_cythonize(list):
 
 def extensions():
     from Cython.Build import cythonize
-    cythonize(Extension('arctic._compress',
-                        sources=["src/_compress.pyx", "src/lz4.c", "src/lz4hc.c"],
-                        extra_compile_args=['-fopenmp', '-fpermissive'], # Avoid compiling error with prange. Similar to http://stackoverflow.com/questions/36577182/unable-to-assign-value-to-array-in-prange
-                        extra_link_args=['-fopenmp']))
+    return cythonize(Extension('arctic._compress',
+                               sources=["src/_compress.pyx", "src/lz4.c", "src/lz4hc.c"],
+                               extra_compile_args=['-fopenmp', '-fpermissive'], # Avoid compiling error with prange. Similar to http://stackoverflow.com/questions/36577182/unable-to-assign-value-to-array-in-prange
+                               extra_link_args=['-fopenmp']))
 
 
 setup(
