@@ -2,6 +2,7 @@
 
 ### 1.49
   * Bugfix:  #384 sentinels missing time data on chunk start/ends in ChunkStore
+  * Bugfix:  #382 Remove dependency on cython being pre-installed
   
 ### 1.48 (2017-06-26)
   * BugFix: Rollback #363, as it breaks multi-index dataframe
