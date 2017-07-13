@@ -322,13 +322,21 @@ class Arctic(object):
         to_lib: str
             The new name of the library
         """
+        to_colname = to_lib
+        if '.' in from_lib and '.' in to_lib:
+            if from_lib.split('.')[0] != to_lib.split('.')[0]:
+                raise ValueError("Collection can only be renamed in the same database")
+            to_colname = to_lib.split('.')[1]
+
         l = ArcticLibraryBinding(self, from_lib)
         colname = l.get_top_level_collection().name
-        logger.info('Dropping collection: %s' % colname)
-        l._db[colname].rename(to_lib)
+
+        logger.info('Renaming collection: %s' % colname)
+        l._db[colname].rename(to_colname)
         for coll in l._db.collection_names():
             if coll.startswith(colname + '.'):
-                l._db[coll].rename(coll.replace(from_lib, to_lib))
+                l._db[coll].rename(coll.replace(colname, to_colname))
+
         if from_lib in self._library_cache:
             del self._library_cache[from_lib]
             del self._library_cache[l.get_name()]
