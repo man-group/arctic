@@ -568,9 +568,9 @@ class VersionStore(object):
             mongo_retry(self._changes.insert_one)(version)
 
     @mongo_retry
-    def _write_metadata_history(self, symbol, metadata, start_time, end_time=None, **kwargs):
+    def _update_metadata_history(self, symbol, metadata, metadata_policy=lambda old, new: new, **kwargs):
         """
-        Create a new metadata entry in ._metadata collection
+        Update .metadata entry for `symbol`
         
         Parameters
         ----------
@@ -578,42 +578,37 @@ class VersionStore(object):
             symbol name for the item
         metadata : `dict`
             to be persisted
-        start_time : `datetime.datetime`
-            when entry becomes effective
-        end_time : `datetime.datetime` or None
-            when entry expires. When set to None entry is still in effect
-            Default: None
+        metadata_policy :
+            function(old, new):
+                return final metadata to write
+            Default: overwrite
         kwargs :
             passed through to the write handler
-        
+
         Returns
         -------
-        VersionedItem containing .metadata
+        `metadata` if metadata is written, None if not.
         """
-        self._arctic_lib.check_quota()
-        version = {'_id': bson.ObjectId()}
-        version['symbol'] = symbol
-        version['metadata'] = metadata
-        version['_start_time'] = start_time
-        if end_time is not None:
-            version['_end_time'] = end_time
-
-        handler = self._write_handler(version, symbol, metadata, **kwargs)
-        mongo_retry(handler.write)(self._arctic_lib, version, symbol, None, None, **kwargs)
-
-        # Insert the new version into the metadata DB
-        mongo_retry(self._metadata.insert_one)(version)
-
-        logger.debug('Finished writing metadata for %s', symbol)
-
-        self._publish_change(symbol, version)
-
-        return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=0, data=None, metadata=metadata)
+        if not metadata:
+            return None
+        elif self.has_symbol(symbol):
+            old_metadata = self.read_metadata(symbol).metadata
+            new_metadata = metadata_policy(old_metadata, metadata)
+            if not new_metadata or old_metadata == new_metadata:
+                logger.info('No change to metadata.')
+                return None
+            else:
+                metadata = new_metadata
+        now = dt.now()
+        self._metadata.find_one_and_update({'symbol': symbol}, {'$set': {'_end_time': now}},
+                                            sort=[('_start_time', pymongo.DESCENDING)])
+        self._write_metadata_history(symbol, metadata, now, **kwargs)
+        return metadata
 
     @mongo_retry
     def update_metadata(self, symbol, metadata, metadata_policy=lambda old, new: new, **kwargs):
         """
-        Update .metadata entry for `symbol`
+        Update .metadata entry for `symbol` without changing the data
         
         Parameters
         ----------
@@ -633,8 +628,68 @@ class VersionStore(object):
         VersionedItem containing .metadata
         """
         if not metadata:
-            raise ValueError('metadata not specified.')
-        return self.write(symbol, self.read(symbol).data, metadata=metadata, metadata_policy=metadata_policy)
+            raise ValueError('Metadata not specified.')
+        new_metadata = self._update_metadata_history(symbol, metadata, metadata_policy, **kwargs)
+        if new_metadata:
+            data = self.read(symbol).data
+            return self.write_data(symbol, data, new_metadata, **kwargs)
+        logger.warning('No changes detected. Returning current entry.')
+        old = self.read_metadata(symbol)
+        return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(),
+                                 version=old.version, metadata=old.metadata, data=None)
+
+    @mongo_retry
+    def write_data(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
+        """
+        Write `data` under the specified `symbol` name to ._versions.
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        data :
+            to be persisted
+        metadata : `dict`
+            an optional dictionary of metadata to persist along with the symbol.
+            Default: None
+        prune_previous_version : `bool`
+            Removes previous (non-snapshotted) versions from the database.
+            Default: True
+
+        Returns
+        -------
+        VersionedItem named tuple containing the metadata and verison number
+        of the written symbol in the store.
+        """
+        self._arctic_lib.check_quota()
+
+        version = {'_id': bson.ObjectId()}
+        version['symbol'] = symbol
+        version['version'] = self._version_nums.find_one_and_update({'symbol': symbol},
+                                                                    {'$inc': {'version': 1}},
+                                                                    upsert=True, new=True)['version']
+        version['metadata'] = metadata
+
+        previous_version = self._versions.find_one({'symbol': symbol, 'version': {'$lt': version['version']}},
+                                                   sort=[('version', pymongo.DESCENDING)],
+                                                   )
+
+        handler = self._write_handler(version, symbol, data, **kwargs)
+        mongo_retry(handler.write)(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
+
+        # Insert the new version into the version DB
+        mongo_retry(self._versions.insert_one)(version)
+
+        if prune_previous_version and previous_version:
+            self._prune_previous_versions(symbol)
+
+        logger.debug('Finished writing versions for %s', symbol)
+
+        self._publish_change(symbol, version)
+
+        return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
+                             metadata=version.pop('metadata', None), data=None)
+
 
     @mongo_retry
     def write(self, symbol, data, metadata=None, prune_previous_version=True, metadata_policy=lambda old, new: new, **kwargs):
@@ -667,53 +722,8 @@ class VersionStore(object):
         """
         self._arctic_lib.check_quota()
 
-        write_metadata = True
-        if not metadata:
-            write_metadata = False
-        elif self.has_symbol(symbol):
-            old_metadata = self.read_metadata(symbol).metadata
-            new_metadata = metadata_policy(old_metadata, metadata)
-            if not new_metadata or old_metadata == new_metadata:
-                write_metadata = False
-                logger.info('no change to metadata.')
-            else:
-                metadata = new_metadata
-        if write_metadata:
-            now = dt.now()
-            self._metadata.find_one_and_update({'symbol': symbol}, {'$set': {'_end_time': now}},
-                                                sort=[('_start_time', pymongo.DESCENDING)])
-            self._write_metadata_history(symbol, metadata, now)
-        elif self.has_symbol(symbol) and self.read(symbol).data == data:
-            logger.warning('no changes detected.')
-            return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(),
-                                 version=self.read_metadata(symbol).version, metadata=metadata, data=None)
-
-        version = {'_id': bson.ObjectId()}
-        version['symbol'] = symbol
-        version['version'] = self._version_nums.find_one_and_update({'symbol': symbol},
-                                                                    {'$inc': {'version': 1}},
-                                                                    upsert=True, new=True)['version']
-        version['metadata'] = metadata
-
-        previous_version = self._versions.find_one({'symbol': symbol, 'version': {'$lt': version['version']}},
-                                                   sort=[('version', pymongo.DESCENDING)],
-                                                   )
-
-        handler = self._write_handler(version, symbol, data, **kwargs)
-        mongo_retry(handler.write)(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
-
-        # Insert the new version into the version DB
-        mongo_retry(self._versions.insert_one)(version)
-
-        if prune_previous_version and previous_version:
-            self._prune_previous_versions(symbol)
-
-        logger.debug('Finished writing versions for %s', symbol)
-
-        self._publish_change(symbol, version)
-
-        return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=None)
+        self._update_metadata_history(symbol, metadata, metadata_policy, **kwargs)
+        return self.write_data(symbol, data, metadata, **kwargs)
 
     def _prune_previous_versions(self, symbol, keep_mins=120):
         """
