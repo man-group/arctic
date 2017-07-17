@@ -74,7 +74,8 @@ def test_get_version_allow_secondary_True():
                        'symbol': 's', 'version': 10}]
 
     VersionStore.read(vs, "symbol")
-    assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, read_preference=sentinel.read_preference)]
+    assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, all_metadata=False,
+                                                     read_preference=sentinel.read_preference)]
     assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None, 
                                                date_range=None,
                                                read_preference=sentinel.read_preference)]
@@ -90,7 +91,8 @@ def test_get_version_allow_secondary_user_override_False():
                        'symbol': 's', 'version': 10}]
 
     VersionStore.read(vs, "symbol", allow_secondary=False)
-    assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, read_preference=sentinel.read_preference)]
+    assert vs._read_metadata.call_args_list == [call('symbol', as_of=None, all_metadata=False,
+                                                     read_preference=sentinel.read_preference)]
     assert vs._do_read.call_args_list == [call('symbol', vs._read_metadata.return_value, None,
                                                date_range=None, 
                                                read_preference=sentinel.read_preference)]
@@ -162,6 +164,8 @@ def test_ensure_index():
     assert vs._collection.versions.create_index.call_args_list == [call([('symbol', 1), ('_id', -1)], background=True),
                                                                call([('symbol', 1), ('version', -1)], unique=True, background=True)]
     assert vs._collection.version_nums.create_index.call_args_list == [call('symbol', unique=True, background=True)]
+    assert vs._collection.metadata.create_index.call_args_list == [call([('symbol', 1), ('_start_time', -1)], background=True),
+                                                                   call([('symbol', 1), ('_end_time', -1)], background=True)]
     th._ensure_index.assert_called_once_with(vs._collection)
 
 
