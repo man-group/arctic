@@ -571,7 +571,7 @@ class VersionStore(object):
     def _write_metadata_history(self, symbol, metadata, start_time, end_time=None, **kwargs):
         """
         Create a new metadata entry in ._metadata collection
-        
+
         Parameters
         ----------
         symbol : `str`
@@ -585,7 +585,7 @@ class VersionStore(object):
             Default: None
         kwargs :
             passed through to the write handler
-        
+
         Returns
         -------
         VersionedItem containing .metadata
@@ -634,7 +634,7 @@ class VersionStore(object):
         """
         if not metadata:
             return None
-        elif self.has_symbol(symbol):
+        elif self.has_symbol(symbol, metadata=True):
             old_metadata = self.read_metadata(symbol).metadata
             new_metadata = metadata_policy(old_metadata, metadata)
             if not new_metadata or old_metadata == new_metadata:
@@ -652,7 +652,7 @@ class VersionStore(object):
     def update_metadata(self, symbol, metadata, metadata_policy=lambda old, new: new, **kwargs):
         """
         Update .metadata entry for `symbol` without changing the data
-        
+
         Parameters
         ----------
         symbol : `str`
@@ -685,7 +685,7 @@ class VersionStore(object):
     def write_data(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
         """
         Write `data` under the specified `symbol` name to ._versions.
-        
+
         Parameters
         ----------
         symbol : `str`
@@ -766,7 +766,7 @@ class VersionStore(object):
         self._arctic_lib.check_quota()
 
         self._update_metadata_history(symbol, metadata, metadata_policy, **kwargs)
-        return self.write_data(symbol, data, metadata, **kwargs)
+        return self.write_data(symbol, data, metadata, prune_previous_version=prune_previous_version, **kwargs)
 
     def _prune_previous_versions(self, symbol, keep_mins=120):
         """
