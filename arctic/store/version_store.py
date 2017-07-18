@@ -568,10 +568,53 @@ class VersionStore(object):
             mongo_retry(self._changes.insert_one)(version)
 
     @mongo_retry
+    def _write_metadata_history(self, symbol, metadata, start_time, end_time=None, **kwargs):
+        """
+        Create a new metadata entry in ._metadata collection
+        
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        metadata : `dict`
+            to be persisted
+        start_time : `datetime.datetime`
+            when entry becomes effective
+        end_time : `datetime.datetime` or None
+            when entry expires. When set to None entry is still in effect
+            Default: None
+        kwargs :
+            passed through to the write handler
+        
+        Returns
+        -------
+        VersionedItem containing .metadata
+        """
+        self._arctic_lib.check_quota()
+        version = {'_id': bson.ObjectId()}
+        version['symbol'] = symbol
+        version['metadata'] = metadata
+        version['_start_time'] = start_time
+        if end_time is not None:
+            version['_end_time'] = end_time
+
+        handler = self._write_handler(version, symbol, metadata, **kwargs)
+        mongo_retry(handler.write)(self._arctic_lib, version, symbol, None, None, **kwargs)
+
+        # Insert the new version into the metadata DB
+        mongo_retry(self._metadata.insert_one)(version)
+
+        logger.debug('Finished writing metadata for %s', symbol)
+
+        self._publish_change(symbol, version)
+
+        return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=0, data=None, metadata=metadata)
+
+    @mongo_retry
     def _update_metadata_history(self, symbol, metadata, metadata_policy=lambda old, new: new, **kwargs):
         """
         Update .metadata entry for `symbol`
-        
+
         Parameters
         ----------
         symbol : `str`
@@ -642,7 +685,7 @@ class VersionStore(object):
     def write_data(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
         """
         Write `data` under the specified `symbol` name to ._versions.
-
+        
         Parameters
         ----------
         symbol : `str`
