@@ -44,10 +44,6 @@ class VersionStore(object):
         if '%s.changes' % c.name not in mongo_retry(c.database.collection_names)():
             # 32MB buffer for change notifications
             mongo_retry(c.database.create_collection)('%s.changes' % c.name, capped=True, size=32 * 1024 * 1024)
-        # TODO: This should not be here
-        if '%s.metadata' % c.name not in mongo_retry(c.database.collection_names)():
-            # metadata entries
-            mongo_retry(c.database.create_collection)('%s.metadata' % c.name)
 
         for th in _TYPE_HANDLERS:
             th.initialize_library(arctic_lib, **kwargs)
@@ -128,6 +124,9 @@ class VersionStore(object):
             Return the symbols available under the snapshot.
         regex : `str`
             filter symbols by the passed in regular expression
+        timed_metadata_only : `bool`
+            search through .metadata if True
+            Default: False
         kwargs :
             kwarg keys are used as fields to query for symbols with metadata matching
             the kwargs query
@@ -139,10 +138,9 @@ class VersionStore(object):
         query = {}
         if regex is not None:
             query['symbol'] = {'$regex': regex}
-        if kwargs.pop('timed_metadata_only', False):
-            coll = self._metadata
-        else:
-            coll = self._versions
+
+        coll = self._metadata if kwargs.pop('timed_metadata_only', False) else self._versions
+
         if kwargs:
             for k, v in six.iteritems(kwargs):
                 query['metadata.' + k] = v
@@ -194,6 +192,10 @@ class VersionStore(object):
             `int` : specific version number
             `str` : snapshot name which contains the version
             `datetime.datetime` : the version of the data that existed as_of the requested point in time
+        kwargs :
+            timed_metadata_only : `bool`
+                search through ._metadata if True
+                Default: False
         """
 
         if kwargs.pop('timed_metadata_only', False):
@@ -606,38 +608,38 @@ class VersionStore(object):
 
     def write_metadata_history(self, symbol, entries, times, **kwargs):
         """
-        Manually write metadata entries in ._metadata collection
+        Manually overwrite entire metadata history for `symbol`
 
         Parameters
         ----------
         symbol : `str`
             symbol name for the item
-        entries : `list of dicts`
+        entries : `list of dict`
             list of metadata to be written
-        times : `list of datetime.datetimes`
+        times : `list of datetime.datetime`
             time stamps of metadata
         kwargs :
             passed through to the write handler
         """
-        if not (isinstance(entries, list) and isinstance(times, list)):
-            raise ValueError('`entries` and `times` must be lists')
+        if isinstance(entries, dict):
+            raise TypeError('`entries` must be a list')
+        entries = list(entries)
+        times = list(times)
 
-        if len(times) == len(entries):
-            times.append(None)
-        if len(times) < len(entries) + 1:
-            raise ValueError('Insufficient time stamps')
-        if len(times) > len(entries) + 1:
-            raise ValueError('Too many time stamps')
+        if len(times) != len(entries):
+            raise ValueError('Number of entries and number of time stamps do not match')
 
-        for i in range(len(entries) - 1):
+        self._delete_timed_metadata(symbol)
+        times.append(None)
+        for i in range(len(entries)):
             self._write_metadata_entry(symbol, entries[i], times[i], times[i + 1])
 
         if not self.has_symbol(symbol):
-            self.write_data(symbol, data=None, metadata=entries[-1])
+            self._write_data(symbol, data=None, metadata=entries[-1])
 
 
     @mongo_retry
-    def _append_metadata_history(self, symbol, metadata, metadata_policy=lambda old, new: new, **kwargs):
+    def _append_metadata_history(self, symbol, metadata, start_time, metadata_policy=lambda old, new: new, **kwargs):
         """
         Update .metadata entry for `symbol`
 
@@ -647,6 +649,8 @@ class VersionStore(object):
             symbol name for the item
         metadata : `dict`
             to be persisted
+        start_time : `datetime.datetime`
+            when metadata becomes effective
         metadata_policy :
             function(old, new):
                 return final metadata to write
@@ -662,21 +666,25 @@ class VersionStore(object):
         if not metadata:
             return None
         elif self.has_symbol(symbol):
-            old_metadata = self.read_metadata(symbol).metadata
-            new_metadata = metadata_policy(old_metadata, metadata)
-            if not new_metadata or old_metadata == new_metadata:
-                logger.info('No change to metadata.')
-                return None
-            else:
-                metadata = new_metadata
-        now = dt.now()
-        self._metadata.find_one_and_update({'symbol': symbol}, {'$set': {'end_time': now}},
+            old_metadata = self.read_metadata(symbol, metadata_history=True).metadata
+            if len(old_metadata) > 0:
+                if old_metadata[0]['start_time'] >= start_time:
+                    raise ValueError('start_time is earlier than the last metadata')
+                if old_metadata[0]['metadata']:
+                    new_metadata = metadata_policy(old_metadata[0]['metadata'], metadata)
+                    if not new_metadata or old_metadata[0]['metadata'] == new_metadata:
+                        logger.info('No change to metadata.')
+                        return None
+                    else:
+                        metadata = new_metadata
+
+        self._metadata.find_one_and_update({'symbol': symbol}, {'$set': {'end_time': start_time}},
                                             sort=[('start_time', pymongo.DESCENDING)])
-        self._write_metadata_entry(symbol, metadata, now, **kwargs)
+        self._write_metadata_entry(symbol, metadata, start_time, **kwargs)
         return metadata
 
     @mongo_retry
-    def update_metadata(self, symbol, metadata, metadata_policy=lambda old, new: new, **kwargs):
+    def update_metadata(self, symbol, metadata, start_time=None, metadata_policy=lambda old, new: new, **kwargs):
         """
         Update .metadata entry for `symbol` without changing the data
 
@@ -686,6 +694,8 @@ class VersionStore(object):
             symbol name for the item
         metadata : `dict`
             to be persisted
+        start_time : `datetime.datetime`
+            when metadata becomes effective
         metadata_policy :
             function(old, new):
                 return final metadata to write
@@ -700,10 +710,12 @@ class VersionStore(object):
         """
         if not metadata:
             raise ValueError('Metadata not specified.')
-        new_metadata = self._append_metadata_history(symbol, metadata, metadata_policy, **kwargs)
+        if start_time is None:
+            start_time = dt.now()
+        new_metadata = self._append_metadata_history(symbol, metadata, start_time, metadata_policy, **kwargs)
         if new_metadata:
             new = self._versions.find_one_and_update({'symbol': symbol}, {'$set': {'metadata': new_metadata}},
-                                                     sort=[('version', pymongo.DESCENDING)])
+                                                     sort=[('version', pymongo.DESCENDING)], new=True)
             return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(),
                                  version=new['version'], metadata=new.pop('metadata', None), data=None)
         logger.warning('No changes detected. Returning current entry.')
@@ -712,9 +724,9 @@ class VersionStore(object):
                              version=old.version, metadata=old.metadata, data=None)
 
     @mongo_retry
-    def write_data(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
+    def _write_data(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
         """
-        Write `data` under the specified `symbol` name to ._versions.
+        Write `data` under the specified `symbol` name in ._versions
 
         Parameters
         ----------
@@ -796,14 +808,14 @@ class VersionStore(object):
         """
         self._arctic_lib.check_quota()
 
-        new_metadata = self._append_metadata_history(symbol, metadata, metadata_policy, **kwargs)
+        new_metadata = self._append_metadata_history(symbol, metadata, dt.now(), metadata_policy, **kwargs)
         if new_metadata:
             metadata = new_metadata
         elif self.has_symbol(symbol):
             metadata = self.read_metadata(symbol).metadata
         else:
             metadata = None
-        return self.write_data(symbol, data, metadata, prune_previous_version=prune_previous_version, **kwargs)
+        return self._write_data(symbol, data, metadata, prune_previous_version=prune_previous_version, **kwargs)
 
     def _prune_previous_versions(self, symbol, keep_mins=120):
         """
