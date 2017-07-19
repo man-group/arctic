@@ -469,7 +469,7 @@ class VersionStore(object):
         return _version
 
     @mongo_retry
-    def append(self, symbol, data, metadata=None, prune_previous_version=True, metadata_policy=lambda old, new: new, upsert=True, **kwargs):
+    def append(self, symbol, data, metadata=None, prune_previous_version=True, metadata_callback=lambda old, new: new, upsert=True, **kwargs):
         """
         Append 'data' under the specified 'symbol' name to this library.
         The exact meaning of 'append' is left up to the underlying store implementation.
@@ -482,11 +482,15 @@ class VersionStore(object):
             to be persisted
         metadata : `dict`
             an optional dictionary of metadata to persist along with the symbol.
-        metadata_policy :
+        metadata_callback : callable
+            determines how metadata is updated
             function(old, new):
+                old : current metadata
+                new : passed metadata
                 return final metadata to write
-                return False to not change metadata
-            Default: overwrite
+                return None to not change metadata
+            Example: sum for metadata = Counter()
+            Default: overwrite = lambda old, new: new
         prune_previous_version : `bool`
             Removes previous (non-snapshotted) versions from the database.
             Default: True
@@ -510,7 +514,7 @@ class VersionStore(object):
 
         if upsert and previous_version is None:
             return self.write(symbol=symbol, data=data, prune_previous_version=prune_previous_version,
-                              metadata=metadata, metadata_policy=metadata_policy)
+                              metadata=metadata, metadata_callback=metadata_callback)
 
         assert previous_version is not None
         dirty_append = False
@@ -532,13 +536,13 @@ class VersionStore(object):
         previous_metadata = previous_version.get('metadata', None)
         if upsert and previous_metadata is not None and previous_metadata.get('deleted', False) is True:
             return self.write(symbol=symbol, data=data, prune_previous_version=prune_previous_version,
-                              metadata=metadata, metadata_policy=metadata_policy)
+                              metadata=metadata, metadata_callback=metadata_callback)
 
         handler = self._read_handler(previous_version, symbol)
 
         if metadata is not None:
             version['metadata'] = metadata
-            self.update_metadata(symbol, metadata, metadata_policy)
+            self.update_metadata(symbol, metadata, metadata_callback)
         elif 'metadata' in previous_version:
             version['metadata'] = previous_version['metadata']
 
@@ -636,10 +640,13 @@ class VersionStore(object):
 
         if not self.has_symbol(symbol):
             self._write_data(symbol, data=None, metadata=entries[-1])
+        else:
+            self._versions.find_one_and_update({'symbol': symbol}, {'$set': {'metadata': entries[-1]}},
+                                                sort=[('version', pymongo.DESCENDING)], new=True)
 
 
     @mongo_retry
-    def _append_metadata_history(self, symbol, metadata, start_time, metadata_policy=lambda old, new: new, **kwargs):
+    def _append_metadata_history(self, symbol, metadata, start_time, metadata_callback=lambda old, new: new, **kwargs):
         """
         Update .metadata entry for `symbol`
 
@@ -651,11 +658,15 @@ class VersionStore(object):
             to be persisted
         start_time : `datetime.datetime`
             when metadata becomes effective
-        metadata_policy :
+        metadata_callback : callable
+            determines how metadata is updated
             function(old, new):
+                old : current metadata
+                new : passed metadata
                 return final metadata to write
-                return False to not change metadata
-            Default: overwrite
+                return None to not change metadata
+            Example: sum for metadata = Counter()
+            Default: overwrite = lambda old, new: new
         kwargs :
             passed through to the write handler
 
@@ -663,16 +674,16 @@ class VersionStore(object):
         -------
         `metadata` if metadata is written, None if not.
         """
-        if not metadata:
+        if metadata is None:
             return None
         elif self.has_symbol(symbol):
             old_metadata = self.read_metadata(symbol, metadata_history=True).metadata
             if len(old_metadata) > 0:
                 if old_metadata[0]['start_time'] >= start_time:
                     raise ValueError('start_time is earlier than the last metadata')
-                if old_metadata[0]['metadata']:
-                    new_metadata = metadata_policy(old_metadata[0]['metadata'], metadata)
-                    if not new_metadata or old_metadata[0]['metadata'] == new_metadata:
+                if old_metadata[0]['metadata'] is not None:
+                    new_metadata = metadata_callback(old_metadata[0]['metadata'], metadata)
+                    if new_metadata is None or old_metadata[0]['metadata'] == new_metadata:
                         logger.info('No change to metadata.')
                         return None
                     else:
@@ -684,7 +695,7 @@ class VersionStore(object):
         return metadata
 
     @mongo_retry
-    def update_metadata(self, symbol, metadata, start_time=None, metadata_policy=lambda old, new: new, **kwargs):
+    def update_metadata(self, symbol, metadata, start_time=None, metadata_callback=lambda old, new: new, **kwargs):
         """
         Update .metadata entry for `symbol` without changing the data
 
@@ -696,11 +707,15 @@ class VersionStore(object):
             to be persisted
         start_time : `datetime.datetime`
             when metadata becomes effective
-        metadata_policy :
+        metadata_callback : callable
+            determines how metadata is updated
             function(old, new):
+                old : current metadata
+                new : passed metadata
                 return final metadata to write
-                return False to not change metadata
-            Default: overwrite
+                return None to not change metadata
+            Example: sum for metadata = Counter()
+            Default: overwrite = lambda old, new: new
         kwargs :
             passed through to the write handler
 
@@ -708,12 +723,12 @@ class VersionStore(object):
         -------
         VersionedItem containing .metadata
         """
-        if not metadata:
+        if metadata is None:
             raise ValueError('Metadata not specified.')
         if start_time is None:
             start_time = dt.now()
-        new_metadata = self._append_metadata_history(symbol, metadata, start_time, metadata_policy, **kwargs)
-        if new_metadata:
+        new_metadata = self._append_metadata_history(symbol, metadata, start_time, metadata_callback, **kwargs)
+        if new_metadata is not None:
             new = self._versions.find_one_and_update({'symbol': symbol}, {'$set': {'metadata': new_metadata}},
                                                      sort=[('version', pymongo.DESCENDING)], new=True)
             return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(),
@@ -777,7 +792,7 @@ class VersionStore(object):
 
 
     @mongo_retry
-    def write(self, symbol, data, metadata=None, prune_previous_version=True, metadata_policy=lambda old, new: new, **kwargs):
+    def write(self, symbol, data, metadata=None, prune_previous_version=True, metadata_callback=lambda old, new: new, **kwargs):
         """
         Write 'data' under the specified 'symbol' name to this library.
 
@@ -790,11 +805,15 @@ class VersionStore(object):
         metadata : `dict`
             an optional dictionary of metadata to persist along with the symbol.
             Default: None
-        metadata_policy :
+        metadata_callback : callable
+            determines how metadata is updated
             function(old, new):
+                old : current metadata
+                new : passed metadata
                 return final metadata to write
-                return False to not change metadata
-            Default: overwrite
+                return None to not change metadata
+            Example: sum for metadata = Counter()
+            Default: overwrite = lambda old, new: new
         prune_previous_version : `bool`
             Removes previous (non-snapshotted) versions from the database.
             Default: True
@@ -808,11 +827,11 @@ class VersionStore(object):
         """
         self._arctic_lib.check_quota()
 
-        new_metadata = self._append_metadata_history(symbol, metadata, dt.now(), metadata_policy, **kwargs)
-        if new_metadata:
+        new_metadata = self._append_metadata_history(symbol, metadata, dt.now(), metadata_callback, **kwargs)
+        if new_metadata is not None:
             metadata = new_metadata
         elif self.has_symbol(symbol):
-            metadata = self.read_metadata(symbol).metadata
+            metadata = self.read_metadata(symbol, allow_secondary=False).metadata
         else:
             metadata = None
         return self._write_data(symbol, data, metadata, prune_previous_version=prune_previous_version, **kwargs)
@@ -871,6 +890,31 @@ class VersionStore(object):
         cleanup(self._arctic_lib, symbol, version_ids)
 
     @mongo_retry
+    def delete_last_metadata(self, symbol):
+        """
+        Delete the most recent metadata of `symbol` from ._metadata collection.
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name to delete
+
+        Returns
+        -------
+        Deleted metadata
+        """
+        history = self.read_metadata(symbol, metadata_history=True).metadata
+        if len(history) == 0:
+            raise ValueError('No metadata history found')
+
+        self._metadata.find_one_and_delete({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
+        metadata = self._metadata.find_one_and_update({'symbol': symbol}, {'$unset': {'end_time': ''}},
+                                                      sort=[('start_time', pymongo.DESCENDING)])['metadata']
+        self._versions.find_one_and_update({'symbol': symbol}, {'$set': {'metadata': metadata}},
+                                            sort=[('version', pymongo.DESCENDING)], new=True)
+        return history[0]
+
+    @mongo_retry
     def _delete_timed_metadata(self, symbol):
         """
         Delete all metadata of `symbol` from ._metadata collection.
@@ -920,7 +964,8 @@ class VersionStore(object):
         """
         logger.warning("Deleting data item: %r from %r" % (symbol, self._arctic_lib.get_name()))
         # None is the magic sentinel value that indicates an item has been deleted.
-        sentinel = self.write(symbol, None, prune_previous_version=False, metadata={'deleted': True}, metadata_policy=lambda old, new: new)
+        sentinel = self.write(symbol, None, prune_previous_version=False, metadata={'deleted': True},
+                              metadata_callback=lambda old, new: new)
         self._prune_previous_versions(symbol, 0)
 
         # If there aren't any other versions, then we don't need the sentinel empty value

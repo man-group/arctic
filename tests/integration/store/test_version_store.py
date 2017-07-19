@@ -211,7 +211,7 @@ def test_write_metadata_history(library):
     assert 'end_time' not in after.metadata[0]
 
 
-def test_metadata_policy(library):
+def test_metadata_callback(library):
     def policy(old, new):
         try:
             metadata = {'count' : old['count'] + new['count']}
@@ -219,15 +219,15 @@ def test_metadata_policy(library):
         except KeyError:
             return None
 
-    library.write(symbol, ts1, metadata={'count': 1}, metadata_policy=policy)
+    library.write(symbol, ts1, metadata={'count': 1}, metadata_callback=policy)
 
-    library.write(symbol, ts1, metadata={'count': 2}, metadata_policy=policy)
+    library.write(symbol, ts1, metadata={'count': 2}, metadata_callback=policy)
     assert library.read_metadata(symbol).metadata['count'] == 3
 
-    library.write(symbol, ts1, metadata={'key': 'value'}, metadata_policy=policy)
+    library.write(symbol, ts1, metadata={'key': 'value'}, metadata_callback=policy)
     assert library.read_metadata(symbol).metadata['count'] == 3
 
-    library.write(symbol, ts1, metadata_policy=policy)
+    library.write(symbol, ts1, metadata_callback=policy)
     assert library.read_metadata(symbol).metadata['count'] == 3
 
 
@@ -243,6 +243,26 @@ def test_read_metadata(library):
     assert len(history.metadata) == 1
     assert history.metadata[0]['metadata'] == {'key': 'value'}
     assert history.data is None
+
+
+def test_delete_last_metadata(library):
+    library.write(symbol, ts1)
+    start_time1 = dt.utcnow() - dtd(days=2)
+    start_time1 = start_time1.replace(microsecond=start_time1.microsecond // 1000 * 1000)
+    start_time2 = start_time1 + dtd(days=1)
+    library.write_metadata_history(symbol, [metadata1, metadata2], [start_time1, start_time2])
+
+    deleted = library.delete_last_metadata(symbol)
+    after = library.read(symbol, metadata_history=True)
+
+    assert deleted['start_time'] == start_time2
+    assert deleted['metadata'] == metadata2
+    assert after.version == 1
+    assert len(after.metadata) == 1
+    assert after.metadata[0]['metadata'] == metadata1
+    assert after.metadata[0]['start_time'] == start_time1
+    assert 'end_time' not in after.metadata[0]
+    assert library.read_metadata(symbol).metadata == metadata1
 
 
 def test_read_metadata_throws_on_deleted_symbol(library):
