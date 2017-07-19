@@ -54,7 +54,8 @@ def _query(allow_secondary, library_name):
         coll_name = args[0]
         data_coll_name = 'arctic_{}'.format(library_name)
         versions_coll_name = data_coll_name + '.versions'
-        if allow_secondary and coll_name in (data_coll_name, versions_coll_name):
+        metadata_coll_name = data_coll_name + '.metadata'
+        if allow_secondary and coll_name in (data_coll_name, versions_coll_name, metadata_coll_name):
             # Reads to the Version and Chunks collections are allowed to slaves
             assert bool(options & _QUERY_OPTIONS['slave_okay']) == allow_secondary, "{}: options:{}".format(coll_name, options)
         elif '.$cmd' not in coll_name:
@@ -182,7 +183,7 @@ def test_update_metadata(library):
         library.update_metadata(symbol, metadata=metadata2, start_time=after2.metadata[0]['start_time'] - dtd(days=1))
 
     start_time = dt.utcnow() + dtd(days=1)
-    start_time = start_time.replace(microsecond=start_time.microsecond / 1000 * 1000)
+    start_time = start_time.replace(microsecond=start_time.microsecond // 1000 * 1000)
     library.update_metadata(symbol, metadata=metadata2, start_time=start_time)
     after3 = library.read(symbol, metadata_history=True)
     assert after3.version == 1  # No write is called
@@ -196,7 +197,7 @@ def test_write_metadata_history(library):
         library.write_metadata_history(symbol, metadata1, datetime.now())
 
     start_time1 = dt.utcnow() - dtd(days=2)
-    start_time1 = start_time1.replace(microsecond=start_time1.microsecond / 1000 * 1000)
+    start_time1 = start_time1.replace(microsecond=start_time1.microsecond // 1000 * 1000)
     start_time2 = start_time1 + dtd(days=1)
     library.write_metadata_history(symbol, [metadata1, metadata2], [start_time1, start_time2])
 
