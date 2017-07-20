@@ -168,9 +168,6 @@ def test_metadata_history(library):
 
 
 def test_update_metadata(library):
-    with pytest.raises(NoDataFoundException):
-        library.update_metadata(symbol, metadata=metadata1)
-
     library.write(symbol, ts1, metadata=metadata1)
 
     library.update_metadata(symbol, metadata=metadata1)

@@ -465,7 +465,8 @@ class VersionStore(object):
             raise NoDataFoundException("No data found for %s in library %s" % (symbol, self._arctic_lib.get_name()))
 
         if as_of is not None:
-            metadata = metadata_coll.find_one({'symbol': symbol, 'start_time': {'$lte': _version['_id'].generation_time}},
+            metadata = metadata_coll.find_one({'symbol': symbol, 'start_time':
+                                               {'$lte': _version['_id'].generation_time + timedelta(seconds=1)}},
                                               sort=[('start_time', pymongo.DESCENDING)])
             if metadata is not None:
                 _version['metadata'] = metadata['metadata']
@@ -477,7 +478,6 @@ class VersionStore(object):
             metadata = metadata_coll.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
             if metadata is not None:
                 _version['metadata'] = metadata['metadata']
-
 
         return _version
 
@@ -646,24 +646,25 @@ class VersionStore(object):
             to be persisted
         start_time : `datetime.datetime`
             when metadata becomes effective
+            Default: datetime.utcnow()
         kwargs :
             passed through to the write handler
         """
-        if not self.has_symbol(symbol):
-            raise NoDataFoundException('Symbol %s not exist in library %s' % (symbol, self._arctic_lib.get_name()))
         if start_time is None:
-            start_time = dt.now()
+            start_time = dt.utcnow()
         if self.has_symbol(symbol, timed_metadata_only=True):
             old_metadata = self._metadata.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
             if old_metadata is not None and old_metadata['start_time'] >= start_time:
                 raise ValueError('start_time is earlier than the last metadata')
             if old_metadata['metadata'] == metadata:
                 logger.warning('No change to metadata')
-                return
+                return metadata
+        elif metadata is None:
+            return
 
         self._metadata.find_one_and_update({'symbol': symbol}, {'$set': {'end_time': start_time}},
                                             sort=[('start_time', pymongo.DESCENDING)])
-        self._write_metadata_entry(symbol, metadata, start_time, **kwargs)
+        return self._write_metadata_entry(symbol, metadata, start_time, **kwargs).metadata
 
     @mongo_retry
     def _write_data(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
@@ -684,8 +685,6 @@ class VersionStore(object):
         -------
         version number
         """
-        self._arctic_lib.check_quota()
-
         version = {'_id': bson.ObjectId()}
         version['symbol'] = symbol
         version['version'] = self._version_nums.find_one_and_update({'symbol': symbol},
@@ -740,8 +739,8 @@ class VersionStore(object):
         """
         self._arctic_lib.check_quota()
 
-        version = self._write_data(symbol, data, prune_previous_version=prune_previous_version, **kwargs)
         metadata = self.update_metadata(symbol, metadata, **kwargs)
+        version = self._write_data(symbol, data, prune_previous_version=prune_previous_version, **kwargs)
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version,
                              metadata=metadata, data=None)
 

@@ -1,4 +1,5 @@
 from bson import ObjectId
+import time
 from datetime import datetime as dt
 from mock import patch
 from pandas.util.testing import assert_frame_equal
@@ -106,6 +107,8 @@ def test_audit_writes(library):
 def test_metadata_changes_writes(library):
     with ArcticTransaction(library, symbol, 'u1', 'l1') as mt:
         mt.write(symbol, ts1, metadata={'original': 'data'})
+
+    time.sleep(1)  # Assume metadata not changing rapidly
 
     with ArcticTransaction(library, symbol, 'u2', 'l2') as mt:
         mt.write(symbol, ts1, metadata={'some': 'data', 'original': 'data'})

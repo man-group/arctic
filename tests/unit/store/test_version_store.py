@@ -101,34 +101,52 @@ def test_get_version_allow_secondary_user_override_False():
 
 def test_read_as_of_LondonTime():
     # When we do a read, with naive as_of, that as_of is treated in London Time.
+    versions = Mock()
+    object_id = bson.ObjectId.from_datetime(dt(2013, 4, 1, 8, 0, tzinfo=mktz()))
+    versions.find_one.return_value = {'_id': object_id}
+    _versions = Mock()
+    _versions.with_options.return_value = versions
     vs = create_autospec(VersionStore, instance=True,
-                     _versions=Mock(), _allow_secondary=False)
+                         _versions=_versions, _metadata=MagicMock(), _allow_secondary=False)
     VersionStore._read_metadata(vs, 'symbol', dt(2013, 4, 1, 9, 0))
-    versions = vs._versions.with_options.return_value
     versions.find_one.assert_called_once_with({'symbol':'symbol', '_id':
-                                              {'$lt': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0, tzinfo=mktz()) + dtd(seconds=1))}},
-                                             sort=[('_id', pymongo.DESCENDING)])
+                                               {'$lt': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0, tzinfo=mktz()) + dtd(seconds=1))}},
+                                              sort=[('_id', pymongo.DESCENDING)])
+    metadata = vs._metadata.with_options.return_value
+    metadata.find_one.assert_called_once_with({'symbol': 'symbol', 'start_time':
+                                               {'$lte': object_id.generation_time + dtd(seconds=1)}},
+                                              sort=[('start_time', pymongo.DESCENDING)])
 
 
 def test_read_as_of_NotNaive():
     # When we do a read, with naive as_of, that as_of is treated in London Time.
+    versions = Mock()
+    object_id = bson.ObjectId.from_datetime(dt(2013, 4, 1, 8, 0, tzinfo=mktz()))
+    versions.find_one.return_value = {'_id': object_id}
+    _versions = Mock()
+    _versions.with_options.return_value = versions
     vs = create_autospec(VersionStore, instance=True,
-                     _versions=Mock(), _allow_secondary=False)
+                         _versions=_versions, _metadata=MagicMock(), _allow_secondary=False)
     VersionStore._read_metadata(vs, 'symbol', dt(2013, 4, 1, 9, 0, tzinfo=mktz('Europe/Paris')))
     versions = vs._versions.with_options.return_value
     versions.find_one.assert_called_once_with({'symbol':'symbol', '_id':
                                               {'$lt': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0, tzinfo=mktz('Europe/Paris')) + dtd(seconds=1))}},
                                              sort=[('_id', pymongo.DESCENDING)])
+    metadata = vs._metadata.with_options.return_value
+    metadata.find_one.assert_called_once_with({'symbol': 'symbol', 'start_time':
+                                               {'$lte': object_id.generation_time + dtd(seconds=1)}},
+                                              sort=[('start_time', pymongo.DESCENDING)])
 
 
 def test_read_metadata_no_asof():
     # When we do a read, with naive as_of, that as_of is treated in London Time.
     vs = create_autospec(VersionStore, instance=True,
-                     _versions=Mock(), _allow_secondary=False)
+                         _versions=MagicMock(), _metadata=MagicMock(), _allow_secondary=False)
     VersionStore._read_metadata(vs, sentinel.symbol)
     versions = vs._versions.with_options.return_value
-    assert versions.find_one.call_args_list == [call({'symbol': sentinel.symbol},
-                                                         sort=[('version', pymongo.DESCENDING)])]
+    versions.find_one.assert_called_once_with({'symbol': sentinel.symbol}, sort=[('version', pymongo.DESCENDING)])
+    metadata = vs._metadata.with_options.return_value
+    metadata.find_one.assert_called_once_with({'symbol': sentinel.symbol}, sort=[('start_time', pymongo.DESCENDING)])
 
 
 def test_write_check_quota():
