@@ -129,7 +129,7 @@ class VersionStore(object):
             Default: False
         kwargs :
             timed_metadata_only : `bool`
-                search through ._metadata if True
+                return symbols with timed metadata entries
                 Default: False
 
         Returns
@@ -140,7 +140,8 @@ class VersionStore(object):
         if regex is not None:
             query['symbol'] = {'$regex': regex}
 
-        coll = self._metadata if kwargs.pop('timed_metadata_only', False) else self._versions
+        if kwargs.pop('timed_metadata_only', False):
+            return self._metadata.find().distinct('symbol')
 
         if kwargs:
             logger.warning('metadata query functionality is deprecated - no metadata search is performed')
@@ -150,7 +151,7 @@ class VersionStore(object):
             except TypeError:
                 raise NoDataFoundException('No snapshot %s in library %s' % (snapshot, self._arctic_lib.get_name()))
         elif all_symbols:
-            return coll.find(query).distinct('symbol')
+            return self._versions.find(query).distinct('symbol')
 
         # Return just the symbols which aren't deleted in the 'trunk' of this library
         pipeline = []
@@ -172,7 +173,7 @@ class VersionStore(object):
                                       }
                          }])
 
-        results = coll.aggregate(pipeline)
+        results = self._versions.aggregate(pipeline)
         return sorted([x['symbol'] for x in results])
 
     @mongo_retry
@@ -194,7 +195,7 @@ class VersionStore(object):
             `datetime.datetime` : the version of the data that existed as_of the requested point in time
         kwargs :
             timed_metadata_only : `bool`
-                search through ._metadata if True
+                return symbols with timed metadata entries
                 Default: False
         """
 
@@ -333,8 +334,8 @@ class VersionStore(object):
             `True` : allow reads from secondary members
             `False` : only allow reads from primary members
         metadata_history: `bool`
-            `False` : Return currrent metadata from ._versions (Default)
-            `True` : Return all entries from ._metadata
+            `False` : Return current metadata (Default)
+            `True` : Return all metadata entries
 
         Returns
         -------
@@ -415,8 +416,8 @@ class VersionStore(object):
             `True` : allow reads from secondary members
             `False` : only allow reads from primary members
         metadata_history: `bool`
-            `False` : Return currrent metadata from ._versions (Default)
-            `True` : Return all entries from ._metadata
+            `False` : Return current metadata (Default)
+            `True` : Return all metadata entries
 
         Returns
         -------
@@ -571,7 +572,7 @@ class VersionStore(object):
     @mongo_retry
     def _write_metadata_entry(self, symbol, metadata, start_time, **kwargs):
         """
-        Create a new metadata entry in ._metadata collection
+        Create a new metadata entry
 
         Parameters
         ----------
@@ -636,7 +637,7 @@ class VersionStore(object):
     @mongo_retry
     def update_metadata(self, symbol, metadata, start_time=None, **kwargs):
         """
-        Update .metadata entry for `symbol` without changing the data
+        Update metadata entry for `symbol` without changing the data
 
         Parameters
         ----------
@@ -669,7 +670,7 @@ class VersionStore(object):
     @mongo_retry
     def _write_data(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
         """
-        Write `data` under the specified `symbol` name in ._versions
+        Write `data` under the specified `symbol` name
 
         Parameters
         ----------
@@ -800,7 +801,7 @@ class VersionStore(object):
     @mongo_retry
     def delete_last_metadata(self, symbol):
         """
-        Delete the most recent metadata of `symbol` from ._metadata collection.
+        Delete current metadata of `symbol`
 
         Parameters
         ----------
@@ -824,7 +825,7 @@ class VersionStore(object):
     @mongo_retry
     def _delete_metadata_history(self, symbol):
         """
-        Delete all metadata of `symbol` from ._metadata collection.
+        Delete all metadata of `symbol`
 
         Parameters
         ----------
@@ -861,7 +862,7 @@ class VersionStore(object):
     def delete(self, symbol):
         """
         Delete all versions of the item from the current library which aren't
-        currently part of some snapshot.
+        currently part of some snapshot and all its metadata.
 
         Parameters
         ----------
