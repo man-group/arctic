@@ -66,6 +66,10 @@ class VersionStore(object):
         collection.versions.create_index([('symbol', pymongo.ASCENDING), ('version', pymongo.DESCENDING)], unique=True,
                                          background=True)
         collection.version_nums.create_index('symbol', unique=True, background=True)
+        collection.metadata.create_index([('symbol', pymongo.ASCENDING), ('start_time', pymongo.DESCENDING)], unique=True,
+                                         background=True)
+        collection.metadata.create_index([('symbol', pymongo.ASCENDING), ('end_time', pymongo.DESCENDING)], unique=True,
+                                         background=True)
         for th in _TYPE_HANDLERS:
             th._ensure_index(collection)
 
@@ -83,6 +87,7 @@ class VersionStore(object):
         self._snapshots = self._collection.snapshots
         self._versions = self._collection.versions
         self._version_nums = self._collection.version_nums
+        self._metadata = self._collection.metadata
         self._publish_changes = '%s.changes' % self._collection.name in self._collection.database.collection_names()
         if self._publish_changes:
             self._changes = self._collection.changes
@@ -94,8 +99,7 @@ class VersionStore(object):
         return VersionStore.__init__(self, state['arctic_lib'])
 
     def __str__(self):
-        return """<%s at %s>
-%s""" % (self.__class__.__name__, hex(id(self)), indent(str(self._arctic_lib), 4))
+        return '<%s at %s>\n%s' % (self.__class__.__name__, hex(id(self)), indent(str(self._arctic_lib), 4))
 
     def __repr__(self):
         return str(self)
@@ -120,9 +124,13 @@ class VersionStore(object):
             Return the symbols available under the snapshot.
         regex : `str`
             filter symbols by the passed in regular expression
+        timed_metadata_only : `bool`
+            search through .metadata if True
+            Default: False
         kwargs :
-            kwarg keys are used as fields to query for symbols with metadata matching
-            the kwargs query
+            timed_metadata_only : `bool`
+                return symbols with timed metadata entries
+                Default: False
 
         Returns
         -------
@@ -131,9 +139,12 @@ class VersionStore(object):
         query = {}
         if regex is not None:
             query['symbol'] = {'$regex': regex}
+
+        if kwargs.pop('timed_metadata_only', False):
+            return self._metadata.find().distinct('symbol')
+
         if kwargs:
-            for k, v in six.iteritems(kwargs):
-                query['metadata.' + k] = v
+            logger.warning('metadata query functionality is deprecated - no metadata search is performed')
         if snapshot is not None:
             try:
                 query['parent'] = self._snapshots.find_one({'name': snapshot})['_id']
@@ -166,7 +177,7 @@ class VersionStore(object):
         return sorted([x['symbol'] for x in results])
 
     @mongo_retry
-    def has_symbol(self, symbol, as_of=None):
+    def has_symbol(self, symbol, as_of=None, **kwargs):
         """
         Return True if the 'symbol' exists in this library AND the symbol
         isn't deleted in the specified as_of.
@@ -182,7 +193,14 @@ class VersionStore(object):
             `int` : specific version number
             `str` : snapshot name which contains the version
             `datetime.datetime` : the version of the data that existed as_of the requested point in time
+        kwargs :
+            timed_metadata_only : `bool`
+                return symbols with timed metadata entries
+                Default: False
         """
+
+        if kwargs.pop('timed_metadata_only', False):
+            return self._metadata.find_one({'symbol': symbol}) is not None
         try:
             # Always use the primary for has_symbol, it's safer
             self._read_metadata(symbol, as_of=as_of, read_preference=ReadPreference.PRIMARY)
@@ -293,7 +311,7 @@ class VersionStore(object):
             handler = self._bson_handler
         return handler
 
-    def read(self, symbol, as_of=None, date_range=None, from_version=None, allow_secondary=None, **kwargs):
+    def read(self, symbol, as_of=None, date_range=None, from_version=None, allow_secondary=None, metadata_history=False, **kwargs):
         """
         Read data for the named symbol.  Returns a VersionedItem object with
         a data and metdata element (as passed into write).
@@ -315,6 +333,9 @@ class VersionStore(object):
             `None` : use the settings from the top-level `Arctic` object used to query this version store.
             `True` : allow reads from secondary members
             `False` : only allow reads from primary members
+        metadata_history: `bool`
+            `False` : Return current metadata (Default)
+            `True` : Return all metadata entries
 
         Returns
         -------
@@ -322,7 +343,7 @@ class VersionStore(object):
         """
         try:
             read_preference = self._read_preference(allow_secondary)
-            _version = self._read_metadata(symbol, as_of=as_of, read_preference=read_preference)
+            _version = self._read_metadata(symbol, as_of=as_of, read_preference=read_preference, metadata_history=metadata_history)
             return self._do_read(symbol, _version, from_version,
                                  date_range=date_range, read_preference=read_preference, **kwargs)
         except (OperationFailure, AutoReconnect) as e:
@@ -330,7 +351,7 @@ class VersionStore(object):
             log_exception('read', e, 1)
             # If we've failed to read from the secondary, then it's possible the
             # secondary has lagged.  In this case direct the query to the primary.
-            _version = mongo_retry(self._read_metadata)(symbol, as_of=as_of,
+            _version = mongo_retry(self._read_metadata)(symbol, as_of=as_of, metadata_history=metadata_history,
                                                         read_preference=ReadPreference.PRIMARY)
             return self._do_read_retry(symbol, _version, from_version,
                                        date_range=date_range,
@@ -375,7 +396,7 @@ class VersionStore(object):
     _do_read_retry = mongo_retry(_do_read)
 
     @mongo_retry
-    def read_metadata(self, symbol, as_of=None, allow_secondary=None):
+    def read_metadata(self, symbol, as_of=None, allow_secondary=None, metadata_history=False):
         """
         Return the metadata saved for a symbol.  This method is fast as it doesn't
         actually load the data.
@@ -394,12 +415,20 @@ class VersionStore(object):
             `None` : use the settings from the top-level `Arctic` object used to query this version store.
             `True` : allow reads from secondary members
             `False` : only allow reads from primary members
+        metadata_history: `bool`
+            `False` : Return current metadata (Default)
+            `True` : Return all metadata entries
+
+        Returns
+        -------
+        VersionedItem containing .metadata
         """
-        _version = self._read_metadata(symbol, as_of=as_of, read_preference=self._read_preference(allow_secondary))
+        _version = self._read_metadata(symbol, as_of=as_of, metadata_history=metadata_history,
+                                       read_preference=self._read_preference(allow_secondary))
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=_version['version'],
                              metadata=_version.pop('metadata', None), data=None)
 
-    def _read_metadata(self, symbol, as_of=None, read_preference=None):
+    def _read_metadata(self, symbol, as_of=None, metadata_history=False, read_preference=None):
         if read_preference is None:
             # We want to hit the PRIMARY if querying secondaries is disabled.  If we're allowed to query secondaries,
             # then we want to hit the secondary for metadata.  We maintain ordering of chunks vs. metadata, such that
@@ -407,6 +436,7 @@ class VersionStore(object):
             read_preference = ReadPreference.PRIMARY_PREFERRED if not self._allow_secondary else ReadPreference.SECONDARY_PREFERRED
 
         versions_coll = self._versions.with_options(read_preference=read_preference)
+        metadata_coll = self._metadata.with_options(read_preference=read_preference)
 
         _version = None
         if as_of is None:
@@ -435,6 +465,21 @@ class VersionStore(object):
         if metadata is not None and metadata.get('deleted', False) is True:
             raise NoDataFoundException("No data found for %s in library %s" % (symbol, self._arctic_lib.get_name()))
 
+        if as_of is not None:
+            metadata = metadata_coll.find_one({'symbol': symbol, 'start_time':
+                                               {'$lte': _version['_id'].generation_time + timedelta(seconds=1)}},
+                                              sort=[('start_time', pymongo.DESCENDING)])
+            if metadata is not None:
+                _version['metadata'] = metadata['metadata']
+        elif metadata_history:
+            if not self.has_symbol(symbol, timed_metadata_only=True):
+                raise NoDataFoundException('No metadata found for %s in metadata collection' % symbol)
+            _version['metadata'] = list(metadata_coll.find({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)]))
+        else:
+            metadata = metadata_coll.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
+            if metadata is not None:
+                _version['metadata'] = metadata['metadata']
+
         return _version
 
     @mongo_retry
@@ -456,6 +501,10 @@ class VersionStore(object):
             Default: True
         upsert : `bool`
             Write 'data' if no previous version exists.
+
+        Returns
+        -------
+        VerionedItem containing .data and .metadata
         """
         self._arctic_lib.check_quota()
         version = {'_id': bson.ObjectId()}
@@ -466,10 +515,11 @@ class VersionStore(object):
 
         if len(data) == 0 and previous_version is not None:
             return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=previous_version['version'],
-                                 metadata=version.pop('metadata', None), data=None)
+                                 metadata=None, data=None)
 
         if upsert and previous_version is None:
-            return self.write(symbol=symbol, data=data, prune_previous_version=prune_previous_version, metadata=metadata)
+            return self.write(symbol=symbol, data=data, prune_previous_version=prune_previous_version,
+                              metadata=metadata)
 
         assert previous_version is not None
         dirty_append = False
@@ -495,12 +545,8 @@ class VersionStore(object):
 
         handler = self._read_handler(previous_version, symbol)
 
-        if metadata is not None:
-            version['metadata'] = metadata
-        elif 'metadata' in previous_version:
-            version['metadata'] = previous_version['metadata']
-
         if handler and hasattr(handler, 'append'):
+            self.update_metadata(symbol, metadata)
             mongo_retry(handler.append)(self._arctic_lib, version, symbol, data,
                                         previous_version, dirty_append=dirty_append, **kwargs)
         else:
@@ -524,6 +570,150 @@ class VersionStore(object):
             mongo_retry(self._changes.insert_one)(version)
 
     @mongo_retry
+    def _write_metadata_entry(self, symbol, metadata, start_time, **kwargs):
+        """
+        Create a new metadata entry
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        metadata : `dict`
+            to be persisted
+        start_time : `datetime.datetime`
+            when entry becomes effective
+        kwargs :
+            passed through to the write handler
+
+        Returns
+        -------
+        VersionedItem containing .metadata
+        """
+        self._arctic_lib.check_quota()
+        document = {'_id': bson.ObjectId()}
+        document['symbol'] = symbol
+        document['metadata'] = metadata
+        document['start_time'] = start_time
+
+        handler = self._write_handler(document, symbol, metadata, **kwargs)
+        mongo_retry(handler.write)(self._arctic_lib, document, symbol, None, None, **kwargs)
+
+        # Insert the new document into the metadata DB
+        mongo_retry(self._metadata.insert_one)(document)
+
+        logger.debug('Finished writing metadata for %s', symbol)
+
+        return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=0, data=None, metadata=metadata)
+
+    def write_metadata_history(self, symbol, entries, times, **kwargs):
+        """
+        Manually overwrite entire metadata history for `symbol`
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        entries : `list of dict`
+            list of metadata to be written
+        times : `list of datetime.datetime`
+            time stamps of metadata
+        kwargs :
+            passed through to the write handler
+        """
+        if isinstance(entries, dict):
+            raise TypeError('`entries` must be a list')
+        entries = list(entries)
+        times = list(times)
+
+        if len(entries) != len(times):
+            raise ValueError('Number of entries and number of time stamps do not match')
+
+        if not self.has_symbol(symbol):
+            self._write_data(symbol, None)
+        self._delete_metadata_history(symbol)
+        for start_time, metadata in zip(times, entries):
+            self.update_metadata(symbol, metadata, start_time)
+
+    @mongo_retry
+    def update_metadata(self, symbol, metadata, start_time=None, **kwargs):
+        """
+        Update metadata entry for `symbol` without changing the data
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        metadata : `dict`
+            to be persisted
+        start_time : `datetime.datetime`
+            when metadata becomes effective
+            Default: datetime.utcnow()
+        kwargs :
+            passed through to the write handler
+        """
+        if not self.has_symbol(symbol):
+            self._write_data(symbol, None, **kwargs)
+        if start_time is None:
+            start_time = dt.utcnow()
+        if self.has_symbol(symbol, timed_metadata_only=True):
+            old_metadata = self._metadata.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
+            if old_metadata is not None and old_metadata['start_time'] >= start_time:
+                raise ValueError('start_time is earlier than the last metadata')
+            if old_metadata['metadata'] == metadata:
+                logger.warning('No change to metadata')
+                return metadata
+        elif metadata is None:
+            return
+
+        mongo_retry(self._metadata.find_one_and_update)({'symbol': symbol}, {'$set': {'end_time': start_time}},
+                                            sort=[('start_time', pymongo.DESCENDING)])
+        return self._write_metadata_entry(symbol, metadata, start_time, **kwargs).metadata
+
+    @mongo_retry
+    def _write_data(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
+        """
+        Write `data` under the specified `symbol` name
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        data :
+            to be persisted
+        prune_previous_version : `bool`
+            Removes previous (non-snapshotted) versions from the database.
+            Default: True
+
+        Returns
+        -------
+        version number
+        """
+        version = {'_id': bson.ObjectId()}
+        version['symbol'] = symbol
+        version['version'] = self._version_nums.find_one_and_update({'symbol': symbol},
+                                                                    {'$inc': {'version': 1}},
+                                                                    upsert=True, new=True)['version']
+        version['metadata'] = metadata
+
+        previous_version = self._versions.find_one({'symbol': symbol, 'version': {'$lt': version['version']}},
+                                                   sort=[('version', pymongo.DESCENDING)],
+                                                   )
+
+        handler = self._write_handler(version, symbol, data, **kwargs)
+        mongo_retry(handler.write)(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
+
+        # Insert the new version into the version DB
+        mongo_retry(self._versions.insert_one)(version)
+
+        if prune_previous_version and previous_version:
+            self._prune_previous_versions(symbol)
+
+        logger.debug('Finished writing versions for %s', symbol)
+
+        self._publish_change(symbol, version)
+
+        return version['version']
+
     def write(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
         """
         Write 'data' under the specified 'symbol' name to this library.
@@ -549,32 +739,12 @@ class VersionStore(object):
         of the written symbol in the store.
         """
         self._arctic_lib.check_quota()
-        version = {'_id': bson.ObjectId()}
-        version['symbol'] = symbol
-        version['version'] = self._version_nums.find_one_and_update({'symbol': symbol},
-                                                                    {'$inc': {'version': 1}},
-                                                                    upsert=True, new=True)['version']
-        version['metadata'] = metadata
 
-        previous_version = self._versions.find_one({'symbol': symbol, 'version': {'$lt': version['version']}},
-                                                   sort=[('version', pymongo.DESCENDING)],
-                                                   )
-
-        handler = self._write_handler(version, symbol, data, **kwargs)
-        mongo_retry(handler.write)(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
-
-        # Insert the new version into the version DB
-        mongo_retry(self._versions.insert_one)(version)
-
-        if prune_previous_version and previous_version:
-            self._prune_previous_versions(symbol)
-
-        logger.debug('Finished writing versions for %s', symbol)
-
-        self._publish_change(symbol, version)
-
-        return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=None)
+        start_time = dt.utcnow()
+        version = self._write_data(symbol, data, prune_previous_version=prune_previous_version, **kwargs)
+        metadata = self.update_metadata(symbol, metadata, start_time=start_time, **kwargs)
+        return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version,
+                             metadata=metadata, data=None)
 
     def _prune_previous_versions(self, symbol, keep_mins=120):
         """
@@ -629,6 +799,43 @@ class VersionStore(object):
         # Cleanup any chunks
         cleanup(self._arctic_lib, symbol, version_ids)
 
+    def delete_last_metadata(self, symbol):
+        """
+        Delete current metadata of `symbol`
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name to delete
+
+        Returns
+        -------
+        Deleted metadata
+        """
+        last_metadata = self._metadata.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
+        if last_metadata is None:
+            raise NoDataFoundException('No metadata history found')
+
+        self._metadata.find_one_and_delete({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
+        mongo_retry(self._metadata.find_one_and_update)({'symbol': symbol}, {'$unset': {'end_time': ''}},
+                                                        sort=[('start_time', pymongo.DESCENDING)])['metadata']
+
+        return last_metadata
+
+    @mongo_retry
+    def _delete_metadata_history(self, symbol):
+        """
+        Delete all metadata of `symbol`
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name to delete
+        """
+        logger.warning("Deleting entire metadata history for %r from %r" % (symbol, self._arctic_lib.get_name()))
+        self._metadata.delete_many({'symbol': symbol})
+        assert not self.has_symbol(symbol, timed_metadata_only=True)
+
     @mongo_retry
     def _delete_version(self, symbol, version_num, do_cleanup=True):
         """
@@ -655,7 +862,7 @@ class VersionStore(object):
     def delete(self, symbol):
         """
         Delete all versions of the item from the current library which aren't
-        currently part of some snapshot.
+        currently part of some snapshot and all its metadata.
 
         Parameters
         ----------
@@ -664,7 +871,7 @@ class VersionStore(object):
         """
         logger.warning("Deleting data item: %r from %r" % (symbol, self._arctic_lib.get_name()))
         # None is the magic sentinel value that indicates an item has been deleted.
-        sentinel = self.write(symbol, None, prune_previous_version=False, metadata={'deleted': True})
+        version = self._write_data(symbol, None, prune_previous_version=False, metadata={'deleted': True})
         self._prune_previous_versions(symbol, 0)
 
         # If there aren't any other versions, then we don't need the sentinel empty value
@@ -672,8 +879,10 @@ class VersionStore(object):
         snapped_version = self._versions.find_one({'symbol': symbol,
                                                    'metadata.deleted': {'$ne': True}})
         if not snapped_version:
-            self._delete_version(symbol, sentinel.version)
+            self._delete_version(symbol, version)
         assert not self.has_symbol(symbol)
+
+        self._delete_metadata_history(symbol)
 
     def _write_audit(self, user, message, changed_version):
         """
@@ -797,10 +1006,11 @@ class VersionStore(object):
         res['dbstats'] = db.command('dbstats')
         res['chunks'] = db.command('collstats', self._collection.name)
         res['versions'] = db.command('collstats', self._versions.name)
+        res['metadata'] = db.command('collstats', self._metadata.name)
         res['snapshots'] = db.command('collstats', self._snapshots.name)
         res['totals'] = {'count': res['chunks']['count'],
-                         'size': res['chunks']['size'] + res['versions']['size'] + res['snapshots']['size'],
-                         }
+                         'size': sum(res[item]['size'] for item in ['chunks', 'versions', 'metadata', 'snapshots'])
+                        }
         return res
 
     def _fsck(self, dry_run):

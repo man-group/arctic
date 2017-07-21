@@ -41,6 +41,8 @@ ts1_append = read_str_as_pandas("""  times | near
                    2012-11-08 17:06:11.040 |  3.0
                    2012-11-09 17:06:11.040 |  3.0""")
 
+metadata1 = {'key1': 'value1'}
+metadata2 = {'key2': 'value2'}
 
 symbol = 'TS1'
 
@@ -52,7 +54,8 @@ def _query(allow_secondary, library_name):
         coll_name = args[0]
         data_coll_name = 'arctic_{}'.format(library_name)
         versions_coll_name = data_coll_name + '.versions'
-        if allow_secondary and coll_name in (data_coll_name, versions_coll_name):
+        metadata_coll_name = data_coll_name + '.metadata'
+        if allow_secondary and coll_name in (data_coll_name, versions_coll_name, metadata_coll_name):
             # Reads to the Version and Chunks collections are allowed to slaves
             assert bool(options & _QUERY_OPTIONS['slave_okay']) == allow_secondary, "{}: options:{}".format(coll_name, options)
         elif '.$cmd' not in coll_name:
@@ -132,23 +135,122 @@ def test_query_falls_back_to_primary(library_secondary, library_name):
 
 
 def test_store_item_metadata(library):
-    library.write(symbol, ts1, metadata={'key': 'value'})
+    library.write(symbol, ts1, metadata=metadata1)
 
     after = library.read(symbol)
-
-    assert after.metadata['key'] == 'value'
+    assert after.metadata == metadata1
     assert after.version
     assert_frame_equal(after.data, ts1)
 
 
+def test_metadata_history(library):
+    library.write(symbol, ts1, metadata=metadata1)
+    history1 = library.read(symbol, metadata_history=True).metadata
+    assert len(history1) == 1
+    assert history1[0]['metadata'] == metadata1
+
+    library.write(symbol, ts1, metadata=metadata2)
+    history2 = library.read(symbol, metadata_history=True).metadata
+    assert len(history2) == 2
+    assert history2[0]['metadata'] == metadata2
+    assert history2[1]['metadata'] == metadata1
+
+    library.write(symbol, ts1, metadata=metadata2)
+    history3 = library.read(symbol, metadata_history=True).metadata
+    assert len(history3) == 2
+    assert history3[0]['metadata'] == metadata2
+    assert history3[1]['metadata'] == metadata1
+
+    library.write(symbol, ts1, metadata=None)
+    history4 = library.read(symbol, metadata_history=True).metadata
+    assert len(history4) == 3
+    assert history4[0]['metadata'] == None
+
+
+def test_update_metadata(library):
+    library.write(symbol, ts1, metadata=metadata1)
+
+    library.update_metadata(symbol, metadata=metadata1)
+    after2 = library.read(symbol, metadata_history=True)
+    assert after2.version == 1
+    assert len(after2.metadata) == 1
+
+    with pytest.raises(ValueError):
+        library.update_metadata(symbol, metadata=metadata2, start_time=after2.metadata[0]['start_time'] - dtd(days=1))
+
+    start_time = dt.utcnow() + dtd(days=1)
+    start_time = start_time.replace(microsecond=start_time.microsecond // 1000 * 1000)
+    library.update_metadata(symbol, metadata=metadata2, start_time=start_time)
+    after3 = library.read(symbol, metadata_history=True)
+    assert after3.version == 1  # No write is called
+    assert len(after3.metadata) == 2
+    assert after3.metadata[0]['start_time'] == after3.metadata[1]['end_time'] == start_time
+    assert after3.metadata[0]['metadata'] == metadata2
+    assert after3.metadata[1]['metadata'] == metadata1
+
+
+def test_write_metadata_history(library):
+    with pytest.raises(TypeError):
+        library.write_metadata_history(symbol, metadata1, dt.utcnow())
+    with pytest.raises(ValueError):
+        library.write_metadata_history(symbol, [metadata1], [dt.utcnow(), dt.utcnow()])
+
+    start_time1 = dt.utcnow() - dtd(days=2)
+    start_time1 = start_time1.replace(microsecond=start_time1.microsecond // 1000 * 1000)
+    start_time2 = start_time1 + dtd(days=1)
+    library.write_metadata_history(symbol, [metadata1, metadata2], [start_time1, start_time2])
+
+    after = library.read(symbol, metadata_history=True)
+    assert after.data is None
+    assert len(after.metadata) == 2
+    assert after.metadata[0]['metadata'] == metadata2
+    assert after.metadata[1]['metadata'] == metadata1
+    assert after.metadata[0]['start_time'] == after.metadata[1]['end_time'] == start_time2
+    assert after.metadata[1]['start_time'] == start_time1
+    assert 'end_time' not in after.metadata[0]
+
+
 def test_read_metadata(library):
-    library.write(symbol, ts1, metadata={'key': 'value'})
+    library.write(symbol, ts1, metadata=metadata1)
 
     after = library.read_metadata(symbol)
-
-    assert after.metadata['key'] == 'value'
-    assert after.version
+    assert after.metadata == metadata1
+    assert after.version == 1
     assert after.data is None
+
+    history = library.read_metadata(symbol, metadata_history=True)
+    assert len(history.metadata) == 1
+    assert history.metadata[0]['metadata'] == metadata1
+    assert history.data is None
+
+    # Backward compatibility (no metadadata in .metadata collection)
+    library._delete_metadata_history(symbol)
+    library._write_data(symbol, ts1, metadata=metadata1)
+    assert library.read_metadata(symbol).metadata == metadata1
+    with pytest.raises(NoDataFoundException):
+        library.read_metadata(symbol, metadata_history=True)
+    library.write(symbol, ts1, metadata=metadata2)
+    assert library.read_metadata(symbol).metadata == metadata2
+
+
+def test_delete_last_metadata(library):
+    library.write(symbol, ts1)
+    start_time1 = dt.utcnow() - dtd(days=2)
+    start_time1 = start_time1.replace(microsecond=start_time1.microsecond // 1000 * 1000)
+    start_time2 = start_time1 + dtd(days=1)
+    library.write_metadata_history(symbol, [metadata1, metadata2], [start_time1, start_time2])
+
+    deleted = library.delete_last_metadata(symbol)
+    after = library.read(symbol, metadata_history=True)
+
+    assert deleted['start_time'] == start_time2
+    assert deleted['metadata'] == metadata2
+    assert after.version == 1
+    assert len(after.metadata) == 1
+    assert after.metadata[0]['metadata'] == metadata1
+    assert after.metadata[0]['start_time'] == start_time1
+    assert 'end_time' not in after.metadata[0]
+    assert library.read_metadata(symbol).metadata == metadata1
 
 
 def test_read_metadata_throws_on_deleted_symbol(library):
@@ -925,9 +1027,6 @@ def test_list_symbols(library):
     assert 'asdf' not in library.list_symbols(snapshot='snap1')
     assert 'asdf' in library.list_symbols(snapshot='snap2')
     assert 'asdf' in library.list_symbols(all_symbols=True)
-    assert 'asdf' in library.list_symbols(a=1)
-    assert library.list_symbols(a={'$gt': 5}) == []
-    assert library.list_symbols(b={'$gt': 5}) == ['asdf']
 
 
 def test_list_symbols_regex(library):
@@ -942,10 +1041,7 @@ def test_list_symbols_regex(library):
     assert 'furble' not in library.list_symbols(snapshot='snap2', regex='asd')
     assert 'asdf' in library.list_symbols(all_symbols=True, regex='asd')
     assert 'furble' not in library.list_symbols(all_symbols=True, regex='asd')
-    assert 'asdf' in library.list_symbols(a=1, regex='asd')
-    assert 'furble' not in library.list_symbols(a=1, regex='asd')
-    assert library.list_symbols(a={'$gt': 5}, regex='asd') == []
-    assert library.list_symbols(b={'$gt': 5}, regex='asd') == ['asdf']
+
 
 
 def test_date_range_large(library):
