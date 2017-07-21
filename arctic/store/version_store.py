@@ -651,6 +651,8 @@ class VersionStore(object):
         kwargs :
             passed through to the write handler
         """
+        if not self.has_symbol(symbol):
+            self._write_data(symbol, None, **kwargs)
         if start_time is None:
             start_time = dt.utcnow()
         if self.has_symbol(symbol, timed_metadata_only=True):
@@ -663,7 +665,7 @@ class VersionStore(object):
         elif metadata is None:
             return
 
-        self._metadata.find_one_and_update({'symbol': symbol}, {'$set': {'end_time': start_time}},
+        mongo_retry(self._metadata.find_one_and_update)({'symbol': symbol}, {'$set': {'end_time': start_time}},
                                             sort=[('start_time', pymongo.DESCENDING)])
         return self._write_metadata_entry(symbol, metadata, start_time, **kwargs).metadata
 
@@ -712,8 +714,6 @@ class VersionStore(object):
 
         return version['version']
 
-
-    @mongo_retry
     def write(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
         """
         Write 'data' under the specified 'symbol' name to this library.
@@ -740,8 +740,9 @@ class VersionStore(object):
         """
         self._arctic_lib.check_quota()
 
-        metadata = self.update_metadata(symbol, metadata, **kwargs)
+        start_time = dt.utcnow()
         version = self._write_data(symbol, data, prune_previous_version=prune_previous_version, **kwargs)
+        metadata = self.update_metadata(symbol, metadata, start_time=start_time, **kwargs)
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version,
                              metadata=metadata, data=None)
 
@@ -798,7 +799,6 @@ class VersionStore(object):
         # Cleanup any chunks
         cleanup(self._arctic_lib, symbol, version_ids)
 
-    @mongo_retry
     def delete_last_metadata(self, symbol):
         """
         Delete current metadata of `symbol`
@@ -817,8 +817,8 @@ class VersionStore(object):
             raise NoDataFoundException('No metadata history found')
 
         self._metadata.find_one_and_delete({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
-        self._metadata.find_one_and_update({'symbol': symbol}, {'$unset': {'end_time': ''}},
-                                                      sort=[('start_time', pymongo.DESCENDING)])['metadata']
+        mongo_retry(self._metadata.find_one_and_update)({'symbol': symbol}, {'$unset': {'end_time': ''}},
+                                                        sort=[('start_time', pymongo.DESCENDING)])['metadata']
 
         return last_metadata
 
