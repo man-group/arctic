@@ -39,7 +39,7 @@ class MetadataStore(BSONStore):
 
     def __init__(self, arctic_lib):
         self._arctic_lib = arctic_lib
-        self._collection = self._arctic_lib.get_top_level_collection()
+        self._collection = self._arctic_lib.get_top_level_collection().metadata
 
     @mongo_retry
     def find_one(self, *args, **kwargs):
@@ -207,7 +207,7 @@ class MetadataStore(BSONStore):
         """
         last_metadata = self.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
         if last_metadata is None:
-            raise NoDataFoundException('No metadata found for symbo {}'.format(symbol))
+            raise NoDataFoundException('No metadata found for symbol {}'.format(symbol))
 
         self.find_one_and_delete({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
         mongo_retry(self.find_one_and_update)({'symbol': symbol}, {'$unset': {'end_time': ''}},
