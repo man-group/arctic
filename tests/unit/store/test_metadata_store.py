@@ -1,8 +1,7 @@
 from arctic.store.metadata_store import MetadataStore
 from arctic.arctic import ArcticLibraryBinding
-from arctic import Arctic
 from pymongo.collection import Collection
-from mock import sentinel, create_autospec, patch, call
+from mock import sentinel, create_autospec, call
 
 
 def test_ensure_index():

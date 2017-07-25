@@ -96,3 +96,9 @@ def tickstore_lib(arctic, library_name):
 def chunkstore_lib(arctic, library_name):
     arctic.initialize_library(library_name, CHUNK_STORE_TYPE)
     return arctic.get_library(library_name)
+
+
+@pytest.fixture(scope="function")
+def ms_lib(arctic, library_name):
+    arctic.initialize_library(library_name, m.METADATA_STORE)
+    return arctic.get_library(library_name)

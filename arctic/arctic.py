@@ -15,13 +15,14 @@ from .chunkstore import chunkstore
 from six import string_types
 
 
-__all__ = ['Arctic', 'VERSION_STORE', 'TICK_STORE', 'CHUNK_STORE', 'register_library_type']
+__all__ = ['Arctic', 'VERSION_STORE', 'METADATA_STORE', 'TICK_STORE', 'CHUNK_STORE', 'register_library_type']
 
 logger = logging.getLogger(__name__)
 
 # Default Arctic application name: 'arctic'
 APPLICATION_NAME = 'arctic'
 VERSION_STORE = version_store.VERSION_STORE_TYPE
+METADATA_STORE = metadata_store.METADATA_STORE_TYPE
 TICK_STORE = tickstore.TICK_STORE_TYPE
 CHUNK_STORE = chunkstore.CHUNK_STORE_TYPE
 LIBRARY_TYPES = {version_store.VERSION_STORE_TYPE: version_store.VersionStore,
@@ -54,6 +55,7 @@ class Arctic(object):
                                 (other Python types are pickled)
        - arctic.TICK_STORE - Tick specific library. Supports 'snapshots', efficiently
                              stores updates, not versioned.
+       - arctic.METADATA_STORE - Stores metadata with timestamps
 
     Arctic and ArcticLibrary are responsible for Connection setup, authentication,
     dispatch to the appropriate library implementation, and quotas.

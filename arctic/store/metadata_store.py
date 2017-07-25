@@ -16,7 +16,7 @@ METADATA_STORE_TYPE = 'MetadataStore'
 
 class MetadataStore(BSONStore):
     """
-    Metadata Store. This stores metadata with timestamp to allow temporal queries.
+    Metadata Store. This stores metadata with timestamps to allow temporal queries.
     """
 
     @classmethod
@@ -78,9 +78,15 @@ class MetadataStore(BSONStore):
         pandas.DateFrame containing timestamps and metadata entries if history=True
         """
         if not history:
-            return self.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])['metadata']
-        find = self.find({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
-        return pd.DataFrame(*zip(*[(entry['metadata'], entry['start_time']) for entry in find]), columns=['time', 'metadata'])
+            res = self.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
+            return res and res['metadata']
+        find = self.find({'symbol': symbol}, sort=[('start_time', pymongo.ASCENDING)])
+        times = []
+        entries = []
+        for item in find:
+            times.append(item['start_time'])
+            entries.append(item['metadata'])
+        return pd.DataFrame({'metadata': entries}, times)
 
     def _write_metadata_entry(self, symbol, metadata, start_time):
         """
@@ -142,11 +148,11 @@ class MetadataStore(BSONStore):
                     doc['end_time'] = end_time
                 requests.append(doc)
 
-        self.bulk_write(requests)
+        self.insert_many(requests)
 
-    def update_metadata(self, symbol, metadata, start_time=None):
+    def write_metadata(self, symbol, metadata, start_time=None):
         """
-        Update metadata entry for `symbol` without changing the data
+        Update metadata entry for `symbol`
 
         Parameters
         ----------
@@ -170,7 +176,7 @@ class MetadataStore(BSONStore):
         elif metadata is None:
             return
 
-        self.find_one_and_replace({'symbol': symbol}, {'$set': {'end_time': start_time}},
+        self.find_one_and_update({'symbol': symbol}, {'$set': {'end_time': start_time}},
                                   sort=[('start_time', pymongo.DESCENDING)])
         return self._write_metadata_entry(symbol, metadata, start_time)
 
@@ -197,7 +203,7 @@ class MetadataStore(BSONStore):
 
         return last_metadata
 
-    def delete(self, symbol):
+    def delete_metadata(self, symbol):
         """
         Delete all metadata of `symbol`
 
