@@ -1,7 +1,7 @@
 from arctic.store.metadata_store import MetadataStore
 from arctic.arctic import ArcticLibraryBinding
 from pymongo.collection import Collection
-from mock import sentinel, create_autospec, call
+from mock import Mock, sentinel, create_autospec, call
 
 
 def test_ensure_index():
@@ -14,7 +14,7 @@ def test_find_one():
     arctic_lib = create_autospec(ArcticLibraryBinding, instance=True)
     collection = create_autospec(Collection, instance=True)
     collection.find_one.return_value = sentinel.document
-    arctic_lib.get_top_level_collection.return_value = collection
+    arctic_lib.get_top_level_collection.return_value = Mock(metadata=collection)
 
     ms = MetadataStore(arctic_lib)
 
@@ -26,7 +26,7 @@ def test_find_one():
 def test_find_one_and_update():
     arctic_lib = create_autospec(ArcticLibraryBinding, instance=True)
     collection = create_autospec(Collection, instance=True)
-    arctic_lib.get_top_level_collection.return_value = collection
+    arctic_lib.get_top_level_collection.return_value = Mock(metadata=collection)
 
     ms = MetadataStore(arctic_lib)
     ms.find_one_and_update(sentinel.filter, sentinel.update)
@@ -39,7 +39,7 @@ def test_find_one_and_update():
 def test_find_one_and_delete():
     arctic_lib = create_autospec(ArcticLibraryBinding, instance=True)
     collection = create_autospec(Collection, instance=True)
-    arctic_lib.get_top_level_collection.return_value = collection
+    arctic_lib.get_top_level_collection.return_value = Mock(metadata=collection)
 
     ms = MetadataStore(arctic_lib)
     ms.find_one_and_delete(sentinel.filter)
