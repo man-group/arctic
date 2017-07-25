@@ -41,7 +41,9 @@ def test_write_metadata(ms_lib):
     ms_lib.write_metadata(symbol1, metadata1, start_time1)
     assert ms_lib.read_metadata(symbol1) == metadata1
 
+    # ensure writing same metadata does not create new entry
     ms_lib.write_metadata(symbol1, metadata1, start_time2)
+    assert ms_lib.read_metadata(symbol1) == metadata1
     assert_frame_equal(ms_lib.read_metadata(symbol1, history=True), dataframe1)
 
     ms_lib.write_metadata(symbol1, metadata2, start_time2)
@@ -49,7 +51,8 @@ def test_write_metadata(ms_lib):
 
 
 def test_write_metadata_history(ms_lib):
-    collection = {symbol1: ([metadata1], [start_time1]), symbol2: ([metadata1, metadata2], [start_time1, start_time2])}
+    collection = {symbol1: ([metadata1, metadata1], [start_time1, start_time2]),
+                  symbol2: ([metadata1, metadata2], [start_time1, start_time2])}
     ms_lib.write_metadata_history(collection)
 
     assert_frame_equal(ms_lib.read_metadata(symbol1, history=True), dataframe1)
@@ -62,8 +65,8 @@ def test_delete_last_metadata(ms_lib):
     assert_frame_equal(ms_lib.read_metadata(symbol1, history=True), dataframe1)
 
 
-def test_delete_metadata(ms_lib):
+def test_delete_all_metadata(ms_lib):
     ms_lib.write_metadata_history({symbol1: ([metadata1, metadata2], [start_time1, start_time2])})
-    ms_lib.delete_metadata(symbol1)
+    ms_lib.delete_all_metadata(symbol1)
 
     assert not ms_lib.has_symbol(symbol1)

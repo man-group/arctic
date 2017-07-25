@@ -17,6 +17,14 @@ METADATA_STORE_TYPE = 'MetadataStore'
 class MetadataStore(BSONStore):
     """
     Metadata Store. This stores metadata with timestamps to allow temporal queries.
+
+    Entries are stored in the following format:
+        'symbol': symbol name
+        'metadata': metadata to be persisted
+        'start_time': when entry becomes effective
+        'end_time': (Optional) when entry expires. If not set, it is still in effect
+
+    For each symbol end_time of a entry should match start_time of the next one except for the current entry.
     """
 
     @classmethod
@@ -62,8 +70,8 @@ class MetadataStore(BSONStore):
 
     def read_metadata(self, symbol, history=False):
         """
-        Return the metadata saved for a symbol.
-        
+        Return the metadata saved for a symbol
+
         Parameters
         ----------
         symbol : `str`
@@ -71,7 +79,7 @@ class MetadataStore(BSONStore):
         history: `bool`
             False: Returns current metadata (Default)
             True: Returns all metadata entries
-            
+
         Returns
         -------
         metadata document if history=False
@@ -118,7 +126,7 @@ class MetadataStore(BSONStore):
 
     def write_metadata_history(self, collection):
         """
-        Manually overwrite entire metadata history for `symbol`
+        Manually overwrite entire metadata history for symbols in `collection`
 
         Parameters
         ----------
@@ -135,20 +143,23 @@ class MetadataStore(BSONStore):
         """
         if not isinstance(collection, dict):
             raise TypeError('collection must be a dictionary.')
-        requests = []
+        documents = []
         for symbol, (entries, times) in collection.items():
             if len(entries) != len(times):
                 raise ValueError('Number of entries and number of time stamps do not match.')
             if self.has_symbol(symbol):
-                self.delete(symbol)
-            # TODO: Add checks to ensure metadata do change across any timestamp
-            for metadata, start_time, end_time in zip(entries, times, times[1:] + [None]):
+                self.delete_all_metadata(symbol)
+            doc = {'symbol': symbol, 'metadata': entries[0], 'start_time': times[0]}
+            for metadata, start_time in zip(entries[1:], times[1:]):
+                if metadata == doc['metadata']:
+                    continue
+                doc['end_time'] = start_time
+                documents.append(doc)
                 doc = {'symbol': symbol, 'metadata': metadata, 'start_time': start_time}
-                if end_time is not None:
-                    doc['end_time'] = end_time
-                requests.append(doc)
+            else:
+                documents.append(doc)
 
-        self.insert_many(requests)
+        self.insert_many(documents)
 
     def write_metadata(self, symbol, metadata, start_time=None):
         """
@@ -169,7 +180,8 @@ class MetadataStore(BSONStore):
         old_metadata = self.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
         if old_metadata is not None:
             if old_metadata['start_time'] >= start_time:
-                raise ValueError('start_time is earlier than the last metadata')
+                raise ValueError('start_time={} is earlier than the last metadata @{}'.format(start_time,
+                                                                                              old_metadata['start_time']))
             if old_metadata['metadata'] == metadata:
                 logger.warning('No change to metadata')
                 return metadata
@@ -195,7 +207,7 @@ class MetadataStore(BSONStore):
         """
         last_metadata = self.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
         if last_metadata is None:
-            raise NoDataFoundException('No metadata found')
+            raise NoDataFoundException('No metadata found for symbo {}'.format(symbol))
 
         self.find_one_and_delete({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
         mongo_retry(self.find_one_and_update)({'symbol': symbol}, {'$unset': {'end_time': ''}},
@@ -203,7 +215,7 @@ class MetadataStore(BSONStore):
 
         return last_metadata
 
-    def delete_metadata(self, symbol):
+    def delete_all_metadata(self, symbol):
         """
         Delete all metadata of `symbol`
 
