@@ -78,34 +78,6 @@ class MetadataStore(BSONStore):
             entries.append(item['metadata'])
         return pd.DataFrame({'metadata': entries}, times)
 
-    def _insert(self, symbol, metadata, start_time):
-        """
-        Create a new metadata entry
-
-        Parameters
-        ----------
-        symbol : `str`
-            symbol name for the item
-        metadata : `dict`
-            to be persisted
-        start_time : `datetime.datetime`
-            when entry becomes effective
-
-        Returns
-        -------
-        Document written
-        """
-        document = {'_id': bson.ObjectId()}
-        document['symbol'] = symbol
-        document['metadata'] = metadata
-        document['start_time'] = start_time
-
-        self.insert_one(document)
-
-        logger.debug('Finished writing metadata for %s', symbol)
-
-        return document
-
     def write_history(self, collection):
         """
         Manually overwrite entire metadata history for symbols in `collection`
