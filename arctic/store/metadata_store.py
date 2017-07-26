@@ -44,12 +44,15 @@ class MetadataStore(BSONStore):
     def _reset(self):
         self._collection = self._arctic_lib.get_top_level_collection().metadata
 
+    @mongo_retry
     def list_symbols(self):
         return self.distinct('symbol')
 
+    @mongo_retry
     def has_symbol(self, symbol):
         return self.find_one({'symbol': symbol}) is not None
 
+    @mongo_retry
     def read_history(self, symbol):
         """
         Return all metadata saved for `symbol`
@@ -71,6 +74,7 @@ class MetadataStore(BSONStore):
             entries.append(item['metadata'])
         return pd.DataFrame({symbol: entries}, times)
 
+    @mongo_retry
     def read(self, symbol):
         """
         Return current metadata saved for `symbol`
@@ -150,11 +154,10 @@ class MetadataStore(BSONStore):
         self.find_one_and_update({'symbol': symbol}, {'$set': {'end_time': start_time}},
                                   sort=[('start_time', pymongo.DESCENDING)])
         document = {'_id': bson.ObjectId(), 'symbol': symbol, 'metadata': metadata, 'start_time': start_time}
-        self.insert_one(document)
+        mongo_retry(self.insert_one)(document)
 
         logger.debug('Finished writing metadata for %s', symbol)
         return document
-
 
     def prepend(self, symbol, metadata, start_time=None):
         """
@@ -190,11 +193,10 @@ class MetadataStore(BSONStore):
         document = {'_id': bson.ObjectId(), 'symbol': symbol, 'metadata': metadata, 'start_time': start_time}
         if end_time is not None:
             document['end_time'] = end_time
-        self.insert_one(document)
+        mongo_retry(self.insert_one)(document)
 
         logger.debug('Finished writing metadata for %s', symbol)
         return document
-
 
     def pop(self, symbol):
         """
@@ -219,6 +221,7 @@ class MetadataStore(BSONStore):
 
         return last_metadata
 
+    @mongo_retry
     def purge(self, symbol):
         """
         Delete all metadata of `symbol`
