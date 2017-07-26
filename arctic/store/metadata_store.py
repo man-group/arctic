@@ -39,6 +39,9 @@ class MetadataStore(BSONStore):
 
     def __init__(self, arctic_lib):
         self._arctic_lib = arctic_lib
+        self._reset()
+
+    def _reset(self):
         self._collection = self._arctic_lib.get_top_level_collection().metadata
 
     def list_symbols(self):
@@ -47,7 +50,7 @@ class MetadataStore(BSONStore):
     def has_symbol(self, symbol):
         return self.find_one({'symbol': symbol}) is not None
 
-    def read_metadata(self, symbol, history=False):
+    def read(self, symbol, history=False):
         """
         Return the metadata saved for a symbol
 
@@ -75,7 +78,7 @@ class MetadataStore(BSONStore):
             entries.append(item['metadata'])
         return pd.DataFrame({'metadata': entries}, times)
 
-    def _write_metadata_entry(self, symbol, metadata, start_time):
+    def _insert(self, symbol, metadata, start_time):
         """
         Create a new metadata entry
 
@@ -103,7 +106,7 @@ class MetadataStore(BSONStore):
 
         return document
 
-    def write_metadata_history(self, collection):
+    def write_history(self, collection):
         """
         Manually overwrite entire metadata history for symbols in `collection`
 
@@ -127,7 +130,7 @@ class MetadataStore(BSONStore):
             if len(entries) != len(times):
                 raise ValueError('Number of entries and number of time stamps do not match.')
             if self.has_symbol(symbol):
-                self.delete_all_metadata(symbol)
+                self.purge(symbol)
             doc = {'symbol': symbol, 'metadata': entries[0], 'start_time': times[0]}
             for metadata, start_time in zip(entries[1:], times[1:]):
                 if metadata == doc['metadata']:
@@ -140,7 +143,7 @@ class MetadataStore(BSONStore):
 
         self.insert_many(documents)
 
-    def write_metadata(self, symbol, metadata, start_time=None):
+    def append(self, symbol, metadata, start_time=None):
         """
         Update metadata entry for `symbol`
 
@@ -169,9 +172,12 @@ class MetadataStore(BSONStore):
 
         self.find_one_and_update({'symbol': symbol}, {'$set': {'end_time': start_time}},
                                   sort=[('start_time', pymongo.DESCENDING)])
-        return self._write_metadata_entry(symbol, metadata, start_time)
 
-    def delete_last_metadata(self, symbol):
+        self.insert_one({'_id': bson.ObjectId(), 'symbol': symbol, 'metadata': metadata, 'start_time': start_time})
+
+        logger.debug('Finished writing metadata for %s', symbol)
+
+    def pop(self, symbol):
         """
         Delete current metadata of `symbol`
 
@@ -194,7 +200,7 @@ class MetadataStore(BSONStore):
 
         return last_metadata
 
-    def delete_all_metadata(self, symbol):
+    def purge(self, symbol):
         """
         Delete all metadata of `symbol`
 

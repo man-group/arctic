@@ -17,56 +17,56 @@ dataframe2 = pd.DataFrame({'metadata': [metadata1, metadata2]}, [start_time1, st
 
 def test_has_symbol(ms_lib):
     assert not ms_lib.has_symbol(symbol1)
-    ms_lib.write_metadata(symbol1, metadata1)
+    ms_lib.append(symbol1, metadata1)
     assert ms_lib.has_symbol(symbol1)
 
 
 def test_list_symbols(ms_lib):
-    ms_lib.write_metadata(symbol1, metadata1)
+    ms_lib.append(symbol1, metadata1)
     assert symbol1 in ms_lib.list_symbols()
 
 
-def test_read_metadata(ms_lib):
-    assert ms_lib.read_metadata(symbol1) == None
+def test_read(ms_lib):
+    assert ms_lib.read(symbol1) == None
 
-    ms_lib.write_metadata(symbol1, metadata1, start_time1)
-    assert ms_lib.read_metadata(symbol1) == metadata1
-    assert_frame_equal(ms_lib.read_metadata(symbol1, history=True), dataframe1)
+    ms_lib.append(symbol1, metadata1, start_time1)
+    assert ms_lib.read(symbol1) == metadata1
+    assert_frame_equal(ms_lib.read(symbol1, history=True), dataframe1)
 
 
-def test_write_metadata(ms_lib):
-    ms_lib.write_metadata(symbol1, None)
+def test_append(ms_lib):
+    ms_lib.append(symbol1, None)
     assert not ms_lib.has_symbol(symbol1)
 
-    ms_lib.write_metadata(symbol1, metadata1, start_time1)
-    assert ms_lib.read_metadata(symbol1) == metadata1
+    ms_lib.append(symbol1, metadata1, start_time1)
+    assert ms_lib.read(symbol1) == metadata1
 
     # ensure writing same metadata does not create new entry
-    ms_lib.write_metadata(symbol1, metadata1, start_time2)
-    assert ms_lib.read_metadata(symbol1) == metadata1
-    assert_frame_equal(ms_lib.read_metadata(symbol1, history=True), dataframe1)
+    ms_lib.append(symbol1, metadata1, start_time2)
+    assert ms_lib.read(symbol1) == metadata1
+    assert_frame_equal(ms_lib.read(symbol1, history=True), dataframe1)
 
-    ms_lib.write_metadata(symbol1, metadata2, start_time2)
-    assert_frame_equal(ms_lib.read_metadata(symbol1, history=True), dataframe2)
+    ms_lib.append(symbol1, metadata2, start_time2)
+    assert_frame_equal(ms_lib.read(symbol1, history=True), dataframe2)
 
 
-def test_write_metadata_history(ms_lib):
+def test_write_history(ms_lib):
     collection = {symbol1: ([metadata1, metadata1], [start_time1, start_time2]),
                   symbol2: ([metadata1, metadata2], [start_time1, start_time2])}
-    ms_lib.write_metadata_history(collection)
+    ms_lib.write_history(collection)
 
-    assert_frame_equal(ms_lib.read_metadata(symbol1, history=True), dataframe1)
-    assert_frame_equal(ms_lib.read_metadata(symbol2, history=True), dataframe2)
-
-
-def test_delete_last_metadata(ms_lib):
-    ms_lib.write_metadata_history({symbol1: ([metadata1, metadata2], [start_time1, start_time2])})
-    ms_lib.delete_last_metadata(symbol1)
-    assert_frame_equal(ms_lib.read_metadata(symbol1, history=True), dataframe1)
+    assert_frame_equal(ms_lib.read(symbol1, history=True), dataframe1)
+    assert_frame_equal(ms_lib.read(symbol2, history=True), dataframe2)
 
 
-def test_delete_all_metadata(ms_lib):
-    ms_lib.write_metadata_history({symbol1: ([metadata1, metadata2], [start_time1, start_time2])})
-    ms_lib.delete_all_metadata(symbol1)
+def test_pop(ms_lib):
+    ms_lib.write_history({symbol1: ([metadata1, metadata2], [start_time1, start_time2])})
+    ms_lib.pop(symbol1)
+    assert_frame_equal(ms_lib.read(symbol1, history=True), dataframe1)
+
+
+def test_purge(ms_lib):
+    ms_lib.write_history({symbol1: ([metadata1, metadata2], [start_time1, start_time2])})
+    ms_lib.purge(symbol1)
 
     assert not ms_lib.has_symbol(symbol1)
