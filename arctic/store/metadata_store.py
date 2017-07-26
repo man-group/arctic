@@ -69,7 +69,7 @@ class MetadataStore(BSONStore):
         """
         if not history:
             res = self.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
-            return res and res['metadata']
+            return res['metadata'] if res is not None else None
         find = self.find({'symbol': symbol}, sort=[('start_time', pymongo.ASCENDING)])
         times = []
         entries = []
