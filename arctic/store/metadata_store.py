@@ -183,7 +183,7 @@ class MetadataStore(BSONStore):
                 self.find_one_and_update({'symbol': symbol}, {'$set': {'start_time': start_time}},
                                          sort=[('start_time', pymongo.ASCENDING)])
                 return metadata
-            end_time = old_metadata.get('end_time')
+            end_time = old_metadata.get('start_time')
         else:
             end_time = None
 

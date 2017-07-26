@@ -19,6 +19,19 @@ dataframe4 = pd.DataFrame({symbol1: [metadata2]}, [start_time2])
 dataframe5 = pd.DataFrame({symbol1: [metadata1, metadata2]}, [start_time0, start_time2])
 
 
+def integrity_check(ms_lib, symbol):
+    # Lower level checks to ensure end_time is set correctly
+    start_time = 'start'
+    metadata = None
+    for item in ms_lib.find({'symbol': symbol}, sort=[('start_time', 1)]):
+        if start_time != 'start' and item['start_time'] != start_time:
+            raise ValueError('end_time not set correctly')
+        start_time = item.get('end_time')
+        if item['metadata'] == metadata:
+            raise ValueError('consecutive duplicate metadata')
+        metadata = item['metadata']
+    assert start_time == None, 'end_time of the last entry should be unset'
+
 def test_has_symbol(ms_lib):
     assert not ms_lib.has_symbol(symbol1)
     ms_lib.append(symbol1, metadata1)
@@ -49,6 +62,8 @@ def test_write_history(ms_lib):
                   pd.DataFrame({symbol2: [metadata1, metadata2]}, [start_time1, start_time2])]
     ms_lib.write_history(collection)
 
+    integrity_check(ms_lib, symbol1)
+    integrity_check(ms_lib, symbol2)
     assert_frame_equal(ms_lib.read_history(symbol1), dataframe1)
     assert_frame_equal(ms_lib.read_history(symbol2), dataframe2)
 
@@ -71,6 +86,8 @@ def test_append(ms_lib):
     with pytest.raises(ValueError):
         ms_lib.append(symbol1, metadata1, start_time1)
 
+    integrity_check(ms_lib, symbol1)
+
 
 def test_prepend(ms_lib):
     ms_lib.prepend(symbol1, None)
@@ -90,11 +107,14 @@ def test_prepend(ms_lib):
     with pytest.raises(ValueError):
         ms_lib.append(symbol1, metadata2, start_time2)
 
+    integrity_check(ms_lib, symbol1)
+
 
 def test_pop(ms_lib):
     ms_lib.write_history([pd.DataFrame({symbol1: [metadata1, metadata2]}, [start_time1, start_time2])])
     ms_lib.pop(symbol1)
     assert_frame_equal(ms_lib.read_history(symbol1), dataframe1)
+    integrity_check(ms_lib, symbol1)
 
 
 def test_purge(ms_lib):
