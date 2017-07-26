@@ -50,33 +50,43 @@ class MetadataStore(BSONStore):
     def has_symbol(self, symbol):
         return self.find_one({'symbol': symbol}) is not None
 
-    def read(self, symbol, history=False):
+    def read_history(self, symbol):
         """
-        Return the metadata saved for a symbol
+        Return all metadata saved for `symbol`
 
         Parameters
         ----------
         symbol : `str`
             symbol name for the item
-        history: `bool`
-            False: Returns current metadata (Default)
-            True: Returns all metadata entries
 
         Returns
         -------
-        metadata document if history=False
-        pandas.DateFrame containing timestamps and metadata entries if history=True
+        pandas.DateFrame containing timestamps and metadata entries
         """
-        if not history:
-            res = self.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
-            return res['metadata'] if res is not None else None
         find = self.find({'symbol': symbol}, sort=[('start_time', pymongo.ASCENDING)])
         times = []
         entries = []
         for item in find:
             times.append(item['start_time'])
             entries.append(item['metadata'])
-        return pd.DataFrame({'metadata': entries}, times)
+        return pd.DataFrame({symbol: entries}, times)
+
+    def read(self, symbol):
+        """
+        Return current metadata saved for `symbol`
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+
+        Returns
+        -------
+        metadata
+        """
+        res = self.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
+        return res['metadata'] if res is not None else None
+
 
     def write_history(self, collection):
         """
@@ -84,23 +94,19 @@ class MetadataStore(BSONStore):
 
         Parameters
         ----------
-        collection : `dict`
-            {symbol: (list of metadata, list of timestamps)}
-            symbol : `str`
-                symbol name for the item
-            metadata : `dict`
-                to be persisted
-            timestamp : `datetime.datetime`
-                start_time of the corresponding metadata
+        collection : `list of pandas.DataFrame`
+            with symbol names as headers and timestamps as indices
+            (the same format as output of read_history)
             Example:
-                {'example': ([{}], [datetime.utcnow()])
+                [pandas.DataFrame({'symbol': [{}]}, [datetime.datetime.utcnow()])]
         """
-        if not isinstance(collection, dict):
-            raise TypeError('collection must be a dictionary.')
         documents = []
-        for symbol, (entries, times) in collection.items():
-            if len(entries) != len(times):
-                raise ValueError('Number of entries and number of time stamps do not match.')
+        for dataframe in collection:
+            if len(dataframe.columns) != 1:
+                raise ValueError('More than one symbol found in a DataFrame')
+            symbol = dataframe.columns[0]
+            times = dataframe.index
+            entries = dataframe[symbol].values
             if self.has_symbol(symbol):
                 self.purge(symbol)
             doc = {'symbol': symbol, 'metadata': entries[0], 'start_time': times[0]}
@@ -110,8 +116,7 @@ class MetadataStore(BSONStore):
                 doc['end_time'] = start_time
                 documents.append(doc)
                 doc = {'symbol': symbol, 'metadata': metadata, 'start_time': start_time}
-            else:
-                documents.append(doc)
+            documents.append(doc)
 
         self.insert_many(documents)
 
@@ -127,7 +132,7 @@ class MetadataStore(BSONStore):
             to be persisted
         start_time : `datetime.datetime`
             when metadata becomes effective
-            Default: datetime.utcnow()
+            Default: datetime.datetime.utcnow()
         """
         if start_time is None:
             start_time = dt.utcnow()
@@ -144,10 +149,52 @@ class MetadataStore(BSONStore):
 
         self.find_one_and_update({'symbol': symbol}, {'$set': {'end_time': start_time}},
                                   sort=[('start_time', pymongo.DESCENDING)])
-
-        self.insert_one({'_id': bson.ObjectId(), 'symbol': symbol, 'metadata': metadata, 'start_time': start_time})
+        document = {'_id': bson.ObjectId(), 'symbol': symbol, 'metadata': metadata, 'start_time': start_time}
+        self.insert_one(document)
 
         logger.debug('Finished writing metadata for %s', symbol)
+        return document
+
+
+    def prepend(self, symbol, metadata, start_time=None):
+        """
+        Prepend a metadata entry for `symbol`
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        metadata : `dict`
+            to be persisted
+        start_time : `datetime.datetime`
+            when metadata becomes effective
+            Default: datetime.datetime.min
+        """
+        if metadata is None:
+            return
+        if start_time is None:
+            start_time = dt.min
+        old_metadata = self.find_one({'symbol': symbol}, sort=[('start_time', pymongo.ASCENDING)])
+        if old_metadata is not None:
+            if old_metadata['start_time'] <= start_time:
+                raise ValueError('start_time={} is later than the first metadata @{}'.format(start_time,
+                                                                                             old_metadata['start_time']))
+            if old_metadata['metadata'] == metadata:
+                self.find_one_and_update({'symbol': symbol}, {'$set': {'start_time': start_time}},
+                                         sort=[('start_time', pymongo.ASCENDING)])
+                return metadata
+            end_time = old_metadata.get('end_time')
+        else:
+            end_time = None
+
+        document = {'_id': bson.ObjectId(), 'symbol': symbol, 'metadata': metadata, 'start_time': start_time}
+        if end_time is not None:
+            document['end_time'] = end_time
+        self.insert_one(document)
+
+        logger.debug('Finished writing metadata for %s', symbol)
+        return document
+
 
     def pop(self, symbol):
         """
@@ -183,4 +230,3 @@ class MetadataStore(BSONStore):
         """
         logger.warning("Deleting entire metadata history for %r from %r" % (symbol, self._arctic_lib.get_name()))
         self.delete_many({'symbol': symbol})
-        assert not self.has_symbol(symbol)

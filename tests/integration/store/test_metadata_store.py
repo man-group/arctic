@@ -7,12 +7,16 @@ from arctic.exceptions import NoDataFoundException
 
 symbol1 = 'symbol1'
 symbol2 = 'symbol2'
+start_time0 = dt(2000, 1, 1)
 start_time1 = dt(2001, 1, 1)
 start_time2 = dt(2001, 4, 1)
 metadata1 = {'key1': 'value1'}
 metadata2 = {'key2': 'value2'}
-dataframe1 = pd.DataFrame({'metadata': [metadata1]}, [start_time1])
-dataframe2 = pd.DataFrame({'metadata': [metadata1, metadata2]}, [start_time1, start_time2])
+dataframe1 = pd.DataFrame({symbol1: [metadata1]}, [start_time1])
+dataframe2 = pd.DataFrame({symbol2: [metadata1, metadata2]}, [start_time1, start_time2])
+dataframe3 = pd.DataFrame({symbol1: [metadata1, metadata2]}, [start_time1, start_time2])
+dataframe4 = pd.DataFrame({symbol1: [metadata2]}, [start_time2])
+dataframe5 = pd.DataFrame({symbol1: [metadata1, metadata2]}, [start_time0, start_time2])
 
 
 def test_has_symbol(ms_lib):
@@ -26,12 +30,27 @@ def test_list_symbols(ms_lib):
     assert symbol1 in ms_lib.list_symbols()
 
 
+def test_read_history(ms_lib):
+    assert_frame_equal(ms_lib.read_history(symbol1), pd.DataFrame({symbol1: []}, []))
+
+    ms_lib.append(symbol1, metadata1, start_time1)
+    assert_frame_equal(ms_lib.read_history(symbol1), dataframe1)
+
+
 def test_read(ms_lib):
     assert ms_lib.read(symbol1) == None
 
     ms_lib.append(symbol1, metadata1, start_time1)
     assert ms_lib.read(symbol1) == metadata1
-    assert_frame_equal(ms_lib.read(symbol1, history=True), dataframe1)
+
+
+def test_write_history(ms_lib):
+    collection = [pd.DataFrame({symbol1: [metadata1, metadata1]}, [start_time1, start_time2]),
+                  pd.DataFrame({symbol2: [metadata1, metadata2]}, [start_time1, start_time2])]
+    ms_lib.write_history(collection)
+
+    assert_frame_equal(ms_lib.read_history(symbol1), dataframe1)
+    assert_frame_equal(ms_lib.read_history(symbol2), dataframe2)
 
 
 def test_append(ms_lib):
@@ -44,29 +63,42 @@ def test_append(ms_lib):
     # ensure writing same metadata does not create new entry
     ms_lib.append(symbol1, metadata1, start_time2)
     assert ms_lib.read(symbol1) == metadata1
-    assert_frame_equal(ms_lib.read(symbol1, history=True), dataframe1)
+    assert_frame_equal(ms_lib.read_history(symbol1), dataframe1)
 
     ms_lib.append(symbol1, metadata2, start_time2)
-    assert_frame_equal(ms_lib.read(symbol1, history=True), dataframe2)
+    assert_frame_equal(ms_lib.read_history(symbol1), dataframe3)
+
+    with pytest.raises(ValueError):
+        ms_lib.append(symbol1, metadata1, start_time1)
 
 
-def test_write_history(ms_lib):
-    collection = {symbol1: ([metadata1, metadata1], [start_time1, start_time2]),
-                  symbol2: ([metadata1, metadata2], [start_time1, start_time2])}
-    ms_lib.write_history(collection)
+def test_prepend(ms_lib):
+    ms_lib.prepend(symbol1, None)
+    assert not ms_lib.has_symbol(symbol1)
 
-    assert_frame_equal(ms_lib.read(symbol1, history=True), dataframe1)
-    assert_frame_equal(ms_lib.read(symbol2, history=True), dataframe2)
+    ms_lib.prepend(symbol1, metadata2, start_time2)
+    assert ms_lib.read(symbol1) == metadata2
+    assert_frame_equal(ms_lib.read_history(symbol1), dataframe4)
+
+    ms_lib.prepend(symbol1, metadata1, start_time1)
+    assert_frame_equal(ms_lib.read_history(symbol1), dataframe3)
+
+    # ensure writing same metadata does not create new entry
+    ms_lib.prepend(symbol1, metadata1, start_time0)
+    assert_frame_equal(ms_lib.read_history(symbol1), dataframe5)
+
+    with pytest.raises(ValueError):
+        ms_lib.append(symbol1, metadata2, start_time2)
 
 
 def test_pop(ms_lib):
-    ms_lib.write_history({symbol1: ([metadata1, metadata2], [start_time1, start_time2])})
+    ms_lib.write_history([pd.DataFrame({symbol1: [metadata1, metadata2]}, [start_time1, start_time2])])
     ms_lib.pop(symbol1)
-    assert_frame_equal(ms_lib.read(symbol1, history=True), dataframe1)
+    assert_frame_equal(ms_lib.read_history(symbol1), dataframe1)
 
 
 def test_purge(ms_lib):
-    ms_lib.write_history({symbol1: ([metadata1, metadata2], [start_time1, start_time2])})
+    ms_lib.write_history([pd.DataFrame({symbol1: [metadata1, metadata2]}, [start_time1, start_time2])])
     ms_lib.purge(symbol1)
 
     assert not ms_lib.has_symbol(symbol1)
