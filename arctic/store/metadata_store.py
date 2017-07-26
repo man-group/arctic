@@ -41,27 +41,6 @@ class MetadataStore(BSONStore):
         self._arctic_lib = arctic_lib
         self._collection = self._arctic_lib.get_top_level_collection().metadata
 
-    @mongo_retry
-    def find_one(self, *args, **kwargs):
-        """
-        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.find_one
-        """
-        return self._collection.find_one(*args, **kwargs)
-
-    @mongo_retry
-    def find_one_and_update(self, filter, update, **kwargs):
-        """
-        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.find_one_and_update
-        """
-        self._arctic_lib.check_quota()
-        return self._collection.find_one_and_update(filter, update, **kwargs)
-
-    def find_one_and_delete(self, filter, **kwargs):
-        """
-        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.find_one_and_delete
-        """
-        return self._collection.find_one_and_delete(filter, **kwargs)
-
     def list_symbols(self):
         return self.distinct('symbol')
 

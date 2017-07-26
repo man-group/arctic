@@ -31,6 +31,19 @@ def test_find():
     assert collection.find.call_args_list == [call(sentinel.filter)]
 
 
+def test_find_one():
+    arctic_lib = create_autospec(ArcticLibraryBinding, instance=True)
+    collection = create_autospec(Collection, instance=True)
+    collection.find_one.return_value = sentinel.document
+    arctic_lib.get_top_level_collection.return_value = collection
+
+    ms = BSONStore(arctic_lib)
+
+    assert ms.find_one(sentinel.filter) == sentinel.document
+    assert collection.find_one.call_count == 1
+    assert collection.find_one.call_args_list == [call(sentinel.filter)]
+
+
 def test_insert_one():
     arctic_lib = create_autospec(ArcticLibraryBinding, instance=True)
     collection = create_autospec(Collection, instance=True)
@@ -107,6 +120,31 @@ def test_find_one_and_replace():
     assert arctic_lib.check_quota.call_count == 1
     assert collection.find_one_and_replace.call_count == 1
     assert collection.find_one_and_replace.call_args_list == [call(sentinel.filter, sentinel.replacement)]
+
+
+def test_find_one_and_update():
+    arctic_lib = create_autospec(ArcticLibraryBinding, instance=True)
+    collection = create_autospec(Collection, instance=True)
+    arctic_lib.get_top_level_collection.return_value = collection
+
+    ms = BSONStore(arctic_lib)
+    ms.find_one_and_update(sentinel.filter, sentinel.update)
+
+    assert arctic_lib.check_quota.call_count == 1
+    assert collection.find_one_and_update.call_count == 1
+    assert collection.find_one_and_update.call_args_list == [call(sentinel.filter, sentinel.update)]
+
+
+def test_find_one_and_delete():
+    arctic_lib = create_autospec(ArcticLibraryBinding, instance=True)
+    collection = create_autospec(Collection, instance=True)
+    arctic_lib.get_top_level_collection.return_value = collection
+
+    ms = BSONStore(arctic_lib)
+    ms.find_one_and_delete(sentinel.filter)
+
+    assert collection.find_one_and_delete.call_count == 1
+    assert collection.find_one_and_delete.call_args_list == [call(sentinel.filter)]
 
 
 def test_bulk_write():
