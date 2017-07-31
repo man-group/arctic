@@ -59,6 +59,13 @@ class BSONStore(object):
         return self._collection.find(*args, **kwargs)
 
     @mongo_retry
+    def find_one(self, *args, **kwargs):
+        """
+        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.find_one
+        """
+        return self._collection.find_one(*args, **kwargs)
+
+    @mongo_retry
     def insert_one(self, document, **kwargs):
         """
         See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.insert_one
@@ -118,6 +125,20 @@ class BSONStore(object):
         """
         self._arctic_lib.check_quota()
         return self._collection.find_one_and_replace(filter, replacement, **kwargs)
+
+    @mongo_retry
+    def find_one_and_update(self, filter, update, **kwargs):
+        """
+        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.find_one_and_update
+        """
+        self._arctic_lib.check_quota()
+        return self._collection.find_one_and_update(filter, update, **kwargs)
+
+    def find_one_and_delete(self, filter, **kwargs):
+        """
+        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.find_one_and_delete
+        """
+        return self._collection.find_one_and_delete(filter, **kwargs)
 
     @mongo_retry
     def bulk_write(self, requests, **kwargs):
