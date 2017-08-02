@@ -1,6 +1,7 @@
 ## Changelog
 
-### 1.49
+### 1.49 (2017-08-02)
+  * Feature: #392 MetadataStore
   * Bugfix:  #384 sentinels missing time data on chunk start/ends in ChunkStore
   * Bugfix:  #382 Remove dependency on cython being pre-installed
   * Bugfix:  #343 Renaming libraries/collections within a namespace/database

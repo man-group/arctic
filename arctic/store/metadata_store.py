@@ -91,7 +91,6 @@ class MetadataStore(BSONStore):
         res = self.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
         return res['metadata'] if res is not None else None
 
-
     def write_history(self, collection):
         """
         Manually overwrite entire metadata history for symbols in `collection`
