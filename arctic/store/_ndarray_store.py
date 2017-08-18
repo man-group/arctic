@@ -444,7 +444,7 @@ class NdarrayStore(object):
         compressed_chunks = compress_array(chunks)
 
         # Write
-        bulk = collection.initialize_unordered_bulk_op()
+        bulk = []
         for i, chunk in zip(idxs, compressed_chunks):
             segment = {'data': Binary(chunk), 'compressed': True}
             segment['segment'] = min((i + 1) * chunk_size - 1, length - 1) + segment_offset
@@ -452,13 +452,14 @@ class NdarrayStore(object):
             sha = checksum(symbol, segment)
             if sha not in previous_shas:
                 segment['sha'] = sha
-                bulk.find({'symbol': symbol, 'sha': sha, 'segment': segment['segment']}
-                          ).upsert().update_one({'$set': segment, '$addToSet': {'parent': version['_id']}})
+                bulk.append(pymongo.UpdateOne({'symbol': symbol, 'sha': sha, 'segment': segment['segment']},
+                                              {'$set': segment, '$addToSet': {'parent': version['_id']}},
+                                              upsert=True))
             else:
-                bulk.find({'symbol': symbol, 'sha': sha, 'segment': segment['segment']}
-                          ).update_one({'$addToSet': {'parent': version['_id']}})
+                bulk.append(pymongo.UpdateOne({'symbol': symbol, 'sha': sha, 'segment': segment['segment']},
+                                              {'$addToSet': {'parent': version['_id']}}))
         if i != -1:
-            bulk.execute()
+            collection.bulk_write(bulk, ordered=False)
 
         segment_index = self._segment_index(item, existing_index=existing_index, start=segment_offset,
                                             new_segments=segment_index)
