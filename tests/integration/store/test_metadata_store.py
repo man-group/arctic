@@ -56,6 +56,9 @@ def test_read(ms_lib):
     ms_lib.append(symbol1, metadata1, start_time1)
     assert ms_lib.read(symbol1) == metadata1
 
+    ms_lib.append(symbol1, metadata2, start_time2)
+    assert ms_lib.read(symbol1, as_of=start_time1) == metadata1
+
 
 def test_write_history(ms_lib):
     collection = [pd.DataFrame({symbol1: [metadata1, metadata1]}, [start_time1, start_time2]),

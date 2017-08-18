@@ -75,7 +75,7 @@ class MetadataStore(BSONStore):
         return pd.DataFrame({symbol: entries}, times)
 
     @mongo_retry
-    def read(self, symbol):
+    def read(self, symbol, as_of=None):
         """
         Return current metadata saved for `symbol`
 
@@ -83,12 +83,18 @@ class MetadataStore(BSONStore):
         ----------
         symbol : `str`
             symbol name for the item
+        as_of : `datetime.datetime`
+            return entry valid at given time
 
         Returns
         -------
         metadata
         """
-        res = self.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
+        if as_of is not None:
+            res = self.find_one({'symbol': symbol, 'start_time': {'$lte': as_of}},
+                                sort=[('start_time', pymongo.DESCENDING)])
+        else:
+            res = self.find_one({'symbol': symbol}, sort=[('start_time', pymongo.DESCENDING)])
         return res['metadata'] if res is not None else None
 
     def write_history(self, collection):
@@ -145,7 +151,6 @@ class MetadataStore(BSONStore):
                 raise ValueError('start_time={} is earlier than the last metadata @{}'.format(start_time,
                                                                                               old_metadata['start_time']))
             if old_metadata['metadata'] == metadata:
-                logger.warning('No change to metadata')
                 return metadata
         elif metadata is None:
             return
