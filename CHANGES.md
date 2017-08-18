@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.50 (2017-08-18)
+  * Feature: #396 MetadataStore.read now supports as_of argument
+  * Bugfix:  #397 Pin pymongo==3.4.0
+
 ### 1.49 (2017-08-02)
   * Feature: #392 MetadataStore
   * Bugfix:  #384 sentinels missing time data on chunk start/ends in ChunkStore
