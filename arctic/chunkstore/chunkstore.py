@@ -354,12 +354,11 @@ class ChunkStore(object):
                 dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end), str(chunk[SEGMENT]).encode('ascii')]
                 chunk[SHA] = self._checksum(dates, chunk[DATA])
                 if chunk[SHA] not in previous_shas:
-                    op = True
-                    find = {SYMBOL: symbol,
-                            START: start,
-                            END: end,
-                            SEGMENT: chunk[SEGMENT]}
-                    ops.append(pymongo.UpdateOne(find, {'$set': chunk}, upsert=True))
+                    ops.append(pymongo.UpdateOne({SYMBOL: symbol,
+                                                  START: start,
+                                                  END: end,
+                                                  SEGMENT: chunk[SEGMENT]},
+                                                 {'$set': chunk}, upsert=True))
                     meta_ops.append(pymongo.UpdateOne({SYMBOL: symbol,
                                                        START: start,
                                                        END: end},
