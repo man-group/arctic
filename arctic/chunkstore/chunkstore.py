@@ -330,9 +330,8 @@ class ChunkStore(object):
             previous_shas = set([Binary(x[SHA]) for x in self._collection.find({SYMBOL: symbol},
                                                                                projection={SHA: True, '_id': False},
                                                                                )])
-        op = False
-        bulk = self._collection.initialize_unordered_bulk_op()
-        meta_bulk = self._mdata.initialize_unordered_bulk_op()
+        ops = []
+        meta_ops = []
         chunk_count = 0
 
         for start, end, chunk_size, record in chunker.to_chunks(item, **kwargs):
@@ -355,21 +354,21 @@ class ChunkStore(object):
                 dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end), str(chunk[SEGMENT]).encode('ascii')]
                 chunk[SHA] = self._checksum(dates, chunk[DATA])
                 if chunk[SHA] not in previous_shas:
-                    op = True
-                    find = {SYMBOL: symbol,
-                            START: start,
-                            END: end,
-                            SEGMENT: chunk[SEGMENT]}
-                    bulk.find(find).upsert().update_one({'$set': chunk})
-                    meta_bulk.find({SYMBOL: symbol,
-                                    START: start,
-                                    END: end}).upsert().update_one({'$set': meta})
+                    ops.append(pymongo.UpdateOne({SYMBOL: symbol,
+                                                  START: start,
+                                                  END: end,
+                                                  SEGMENT: chunk[SEGMENT]},
+                                                 {'$set': chunk}, upsert=True))
+                    meta_ops.append(pymongo.UpdateOne({SYMBOL: symbol,
+                                                       START: start,
+                                                       END: end},
+                                                      {'$set': meta}, upsert=True))
                 else:
                     # already exists, dont need to update in mongo
                     previous_shas.remove(chunk[SHA])
-        if op:
-            bulk.execute()
-            meta_bulk.execute()
+        if ops:
+            self._collection.bulk_write(ops, ordered=False)
+            self._mdata.bulk_write(meta_ops, ordered=False)
 
         doc[CHUNK_COUNT] = chunk_count
         doc[APPEND_COUNT] = 0
@@ -405,9 +404,8 @@ class ChunkStore(object):
             self.delete(symbol, chunk_range)
             sym = self._get_symbol_info(symbol)
 
-        bulk = self._collection.initialize_unordered_bulk_op()
-        meta_bulk = self._mdata.initialize_unordered_bulk_op()
-        op = False
+        ops = []
+        meta_ops = []
         chunker = CHUNKER_MAP[sym[CHUNKER]]
 
         appended = 0
@@ -432,8 +430,6 @@ class ChunkStore(object):
 
             data = SER_MAP[sym[SERIALIZER]].serialize(record)
             meta = data[METADATA]
-            op = True
-
             # remove old segments for this chunk in case we now have less
             # segments than we did before
 
@@ -459,17 +455,18 @@ class ChunkStore(object):
                 dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end), str(chunk[SEGMENT]).encode('ascii')]
                 sha = self._checksum(dates, data[DATA])
                 chunk[SHA] = sha
-                bulk.find({SYMBOL: symbol,
-                           START: start,
-                           END: end,
-                           SEGMENT: chunk[SEGMENT]}).upsert().update_one({'$set': chunk})
-                meta_bulk.find({SYMBOL: symbol,
-                                START: start,
-                                END: end}).upsert().update_one({'$set': meta})
-
-        if op:
-            bulk.execute()
-            meta_bulk.execute()
+                ops.append(pymongo.UpdateOne({SYMBOL: symbol,
+                                              START: start,
+                                              END: end,
+                                              SEGMENT: chunk[SEGMENT]},
+                                             {'$set': chunk}, upsert=True))
+                meta_ops.append(pymongo.UpdateOne({SYMBOL: symbol,
+                                                   START: start,
+                                                   END: end},
+                                                  {'$set': meta}, upsert=True))
+        if ops:
+            self._collection.bulk_write(ops, ordered=False)
+            self._mdata.bulk_write(meta_ops, ordered=False)
 
         sym[USERMETA] = metadata
         self._symbols.replace_one({SYMBOL: symbol}, sym)
