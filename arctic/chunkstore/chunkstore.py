@@ -2,6 +2,7 @@ import logging
 import pymongo
 import hashlib
 import bson
+from collections import defaultdict
 
 from bson.binary import Binary
 from pandas import DataFrame, Series
@@ -179,6 +180,8 @@ class ChunkStore(object):
         return [x for x in symbols if partial_match in x]
 
     def _get_symbol_info(self, symbol):
+        if isinstance(symbol, list):
+            return self._symbols.find({SYMBOL: {'$in': symbol}})
         return self._symbols.find_one({SYMBOL: symbol})
 
     def rename(self, from_symbol, to_symbol, audit=None):
@@ -239,37 +242,41 @@ class ChunkStore(object):
         -------
         DataFrame or Series
         """
-
         sym = self._get_symbol_info(symbol)
         if not sym:
             raise NoDataFoundException('No data found for %s' % (symbol))
 
-        spec = {SYMBOL: symbol,
-               }
+        spec = {SYMBOL: {'$in': symbol}} if isinstance(symbol, list) else {SYMBOL: symbol}
 
         if chunk_range is not None:
             spec.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
 
-        by_start_segment = [(START, pymongo.ASCENDING),
+        by_start_segment = [(SYMBOL, pymongo.ASCENDING),
+                            (START, pymongo.ASCENDING),
                             (SEGMENT, pymongo.ASCENDING)]
         segment_cursor = self._collection.find(spec, sort=by_start_segment)
 
-        chunks = []
+        chunks = defaultdict(list)
         for _, segments in groupby(segment_cursor, key=lambda x: x[START]):
             segments = list(segments)
-            mdata = self._mdata.find_one({SYMBOL: symbol, START: segments[0][START], END: segments[0][END]})
+            mdata = self._mdata.find_one({SYMBOL: segments[0][SYMBOL],
+                                          START: segments[0][START],
+                                          END: segments[0][END]})
 
             # when len(segments) == 1, this is essentially a no-op
             # otherwise, take all segments and reassemble the data to one chunk
             chunk_data = b''.join([doc[DATA] for doc in segments])
 
-            chunks.append({DATA: chunk_data, METADATA: mdata})
+            chunks[segments[0][SYMBOL]].append({DATA: chunk_data, METADATA: mdata})
 
-        data = SER_MAP[sym[SERIALIZER]].deserialize(chunks, **kwargs)
+        skip_filter = not filter_data or chunk_range is None
+        date_filter = CHUNKER_MAP[sym[CHUNKER]].filter
+        deser = SER_MAP[sym[SERIALIZER]].deserialize
 
-        if not filter_data or chunk_range is None:
-            return data
-        return CHUNKER_MAP[sym[CHUNKER]].filter(data, chunk_range)
+        if isinstance(symbol, list):
+            return {sym: deser(chunks[sym], **kwargs) if skip_filter else date_filter(deser(chunks[sym], **kwargs), chunk_range) for sym in symbol}
+        else:
+            return deser(chunks[symbol], **kwargs) if skip_filter else date_filter(deser(chunks[symbol], **kwargs), chunk_range)
 
     def read_audit_log(self, symbol=None):
         """
