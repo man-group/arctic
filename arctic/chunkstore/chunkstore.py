@@ -181,7 +181,7 @@ class ChunkStore(object):
 
     def _get_symbol_info(self, symbol):
         if isinstance(symbol, list):
-            return self._symbols.find({SYMBOL: {'$in': symbol}})
+            return list(self._symbols.find({SYMBOL: {'$in': symbol}}))
         return self._symbols.find_one({SYMBOL: symbol})
 
     def rename(self, from_symbol, to_symbol, audit=None):
@@ -246,10 +246,14 @@ class ChunkStore(object):
         if not sym:
             raise NoDataFoundException('No data found for %s' % (symbol))
 
+        # special handling based on a single symbol or multi symbol read
         spec = {SYMBOL: {'$in': symbol}} if isinstance(symbol, list) else {SYMBOL: symbol}
+        chunker = CHUNKER_MAP[sym[0][CHUNKER]] if isinstance(symbol, list) else CHUNKER_MAP[sym[CHUNKER]] 
+        deser = SER_MAP[sym[0][SERIALIZER]].deserialize if isinstance(symbol, list) else SER_MAP[sym[SERIALIZER]].deserialize 
+
 
         if chunk_range is not None:
-            spec.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
+            spec.update(chunker.to_mongo(chunk_range))
 
         by_start_segment = [(SYMBOL, pymongo.ASCENDING),
                             (START, pymongo.ASCENDING),
@@ -270,13 +274,11 @@ class ChunkStore(object):
             chunks[segments[0][SYMBOL]].append({DATA: chunk_data, METADATA: mdata})
 
         skip_filter = not filter_data or chunk_range is None
-        date_filter = CHUNKER_MAP[sym[CHUNKER]].filter
-        deser = SER_MAP[sym[SERIALIZER]].deserialize
-
+        
         if isinstance(symbol, list):
-            return {sym: deser(chunks[sym], **kwargs) if skip_filter else date_filter(deser(chunks[sym], **kwargs), chunk_range) for sym in symbol}
+            return {sym: deser(chunks[sym], **kwargs) if skip_filter else chunker.filter(deser(chunks[sym], **kwargs), chunk_range) for sym in symbol}
         else:
-            return deser(chunks[symbol], **kwargs) if skip_filter else date_filter(deser(chunks[symbol], **kwargs), chunk_range)
+            return deser(chunks[symbol], **kwargs) if skip_filter else chunker.filter(deser(chunks[symbol], **kwargs), chunk_range)
 
     def read_audit_log(self, symbol=None):
         """
