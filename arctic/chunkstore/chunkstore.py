@@ -242,15 +242,17 @@ class ChunkStore(object):
         -------
         DataFrame or Series
         """
+        if not isinstance(symbol, list):
+            symbol = [symbol]
+
         sym = self._get_symbol_info(symbol)
         if not sym:
             raise NoDataFoundException('No data found for %s' % (symbol))
 
-        # special handling based on a single symbol or multi symbol read
-        spec = {SYMBOL: {'$in': symbol}} if isinstance(symbol, list) else {SYMBOL: symbol}
-        chunker = CHUNKER_MAP[sym[0][CHUNKER]] if isinstance(symbol, list) else CHUNKER_MAP[sym[CHUNKER]] 
-        deser = SER_MAP[sym[0][SERIALIZER]].deserialize if isinstance(symbol, list) else SER_MAP[sym[SERIALIZER]].deserialize 
-
+        
+        spec = {SYMBOL: {'$in': symbol}}
+        chunker = CHUNKER_MAP[sym[0][CHUNKER]]
+        deser = SER_MAP[sym[0][SERIALIZER]].deserialize
 
         if chunk_range is not None:
             spec.update(chunker.to_mongo(chunk_range))
@@ -275,10 +277,10 @@ class ChunkStore(object):
 
         skip_filter = not filter_data or chunk_range is None
         
-        if isinstance(symbol, list):
+        if len(symbol) > 1:
             return {sym: deser(chunks[sym], **kwargs) if skip_filter else chunker.filter(deser(chunks[sym], **kwargs), chunk_range) for sym in symbol}
         else:
-            return deser(chunks[symbol], **kwargs) if skip_filter else chunker.filter(deser(chunks[symbol], **kwargs), chunk_range)
+            return deser(chunks[symbol[0]], **kwargs) if skip_filter else chunker.filter(deser(chunks[symbol[0]], **kwargs), chunk_range)
 
     def read_audit_log(self, symbol=None):
         """
