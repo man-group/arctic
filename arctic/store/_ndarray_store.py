@@ -331,7 +331,8 @@ class NdarrayStore(object):
             # We want to stop iterating when we find the first uncompressed chunks
             if not segment['compressed']:
                 # We include the last chunk in the recompression
-                unchanged_segment_ids.pop()
+                if unchanged_segment_ids:
+                    unchanged_segment_ids.pop()
                 break
             unchanged_segment_ids.append(segment)
 

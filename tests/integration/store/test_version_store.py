@@ -957,3 +957,19 @@ def test_date_range_large(library):
     library.write('test', df)
     r = library.read('test', date_range=DateRange(dt(2017,1,1), dt(2017,1,2)))
     assert_frame_equal(df, r.data)
+
+
+def test_append_after_empty(library):
+    len_df = 500
+    index = [dt(2017, 1, 2)] * len_df
+    data = np.random.random((len_df, 10))
+    df = pd.DataFrame(index=index, data=data)
+    df.index.name = 'index'
+    df.columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
+    library.write(symbol, df.iloc[:0])
+
+    for i in range(len_df):
+        library.append(symbol, df.iloc[i:i + 1])
+    r = library.read(symbol)
+    assert_frame_equal(df, r.data)
+
