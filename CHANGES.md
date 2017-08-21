@@ -2,6 +2,7 @@
 
 ### 1.51
   * Bugfix:  #397 Remove calls to deprecated methods in pymongo
+  * Bugfix:  #402 Append to empty DF fails in VersionStore
 
 ### 1.50 (2017-08-18)
   * Feature: #396 MetadataStore.read now supports as_of argument
