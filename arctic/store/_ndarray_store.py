@@ -191,6 +191,9 @@ class NdarrayStore(object):
 
         data = b''.join(segments)
 
+        # free up memory from initial copy of data
+        del segments
+
         # Check that the correct number of segments has been returned
         if segment_count is not None and i + 1 != segment_count:
             raise OperationFailure("Incorrect number of segments returned for {}:{}.  Expected: {}, but got {}. {}".format(
