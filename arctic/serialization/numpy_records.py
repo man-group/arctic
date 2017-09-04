@@ -62,7 +62,7 @@ class PandasSerializer(object):
 
     def _index_from_records(self, recarr):
         index = recarr.dtype.metadata['index']
-        rtn = MultiIndex.from_arrays([recarr[str(i)] for i in index], names=index)
+        rtn = MultiIndex.from_arrays([np.copy(recarr[str(i)]) for i in index], names=index)
 
         if isinstance(rtn, DatetimeIndex) and 'index_tz' in recarr.dtype.metadata:
             rtn = rtn.tz_localize('UTC').tz_convert(recarr.dtype.metadata['index_tz'])
