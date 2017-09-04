@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.52
+  * Perf:    #408 Improve memory performance of version store's serializer
+
 ### 1.51 (2017-08-21)
   * Bugfix:  #397 Remove calls to deprecated methods in pymongo
   * Bugfix:  #402 Append to empty DF fails in VersionStore
