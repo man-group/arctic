@@ -1437,3 +1437,8 @@ def test_chunkstore_multiread_samedate(chunkstore_lib):
     assert_frame_equal(df, ret['a'])
     assert_frame_equal(df2, ret['b'])
     assert_frame_equal(df3, ret['c'])
+
+    ret = chunkstore_lib.read(['a', 'b', 'c'], chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 1)))
+    assert_frame_equal(df[:1], ret['a'])
+    assert_frame_equal(df2[:1], ret['b'])
+    assert(len(ret['c']) == 0)

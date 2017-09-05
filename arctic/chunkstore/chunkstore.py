@@ -263,7 +263,7 @@ class ChunkStore(object):
         segment_cursor = self._collection.find(spec, sort=by_start_segment)
 
         chunks = defaultdict(list)
-        for _, segments in groupby(segment_cursor, key=lambda x: x[START]):
+        for _, segments in groupby(segment_cursor, key=lambda x: (x[START], x[SYMBOL])):
             segments = list(segments)
             mdata = self._mdata.find_one({SYMBOL: segments[0][SYMBOL],
                                           START: segments[0][START],
