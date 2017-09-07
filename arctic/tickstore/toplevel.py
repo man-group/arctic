@@ -102,7 +102,7 @@ overlapping libraries: {}""".format(library_name, [l.library for l in library_me
         self._collection.update_one({'library_name': library_name},
                                     {'$set': {'start': start, 'end': end}}, upsert=True)
 
-    def read(self, symbol, date_range, columns=['BID', 'ASK', 'TRDPRC_1', 'BIDSIZE', 'ASKSIZE', 'TRDVOL_1'], include_images=False):
+    def read(self, symbol, date_range, columns=None, include_images=False):
         libraries = self._get_libraries(date_range)
         dfs = []
         for l in libraries:
