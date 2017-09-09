@@ -3,6 +3,7 @@
 ### 1.52
   * Perf:    #408 Improve memory performance of version store's serializer
   * Bugfix   #394 Multi symbol read in chunkstore
+  * Bugfix:  #407 Fix segment issue on appends in chunkstore
 
 ### 1.51 (2017-08-21)
   * Bugfix:  #397 Remove calls to deprecated methods in pymongo

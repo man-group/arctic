@@ -273,8 +273,8 @@ class ChunkStore(object):
             # when len(segments) == 1, this is essentially a no-op
             # otherwise, take all segments and reassemble the data to one chunk
             chunk_data = b''.join([doc[DATA] for doc in segments])
-
             chunks[segments[0][SYMBOL]].append({DATA: chunk_data, METADATA: mdata})
+
 
         skip_filter = not filter_data or chunk_range is None
         
@@ -353,13 +353,9 @@ class ChunkStore(object):
             doc[METADATA] = {'columns': data[METADATA][COLUMNS] if COLUMNS in data[METADATA] else ''}
             meta = data[METADATA]
 
-            size_chunked = len(data[DATA]) > MAX_CHUNK_SIZE
             for i in xrange(int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)):
                 chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE: (i + 1) * MAX_CHUNK_SIZE])}
-                if size_chunked:
-                    chunk[SEGMENT] = i
-                else:
-                    chunk[SEGMENT] = -1
+                chunk[SEGMENT] = i
                 chunk[START] = start
                 chunk[END] = end
                 chunk[SYMBOL] = symbol
@@ -442,25 +438,21 @@ class ChunkStore(object):
 
             data = SER_MAP[sym[SERIALIZER]].serialize(record)
             meta = data[METADATA]
-            # remove old segments for this chunk in case we now have less
-            # segments than we did before
-
+            
             chunk_count = int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)
             seg_count = self._collection.count({SYMBOL: symbol, START: start, END: end})
+            # remove old segments for this chunk in case we now have less
+            # segments than we did before
             if seg_count > chunk_count:
-                # if chunk count is 1, the segment id will be -1, not 1
                 self._collection.delete_many({SYMBOL: symbol,
                                               START: start,
                                               END: end,
-                                              SEGMENT: {'$gt': seg_count if chunk_count > 1 else -1}})
+                                              SEGMENT: {'$gte': chunk_count}})
 
-            size_chunked = chunk_count > 1
+
             for i in xrange(chunk_count):
                 chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE: (i + 1) * MAX_CHUNK_SIZE])}
-                if size_chunked:
-                    chunk[SEGMENT] = i
-                else:
-                    chunk[SEGMENT] = -1
+                chunk[SEGMENT] = i
                 chunk[START] = start
                 chunk[END] = end
                 chunk[SYMBOL] = symbol
