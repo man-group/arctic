@@ -226,8 +226,8 @@ class ChunkStore(object):
 
         Parameters
         ----------
-        symbol: str
-            the symbol to retrieve
+        symbol: str, or list of str
+            the symbol(s) to retrieve
         chunk_range: object
             corresponding range object for the specified chunker (for
             DateChunker it is a DateRange object or a DatetimeIndex,
@@ -240,7 +240,8 @@ class ChunkStore(object):
 
         Returns
         -------
-        DataFrame or Series
+        DataFrame or Series, or in the case when multiple symbols are given, 
+        returns a dict of symbols (symbol -> dataframe/series)
         """
         if not isinstance(symbol, list):
             symbol = [symbol]
