@@ -2,6 +2,7 @@ import logging
 import pymongo
 import hashlib
 import bson
+from collections import defaultdict
 
 from bson.binary import Binary
 from pandas import DataFrame, Series
@@ -179,6 +180,8 @@ class ChunkStore(object):
         return [x for x in symbols if partial_match in x]
 
     def _get_symbol_info(self, symbol):
+        if isinstance(symbol, list):
+            return list(self._symbols.find({SYMBOL: {'$in': symbol}}))
         return self._symbols.find_one({SYMBOL: symbol})
 
     def rename(self, from_symbol, to_symbol, audit=None):
@@ -223,8 +226,8 @@ class ChunkStore(object):
 
         Parameters
         ----------
-        symbol: str
-            the symbol to retrieve
+        symbol: str, or list of str
+            the symbol(s) to retrieve
         chunk_range: object
             corresponding range object for the specified chunker (for
             DateChunker it is a DateRange object or a DatetimeIndex,
@@ -237,39 +240,48 @@ class ChunkStore(object):
 
         Returns
         -------
-        DataFrame or Series
+        DataFrame or Series, or in the case when multiple symbols are given, 
+        returns a dict of symbols (symbol -> dataframe/series)
         """
+        if not isinstance(symbol, list):
+            symbol = [symbol]
 
         sym = self._get_symbol_info(symbol)
         if not sym:
             raise NoDataFoundException('No data found for %s' % (symbol))
 
-        spec = {SYMBOL: symbol,
-               }
+        
+        spec = {SYMBOL: {'$in': symbol}}
+        chunker = CHUNKER_MAP[sym[0][CHUNKER]]
+        deser = SER_MAP[sym[0][SERIALIZER]].deserialize
 
         if chunk_range is not None:
-            spec.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
+            spec.update(chunker.to_mongo(chunk_range))
 
-        by_start_segment = [(START, pymongo.ASCENDING),
+        by_start_segment = [(SYMBOL, pymongo.ASCENDING),
+                            (START, pymongo.ASCENDING),
                             (SEGMENT, pymongo.ASCENDING)]
         segment_cursor = self._collection.find(spec, sort=by_start_segment)
 
-        chunks = []
-        for _, segments in groupby(segment_cursor, key=lambda x: x[START]):
+        chunks = defaultdict(list)
+        for _, segments in groupby(segment_cursor, key=lambda x: (x[START], x[SYMBOL])):
             segments = list(segments)
-            mdata = self._mdata.find_one({SYMBOL: symbol, START: segments[0][START], END: segments[0][END]})
+            mdata = self._mdata.find_one({SYMBOL: segments[0][SYMBOL],
+                                          START: segments[0][START],
+                                          END: segments[0][END]})
 
             # when len(segments) == 1, this is essentially a no-op
             # otherwise, take all segments and reassemble the data to one chunk
             chunk_data = b''.join([doc[DATA] for doc in segments])
 
-            chunks.append({DATA: chunk_data, METADATA: mdata})
+            chunks[segments[0][SYMBOL]].append({DATA: chunk_data, METADATA: mdata})
 
-        data = SER_MAP[sym[SERIALIZER]].deserialize(chunks, **kwargs)
-
-        if not filter_data or chunk_range is None:
-            return data
-        return CHUNKER_MAP[sym[CHUNKER]].filter(data, chunk_range)
+        skip_filter = not filter_data or chunk_range is None
+        
+        if len(symbol) > 1:
+            return {sym: deser(chunks[sym], **kwargs) if skip_filter else chunker.filter(deser(chunks[sym], **kwargs), chunk_range) for sym in symbol}
+        else:
+            return deser(chunks[symbol[0]], **kwargs) if skip_filter else chunker.filter(deser(chunks[symbol[0]], **kwargs), chunk_range)
 
     def read_audit_log(self, symbol=None):
         """

@@ -1371,3 +1371,74 @@ def test_chunk_range_with_dti(chunkstore_lib):
                        'vals': range(2)})
     chunkstore_lib.write('data', df)
     assert(len(list(chunkstore_lib.get_chunk_ranges('data', chunk_range=pd.date_range(dt(2016,1,1), dt(2016, 12, 31))))) == 2)
+
+
+def test_chunkstore_multiread(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+    chunkstore_lib.write('a', df, chunk_size='D')
+
+
+    df2 = DataFrame(data={'data': [4, 5, 6]},
+                    index=MultiIndex.from_tuples([(dt(2017, 1, 1), 1),
+                                                  (dt(2017, 1, 2), 1),
+                                                  (dt(2017, 1, 3), 1)],
+                                                 names=['date', 'id'])
+                   )
+    chunkstore_lib.write('b', df2, chunk_size='D')
+    df3 = DataFrame(data={'data': [9, 9, 9]},
+                    index=MultiIndex.from_tuples([(dt(2015, 1, 1), 1),
+                                                  (dt(2015, 1, 2), 1),
+                                                  (dt(2015, 1, 3), 1)],
+                                                 names=['date', 'id'])
+                   )
+    chunkstore_lib.write('c', df3, chunk_size='D')
+
+
+    ret = chunkstore_lib.read(['a', 'b', 'c'])
+
+    assert_frame_equal(df, ret['a'])
+    assert_frame_equal(df2, ret['b'])
+    assert_frame_equal(df3, ret['c'])
+
+
+def test_chunkstore_multiread_samedate(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+    chunkstore_lib.write('a', df, chunk_size='D')
+
+
+    df2 = DataFrame(data={'data': [4, 5, 6]},
+                    index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                  (dt(2016, 1, 2), 1),
+                                                  (dt(2016, 1, 3), 1)],
+                                                 names=['date', 'id'])
+                   )
+    chunkstore_lib.write('b', df2, chunk_size='D')
+    df3 = DataFrame(data={'data': [9, 9, 9]},
+                    index=MultiIndex.from_tuples([(dt(2016, 1, 2), 1),
+                                                  (dt(2016, 1, 3), 1),
+                                                  (dt(2016, 1, 4), 1)],
+                                                 names=['date', 'id'])
+                   )
+    chunkstore_lib.write('c', df3, chunk_size='D')
+
+
+    ret = chunkstore_lib.read(['a', 'b', 'c'])
+
+    assert_frame_equal(df, ret['a'])
+    assert_frame_equal(df2, ret['b'])
+    assert_frame_equal(df3, ret['c'])
+
+    ret = chunkstore_lib.read(['a', 'b', 'c'], chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 1)))
+    assert_frame_equal(df[:1], ret['a'])
+    assert_frame_equal(df2[:1], ret['b'])
+    assert(len(ret['c']) == 0)
