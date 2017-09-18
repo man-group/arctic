@@ -5,6 +5,7 @@
   * Bugfix   #394 Multi symbol read in chunkstore
   * Bugfix:  #407 Fix segment issue on appends in chunkstore
   * Bugfix:  Inconsistent returns on MetadataStore.append
+  * Bugfix:  #414 Fix list_symbols for large VersionStore
 
 ### 1.51 (2017-08-21)
   * Bugfix:  #397 Remove calls to deprecated methods in pymongo
