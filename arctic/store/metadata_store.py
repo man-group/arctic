@@ -151,7 +151,7 @@ class MetadataStore(BSONStore):
                 raise ValueError('start_time={} is earlier than the last metadata @{}'.format(start_time,
                                                                                               old_metadata['start_time']))
             if old_metadata['metadata'] == metadata:
-                return metadata
+                return old_metadata
         elif metadata is None:
             return
 
@@ -189,7 +189,8 @@ class MetadataStore(BSONStore):
             if old_metadata['metadata'] == metadata:
                 self.find_one_and_update({'symbol': symbol}, {'$set': {'start_time': start_time}},
                                          sort=[('start_time', pymongo.ASCENDING)])
-                return metadata
+                old_metadata['start_time'] = start_time
+                return old_metadata
             end_time = old_metadata.get('start_time')
         else:
             end_time = None
