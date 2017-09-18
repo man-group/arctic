@@ -1,3 +1,7 @@
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 from datetime import datetime as dt
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
@@ -31,6 +35,12 @@ def integrity_check(ms_lib, symbol):
             raise ValueError('consecutive duplicate metadata')
         metadata = item['metadata']
     assert start_time == None, 'end_time of the last entry should be unset'
+
+
+def test_pickle(ms_lib):
+    buff = pickle.dumps(ms_lib)
+    mnew = pickle.loads(buff)
+
 
 def test_has_symbol(ms_lib):
     assert not ms_lib.has_symbol(symbol1)
