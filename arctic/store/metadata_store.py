@@ -51,7 +51,7 @@ class MetadataStore(BSONStore):
         return MetadataStore.__init__(self, state['arctic_lib'])
 
     def __str__(self):
-        return """<%s at %s>\n%s""" % (self.__class__.__name__, hex(id(self)), indent(str(self._mongoose_lib), 4))
+        return """<%s at %s>\n%s""" % (self.__class__.__name__, hex(id(self)), indent(str(self._arctic_lib), 4))
 
     def __repr__(self):
         return str(self)

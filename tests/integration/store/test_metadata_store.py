@@ -40,6 +40,10 @@ def integrity_check(ms_lib, symbol):
 def test_pickle(ms_lib):
     buff = pickle.dumps(ms_lib)
     mnew = pickle.loads(buff)
+    assert ms_lib._arctic_lib.get_name() == mnew._arctic_lib.get_name()
+
+    assert "arctic_test.TEST" in str(ms_lib)
+    assert str(ms_lib) == repr(ms_lib)
 
 
 def test_has_symbol(ms_lib):
