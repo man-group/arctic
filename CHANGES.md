@@ -3,6 +3,7 @@
 ### 1.52
   * Perf:    #408 Improve memory performance of version store's serializer
   * Bugfix   #394 Multi symbol read in chunkstore
+  * Bugfix:  #407 Fix segment issue on appends in chunkstore
   * Bugfix:  Inconsistent returns on MetadataStore.append
 
 ### 1.51 (2017-08-21)
