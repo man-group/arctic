@@ -1,3 +1,7 @@
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 from datetime import datetime as dt
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
@@ -31,6 +35,16 @@ def integrity_check(ms_lib, symbol):
             raise ValueError('consecutive duplicate metadata')
         metadata = item['metadata']
     assert start_time == None, 'end_time of the last entry should be unset'
+
+
+def test_pickle(ms_lib):
+    buff = pickle.dumps(ms_lib)
+    mnew = pickle.loads(buff)
+    assert ms_lib._arctic_lib.get_name() == mnew._arctic_lib.get_name()
+
+    assert "arctic_test.TEST" in str(ms_lib)
+    assert str(ms_lib) == repr(ms_lib)
+
 
 def test_has_symbol(ms_lib):
     assert not ms_lib.has_symbol(symbol1)
@@ -72,19 +86,25 @@ def test_write_history(ms_lib):
 
 
 def test_append(ms_lib):
-    ms_lib.append(symbol1, None)
+    ret1 = ms_lib.append(symbol1, None)
     assert not ms_lib.has_symbol(symbol1)
+    assert ret1 is None
 
-    ms_lib.append(symbol1, metadata1, start_time1)
+    ret2 = ms_lib.append(symbol1, metadata1, start_time1)
     assert ms_lib.read(symbol1) == metadata1
+    assert ret2['symbol'] == symbol1
+    assert ret2['start_time'] == start_time1
+    assert ret2['metadata'] == metadata1
 
     # ensure writing same metadata does not create new entry
-    ms_lib.append(symbol1, metadata1, start_time2)
+    ret3 = ms_lib.append(symbol1, metadata1, start_time2)
     assert ms_lib.read(symbol1) == metadata1
     assert_frame_equal(ms_lib.read_history(symbol1), dataframe1)
+    assert ret3 == ret2
 
-    ms_lib.append(symbol1, metadata2, start_time2)
+    ret4 = ms_lib.append(symbol1, metadata2, start_time2)
     assert_frame_equal(ms_lib.read_history(symbol1), dataframe3)
+    assert ret4['metadata'] == metadata2
 
     with pytest.raises(ValueError):
         ms_lib.append(symbol1, metadata1, start_time1)
@@ -93,19 +113,26 @@ def test_append(ms_lib):
 
 
 def test_prepend(ms_lib):
-    ms_lib.prepend(symbol1, None)
+    ret1 = ms_lib.prepend(symbol1, None)
     assert not ms_lib.has_symbol(symbol1)
+    assert ret1 is None
 
-    ms_lib.prepend(symbol1, metadata2, start_time2)
+    ret2 = ms_lib.prepend(symbol1, metadata2, start_time2)
     assert ms_lib.read(symbol1) == metadata2
     assert_frame_equal(ms_lib.read_history(symbol1), dataframe4)
+    assert ret2['symbol'] == symbol1
+    assert ret2['start_time'] == start_time2
+    assert ret2['metadata'] == metadata2
 
-    ms_lib.prepend(symbol1, metadata1, start_time1)
+    ret3 = ms_lib.prepend(symbol1, metadata1, start_time1)
     assert_frame_equal(ms_lib.read_history(symbol1), dataframe3)
+    assert ret3['metadata'] == metadata1
 
     # ensure writing same metadata does not create new entry
-    ms_lib.prepend(symbol1, metadata1, start_time0)
+    ret4 = ms_lib.prepend(symbol1, metadata1, start_time0)
     assert_frame_equal(ms_lib.read_history(symbol1), dataframe5)
+    ret3['start_time'] = start_time0
+    assert ret4 == ret3
 
     with pytest.raises(ValueError):
         ms_lib.append(symbol1, metadata2, start_time2)

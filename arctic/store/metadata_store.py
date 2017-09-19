@@ -2,12 +2,12 @@ from datetime import datetime as dt
 import logging
 
 import pandas as pd
-
 import bson
 import pymongo
+
+from .._util import indent
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException
-
 from .bson_store import BSONStore
 
 logger = logging.getLogger(__name__)
@@ -43,6 +43,18 @@ class MetadataStore(BSONStore):
 
     def _reset(self):
         self._collection = self._arctic_lib.get_top_level_collection().metadata
+
+    def __getstate__(self):
+        return {'arctic_lib': self._arctic_lib}
+
+    def __setstate__(self, state):
+        return MetadataStore.__init__(self, state['arctic_lib'])
+
+    def __str__(self):
+        return """<%s at %s>\n%s""" % (self.__class__.__name__, hex(id(self)), indent(str(self._arctic_lib), 4))
+
+    def __repr__(self):
+        return str(self)
 
     @mongo_retry
     def list_symbols(self):
@@ -151,7 +163,7 @@ class MetadataStore(BSONStore):
                 raise ValueError('start_time={} is earlier than the last metadata @{}'.format(start_time,
                                                                                               old_metadata['start_time']))
             if old_metadata['metadata'] == metadata:
-                return metadata
+                return old_metadata
         elif metadata is None:
             return
 
@@ -189,7 +201,8 @@ class MetadataStore(BSONStore):
             if old_metadata['metadata'] == metadata:
                 self.find_one_and_update({'symbol': symbol}, {'$set': {'start_time': start_time}},
                                          sort=[('start_time', pymongo.ASCENDING)])
-                return metadata
+                old_metadata['start_time'] = start_time
+                return old_metadata
             end_time = old_metadata.get('start_time')
         else:
             end_time = None
