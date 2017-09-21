@@ -57,13 +57,17 @@ class FrameConverter(object):
         else:
             mask = None
 
-        if pd.lib.infer_dtype(a) == 'mixed':
-            a = np.array([s.encode('ascii') for s in a])
-            a = a.astype('O')
+        if pd.api.types.infer_dtype(a) == 'mixed':
+            # assume its a string, otherwise raise an error
+            try:
+                a = np.array([s.encode('ascii') for s in a])
+                a = a.astype('O')
+            except:
+                raise ValueError("Column of type 'mixed' cannot be converted to string")
 
-        type_ = pd.lib.infer_dtype(a)
+        type_ = pd.api.types.infer_dtype(a)
         if type_ in ['unicode', 'string']:
-            max_len = pd.lib.max_len_string_array(a)
+            max_len = pd._libs.lib.max_len_string_array(a)
             return a.astype('U{:d}'.format(max_len)), mask
         else:
             raise ValueError('Cannot store arrays with {} dtype'.format(type_))
@@ -94,7 +98,7 @@ class FrameConverter(object):
                     masks[str(c)] = Binary(compress(mask.tostring()))
                 arrays.append(arr.tostring())
             except Exception as e:
-                typ = pd.lib.infer_dtype(df[c])
+                typ = pd.api.types.infer_dtype(df[c])
                 msg = "Column '{}' type is {}".format(str(c), typ)
                 logging.info(msg)
                 raise e
