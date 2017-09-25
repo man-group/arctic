@@ -662,7 +662,7 @@ class VersionStore(object):
         symbol : `str`
             symbol name to delete
         """
-        logger.warning("Deleting data item: %r from %r" % (symbol, self._arctic_lib.get_name()))
+        logger.info("Deleting data item: %r from %r" % (symbol, self._arctic_lib.get_name()))
         # None is the magic sentinel value that indicates an item has been deleted.
         sentinel = self.write(symbol, None, prune_previous_version=False, metadata={'deleted': True})
         self._prune_previous_versions(symbol, 0)
