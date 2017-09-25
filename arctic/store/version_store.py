@@ -162,7 +162,7 @@ class VersionStore(object):
                                       }
                          }])
 
-        results = self._versions.aggregate(pipeline)
+        results = self._versions.aggregate(pipeline, allowDiskUse=True)
         return sorted([x['symbol'] for x in results])
 
     @mongo_retry
