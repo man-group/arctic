@@ -1,7 +1,7 @@
 import pandas as pd
 
 from ._chunker import Chunker, START, END
-from ..date import DateRange
+from arctic.date import DateRange, to_pandas_closed_closed
 
 
 class DateChunker(Chunker):
@@ -107,15 +107,20 @@ class DateChunker(Chunker):
         """
         if isinstance(range_obj, (pd.DatetimeIndex, tuple)):
             range_obj = DateRange(range_obj[0], range_obj[-1])
+
+        range_obj = to_pandas_closed_closed(range_obj, add_tz=False)
+        start = range_obj.start
+        end = range_obj.end
+
         if 'date' in data.index.names:
-            return data[range_obj.start:range_obj.end]
+            return data[start:end]
         elif 'date' in data.columns:
-            if range_obj.start and range_obj.end:
-                return data[(data.date >= range_obj.start) & (data.date <= range_obj.end)]
-            elif range_obj.start:
-                return data[(data.date >= range_obj.start)]
-            elif range_obj.end:
-                return data[(data.date <= range_obj.end)]
+            if start and end:
+                return data[(data.date >= start) & (data.date <= end)]
+            elif start:
+                return data[(data.date >= start)]
+            elif end:
+                return data[(data.date <= end)]
             else:
                 return data
         else:
