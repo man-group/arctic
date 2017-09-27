@@ -356,26 +356,30 @@ class ChunkStore(object):
             for i in xrange(int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)):
                 chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE: (i + 1) * MAX_CHUNK_SIZE])}
                 chunk[SEGMENT] = i
-                chunk[START] = start
-                chunk[END] = end
-                chunk[SYMBOL] = symbol
+                chunk[START] = meta[START] = start
+                chunk[END] = meta[END] = end
+                chunk[SYMBOL] = meta[SYMBOL] = symbol
                 dates = [chunker.chunk_to_str(start), chunker.chunk_to_str(end), str(chunk[SEGMENT]).encode('ascii')]
                 chunk[SHA] = self._checksum(dates, chunk[DATA])
+
+                meta_ops.append(pymongo.ReplaceOne({SYMBOL: symbol,
+                                                    START: start,
+                                                    END: end},
+                                                   meta, upsert=True))
+
                 if chunk[SHA] not in previous_shas:
                     ops.append(pymongo.UpdateOne({SYMBOL: symbol,
                                                   START: start,
                                                   END: end,
                                                   SEGMENT: chunk[SEGMENT]},
                                                  {'$set': chunk}, upsert=True))
-                    meta_ops.append(pymongo.UpdateOne({SYMBOL: symbol,
-                                                       START: start,
-                                                       END: end},
-                                                      {'$set': meta}, upsert=True))
                 else:
                     # already exists, dont need to update in mongo
                     previous_shas.remove(chunk[SHA])
+
         if ops:
             self._collection.bulk_write(ops, ordered=False)
+        if meta_ops:
             self._mdata.bulk_write(meta_ops, ordered=False)
 
         doc[CHUNK_COUNT] = chunk_count
