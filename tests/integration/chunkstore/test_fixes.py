@@ -107,7 +107,7 @@ def test_rewrite(chunkstore_lib):
     are the index for the collection, but metadata was being
     stored without an index (so it was defaulting to null,null,null)
     """
-    date_range = pd.date_range(start=datetime(2017, 5, 1, 1), periods=8, freq='6H')
+    date_range = pd.date_range(start=dt(2017, 5, 1, 1), periods=8, freq='6H')
 
     df = DataFrame(data={'something': [100, 200, 300, 400, 500, 600, 700, 800]},
                    index=DatetimeIndex(date_range, name='date'))
