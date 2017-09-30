@@ -121,3 +121,29 @@ def test_rewrite(chunkstore_lib):
     chunkstore_lib.write('test', df2, chunk_size='D')
     ret = chunkstore_lib.read('test')
     assert_frame_equal(ret, df2)
+
+
+def test_iterator(chunkstore_lib):
+    """
+    Fixes issue #431 - iterator methods were not taking into account
+    the fact that symbols can have multiple segments
+    """
+    def generate_data(date):
+        """
+        Generates a dataframe that is larger than one segment
+        a segment in chunkstore
+        """
+        df = pd.DataFrame(np.random.randn(200000, 12),
+                          columns=['beta', 'btop', 'earnyild', 'growth', 'industry', 'leverage',
+                                   'liquidty', 'momentum', 'resvol', 'sid', 'size', 'sizenl'])
+        df['date'] = date
+
+        return df
+
+    date = pd.Timestamp('2000-01-01')
+    df = generate_data(date)
+    chunkstore_lib.write('test', df, chunk_size='A')
+    ret = chunkstore_lib.get_chunk_ranges('test')
+    assert(len(list(ret)) == 1)
+
+

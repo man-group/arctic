@@ -639,7 +639,8 @@ class ChunkStore(object):
             raise NoDataFoundException("Symbol does not exist.")
         c = CHUNKER_MAP[sym[CHUNKER]]
 
-        spec = {SYMBOL: symbol}
+        # all symbols have a segment 0
+        spec = {SYMBOL: symbol, SEGMENT: 0}
         if chunk_range is not None:
             spec.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
 
@@ -668,9 +669,8 @@ class ChunkStore(object):
             raise NoDataFoundException("Symbol does not exist.")
 
         c = CHUNKER_MAP[sym[CHUNKER]]
-        chunks = list(self.get_chunk_ranges(symbol, chunk_range=chunk_range))
 
-        for chunk in chunks:
+        for chunk in self.get_chunk_ranges(symbol, chunk_range=chunk_range):
             yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]))
 
     def reverse_iterator(self, symbol, chunk_range=None):
@@ -693,9 +693,8 @@ class ChunkStore(object):
             raise NoDataFoundException("Symbol does not exist.")
 
         c = CHUNKER_MAP[sym[CHUNKER]]
-        chunks = list(self.get_chunk_ranges(symbol, chunk_range=chunk_range, reverse=True))
 
-        for chunk in chunks:
+        for chunk in self.get_chunk_ranges(symbol, chunk_range=chunk_range, reverse=True):
             yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]))
 
     def stats(self):
