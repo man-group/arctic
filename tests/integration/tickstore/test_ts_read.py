@@ -605,3 +605,10 @@ def test_read_with_image(tickstore_lib):
     assert set(df.columns) == set(['c'])
     assert_array_equal(df['c'].values, np.array([2]))
     assert df.index[0] == dt(2013, 1, 1, 10, tzinfo=mktz('Europe/London'))
+
+
+def test_read_with_metadata(tickstore_lib):
+    metadata = {'metadata': 'important data'}
+    tickstore_lib.write('test', [{'index': dt(2013, 6, 1, 13, 00, tzinfo=mktz('Europe/London')), 'price': 100.50, 'ticker': 'QQQ'}], metadata=metadata)
+    m = tickstore_lib.read_metadata('test')
+    assert(metadata == m)

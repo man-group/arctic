@@ -74,6 +74,8 @@ ROWMASK = 'm'
 COUNT = 'c'
 VERSION = 'v'
 
+META = 'md'
+
 CHUNK_VERSION_NUMBER = 3
 
 
@@ -89,6 +91,8 @@ class TickStore(object):
         collection.create_index([(SYMBOL, pymongo.ASCENDING),
                                  (START, pymongo.ASCENDING)], background=True)
         collection.create_index([(START, pymongo.ASCENDING)], background=True)
+
+        self._metadata.create_index([(SYMBOL, pymongo.ASCENDING)], background=True, unique=True)
 
     def __init__(self, arctic_lib, chunk_size=100000):
         """
@@ -110,6 +114,7 @@ class TickStore(object):
     def _reset(self):
         # The default collections
         self._collection = self._arctic_lib.get_top_level_collection()
+        self._metadata = self._collection.metadata
 
     def __getstate__(self):
         return {'arctic_lib': self._arctic_lib}
@@ -144,6 +149,9 @@ class TickStore(object):
             assert date_range.start and date_range.end
             query[START] = {'$gte': date_range.start}
             query[END] = {'$lte': date_range.end}
+        else:
+            # delete metadata on complete deletion
+            self._metadata.delete_one({SYMBOL: symbol})
         return self._collection.delete_many(query)
 
     def list_symbols(self, date_range=None):
@@ -345,6 +353,9 @@ class TickStore(object):
             rtn = rtn.loc[date_range.start:date_range.end]
         return rtn
 
+    def read_metadata(self, symbol):
+        return self._metadata.find_one({SYMBOL: symbol})[META]
+
     def _pad_and_fix_dtypes(self, cols, column_dtypes):
         # Pad out Nones with empty arrays of appropriate dtypes
         rtn = {}
@@ -514,7 +525,7 @@ class TickStore(object):
                 raise OverlappingDataException("Document already exists with start:{} end:{} in the range of our start:{} end:{}".format(
                                                             doc[START], doc[END], start, end))
 
-    def write(self, symbol, data, initial_image=None):
+    def write(self, symbol, data, initial_image=None, metadata=None):
         """
         Writes a list of market data events.
 
@@ -530,6 +541,8 @@ class TickStore(object):
         initial_image : dict
             Dict of the initial image at the start of the document. If this contains a 'index' entry it is
             assumed to be the time of the timestamp of the index
+        metadata: dict
+            optional user defined metadata - one per symbol
         """
         pandas = False
         # Check for overlapping data
@@ -549,6 +562,11 @@ class TickStore(object):
         else:
             buckets = self._to_buckets(data, symbol, initial_image)
         self._write(buckets)
+
+        if metadata:
+            ret = self._metadata.replace_one({SYMBOL: symbol},
+                                             {SYMBOL: symbol, META: metadata},
+                                             upsert=True)
 
     def _write(self, buckets):
         start = dt.now()
