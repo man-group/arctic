@@ -7,7 +7,8 @@
   * Bugfix:  Inconsistent returns on MetadataStore.append
   * Bugfix:  #412 pandas deprecation and #289 improve exception report in numpy record serializer
   * Bugfix:  #420 chunkstore ignoring open interval date ranges
-  * Bugfix:  #427 chunkstore metadata not being correctly replaced during symbol overwrite 
+  * Bugfix:  #427 chunkstore metadata not being correctly replaced during symbol overwrite
+  * Bugfix:  #431 chunkstore iterators do not handle multi segment chunks correctly
 
 ### 1.51 (2017-08-21)
   * Bugfix:  #397 Remove calls to deprecated methods in pymongo
