@@ -1,17 +1,10 @@
-dist: precise
+dist: trusty
 sudo: false
 language: python
 python:
   - "2.7"
   - "3.6"
 
-addons:
-  apt:
-    sources:
-      - mongodb-3.2-precise
-    packages:
-      - mongodb-org-server
-      - mongodb-org-shell
 services:
    - mongodb
 
