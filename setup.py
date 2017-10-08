@@ -111,7 +111,7 @@ def extensions():
 
 setup(
     name="arctic",
-    version="1.53.0",
+    version="1.54.0",
     author="Man AHL Technology",
     author_email="ManAHLTech@ahl.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
