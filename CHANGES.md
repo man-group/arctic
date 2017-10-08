@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.52
+### 1.53 (2017-10-06)
   * Perf:    #408 Improve memory performance of version store's serializer
   * Bugfix   #394 Multi symbol read in chunkstore
   * Bugfix:  #407 Fix segment issue on appends in chunkstore
