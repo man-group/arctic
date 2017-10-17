@@ -127,6 +127,14 @@ def test_save_read_pandas_dataframe_with_datetimeindex_with_timezone(library):
     assert all(df.index == saved_df.index)
 
 
+def test_save_read_pandas_empty_series_with_datetime_multiindex_with_timezone(library):
+    empty_index = pd.MultiIndex(levels=(pd.DatetimeIndex([], tz="America/Chicago"), pd.Index([])), labels=([], []))
+    df = Series(data=[], index=empty_index)
+    library.write('pandas', df)
+    saved_df = library.read('pandas').data
+    assert empty_index.equal_levels(saved_df.index), "Index timezone information should be maintained, even when empty"
+
+
 def test_save_read_pandas_dataframe_with_datetimeindex(library):
     df = DataFrame(data=['A', 'BC', 'DEF'], index=np.array([dt(2013, 1, 1),
                                                             dt(2013, 1, 2),
@@ -552,8 +560,8 @@ def test_panel_save_read_with_nans(library):
 
     assert p_in.shape == p_out.shape
     # check_names is False because pandas helpfully names the axes for us.
-    assert_frame_equal(p_in.iloc[0], p_out.iloc[0], check_names=False)  
-    assert_frame_equal(p_in.iloc[1], p_out.iloc[1], check_names=False)  
+    assert_frame_equal(p_in.iloc[0], p_out.iloc[0], check_names=False)
+    assert_frame_equal(p_in.iloc[1], p_out.iloc[1], check_names=False)
 
 
 def test_save_read_ints(library):
