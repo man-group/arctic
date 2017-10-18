@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.54 (2017-10-18)
+  * Bugfix:  #440 Fix read empty MultiIndex+tz Series
+
 ### 1.53 (2017-10-06)
   * Perf:    #408 Improve memory performance of version store's serializer
   * Bugfix   #394 Multi symbol read in chunkstore

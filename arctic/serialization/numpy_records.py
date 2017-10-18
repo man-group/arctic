@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 
-from pandas import DataFrame, MultiIndex, Series, DatetimeIndex
+from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
 try:
     from pandas._libs.tslib import Timestamp, get_timezone
 except ImportError:
@@ -62,15 +62,27 @@ class PandasSerializer(object):
 
     def _index_from_records(self, recarr):
         index = recarr.dtype.metadata['index']
-        rtn = MultiIndex.from_arrays([np.copy(recarr[str(i)]) for i in index], names=index)
 
-        if isinstance(rtn, DatetimeIndex) and 'index_tz' in recarr.dtype.metadata:
-            rtn = rtn.tz_localize('UTC').tz_convert(recarr.dtype.metadata['index_tz'])
-        elif isinstance(rtn, MultiIndex):
-            for i, tz in enumerate(recarr.dtype.metadata.get('index_tz', [])):
-                if tz is not None:
-                    rtn.set_levels(rtn.levels[i].tz_localize('UTC').tz_convert(tz), i, inplace=True)
-
+        if len(index) == 1:
+            rtn = Index(np.copy(recarr[str(index[0])]), name=index[0])
+            if isinstance(rtn, DatetimeIndex) and 'index_tz' in recarr.dtype.metadata:
+                rtn = rtn.tz_localize('UTC').tz_convert(recarr.dtype.metadata['index_tz'])
+        else:
+            level_arrays = []
+            index_tz = recarr.dtype.metadata.get('index_tz', [])
+            for level_no, index_name in enumerate(index):
+                # build each index level separately to ensure we end up with the right index dtype
+                level = Index(np.copy(recarr[str(index_name)]))
+                if level_no < len(index_tz):
+                    tz = index_tz[level_no]
+                    if tz is not None:
+                        if not isinstance(level, DatetimeIndex) and len(level) == 0:
+                            # index type information got lost during save as the index was empty, cast back
+                            level = DatetimeIndex([], tz=tz)
+                        else:
+                            level = level.tz_localize('UTC').tz_convert(tz)
+                level_arrays.append(level)
+            rtn = MultiIndex.from_arrays(level_arrays, names=index)
         return rtn
 
     def _to_records(self, df, string_max_len=None):
@@ -80,7 +92,7 @@ class PandasSerializer(object):
             Attempt type conversion for pandas columns stored as objects (e.g. strings),
             as we can only store primitives in the ndarray.
             Use dtype metadata to store column and index names.
-        
+
         string_max_len: integer - enforces a string size on the dtype, if any
                                   strings exist in the record
         """
