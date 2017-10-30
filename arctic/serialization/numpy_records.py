@@ -3,7 +3,8 @@ import numpy as np
 
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
 try:
-    from pandas._libs.tslib import Timestamp, get_timezone
+    from pandas._libs.tslib import Timestamp
+    from pandas._libs.tslibs.timezones import get_timezone
 except ImportError:
     from pandas.tslib import Timestamp, get_timezone
 
