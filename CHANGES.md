@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.55
+  * Bugfix:  #439 fix cursor timeouts in chunkstore iterator
+
 ### 1.54 (2017-10-18)
   * Bugfix:  #440 Fix read empty MultiIndex+tz Series
 

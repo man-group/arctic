@@ -670,7 +670,7 @@ class ChunkStore(object):
 
         c = CHUNKER_MAP[sym[CHUNKER]]
 
-        for chunk in self.get_chunk_ranges(symbol, chunk_range=chunk_range):
+        for chunk in list(self.get_chunk_ranges(symbol, chunk_range=chunk_range)):
             yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]))
 
     def reverse_iterator(self, symbol, chunk_range=None):
@@ -694,7 +694,7 @@ class ChunkStore(object):
 
         c = CHUNKER_MAP[sym[CHUNKER]]
 
-        for chunk in self.get_chunk_ranges(symbol, chunk_range=chunk_range, reverse=True):
+        for chunk in list(self.get_chunk_ranges(symbol, chunk_range=chunk_range, reverse=True)):
             yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]))
 
     def stats(self):
