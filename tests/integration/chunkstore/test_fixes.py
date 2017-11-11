@@ -145,5 +145,3 @@ def test_iterator(chunkstore_lib):
     chunkstore_lib.write('test', df, chunk_size='A')
     ret = chunkstore_lib.get_chunk_ranges('test')
     assert(len(list(ret)) == 1)
-
-
