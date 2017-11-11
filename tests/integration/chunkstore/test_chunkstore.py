@@ -665,6 +665,8 @@ def test_delete_empty_df_on_range(chunkstore_lib):
     assert_frame_equal(df, read_df)
     assert ('test_df' in chunkstore_lib.list_symbols())
     chunkstore_lib.delete('test_df', chunk_range=DateRange(dt(2017,1,1), dt(2017,1,2)))
+    assert_frame_equal(df, chunkstore_lib.read('test_df'))
+
     
 
 
