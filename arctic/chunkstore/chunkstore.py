@@ -130,20 +130,21 @@ class ChunkStore(object):
             # data within the range
             df = self.read(symbol, chunk_range=chunk_range, filter_data=False)
             row_adjust = len(df)
-            df = CHUNKER_MAP[sym[CHUNKER]].exclude(df, chunk_range)
+            if not df.empty:
+                df = CHUNKER_MAP[sym[CHUNKER]].exclude(df, chunk_range)
 
-            # remove chunks, and update any remaining data
-            query = {SYMBOL: symbol}
-            query.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
-            self._collection.delete_many(query)
-            self._mdata.delete_many(query)
-            self.update(symbol, df)
+                # remove chunks, and update any remaining data
+                query = {SYMBOL: symbol}
+                query.update(CHUNKER_MAP[sym[CHUNKER]].to_mongo(chunk_range))
+                self._collection.delete_many(query)
+                self._mdata.delete_many(query)
+                self.update(symbol, df)
 
-            # update symbol metadata (rows and chunk count)
-            sym = self._get_symbol_info(symbol)
-            sym[LEN] -= row_adjust
-            sym[CHUNK_COUNT] = self._collection.count({SYMBOL: symbol})
-            self._symbols.replace_one({SYMBOL: symbol}, sym)
+                # update symbol metadata (rows and chunk count)
+                sym = self._get_symbol_info(symbol)
+                sym[LEN] -= row_adjust
+                sym[CHUNK_COUNT] = self._collection.count({SYMBOL: symbol})
+                self._symbols.replace_one({SYMBOL: symbol}, sym)
 
         else:
             query = {SYMBOL: symbol}
