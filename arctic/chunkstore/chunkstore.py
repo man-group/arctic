@@ -79,6 +79,12 @@ class ChunkStore(object):
         # Do we allow reading from secondaries
         self._allow_secondary = self._arctic_lib.arctic._allow_secondary
         self._reset()
+        self._fix_legacy_data()
+
+    def _fix_legacy_data(self):
+        # Issue 442
+        # for legacy data that was incorectly marked with segment start of -1
+        self._collection.update_many({SEGMENT: -1}, {'$set': {SEGMENT: 0}})
 
     @mongo_retry
     def _reset(self):
