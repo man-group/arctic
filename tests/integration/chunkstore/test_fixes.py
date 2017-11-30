@@ -185,3 +185,17 @@ def test_compression_legacy(chunkstore_lib):
 
     read = chunkstore_lib.read('test')
     assert_frame_equal(read, pd.concat([df, df2], ignore_index=True))
+
+    chunkstore_lib._collection.update_one({'sy': 'test', 'sg': 0}, {'$set': {'sg': -1}})
+    chunkstore_lib._collection.update_one({'sy': 'test', 'sg': 1}, {'$set': {'sg': 0}})
+    assert(get_segments() == [-1, 0])
+
+    chunkstore_lib._fix_legacy_data()
+    assert(get_segments() == [-1, 0])
+    
+
+
+
+
+
+
