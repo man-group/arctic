@@ -84,7 +84,11 @@ class ChunkStore(object):
     def _fix_legacy_data(self):
         # Issue 442
         # for legacy data that was incorectly marked with segment start of -1
-        self._collection.update_many({SEGMENT: -1}, {'$set': {SEGMENT: 0}})
+        for symbol in self.list_symbols():
+            if self._collection.find({SYMBOL: symbol, SEGMENT: {'$lte': 1}}, projection={SEGMENT: True, '_id': False}).count() > 1:
+                logger.warning("Symbol %s has malformed segments. Data is corrupted and must be rewritten." % symbol)
+            else:
+                self._collection.update_one({SYMBOL: symbol, SEGMENT: -1}, {'$set': {SEGMENT: 0}})
 
     @mongo_retry
     def _reset(self):
