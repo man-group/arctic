@@ -26,7 +26,7 @@ def test_segment_repair_tool(chunkstore_lib):
         return df
 
     def get_segments():
-        return chunkstore_lib._collection.distinct('sg', {'sy': 'test'})
+        return sorted(chunkstore_lib._collection.distinct('sg', {'sy': 'test'}))
 
     date = pd.Timestamp('2000-01-01')
     df = generate_data(date)
