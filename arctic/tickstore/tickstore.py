@@ -354,6 +354,18 @@ class TickStore(object):
         return rtn
 
     def read_metadata(self, symbol):
+        """
+        Read metadata for the specified symbol
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+
+        Returns
+        -------
+        dict
+        """
         return self._metadata.find_one({SYMBOL: symbol})[META]
 
     def _pad_and_fix_dtypes(self, cols, column_dtypes):
