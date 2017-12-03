@@ -5,6 +5,7 @@
   * Bugfix:  #450 fix error in chunkstore delete when chunk range produces empty df
   * Bugfix:  #442 fix incorrect segment values in multi segment chunks in chunkstore
   * Feature: #457 enchances fix for #442 via segment_id_repair tool
+  * Bugfix:  #385 exceptions during quota statistics no longer kill a write
 
 ### 1.54 (2017-10-18)
   * Bugfix:  #440 Fix read empty MultiIndex+tz Series
