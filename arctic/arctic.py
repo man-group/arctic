@@ -1,4 +1,5 @@
 import logging
+import os
 
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect
@@ -99,6 +100,7 @@ class Arctic(object):
         self._connect_timeout = connectTimeoutMS
         self._server_selection_timeout = serverSelectionTimeoutMS
         self._lock = threading.RLock()
+        self._pid = os.getpid()
 
         if isinstance(mongo_host, string_types):
             self.mongo_host = mongo_host
@@ -113,6 +115,13 @@ class Arctic(object):
     @mongo_retry
     def _conn(self):
         with self._lock:
+            # We must make sure that no MongoClient instances are used from parent after fork:
+            #    http://api.mongodb.com/python/current/faq.html#using-pymongo-with-multiprocessing
+            curr_pid = os.getpid()
+            if curr_pid != self._pid:
+                self._pid = curr_pid  # this line has to precede reset() otherwise we get to eternal recursion
+                self.reset()  # also triggers re-auth
+
             if self.__conn is None:
                 host = get_mongodb_uri(self.mongo_host)
                 logger.info("Connecting to mongo: {0} ({1})".format(self.mongo_host, host))
@@ -140,7 +149,8 @@ class Arctic(object):
                 self.__conn.close()
                 self.__conn = None
             for _, l in self._library_cache.items():
-                l._reset()
+                if hasattr(l, '_reset') and callable(l._reset):
+                    l._reset()  # the existence of _reset() is not guaranteed/enforced, it also triggers re-auth
 
     def __str__(self):
         return "<Arctic at %s, connected to %s>" % (hex(id(self)), str(self._conn))
@@ -396,13 +406,11 @@ class ArcticLibraryBinding(object):
         database_name, library = self._parse_db_lib(library)
         self.library = library
         self.database_name = database_name
-        self.get_top_level_collection()  # Eagerly trigger auth
+        self.reset_auth()
 
     @property
     def _db(self):
-        db = self.arctic._conn[self.database_name]
-        self._auth(db)
-        return db
+        return self.arctic._conn[self.database_name]
 
     @property
     def _library_coll(self):
@@ -430,6 +438,9 @@ class ArcticLibraryBinding(object):
         auth = get_auth(self.arctic.mongo_host, self.arctic._application_name, database.name)
         if auth:
             authenticate(database, auth.user, auth.password)
+
+    def reset_auth(self):
+        self._auth(self._db)
 
     def get_name(self):
         return self._db.name + '.' + self._library_coll.name

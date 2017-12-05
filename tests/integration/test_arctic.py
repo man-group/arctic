@@ -1,9 +1,12 @@
-from datetime import datetime as dt
-from mock import patch
-from pandas.util.testing import assert_frame_equal
+import os
 import pytest
 import time
 
+from datetime import datetime as dt
+from mock import patch
+from multiprocessing import Process
+from pandas.util.testing import assert_frame_equal
+from random import random
 
 from arctic.arctic import Arctic, VERSION_STORE
 from arctic.exceptions import LibraryNotFoundException, QuotaExceededException
@@ -190,3 +193,45 @@ def test_lib_rename_namespace(arctic):
 def test_lib_type(arctic):
     arctic.initialize_library('test')
     assert(arctic.get_library_type('test') == VERSION_STORE)
+
+
+MY_ARCTIC = None  # module-level Arctic singleton
+
+def f(library_name):
+    my_pid = os.getpid()
+    data = [str(my_pid)] * 100
+    vstore = MY_ARCTIC[library_name]
+    for i in range(100):
+        if i % 20 == 0:  # add some randomisation, make sure that processes are multiplexed across time
+            time.sleep(random())
+        key = "{}_{}".format(my_pid, i)
+        vstore.write(key, data + [key])
+    for i in range(100):
+        key = "{}_{}".format(my_pid, i)
+        assert vstore.read(key).data == data + [key]
+    print "\nDone pid={}".format(my_pid)
+
+
+@pytest.mark.timeout(300)
+def test_multiprocessing_safety(mongo_host, library_name):
+    total_processes = 64
+
+    global MY_ARCTIC
+    MY_ARCTIC = Arctic(mongo_host=mongo_host)
+
+    MY_ARCTIC.initialize_library(library_name, VERSION_STORE)
+    from arctic.store.version_store import VersionStore
+    assert isinstance(MY_ARCTIC.get_library(library_name), VersionStore)
+
+    processes = [Process(target=f, args=(library_name,)) for _ in range(total_processes)]
+
+    for p in processes:
+        p.start()
+
+    for p in processes:
+        p.join()
+
+    for p in processes:
+        assert p.exitcode == 0
+
+    assert isinstance(MY_ARCTIC.get_library(library_name), VersionStore)

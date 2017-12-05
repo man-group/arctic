@@ -98,7 +98,7 @@ class TickStore(object):
         """
         Parameters
         ----------
-        arctic_lib : TickStore
+        arctic_lib : ArcticLibraryBinding
             Arctic Library
         chunk_size : int
             Number of ticks to store in a document before splitting to another document.
@@ -112,6 +112,7 @@ class TickStore(object):
 
     @mongo_retry
     def _reset(self):
+        self._arctic_lib.reset_auth()
         # The default collections
         self._collection = self._arctic_lib.get_top_level_collection()
         self._metadata = self._collection.metadata

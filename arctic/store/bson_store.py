@@ -24,7 +24,7 @@ class BSONStore(object):
 
     def __init__(self, arctic_lib):
         self._arctic_lib = arctic_lib
-        self._collection = self._arctic_lib.get_top_level_collection()
+        self._reset()
 
     @classmethod
     def initialize_library(cls, arctic_lib, hashed=True, **kwargs):
@@ -37,6 +37,12 @@ class BSONStore(object):
         except OperationFailure as exception:
             logger.warning(("Library created, but couldn't enable sharding: "
                             "%s. This is OK if you're not 'admin'"), exception)
+
+    @mongo_retry
+    def _reset(self):
+        self._arctic_lib.reset_auth()
+        # The default collection
+        self._collection = self._arctic_lib.get_top_level_collection()
 
     @mongo_retry
     def stats(self):

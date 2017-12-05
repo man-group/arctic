@@ -65,6 +65,7 @@ class TopLevelTickStore(object):
 
     @mongo_retry
     def _reset(self):
+        self._arctic_lib.reset_auth()
         # The default collections
         self._collection = self._arctic_lib.get_top_level_collection()
 
