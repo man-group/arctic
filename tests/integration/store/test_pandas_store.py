@@ -661,6 +661,22 @@ def test_daterange_start(library):
     assert len(result) == 1
 
 
+def test_daterange_with_zero_index(library):
+    # This test results in an index whose first element is indexed as 0 and
+    # the segment count is different to the number of rows that will be returned
+    row_count = 1
+    # a signle element date range gives a first element index of 0
+    df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=row_count),
+                   data=np.tile(np.arange(row_count), 100).reshape((-1, 100)))
+    df.columns = [str(c) for c in df.columns]
+    library.write('MYARR', df)
+    # this append increases the segment count
+    library.append('MYARR', df)
+    # request for a date range that won't return any values
+    result = library.read('MYARR', date_range=DateRange(end=dt(2000, 1, 1))).data
+    assert len(result) == 0
+
+
 def test_daterange_large_DataFrame(library):
     df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=30 * 1024),
                    data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)))

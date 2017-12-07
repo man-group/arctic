@@ -179,7 +179,7 @@ class NdarrayStore(object):
                 'parent': version.get('base_version_id', version['_id']),
                 'segment': {'$lt': to_index}
                 }
-        if from_index:
+        if from_index is not None:
             spec['segment']['$gte'] = from_index
         else:
             segment_count = version.get('segment_count', None)
