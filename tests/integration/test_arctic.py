@@ -216,7 +216,6 @@ def f(library_name, total_writes):
     for i in range(total_writes):
         key = "{}_{}".format(my_pid, i)
         assert vstore.read(key).data == data + [key]
-    print "\nDone pid={}".format(my_pid)
 
 
 @pytest.mark.timeout(300)
