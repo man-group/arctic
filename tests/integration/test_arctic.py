@@ -46,12 +46,12 @@ def test_re_authenticate_on_arctic_reset(mongo_host, library_name):
         arctic.initialize_library(library_name, VERSION_STORE)
         vstore = arctic[library_name]
         vstore.list_symbols()
-        calls_before = auth_mock.call_count
+        auth_mock.reset_mock()
         arctic.reset()
-        assert auth_mock.call_count > calls_before
-        calls_before = auth_mock.call_count
+        assert auth_mock.call_count > 0
+        auth_mock.reset_mock()
         vstore.list_symbols()
-        assert auth_mock.call_count == calls_before
+        assert auth_mock.call_count == 0
 
 
 def test_simple(library):
