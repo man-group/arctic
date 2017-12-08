@@ -403,13 +403,20 @@ class ArcticLibraryBinding(object):
 
     def __init__(self, arctic, library):
         self.arctic = arctic
+        self._curr_conn = self.arctic._conn
+        self._lock = threading.RLock()
         database_name, library = self._parse_db_lib(library)
         self.library = library
         self.database_name = database_name
-        self.reset_auth()
+        self._auth(self.arctic._conn[self.database_name])
 
     @property
     def _db(self):
+        with self._lock:
+            arctic_conn = self.arctic._conn
+            if arctic_conn != self._curr_conn:
+                self._auth(arctic_conn[self.database_name])  # trigger re-authentication if Arctic has been reset
+                self._curr_conn = arctic_conn
         return self.arctic._conn[self.database_name]
 
     @property

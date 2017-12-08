@@ -90,7 +90,6 @@ class ChunkStore(object):
 
     @mongo_retry
     def _reset(self):
-        self._arctic_lib.reset_auth()
         # The default collection
         self._collection = self._arctic_lib.get_top_level_collection()
         self._symbols = self._collection.symbols

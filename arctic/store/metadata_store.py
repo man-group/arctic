@@ -42,7 +42,6 @@ class MetadataStore(BSONStore):
         self._reset()
 
     def _reset(self):
-        self._arctic_lib.reset_auth()
         self._collection = self._arctic_lib.get_top_level_collection().metadata
 
     def __getstate__(self):
