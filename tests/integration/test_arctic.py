@@ -273,3 +273,22 @@ def test_multiprocessing_safety_parent_children_race(mongo_host, library_name):
         MY_ARCTIC.reset()
 
     assert isinstance(MY_ARCTIC.get_library(library_name), VersionStore)
+
+
+def test_re_authenticate_on_arctic_reset(mongo_host, library_name):
+    from collections import namedtuple
+    Cred = namedtuple('Cred', 'user, password')
+    with patch('arctic.arctic.authenticate') as auth_mock, \
+            patch('arctic.arctic.get_auth') as get_auth_mock:
+        auth_mock.return_value = True
+        get_auth_mock.return_value = Cred(user='a_username', password='a_passwd')
+        arctic = Arctic(mongo_host=mongo_host)
+        arctic.initialize_library(library_name, VERSION_STORE)  # this will unblock spinning children
+        vstore = arctic[library_name]
+        vstore.list_symbols()
+        calls_before = auth_mock.call_count
+        arctic.reset()
+        assert auth_mock.call_count > calls_before
+        calls_before = auth_mock.call_count
+        vstore.list_symbols()
+        assert auth_mock.call_count == calls_before
