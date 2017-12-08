@@ -283,7 +283,7 @@ def test_re_authenticate_on_arctic_reset(mongo_host, library_name):
         auth_mock.return_value = True
         get_auth_mock.return_value = Cred(user='a_username', password='a_passwd')
         arctic = Arctic(mongo_host=mongo_host)
-        arctic.initialize_library(library_name, VERSION_STORE)  # this will unblock spinning children
+        arctic.initialize_library(library_name, VERSION_STORE)
         vstore = arctic[library_name]
         vstore.list_symbols()
         calls_before = auth_mock.call_count
