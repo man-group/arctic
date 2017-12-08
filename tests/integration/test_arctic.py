@@ -1,16 +1,12 @@
-import os
 import pytest
 import time
 
 from datetime import datetime as dt
 from mock import patch
-from multiprocessing import Process
 from pandas.util.testing import assert_frame_equal
-from random import random
 
 from arctic.arctic import Arctic, VERSION_STORE
 from arctic.exceptions import LibraryNotFoundException, QuotaExceededException
-from arctic.store.version_store import VersionStore
 
 from ..util import get_large_ts
 
@@ -31,10 +27,31 @@ def test_reset_Arctic(mongo_host, library_name):
     arctic = Arctic(mongo_host=mongo_host)
     arctic.list_libraries()
     arctic.initialize_library(library_name, VERSION_STORE)
-    arctic[library_name]
     c = arctic._conn
+    assert arctic[library_name]._arctic_lib._curr_conn is c
     arctic.reset()
+    assert c is not arctic._conn
     assert len(c.nodes) == 0
+    assert arctic[library_name]._arctic_lib._curr_conn is c
+
+
+def test_re_authenticate_on_arctic_reset(mongo_host, library_name):
+    from collections import namedtuple
+    Cred = namedtuple('Cred', 'user, password')
+    with patch('arctic.arctic.authenticate') as auth_mock, \
+            patch('arctic.arctic.get_auth') as get_auth_mock:
+        auth_mock.return_value = True
+        get_auth_mock.return_value = Cred(user='a_username', password='a_passwd')
+        arctic = Arctic(mongo_host=mongo_host)
+        arctic.initialize_library(library_name, VERSION_STORE)
+        vstore = arctic[library_name]
+        vstore.list_symbols()
+        calls_before = auth_mock.call_count
+        arctic.reset()
+        assert auth_mock.call_count > calls_before
+        calls_before = auth_mock.call_count
+        vstore.list_symbols()
+        assert auth_mock.call_count == calls_before
 
 
 def test_simple(library):
@@ -194,101 +211,3 @@ def test_lib_rename_namespace(arctic):
 def test_lib_type(arctic):
     arctic.initialize_library('test')
     assert(arctic.get_library_type('test') == VERSION_STORE)
-
-
-MY_ARCTIC = None  # module-level Arctic singleton
-
-def f(library_name, total_writes):
-    my_pid = os.getpid()
-    data = [str(my_pid)] * 100
-    while True:
-        try:
-            vstore = MY_ARCTIC[library_name]  # wait for parent to initialize
-            break
-        except LibraryNotFoundException:
-            pass
-        time.sleep(random() * 0.2)
-    for i in range(total_writes):
-        if i % 20 == 0:  # add some randomisation, make sure that processes are multiplexed across time
-            time.sleep(random())
-        key = "{}_{}".format(my_pid, i)
-        vstore.write(key, data + [key])
-    for i in range(total_writes):
-        key = "{}_{}".format(my_pid, i)
-        assert vstore.read(key).data == data + [key]
-
-
-@pytest.mark.timeout(300)
-def test_multiprocessing_safety(mongo_host, library_name):
-    # Create/initialize library at the parent process, then spawn children, and start them aligned in time
-    total_processes = 64
-    total_writes_per_child = 100
-
-    global MY_ARCTIC
-    MY_ARCTIC = Arctic(mongo_host=mongo_host)
-
-    MY_ARCTIC.initialize_library(library_name, VERSION_STORE)
-    assert isinstance(MY_ARCTIC.get_library(library_name), VersionStore)
-
-    processes = [Process(target=f, args=(library_name, total_writes_per_child)) for _ in range(total_processes)]
-
-    for p in processes:
-        p.start()
-
-    for p in processes:
-        p.join()
-
-    for p in processes:
-        assert p.exitcode == 0
-
-    assert isinstance(MY_ARCTIC.get_library(library_name), VersionStore)
-
-
-@pytest.mark.timeout(300)
-def test_multiprocessing_safety_parent_children_race(mongo_host, library_name):
-    # Create Arctic and directly fork/start children (no wait)
-    total_iterations = 12
-    total_processes = 6
-    total_writes_per_child = 20
-
-    global MY_ARCTIC
-
-    for i in range(total_iterations):
-        processes = list()
-
-        MY_ARCTIC = Arctic(mongo_host=mongo_host)
-        for j in range(total_processes):
-            p = Process(target=f, args=(library_name, total_writes_per_child))
-            p.start()  # start directly, don't wait to create first all children procs
-            processes.append(p)
-
-        MY_ARCTIC.initialize_library(library_name, VERSION_STORE)  # this will unblock spinning children
-
-        for p in processes:
-            p.join()
-
-        for p in processes:
-            assert p.exitcode == 0
-
-        MY_ARCTIC.reset()
-
-    assert isinstance(MY_ARCTIC.get_library(library_name), VersionStore)
-
-
-def test_re_authenticate_on_arctic_reset(mongo_host, library_name):
-    from collections import namedtuple
-    Cred = namedtuple('Cred', 'user, password')
-    with patch('arctic.arctic.authenticate') as auth_mock, \
-            patch('arctic.arctic.get_auth') as get_auth_mock:
-        auth_mock.return_value = True
-        get_auth_mock.return_value = Cred(user='a_username', password='a_passwd')
-        arctic = Arctic(mongo_host=mongo_host)
-        arctic.initialize_library(library_name, VERSION_STORE)
-        vstore = arctic[library_name]
-        vstore.list_symbols()
-        calls_before = auth_mock.call_count
-        arctic.reset()
-        assert auth_mock.call_count > calls_before
-        calls_before = auth_mock.call_count
-        vstore.list_symbols()
-        assert auth_mock.call_count == calls_before
