@@ -98,7 +98,7 @@ class TickStore(object):
         """
         Parameters
         ----------
-        arctic_lib : TickStore
+        arctic_lib : ArcticLibraryBinding
             Arctic Library
         chunk_size : int
             Number of ticks to store in a document before splitting to another document.
