@@ -8,6 +8,8 @@
   * Bugfix:  #385 exceptions during quota statistics no longer kill a write
   * Feature: PR#161 TickStore.max_date now returns a datetime in the 'local' timezone
   * Feature: #425 user defined metadata for tickstore
+  * Feature: #464 performance optimisation by avoiding unnecessary re-authentication
+  * Bugfix:  #250 Added multiprocessing safety, check for initialized MongoClient after fork.
 
 ### 1.54 (2017-10-18)
   * Bugfix:  #440 Fix read empty MultiIndex+tz Series
