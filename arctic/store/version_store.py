@@ -581,15 +581,8 @@ class VersionStore(object):
                 new_version['symbol'] != reference_version['symbol'] or \
                 new_version['_id'] == reference_version['_id'] or \
                 not new_version['base_version_id']:
-            raise ArcticException("Illegal or non-matching nwe_version or reference_version were supplied: %s and %s",
+            raise ArcticException("Illegal or non-matching new_version or reference_version were supplied: %s and %s",
                                   new_version, reference_version)
-
-        # Check if in the meanwhile the reference version (based on which we updated incrementally) has been removed
-        last_look = self._versions.find_one({'_id': reference_version['_id']})
-        if last_look is None or last_look.get('deleted'):
-            raise pymongo.errors.OperationFailure("Failed to write metadata for symbol %s. "
-                                                  "The previous version (%s, %d) has been removed during the update" %
-                                                  (symbol, str(reference_version['_id']), reference_version['version']))
 
         # There is always a small risk here another process in between these two calls (above/below)
         # to delete the reference_version, which may happen to be the last parent entry in the data segments.
@@ -599,6 +592,17 @@ class VersionStore(object):
         # Insert the new version into the version DB
         # (must come before the pruning, otherwise base version won't be preserved)
         mongo_retry(self._versions.insert_one)(new_version)
+
+        # Check if in the meanwhile the reference version (based on which we updated incrementally) has been removed
+        last_look = self._versions.find_one({'_id': reference_version['_id']})
+        if last_look is None or last_look.get('deleted'):
+            # Revert the change
+            mongo_retry(self._versions.delete_one)({'_id': new_version['_id']})
+            # Indicate the failure
+            raise pymongo.errors.OperationFailure("Failed to write metadata for symbol %s. "
+                                                  "The previous version (%s, %d) has been removed during the update" %
+                                                  (symbol, str(reference_version['_id']), reference_version['version']))
+
 
         if prune_previous_version and reference_version:
             self._prune_previous_versions(symbol)
@@ -657,7 +661,7 @@ class VersionStore(object):
 
         return self._add_new_version_using_reference(symbol, version, previous_version, prune_previous_version)
 
-    def restore_version(self, symbol, as_of, prune_previous_version=True, allow_secondary=None):
+    def restore_version(self, symbol, as_of, prune_previous_version=True):
         """
         Restore the specified 'symbol' data and metadata to the state of a given version/snapshot/date.
         Returns a VersionedItem object only with a metadata element.
@@ -675,11 +679,6 @@ class VersionStore(object):
         prune_previous_version : `bool`
             Removes previous (non-snapshotted) versions from the database.
             Default: True
-        allow_secondary : `bool` or `None`
-            Override the default behavior for allowing reads from secondary members of a cluster:
-            `None` : use the settings from the top-level `Arctic` object used to query this version store.
-            `True` : allow reads from secondary members
-            `False` : only allow reads from primary members
 
         Returns
         -------
@@ -687,8 +686,7 @@ class VersionStore(object):
             VersionedItem named tuple containing the metadata of the written symbol's version document in the store.
         """
         # if version/snapshot/data supplied in "as_of" does not exist, will fail fast with NoDataFoundException
-        version_to_restore = mongo_retry(self._read_metadata)(symbol, as_of=as_of,
-                                                              read_preference=self._read_preference(allow_secondary))
+        version_to_restore = mongo_retry(self._read_metadata)(symbol, as_of=as_of)
 
         # Reaching here means that data and/or metadata exist and we are all set to update the metadata
         new_version_num = self._version_nums.find_one_and_update({'symbol': symbol},
@@ -702,7 +700,6 @@ class VersionStore(object):
         version['base_version_id'] = version_to_restore.get('base_version_id', version_to_restore['_id'])
 
         return self._add_new_version_using_reference(symbol, version, version_to_restore, prune_previous_version)
-
 
     def _prune_previous_versions(self, symbol, keep_mins=120):
         """
