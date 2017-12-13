@@ -653,7 +653,7 @@ class VersionStore(object):
                                                                  upsert=True, new=True)['version']
 
         # Populate the new version entry, preserving existing data, and updating with the supplied metadata
-        version = {k: previous_version[k] for k in previous_version.keys()}
+        version = {k: previous_version[k] for k in previous_version.keys() if k != 'parent'}   # don't copy snapshots
         version['_id'] = bson.ObjectId()
         version['version'] = new_version_num
         version['metadata'] = metadata
@@ -694,7 +694,7 @@ class VersionStore(object):
                                                              upsert=True, new=True)['version']
 
         # Create a new version entry, cloning the one supplied from the user
-        version = {k: version_to_restore[k] for k in version_to_restore.keys()}
+        version = {k: version_to_restore[k] for k in version_to_restore.keys() if k != 'parent'}  # don't copy snapshots
         version['_id'] = bson.ObjectId()
         version['version'] = new_version_num
         version['base_version_id'] = version_to_restore.get('base_version_id', version_to_restore['_id'])

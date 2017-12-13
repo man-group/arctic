@@ -1,12 +1,13 @@
 import pytest
 import time
-
+import numpy as np
+import pandas as pd
 from datetime import datetime as dt
 from mock import patch
 from pandas.util.testing import assert_frame_equal
 
 from arctic.arctic import Arctic, VERSION_STORE
-from arctic.exceptions import LibraryNotFoundException, QuotaExceededException
+from arctic.exceptions import LibraryNotFoundException, QuotaExceededException, NoDataFoundException
 
 from ..util import get_large_ts
 
@@ -211,3 +212,213 @@ def test_lib_rename_namespace(arctic):
 def test_lib_type(arctic):
     arctic.initialize_library('test')
     assert(arctic.get_library_type('test') == VERSION_STORE)
+
+
+def _rnd_df(nrows, ncols):
+    ret_df = pd.DataFrame(np.random.randn(nrows, ncols),
+                          index=pd.date_range('20170101',
+                          periods=nrows, freq='S'),
+                          columns=[chr(i) for i in range(ord('a'), ord('a')+ncols)])
+    ret_df.index.name = 'index'
+    return ret_df
+
+
+def test_check_write_metadata(arctic, library, library_name):
+    symbol = 'FTL'
+    mydf_a, mydf_b = _rnd_df(10, 5), _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.write(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
+        library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 3 (only metadata)
+        v = library.read(symbol)
+        assert_frame_equal(v.data, mydf_b)
+        assert v.metadata == {'field_b': 1}
+        assert library._read_metadata(symbol).get('version') == 3
+        assert_frame_equal(library.read(symbol, as_of=1).data, mydf_a)
+
+
+def test_check_write_metadata_new_symbol(arctic, library, library_name):
+    symbol = 'FTL'
+    with patch('arctic.arctic.logger.info') as info:
+        library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 1 (only metadata)
+        v = library.read(symbol)
+        assert v.data == None
+        assert v.metadata == {'field_b': 1}
+        assert library._read_metadata(symbol).get('version') == 1
+
+
+def test_check_write_metadata_after_append(arctic, library, library_name):
+    symbol = 'FTL'
+    mydf_a, mydf_b = _rnd_df(10, 5), _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.append(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
+        library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 3
+        v = library.read(symbol)
+        assert_frame_equal(v.data, mydf_a.append(mydf_b))
+        assert v.metadata == {'field_b': 1}
+        assert library._read_metadata(symbol).get('version') == 3
+
+
+def test_check_write_metadata_purge_previous_versions(arctic, library, library_name):
+    symbol = 'FTL'
+    mydf_a, mydf_b, mydf_c = _rnd_df(10, 5), _rnd_df(10, 5), _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.write(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
+        assert library._read_metadata(symbol).get('version') == 2
+        library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 3 (only metadata)
+
+        # Trigger GC now
+        library._prune_previous_versions(symbol, 0)
+        time.sleep(2)
+
+        # Assert the data
+        v = library.read(symbol)
+        assert_frame_equal(v.data, mydf_b)
+        assert v.metadata == {'field_b': 1}
+
+        # Check if after snapshot and deleting the symbol, the data/metadata survive
+        library.snapshot('SNAP_1')
+        library.delete(symbol)
+        v = library.read(symbol, as_of='SNAP_1')
+        assert_frame_equal(v.data, mydf_b)
+        assert library._read_metadata(symbol, as_of='SNAP_1').get('version') == 3
+        assert v.metadata == {'field_b': 1}
+
+
+def test_check_write_metadata_delete_symbol(arctic, library, library_name):
+    symbol = 'FTL'
+    mydf_a = _rnd_df(10, 5)
+    mydf_b = _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2 (only metadata)
+
+        library.delete(symbol)
+
+        with pytest.raises(NoDataFoundException):
+            library.read(symbol)
+
+        library.write(symbol, data=mydf_b, metadata={'field_a': 1})  # creates version 1
+        assert_frame_equal(library.read(symbol).data, mydf_b)
+
+
+def test_check_write_metadata_snapshots(arctic, library, library_name):
+    symbol = 'FTL'
+    mydf_a, mydf_b = _rnd_df(10, 5), _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.snapshot('SNAP_1')
+        library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2 (only metadata)
+        library.snapshot('SNAP_2')
+        library.write(symbol, data=mydf_b, metadata={'field_c': 1})  # creates version 3
+        library.snapshot('SNAP_3')
+
+        library._prune_previous_versions(symbol, keep_mins=0)
+
+        v = library.read(symbol)
+        assert_frame_equal(v.data, mydf_b)
+        assert v.metadata == {'field_c': 1}
+
+        v = library.read(symbol, as_of='SNAP_1')
+        assert_frame_equal(v.data, mydf_a)
+        assert v.metadata == {'field_a': 1}
+
+        v = library.read(symbol, as_of='SNAP_2')
+        assert_frame_equal(v.data, mydf_a)
+        assert v.metadata == {'field_b': 1}
+
+
+def test_restore_version(arctic, library, library_name):
+    symbol = 'FTL'
+    mydf_a = _rnd_df(10, 5)
+    mydf_b = _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.write(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
+
+        v = library.read(symbol)
+        assert_frame_equal(v.data, mydf_b)
+        assert v.metadata == {'field_a': 2}
+        assert library._read_metadata(symbol).get('version') == 2
+
+        library.restore_version(symbol, as_of=1)  # creates version 3
+
+        #library._delete_version(symbol, 1)  # delete the original version to test further the robustness/dependency
+
+        v = library.read(symbol)
+        assert_frame_equal(v.data, mydf_a)
+        assert v.metadata == {'field_a': 1}
+        assert library._read_metadata(symbol).get('version') == 3
+
+
+def test_restore_version_purging_previous_versions(arctic, library, library_name):
+    symbol = 'FTL'
+    mydf_a = _rnd_df(10, 5)
+    mydf_b = _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.write(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
+
+        library.restore_version(symbol, as_of=1)  # creates version 3
+
+        # Trigger GC now
+        library._prune_previous_versions(symbol, 0)
+        time.sleep(2)
+
+        # library._delete_version(symbol, 1)  # delete the original version to test further the robustness/dependency
+
+        v = library.read(symbol)
+        assert_frame_equal(v.data, mydf_a)
+        assert v.metadata == {'field_a': 1}
+        assert library._read_metadata(symbol).get('version') == 3
+
+
+def test_restore_version_non_existent_version(arctic, library, library_name):
+    symbol = 'FTL'
+    mydf_a = _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+
+        with pytest.raises(NoDataFoundException):
+            library.restore_version(symbol, as_of=3)
+
+        v = library.read(symbol)
+        assert_frame_equal(v.data, mydf_a)
+        assert v.metadata == {'field_a': 1}
+        assert library._read_metadata(symbol).get('version') == 1
+
+
+def test_restore_version_which_updated_only_metadata(arctic, library, library_name):
+    symbol = 'FTL'
+    mydf_a = _rnd_df(10, 5)
+    mydf_b = _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2
+        library.write(symbol, data=mydf_b)  # creates version 3
+
+        library.restore_version(symbol, as_of=2)  # creates version 4
+
+        v = library.read(symbol)
+        assert_frame_equal(v.data, mydf_a)
+        assert v.metadata == {'field_b': 1}
+        assert library._read_metadata(symbol).get('version') == 4
+
+
+def test_restore_version_snapshot(arctic, library, library_name):
+    symbol = 'FTL'
+    mydf_a = _rnd_df(10, 5)
+    mydf_b = _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2
+        library.restore_version(symbol, as_of=2)  # creates version 3
+        library.snapshot('SNAP_1')
+        library.write(symbol, data=mydf_b)  # creates version 3
+
+        v = library.read(symbol, as_of='SNAP_1')
+        assert_frame_equal(v.data, mydf_a)
+        assert v.metadata == {'field_b': 1}
+        assert library._read_metadata(symbol, as_of='SNAP_1').get('version') == 3
