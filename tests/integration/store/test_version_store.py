@@ -997,6 +997,21 @@ def test_write_metadata(library):
         assert_frame_equal(library.read(symbol, as_of=1).data, mydf_a)
 
 
+def test_write_metadata_followed_by_append(library):
+    symbol = 'FTL'
+    mydf_a, mydf_b = _rnd_df(10, 5), _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2 (only metadata)
+        library.append(symbol, data=mydf_b,metadata={'field_c': 1})  # creates version 3
+
+        v = library.read(symbol)
+        assert_frame_equal(v.data, mydf_a.append(mydf_b))
+        assert v.metadata == {'field_c': 1}
+        assert library._read_metadata(symbol).get('version') == 3
+        assert_frame_equal(library.read(symbol, as_of=1).data, mydf_a)
+
+
 def test_write_metadata_new_symbol(library):
     symbol = 'FTL'
     with patch('arctic.arctic.logger.info') as info:
