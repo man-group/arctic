@@ -612,7 +612,7 @@ class VersionStore(object):
         self._publish_change(symbol, new_version)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=new_version['version'],
-                             metadata=new_version.pop('metadata', None), data=None)
+                             metadata=new_version.get('metadata'), data=None)
 
     def write_metadata(self, symbol, metadata, prune_previous_version=True, **kwargs):
         """
@@ -627,7 +627,7 @@ class VersionStore(object):
         ----------
         symbol : `str`
             symbol name for the item
-        metadata : `dict`
+        metadata : `dict` or `None`
             dictionary of metadata to persist along with the symbol
         prune_previous_version : `bool`
             Removes previous (non-snapshotted) versions from the database.
@@ -649,8 +649,8 @@ class VersionStore(object):
 
         # Reaching here means that and/or metadata exist and we are set to update the metadata
         new_version_num = self._version_nums.find_one_and_update({'symbol': symbol},
-                                                            {'$inc': {'version': 1}},
-                                                            upsert=True, new=True)['version']
+                                                                 {'$inc': {'version': 1}},
+                                                                 upsert=True, new=True)['version']
 
         # Populate the new version entry, preserving existing data, and updating with the supplied metadata
         version = {k: previous_version[k] for k in previous_version.keys()}

@@ -1,19 +1,19 @@
 import bson
 import datetime
+import pytest
+import pymongo
+from bson import ObjectId
 from datetime import datetime as dt, timedelta as dtd
 from mock import patch, MagicMock, sentinel, create_autospec, Mock, call, ANY
-import pytest
-import sys
-import pymongo
 from pymongo import ReadPreference, read_preferences
+from pymongo.errors import OperationFailure
+from pymongo.collection import Collection
 
 from arctic.date import mktz
 from arctic.store import version_store
 from arctic.store.version_store import VersionStore, VersionedItem
 from arctic.arctic import ArcticLibraryBinding, Arctic
-from arctic.exceptions import ConcurrentModificationException, DuplicateSnapshotException
-from pymongo.errors import OperationFailure
-from pymongo.collection import Collection
+from arctic.exceptions import ConcurrentModificationException, DuplicateSnapshotException, NoDataFoundException
 
 
 def test_delete_version_version_not_found():
@@ -244,3 +244,131 @@ def test_snapshot_duplicate_raises_exception():
         vs._snapshots.find_one.return_value = True
         VersionStore.snapshot(vs, 'symbol')
         assert "Snapshot 'symbol' already exists" in str(e.value)
+
+
+TPL_VERSION = {'_id': ObjectId('5a2ffdf817f7041a4ff1aa82'),
+               'base_version_id': ObjectId('5a2ffd5917f70412ca78d80a'),
+               'append_count': 0,
+               'dtype_metadata': {
+                   'index': ['index'],
+                   'columns': ['A', 'B', 'C', 'D']},
+               'segment_count': 1,
+               'symbol': 'SYM_E',
+               'up_to': 3,
+               'metadata': None,
+               'shape': [-1],
+               'version': 6,
+               'type': 'pandasdf',
+               'append_size': 0
+               }
+
+META_TO_WRITE = {'field_a': 1}
+TEST_SYMBOL = 'FTL'
+TEST_LIB = 'MYLIB'
+MOCK_OBJID = ObjectId('5a2ffdf817f7041a4ff1aaaa')
+
+
+def _create_mock_versionstore():
+    vs = create_autospec(VersionStore, _arctic_lib=Mock(), _version_nums=Mock(), _versions=Mock())
+    vs._arctic_lib.get_name.return_value = TEST_LIB
+    vs._read_metadata.return_value = TPL_VERSION
+    vs._version_nums.find_one_and_update.return_value = {'version': TPL_VERSION['version'] + 1}
+    vs._versions.find_one.return_value = TPL_VERSION
+    vs._add_new_version_using_reference.side_effect = lambda *args: VersionStore._add_new_version_using_reference(vs, *args)
+    vs.write.return_value = VersionedItem(symbol=TEST_SYMBOL, library=vs._arctic_lib.get_name(),
+                                          version=TPL_VERSION['version'] + 1, metadata=META_TO_WRITE, data=None)
+    return vs
+
+
+def test_write_metadata_no_previous_data():
+    vs = _create_mock_versionstore()
+    vs._read_metadata.side_effect = NoDataFoundException("no data found")
+
+    assert VersionStore.write_metadata(vs, symbol=TEST_SYMBOL, metadata=META_TO_WRITE, my_custom_arg='hello') == vs.write.return_value
+    assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL)]
+    assert vs.write.call_args_list == [call(TEST_SYMBOL, data=None, metadata=META_TO_WRITE,
+                                            prune_previous_version=True, my_custom_arg='hello')]
+
+
+def test_write_metadata_with_previous_data():
+    vs = _create_mock_versionstore()
+
+    expected_new_version = TPL_VERSION.copy()
+    expected_new_version.update({'_id': MOCK_OBJID,
+                                 'version': TPL_VERSION['version'] + 1,
+                                 'metadata': META_TO_WRITE})
+
+    expected_ret_val = VersionedItem(symbol=TEST_SYMBOL,
+                                     library=vs._arctic_lib.get_name(),
+                                     version=TPL_VERSION['version'] + 1,
+                                     metadata=META_TO_WRITE,
+                                     data=None)
+
+    with patch('arctic.store.version_store.bson.ObjectId') as mock_objId, \
+            patch('arctic.store.version_store.mongo_retry') as mock_retry:
+        mock_objId.return_value = MOCK_OBJID
+        mock_retry.side_effect = lambda f: f
+        assert expected_ret_val == VersionStore.write_metadata(vs, symbol=TEST_SYMBOL, metadata=META_TO_WRITE)
+        assert vs._versions.insert_one.call_args_list == [call(expected_new_version)]
+        assert vs._versions.delete_one.called is False
+        assert vs._publish_change.call_args_list == [call(TEST_SYMBOL, expected_new_version)]
+        assert vs.write.called is False
+
+
+def test_write_empty_metadata():
+    vs = _create_mock_versionstore()
+
+    expected_new_version = TPL_VERSION.copy()
+    expected_new_version.update({'_id': MOCK_OBJID,
+                                 'version': TPL_VERSION['version'] + 1,
+                                 'metadata': None})
+
+    expected_ret_val = VersionedItem(symbol=TEST_SYMBOL,
+                                     library=vs._arctic_lib.get_name(),
+                                     version=TPL_VERSION['version'] + 1,
+                                     metadata=None,
+                                     data=None)
+
+    with patch('arctic.store.version_store.bson.ObjectId') as mock_objId, \
+            patch('arctic.store.version_store.mongo_retry') as mock_retry:
+        mock_objId.return_value = MOCK_OBJID
+        mock_retry.side_effect = lambda f: f
+        assert expected_ret_val == VersionStore.write_metadata(vs, symbol=TEST_SYMBOL, metadata=None)
+        assert vs._versions.insert_one.call_args_list == [call(expected_new_version)]
+        assert vs._versions.delete_one.called is False
+        assert vs._publish_change.call_args_list == [call(TEST_SYMBOL, expected_new_version)]
+        assert vs.write.called is False
+
+
+def test_restore_version():
+    vs = _create_mock_versionstore()
+    expected_new_version = TPL_VERSION.copy()
+    expected_new_version.update({'_id': MOCK_OBJID,
+                                 'version': TPL_VERSION['version'] + 1,
+                                 'metadata': None})
+    with patch('arctic.store.version_store.bson.ObjectId') as mock_objId, \
+            patch('arctic.store.version_store.mongo_retry') as mock_retry:
+        mock_objId.return_value = MOCK_OBJID
+        mock_retry.side_effect = lambda f: f
+        ret_val = VersionStore.restore_version(vs, symbol=TEST_SYMBOL, as_of=TPL_VERSION['version'], prune_previous_version=True)
+        assert ret_val == VersionedItem(symbol=TEST_SYMBOL,
+                                        library=vs._arctic_lib.get_name(),
+                                        version=TPL_VERSION['version'] + 1,
+                                        metadata=None,
+                                        data=None)
+        assert vs._versions.insert_one.call_args_list == [call(expected_new_version)]
+        assert vs._publish_change.call_args_list == [call(TEST_SYMBOL, expected_new_version)]
+
+
+def test_restore_version_data_missing_symbol():
+    vs = _create_mock_versionstore()
+    vs._read_metadata.side_effect = NoDataFoundException("no data")
+    with patch('arctic.store.version_store.mongo_retry') as mock_retry:
+        mock_retry.side_effect = lambda f: f
+        with pytest.raises(NoDataFoundException):
+            VersionStore.restore_version(vs, symbol=TEST_SYMBOL,
+                                         as_of=TPL_VERSION['version'], prune_previous_version=True)
+    assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL, as_of=TPL_VERSION['version'])]
+    assert vs._versions.insert_one.called is False
+    assert vs._publish_change.called is False
+
