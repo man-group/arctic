@@ -5,7 +5,7 @@ from mock import patch
 from pandas.util.testing import assert_frame_equal
 
 from arctic.arctic import Arctic, VERSION_STORE
-from arctic.exceptions import LibraryNotFoundException, QuotaExceededException, NoDataFoundException
+from arctic.exceptions import LibraryNotFoundException, QuotaExceededException
 
 from ..util import get_large_ts
 
