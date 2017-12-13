@@ -1128,6 +1128,23 @@ def test_restore_version(library):
         assert library._read_metadata(symbol).get('version') == 3
 
 
+def test_restore_version_followed_by_append(library):
+    symbol = 'FTL'
+    mydf_a = _rnd_df(10, 5)
+    mydf_b = _rnd_df(10, 5)
+    mydf_c = _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.write(symbol, data=mydf_b, metadata={'field_b': 2})  # creates version 2
+        library.restore_version(symbol, as_of=1)  # creates version 3
+        library.append(symbol, data=mydf_c, metadata={'field_c': 3})  # creates version 4
+
+        v = library.read(symbol)
+        assert_frame_equal(v.data, mydf_a.append(mydf_c))
+        assert v.metadata == {'field_c': 3}
+        assert library._read_metadata(symbol).get('version') == 4
+
+
 def test_restore_version_purging_previous_versions(library):
     symbol = 'FTL'
     mydf_a = _rnd_df(10, 5)
