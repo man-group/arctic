@@ -576,14 +576,12 @@ class VersionStore(object):
                              metadata=version.pop('metadata', None), data=None)
 
     def _add_new_version_using_reference(self, symbol, new_version, reference_version, prune_previous_version):
-        if not new_version or \
-                not reference_version or \
-                new_version['symbol'] != reference_version['symbol'] or \
-                new_version['_id'] == reference_version['_id'] or \
-                not new_version['base_version_id']:
-            raise ArcticException("Illegal or non-matching new_version or reference_version were supplied: %s and %s",
-                                  new_version, reference_version)
-
+        constraints = new_version and \
+                            reference_version and \
+                            new_version['symbol'] == reference_version['symbol'] and \
+                            new_version['_id'] != reference_version['_id'] and \
+                            new_version['base_version_id']
+        assert constraints
         # There is always a small risk here another process in between these two calls (above/below)
         # to delete the reference_version, which may happen to be the last parent entry in the data segments.
         # In this case the segments will be deleted by the other process,
