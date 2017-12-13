@@ -1005,6 +1005,10 @@ def test_write_metadata_followed_by_append(library):
         library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2 (only metadata)
         library.append(symbol, data=mydf_b,metadata={'field_c': 1})  # creates version 3
 
+        # Trigger GC now
+        library._prune_previous_versions(symbol, 0)
+        time.sleep(2)
+
         v = library.read(symbol)
         assert_frame_equal(v.data, mydf_a.append(mydf_b))
         assert v.metadata == {'field_c': 1}
@@ -1138,6 +1142,10 @@ def test_restore_version_followed_by_append(library):
         library.write(symbol, data=mydf_b, metadata={'field_b': 2})  # creates version 2
         library.restore_version(symbol, as_of=1)  # creates version 3
         library.append(symbol, data=mydf_c, metadata={'field_c': 3})  # creates version 4
+
+        # Trigger GC now
+        library._prune_previous_versions(symbol, 0)
+        time.sleep(2)
 
         v = library.read(symbol)
         assert_frame_equal(v.data, mydf_a.append(mydf_c))
