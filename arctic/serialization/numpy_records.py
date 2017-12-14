@@ -2,11 +2,14 @@ import logging
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
-try:
+try:  # 0.21+ Compatibility
     from pandas._libs.tslib import Timestamp
     from pandas._libs.tslibs.timezones import get_timezone
 except ImportError:
-    from pandas.tslib import Timestamp, get_timezone
+    try:  # 0.20.x Compatibility
+        from pandas._libs.tslib import Timestamp, get_timezone
+    except ImportError:  # <= 0.19 Compatibility
+        from pandas.tslib import Timestamp, get_timezone
 
 
 log = logging.getLogger(__name__)
