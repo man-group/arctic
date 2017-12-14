@@ -1,6 +1,5 @@
 import pytest
 import time
-
 from datetime import datetime as dt
 from mock import patch
 from pandas.util.testing import assert_frame_equal

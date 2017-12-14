@@ -10,7 +10,7 @@ from .._util import indent, enable_sharding
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
-    OptimisticLockException
+    OptimisticLockException, ArcticException
 from ..hooks import log_exception
 from ._pickle_store import PickleStore
 from ._version_store_utils import cleanup
@@ -302,7 +302,7 @@ class VersionStore(object):
         ----------
         symbol : `str`
             symbol name for the item
-        as_of : `str` or int or `datetime.datetime`
+        as_of : `str` or `int` or `datetime.datetime`
             Return the data as it was as_of the point in time.
             `int` : specific version number
             `str` : snapshot name which contains the version
@@ -545,7 +545,7 @@ class VersionStore(object):
 
         Returns
         -------
-        VersionedItem named tuple containing the metadata and verison number
+        VersionedItem named tuple containing the metadata and version number
         of the written symbol in the store.
         """
         self._arctic_lib.check_quota()
@@ -557,8 +557,7 @@ class VersionStore(object):
         version['metadata'] = metadata
 
         previous_version = self._versions.find_one({'symbol': symbol, 'version': {'$lt': version['version']}},
-                                                   sort=[('version', pymongo.DESCENDING)],
-                                                   )
+                                                   sort=[('version', pymongo.DESCENDING)])
 
         handler = self._write_handler(version, symbol, data, **kwargs)
         mongo_retry(handler.write)(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
@@ -575,6 +574,130 @@ class VersionStore(object):
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
                              metadata=version.pop('metadata', None), data=None)
+
+    def _add_new_version_using_reference(self, symbol, new_version, reference_version, prune_previous_version):
+        constraints = new_version and \
+                            reference_version and \
+                            new_version['symbol'] == reference_version['symbol'] and \
+                            new_version['_id'] != reference_version['_id'] and \
+                            new_version['base_version_id']
+        assert constraints
+        # There is always a small risk here another process in between these two calls (above/below)
+        # to delete the reference_version, which may happen to be the last parent entry in the data segments.
+        # In this case the segments will be deleted by the other process,
+        # and the new version's "base_version_id" won't be referenced by any segments.
+
+        # Insert the new version into the version DB
+        # (must come before the pruning, otherwise base version won't be preserved)
+        mongo_retry(self._versions.insert_one)(new_version)
+
+        # Check if in the meanwhile the reference version (based on which we updated incrementally) has been removed
+        last_look = self._versions.find_one({'_id': reference_version['_id']})
+        if last_look is None or last_look.get('deleted'):
+            # Revert the change
+            mongo_retry(self._versions.delete_one)({'_id': new_version['_id']})
+            # Indicate the failure
+            raise pymongo.errors.OperationFailure("Failed to write metadata for symbol %s. "
+                                                  "The previous version (%s, %d) has been removed during the update" %
+                                                  (symbol, str(reference_version['_id']), reference_version['version']))
+
+
+        if prune_previous_version and reference_version:
+            self._prune_previous_versions(symbol)
+
+        logger.debug('Finished updating versions with new metadata for %s', symbol)
+
+        self._publish_change(symbol, new_version)
+
+        return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=new_version['version'],
+                             metadata=new_version.get('metadata'), data=None)
+
+    def write_metadata(self, symbol, metadata, prune_previous_version=True, **kwargs):
+        """
+        Write 'metadata' under the specified 'symbol' name to this library.
+        The data will remain unchanged. A new version will be created.
+        If the symbol is missing, it causes a write with empty data (None, pickled, can't append)
+        and the supplied metadata.
+        Returns a VersionedItem object only with a metadata element.
+        Fast operation: Zero data/segment read/write operations.
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        metadata : `dict` or `None`
+            dictionary of metadata to persist along with the symbol
+        prune_previous_version : `bool`
+            Removes previous (non-snapshotted) versions from the database.
+            Default: True
+        kwargs :
+            passed through to the write handler (only used if symbol does not already exist or is deleted)
+
+        Returns
+        -------
+        `VersionedItem`
+            VersionedItem named tuple containing the metadata of the written symbol's version document in the store.
+        """
+        # Make a normal write with empty data and supplied metadata if symbol does not exist
+        try:
+            previous_version = self._read_metadata(symbol)
+        except NoDataFoundException:
+            return self.write(symbol, data=None, metadata=metadata,
+                              prune_previous_version=prune_previous_version, **kwargs)
+
+        # Reaching here means that and/or metadata exist and we are set to update the metadata
+        new_version_num = self._version_nums.find_one_and_update({'symbol': symbol},
+                                                                 {'$inc': {'version': 1}},
+                                                                 upsert=True, new=True)['version']
+
+        # Populate the new version entry, preserving existing data, and updating with the supplied metadata
+        version = {k: previous_version[k] for k in previous_version.keys() if k != 'parent'}   # don't copy snapshots
+        version['_id'] = bson.ObjectId()
+        version['version'] = new_version_num
+        version['metadata'] = metadata
+        version['base_version_id'] = previous_version.get('base_version_id', previous_version['_id'])
+
+        return self._add_new_version_using_reference(symbol, version, previous_version, prune_previous_version)
+
+    def restore_version(self, symbol, as_of, prune_previous_version=True):
+        """
+        Restore the specified 'symbol' data and metadata to the state of a given version/snapshot/date.
+        Returns a VersionedItem object only with a metadata element.
+        Fast operation: Zero data/segment read/write operations.
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        as_of : `str` or `int` or `datetime.datetime`
+            Return the data as it was as_of the point in time.
+            `int` : specific version number
+            `str` : snapshot name which contains the version
+            `datetime.datetime` : the version of the data that existed as_of the requested point in time
+        prune_previous_version : `bool`
+            Removes previous (non-snapshotted) versions from the database.
+            Default: True
+
+        Returns
+        -------
+        `VersionedItem`
+            VersionedItem named tuple containing the metadata of the written symbol's version document in the store.
+        """
+        # if version/snapshot/data supplied in "as_of" does not exist, will fail fast with NoDataFoundException
+        version_to_restore = mongo_retry(self._read_metadata)(symbol, as_of=as_of)
+
+        # Reaching here means that data and/or metadata exist and we are all set to update the metadata
+        new_version_num = self._version_nums.find_one_and_update({'symbol': symbol},
+                                                             {'$inc': {'version': 1}},
+                                                             upsert=True, new=True)['version']
+
+        # Create a new version entry, cloning the one supplied from the user
+        version = {k: version_to_restore[k] for k in version_to_restore.keys() if k != 'parent'}  # don't copy snapshots
+        version['_id'] = bson.ObjectId()
+        version['version'] = new_version_num
+        version['base_version_id'] = version_to_restore.get('base_version_id', version_to_restore['_id'])
+
+        return self._add_new_version_using_reference(symbol, version, version_to_restore, prune_previous_version)
 
     def _prune_previous_versions(self, symbol, keep_mins=120):
         """
