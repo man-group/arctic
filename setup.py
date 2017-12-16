@@ -26,20 +26,28 @@ import os
 import platform
 
 
+link_args = ['-fopenmp']
+
 if platform.system().lower() == 'darwin':
     # clang on macOS does not work with OpenMP
-    ccs = ["/usr/local/bin/g++-5", "/usr/local/bin/g++-6", "/usr/local/bin/g++-7"]
+    ccs = ["/usr/local/bin/g++-5",
+           "/usr/local/bin/g++-6",
+           "/usr/local/bin/g++-7",
+           "/usr/local/opt/llvm/bin/clang"]
     cc = None
     for compiler in ccs:
         if os.path.isfile(compiler):
             cc = compiler
     if cc is None:
-        raise ValueError("You must install gcc/g++. You can install with homebrew: brew install gcc --without-multilib")
-    os.environ["CC"] = cc.replace("g++", "gcc")
+        raise ValueError("You must install clang-5.0 or gcc/g++. You can install with homebrew: brew install gcc or brew install llvm")
+    os.environ["CC"] = cc if 'clang' in cc else cc.replace("g++", "gcc")
     os.environ["CXX"] = cc
     # not all OSX/clang compiler flags supported by GCC. For some reason
     # these sometimes are generated and used. Cython will still add more flags.
     os.environ["CFLAGS"] = "-fno-common -fno-strict-aliasing -DENABLE_DTRACE -DMACOSX -DNDEBUG -Wall -g -fwrapv -Os"
+
+    if 'clang' in cc:
+        link_args = ['-fopenmp=libiomp5']
 
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672
@@ -106,7 +114,7 @@ def extensions():
     return cythonize(Extension('arctic._compress',
                                sources=["src/_compress.pyx", "src/lz4.c", "src/lz4hc.c"],
                                extra_compile_args=['-fopenmp', '-fpermissive'], # Avoid compiling error with prange. Similar to http://stackoverflow.com/questions/36577182/unable-to-assign-value-to-array-in-prange
-                               extra_link_args=['-fopenmp']))
+                               extra_link_args=link_args))
 
 
 setup(
