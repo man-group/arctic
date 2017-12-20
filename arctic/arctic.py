@@ -408,7 +408,8 @@ class ArcticLibraryBinding(object):
         database_name, library = self._parse_db_lib(library)
         self.library = library
         self.database_name = database_name
-        self._auth(self.arctic._conn[self.database_name])
+        self._auth(self._curr_conn[self.database_name])  # authenticate
+        self.get_top_level_collection()  # allow early caching of the library in Arctic (assures _reset is called)
 
     @property
     def _db(self):

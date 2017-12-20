@@ -115,6 +115,16 @@ class NdarrayStore(object):
                                      ('parent', pymongo.ASCENDING),
                                      ('segment', pymongo.ASCENDING)], unique=True, background=True)
         except OperationFailure as e:
+            # TODO: this is outdated and no longer available after 2.0. See:
+            #       https://github.com/mongodb/mongo/blob/v2.0/s/strategy_single.cpp#L133
+            # Proposal:  use InvalidOptions (code = 72), e.g.:
+            #              if e.code == 72 and "unique" in e and "shard" in e
+            #            Note that InvalidOptions is quite broad and used frequently, not safe without looking for keywords/text.
+            # Thrown:
+            #   - https://github.com/mongodb/mongo/blob/master/src/mongo/db/s/config/configsvr_shard_collection_command.cpp#L151
+            #   - https://github.com/mongodb/mongo/blob/master/src/mongo/db/s/config/configsvr_shard_collection_command.cpp#L347
+            # Defined:
+            #   - https://github.com/mongodb/mongo/blob/master/src/mongo/base/error_codes.err#L74
             if "can't use unique indexes" in str(e):
                 return
             raise

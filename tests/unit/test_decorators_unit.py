@@ -1,4 +1,4 @@
-from mock import patch, create_autospec, sentinel, Mock, PropertyMock, MagicMock
+from mock import patch, create_autospec, sentinel, Mock, PropertyMock, MagicMock, call
 import pytest
 from pymongo.errors import AutoReconnect, OperationFailure, DuplicateKeyError, ServerSelectionTimeoutError
 from pymongo.read_preferences import ReadPreference
@@ -15,25 +15,24 @@ def test_mongo_retry():
     self._arctic_lib.arctic.mongo_host = sentinel.host
     self._collection.database.client.nodes = set([('a', 12)])
     self._arctic_lib.get_name.return_value = sentinel.lib_name
-    with patch('arctic.decorators._handle_error', autospec=True) as he:
+    op_fail_ex = OperationFailure('error')
+    auto_reconn_ex = AutoReconnect('error')
+    with patch('arctic.decorators._log_exception') as le, \
+            patch('arctic.decorators.sleep') as mock_sleep:
         @mongo_retry
         def foo(self):
             if retries[0] == 2:
                 retries[0] -= 1
-                raise OperationFailure('error')
+                raise op_fail_ex
             elif retries[0] == 1:
                 retries[0] -= 1
-                raise AutoReconnect('error')
+                raise auto_reconn_ex
             return "success"
         foo(self)
-    assert he.call_count == 2
-    assert isinstance(he.call_args_list[0][0][1], OperationFailure)
-    assert he.call_args_list[0][0][2] == 1
-    assert he.call_args_list[0][1] == {'mnodes': ['a:12'],
-                                       'mhost': 'sentinel.host',
-                                       'l': sentinel.lib_name}
-    assert isinstance(he.call_args_list[1][0][1], AutoReconnect)
-    assert he.call_args_list[1][0][2] == 2
+    assert le.call_args_list[0] == call('foo', op_fail_ex, 1, mnodes=['a:12'], l=sentinel.lib_name, mhost='sentinel.host')
+    assert le.call_args_list[1] == call('foo', auto_reconn_ex, 2, mnodes=['a:12'], l=sentinel.lib_name, mhost='sentinel.host')
+    assert self._arctic_lib.reset_auth.call_args_list == [call()]
+    assert mock_sleep.call_count == 2
 
 
 def test_mongo_retry_hook_changes():

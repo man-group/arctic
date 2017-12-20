@@ -48,6 +48,13 @@ def enable_sharding(arctic, library_name, hashed=True, key='symbol'):
     try:
         c.admin.command('enablesharding', dbname)
     except OperationFailure as e:
+        # TODO: very ugly to depend on string value
+        # Maybe better use e.code == 23  (for AlreadyInitialized):
+        # thrown here:
+        #     https://github.com/mongodb/mongo/blob/master/src/mongo/db/s/config/configsvr_shard_collection_command.cpp#L281
+        # defined here:
+        #     https://github.com/mongodb/mongo/blob/master/src/mongo/base/error_codes.err#L26
+        #
         if not 'already enabled' in str(e):
             raise
     if not hashed:
