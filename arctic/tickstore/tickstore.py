@@ -638,10 +638,10 @@ class TickStore(object):
             array = array.astype(np.unicode_)
         elif (array.dtype.kind) == 'O':
             try:
-                array = np.array([s.encode('ascii') for s in array])
+                array = np.array([s.encode('utf-8') for s in array])
                 array = array.astype(np.unicode_)
             except:
-                raise UnhandledDtypeException("Unsupported dtype '%s' - only int64, float64 and U are supported" % array.dtype)
+                raise UnhandledDtypeException("Casting object column to string failed")
         else:
             raise UnhandledDtypeException("Unsupported dtype '%s' - only int64, float64 and U are supported" % array.dtype)
         # Everything is little endian in tickstore
