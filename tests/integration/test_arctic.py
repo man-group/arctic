@@ -31,7 +31,7 @@ def test_reset_Arctic(mongo_host, library_name):
     arctic.reset()
     assert c is not arctic._conn
     assert len(c.nodes) == 0
-    assert arctic[library_name]._arctic_lib._curr_conn is c
+    assert arctic[library_name]._arctic_lib._curr_conn is arctic._conn
 
 
 def test_re_authenticate_on_arctic_reset(mongo_host, library_name):

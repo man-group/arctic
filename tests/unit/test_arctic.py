@@ -394,3 +394,23 @@ def test_reset():
                 # Doesn't matter how many times we call it:
                 store.reset()
                 c.close.assert_called_once()
+
+
+def test_ArcticLibraryBinding_db():
+    arctic = create_autospec(Arctic)
+    arctic._conn = create_autospec(MongoClient)
+    alb = ArcticLibraryBinding(arctic, "sentinel.library")
+    with patch.object(alb, '_auth') as _auth:
+        # connection is cached during __init__
+        alb._db
+        assert _auth.call_count == 0
+
+        # Change the arctic connection
+        arctic._conn = create_autospec(MongoClient)
+        alb._db
+        assert _auth.call_count == 1
+
+        # connection is still cached
+        alb._db
+        assert _auth.call_count == 1
+
