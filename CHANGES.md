@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.56
+  * Bugfix: #468 Re-adding compatibility for pandas 0.20.x
+  * Bugfix: #476 Ensure we re-auth when a new MongoClient is created after fork
+
 ### 1.55
   * Bugfix:  #439 fix cursor timeouts in chunkstore iterator
   * Bugfix:  #450 fix error in chunkstore delete when chunk range produces empty df
