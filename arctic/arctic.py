@@ -144,12 +144,14 @@ class Arctic(object):
             return self.__conn
 
     def reset(self):
+        logger.debug("Arctic.reset()")
         with self._lock:
             if self.__conn is not None:
                 self.__conn.close()
                 self.__conn = None
             for _, l in self._library_cache.items():
                 if hasattr(l, '_reset') and callable(l._reset):
+                    logger.debug("Library reset() %s" % l)
                     l._reset()  # the existence of _reset() is not guaranteed/enforced, it also triggers re-auth
 
     def __str__(self):
@@ -414,7 +416,7 @@ class ArcticLibraryBinding(object):
     def _db(self):
         with self._lock:
             arctic_conn = self.arctic._conn
-            if arctic_conn is self._curr_conn:
+            if arctic_conn is not self._curr_conn:
                 self._auth(arctic_conn[self.database_name])  # trigger re-authentication if Arctic has been reset
                 self._curr_conn = arctic_conn
         return self.arctic._conn[self.database_name]
@@ -447,6 +449,7 @@ class ArcticLibraryBinding(object):
             authenticate(database, auth.user, auth.password)
 
     def reset_auth(self):
+        logger.debug("reset_auth() %s" % self)
         self._auth(self._db)
 
     def get_name(self):
@@ -527,7 +530,7 @@ class ArcticLibraryBinding(object):
                                 '.'.join([self.database_name, self.library]),
                                 to_gigabytes(size),
                                 to_gigabytes(self.quota)))
-        
+
             # Set-up a timer to prevent us for checking for a few writes.
             # This will check every average half-life
             self.quota_countdown = int(max(remaining_count // 2, 1))
