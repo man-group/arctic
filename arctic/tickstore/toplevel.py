@@ -45,6 +45,7 @@ class TopLevelTickStore(object):
         tl._add_libraries()
         tl._ensure_index()
 
+    @mongo_retry
     def _ensure_index(self):
         collection = self._collection
         collection.create_index([('start', pymongo.ASCENDING)], background=True)

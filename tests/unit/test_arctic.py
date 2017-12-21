@@ -46,8 +46,8 @@ def test_arctic_auth():
                     store['jblackburn.library']
 
             # Creating the library will have attempted to auth against it
-            ga.assert_called_once_with('cluster', 'arctic', 'arctic_jblackburn')
-            store._conn['arctic_jblackburn'].authenticate.assert_called_once_with('user', 'pass')
+            assert call('cluster', 'arctic', 'arctic_jblackburn') in ga.call_args_list
+            assert call('user', 'pass') in store._conn['arctic_jblackburn'].authenticate.call_args_list
 
 
 def test_arctic_auth_custom_app_name():
@@ -69,7 +69,7 @@ def test_arctic_auth_custom_app_name():
                     store['jblackburn.library']
 
             # Creating the library will have attempted to auth against it
-            assert ga.call_args_list == [call('cluster', sentinel.app_name, 'arctic_jblackburn')]
+            assert call('cluster', sentinel.app_name, 'arctic_jblackburn') in ga.call_args_list
 
 
 def test_arctic_connect_hostname():

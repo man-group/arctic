@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.56
+  * Bugfix:  #475 change mongo_retry logic to force re-authenticate upon OperationFailure exception
+
 ### 1.55
   * Bugfix:  #439 fix cursor timeouts in chunkstore iterator
   * Bugfix:  #450 fix error in chunkstore delete when chunk range produces empty df
