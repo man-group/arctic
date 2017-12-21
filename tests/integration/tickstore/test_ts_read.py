@@ -612,3 +612,30 @@ def test_read_with_metadata(tickstore_lib):
     tickstore_lib.write('test', [{'index': dt(2013, 6, 1, 13, 00, tzinfo=mktz('Europe/London')), 'price': 100.50, 'ticker': 'QQQ'}], metadata=metadata)
     m = tickstore_lib.read_metadata('test')
     assert(metadata == m)
+
+
+def test_read_strings(tickstore_lib):
+    df = pd.DataFrame(data={'data': ['A', 'B', 'C']},
+                      index=pd.Index(data=[dt(2016, 1, 1, 00, tzinfo=mktz('UTC')),
+                                           dt(2016, 1, 2, 00, tzinfo=mktz('UTC')),
+                                           dt(2016, 1, 3, 00, tzinfo=mktz('UTC'))], name='date'))
+    tickstore_lib.write('test', df)
+    read_df = tickstore_lib.read('test')
+    assert(all(read_df['data'].values == df['data'].values))
+
+
+def test_objects_fail(tickstore_lib):
+    class Fake(object):
+        def __init__(self, val):
+            self.val = val
+
+        def fake(self):
+            return self.val
+
+    df = pd.DataFrame(data={'data': [Fake(1), Fake(2)]},
+                      index=pd.Index(data=[dt(2016, 1, 1, 00, tzinfo=mktz('UTC')),
+                                           dt(2016, 1, 2, 00, tzinfo=mktz('UTC'))], name='date'))
+
+    with pytest.raises(Exception) as e:
+        tickstore_lib.write('test', df)
+    assert('Casting object column to string failed' in str(e))
