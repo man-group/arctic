@@ -41,6 +41,7 @@ def my_auth_hook(host, app_name, database_name):
     global AUTH_COUNT
     AUTH_COUNT += 1
 
+
 @pytest.mark.timeout(300)
 def test_multiprocessing_safety(mongo_host, library_name):
     # Create/initialize library at the parent process, then spawn children, and start them aligned in time
