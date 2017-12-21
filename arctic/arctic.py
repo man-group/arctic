@@ -415,7 +415,7 @@ class ArcticLibraryBinding(object):
     def _db(self):
         with self._lock:
             arctic_conn = self.arctic._conn
-            if arctic_conn is self._curr_conn:
+            if arctic_conn is not self._curr_conn:
                 self._auth(arctic_conn[self.database_name])  # trigger re-authentication if Arctic has been reset
                 self._curr_conn = arctic_conn
         return self.arctic._conn[self.database_name]
