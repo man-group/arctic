@@ -1,10 +1,13 @@
 ## Changelog
 
-### 1.56
+### 1.57
+  * Feature: #206 String support for tickstore
+
+### 1.56 (2017-12-21)
   * Bugfix: #468 Re-adding compatibility for pandas 0.20.x
   * Bugfix: #476 Ensure we re-auth when a new MongoClient is created after fork
 
-### 1.55
+### 1.55 (2017-12-14)
   * Bugfix:  #439 fix cursor timeouts in chunkstore iterator
   * Bugfix:  #450 fix error in chunkstore delete when chunk range produces empty df
   * Bugfix:  #442 fix incorrect segment values in multi segment chunks in chunkstore
