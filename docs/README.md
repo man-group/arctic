@@ -37,8 +37,21 @@ Wtih this handle to the library, we can begin to store and retrieve data from Ar
 
 (note, most of the storage engines support the same basic methods (read, write, etc), but each have their own set of unique methods as well)
 
+`write` in its most basic form takes an Arctic `symbol` and the data. The `symbol` is a user defined key that is used to store/retrieve the data. The `data` in most cases is a Pandas DataFrame, though some storage engines support other types (all support dataframes, and some support dicts and pickleable objects). 
 
+`read` as you might expect takes the `symbol` to read back the data. The different storage engines have different parameters that allow you to subset the data (more on this later).
 
+```
+>>> data = pd.DataFrame(.....)
+>>> lib.write('symbolname', data)
+>>> df = lib.read('symbolname')
+>>> df
+                data
+date             
+2016-01-01       1
+2016-01-02       2
+2016-01-03       3
+```
 
 
 
