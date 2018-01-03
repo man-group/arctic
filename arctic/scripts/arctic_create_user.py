@@ -51,7 +51,6 @@ def main():
                                                                     permission='WRITE' if write_access else 'READ',
                                                                     db=db))
         logger.info("User creds: {db}/{user}/{password}".format(user=user,
-                                                                host=args.host,
                                                                 db=db,
                                                                 password=p,
                                                                 ))

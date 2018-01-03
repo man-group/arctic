@@ -48,7 +48,7 @@ def enable_sharding(arctic, library_name, hashed=True, key='symbol'):
     try:
         c.admin.command('enablesharding', dbname)
     except OperationFailure as e:
-        if not 'already enabled' in str(e):
+        if 'already enabled' not in str(e):
             raise
     if not hashed:
         logger.info("Range sharding '" + key + "' on: " + dbname + '.' + library_name)
