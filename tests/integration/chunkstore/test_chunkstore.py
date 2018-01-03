@@ -135,7 +135,7 @@ def test_write_read_with_daterange(chunkstore_lib):
 
     assert_frame_equal(read_df, dg)
     read_with_dr = chunkstore_lib.read('test_df', chunk_range=pd.date_range(dt(2016, 1, 1), dt(2016, 1, 2)))
-    assert_frame_equal(read_df, dg)
+    assert_frame_equal(read_with_dr, dg)
 
 
 def test_write_read_with_daterange_noindex(chunkstore_lib):
@@ -205,7 +205,7 @@ def test_open_closed(chunkstore_lib):
 
 
 def test_closed_open_no_index(chunkstore_lib):
-    df = DataFrame(data={'date': [1, 2, 3],
+    df = DataFrame(data={'data': [1, 2, 3],
                          'date': [dt(2016, 1, 1),
                                   dt(2016, 1, 2),
                                   dt(2016, 1, 3)]
@@ -218,7 +218,7 @@ def test_closed_open_no_index(chunkstore_lib):
 
 
 def test_open_open_no_index(chunkstore_lib):
-    df = DataFrame(data={'date': [1, 2, 3],
+    df = DataFrame(data={'data': [1, 2, 3],
                          'date': [dt(2016, 1, 1),
                                   dt(2016, 1, 2),
                                   dt(2016, 1, 3)]
@@ -608,7 +608,7 @@ def test_multiple_actions_monthly_data(chunkstore_lib):
 
         r = chunkstore_lib.read(name)
         assert_frame_equal(r, df)
-        
+
         chunkstore_lib.append(name, append)
 
         assert_frame_equal(chunkstore_lib.read(name), pd.concat([df, append]))
@@ -667,9 +667,6 @@ def test_delete_empty_df_on_range(chunkstore_lib):
     chunkstore_lib.delete('test_df', chunk_range=DateRange(dt(2017,1,1), dt(2017,1,2)))
     assert_frame_equal(df, chunkstore_lib.read('test_df'))
 
-    
-
-
 
 def test_get_info(chunkstore_lib):
     df = DataFrame(data={'data': [1, 2, 3]},
@@ -688,7 +685,7 @@ def test_get_info(chunkstore_lib):
             'serializer': u'FrameToArray'
             }
     assert(chunkstore_lib.get_info('test_df') == info)
-    
+
 
 def test_get_info_after_append(chunkstore_lib):
     df = DataFrame(data={'data': [1.1, 2.1, 3.1]},
@@ -1020,9 +1017,8 @@ def test_rename(chunkstore_lib):
 
     assert('test' not in chunkstore_lib.list_symbols())
 
-    '''
-    read out all chunks that have symbol set to 'test'. List should be empty
-    '''
+
+    # read out all chunks that have symbol set to 'test'. List should be empty
     chunks = []
     for x in chunkstore_lib._collection.find({SYMBOL: 'test'}, sort=[(START, pymongo.ASCENDING)],):
         chunks.append(x)
