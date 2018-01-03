@@ -41,8 +41,8 @@ def segment_id_repair(library, symbol=None):
                 # since the segment is part of the index, we have to clean up first
                 library._collection.delete_many({SYMBOL: sym, START: segments[0][START]})
                 # map each segment in the interval to the correct segment
-                for i in range(len(segments)):
-                    segments[i][SEGMENT] = i
+                for index, seg in enumerate(segments):
+                    seg[SEGMENT] = index
                 library._collection.insert_many(segments)
                 ret.append(sym)
     

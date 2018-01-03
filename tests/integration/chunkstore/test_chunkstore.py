@@ -1290,7 +1290,7 @@ def test_metadata_invalid(chunkstore_lib):
     df = DataFrame(data={'data': np.random.randint(0, 100, size=2)},
                    index=pd.date_range('2016-01-01', '2016-01-02'))
     df.index.name = 'date'
-    with pytest.raises(Exception) as e:
+    with pytest.raises(Exception):
         chunkstore_lib.write('data', df, chunk_size='M', metadata=df)
 
 

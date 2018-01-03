@@ -31,8 +31,8 @@ def test_compression(chunkstore_lib):
     """
     Issue 407 - Chunkstore was not removing the 1st segment, with segment id -1
     so on an append it would append new chunks with id 0 and 1, and a subsequent read
-    would still pick up -1 (which should have been removed or overwritten). 
-    Since the -1 segment (which previously indicated a standalone segment) is no 
+    would still pick up -1 (which should have been removed or overwritten).
+    Since the -1 segment (which previously indicated a standalone segment) is no
     longer needed, the special -1 segment id is now removed
     """
     def generate_data(date):
@@ -103,7 +103,7 @@ def test_rewrite(chunkstore_lib):
     incorrectly storing and updating metadata. dataframes without an index
     have no "index" field in their metadata, so updating existing 
     metadata does not remove the index field. 
-    Also, metadata was incorrectly being stored. symbol, start, and end 
+    Also, metadata was incorrectly being stored. symbol, start, and end
     are the index for the collection, but metadata was being
     stored without an index (so it was defaulting to null,null,null)
     """

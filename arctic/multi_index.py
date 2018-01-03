@@ -3,7 +3,6 @@ Utility functions for multi-index dataframes. Useful for creating bi-temporal ti
 '''
 from datetime import datetime
 import logging
-import types
 
 from pandas import to_datetime as dt
 

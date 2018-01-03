@@ -38,14 +38,14 @@ def _promote_struct_dtypes(dtype1, dtype2):
 
 class NdarrayStore(object):
     """Chunked store for arbitrary ndarrays, supporting append.
-    
+
     for the simple example:
     dat = np.empty(10)
     library.write('test', dat) #version 1
     library.append('test', dat) #version 2
-    
+
     version documents:
-    
+
     [
      {u'_id': ObjectId('55fa9a7781f12654382e58b8'),
       u'symbol': u'test',
@@ -60,7 +60,7 @@ class NdarrayStore(object):
       u'sha': Binary('.........', 0),
       u'shape': [-1],
       },
-      
+
      {u'_id': ObjectId('55fa9aa981f12654382e58ba'),
       u'symbol': u'test',
       u'version': 2
@@ -74,7 +74,7 @@ class NdarrayStore(object):
       u'segment_count': 2, #2 segments included in this version
       }
       ]
-    
+
 
     segment documents:
     
@@ -167,7 +167,7 @@ class NdarrayStore(object):
     def _do_read(self, collection, version, symbol, index_range=None):
         '''
         index_range is a 2-tuple of integers - a [from, to) range of segments to be read. 
-            Either from or to can be None, indicating no bound. 
+            Either from or to can be None, indicating no bound.
         '''
         from_index = index_range[0] if index_range else None
         to_index = version['up_to']
@@ -405,7 +405,7 @@ class NdarrayStore(object):
         version['type'] = self.TYPE
         version['up_to'] = len(item)
         version['sha'] = self.checksum(item)
-        
+
         if previous_version:
             if 'sha' in previous_version \
                     and self.checksum(item[:previous_version['up_to']]) == previous_version['sha']:
@@ -488,7 +488,7 @@ class NdarrayStore(object):
         segments: list of offsets. Each offset is the row index of the
                   the last row of a particular chunk relative to the start of the _original_ item.
                   array(new_data) - segments = array(offsets in item)
-        
+
         Returns:
         --------
         Library specific index metadata to be stored in the version document.

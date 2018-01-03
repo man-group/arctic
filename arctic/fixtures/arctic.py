@@ -1,6 +1,5 @@
 import getpass
 import logging
-import time
 
 import pytest as pytest
 

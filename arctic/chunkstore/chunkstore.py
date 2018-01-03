@@ -1,13 +1,12 @@
 import logging
-import pymongo
 import hashlib
-import bson
 from collections import defaultdict
+from itertools import groupby
 
+import pymongo
 from bson.binary import Binary
 from pandas import DataFrame, Series
 from six.moves import xrange
-from itertools import groupby
 from pymongo.errors import OperationFailure
 
 from ..decorators import mongo_retry

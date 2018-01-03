@@ -78,7 +78,7 @@ def test_read_backward_compatibility():
         if sys.version_info[0] >= 3:
             with pytest.raises(UnicodeDecodeError), open(fname) as fh:
                 cPickle.load(fh)
-        else:    
+        else:
             with pytest.raises(TypeError), open(fname) as fh:
                 cPickle.load(fh)
 
