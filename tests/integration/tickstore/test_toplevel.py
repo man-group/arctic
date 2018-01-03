@@ -1,15 +1,15 @@
 from datetime import datetime as dt, timedelta as dtd
-from dateutil.rrule import rrule, DAILY
-import pytest
-import pandas as pd
-from pandas.util.testing import assert_frame_equal
+
 import numpy as np
+import pandas as pd
+import pytest
+from pandas.util.testing import assert_frame_equal
 
 from arctic.date import DateRange, mktz
-from arctic.tickstore import toplevel
+from arctic.exceptions import NoDataFoundException, LibraryNotFoundException, \
+    OverlappingDataException
 from arctic.tickstore import tickstore
-from arctic.exceptions import NoDataFoundException, LibraryNotFoundException, OverlappingDataException
-
+from arctic.tickstore import toplevel
 
 FEED_2010_LEVEL1 = toplevel.TickStoreLibrary('FEED_2010.LEVEL1', DateRange(dt(2010, 1, 1), dt(2010, 12, 31, 23, 59, 59)))
 FEED_2011_LEVEL1 = toplevel.TickStoreLibrary('FEED_2011.LEVEL1', DateRange(dt(2011, 1, 1), dt(2011, 12, 31, 23, 59, 59)))
@@ -216,3 +216,16 @@ def test_should_write_top_level_with_correct_timezone(arctic):
     lib2010 = arctic['FEED_2010.LEVEL1']
     # Check that only one point was written into 2010 being 3am on 31st
     assert len(lib2010.read('blah', DateRange(start=dt(2010, 12, 1), end=dt(2011, 1, 1)))) == 1
+
+
+def test_max_max_date(arctic):
+    arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+    tstore = arctic['FEED_2010.LEVEL1']
+    dates = pd.date_range('20100101', periods=6, tz=mktz('Europe/London'))
+    df = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
+    tstore.write('blah', df)
+
+    min_date = tstore.min_date('blah')
+    max_date = tstore.max_date('blah')
+    assert min_date == dates[0].to_pydatetime()
+    assert max_date == dates[-1].to_pydatetime()
