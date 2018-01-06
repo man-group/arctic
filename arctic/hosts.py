@@ -6,7 +6,7 @@ import logging
 from weakref import WeakValueDictionary
 import six
 
-__all__ = ['get_arctic_lib', 'get_arctic_for_library']
+__all__ = ['get_arctic_lib']
 
 logger = logging.getLogger(__name__)
 

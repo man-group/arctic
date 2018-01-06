@@ -1,10 +1,6 @@
 import bson
-from datetime import datetime as dt, timedelta as dtd
-from mock import patch
 import numpy as np
 from numpy.testing import assert_equal
-from pymongo.server_type import SERVER_TYPE
-import pytest
 
 from arctic.store._ndarray_store import NdarrayStore, _APPEND_COUNT
 from arctic.store.version_store import register_versioned_storage

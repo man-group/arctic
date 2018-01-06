@@ -10,7 +10,7 @@ from .._util import indent, enable_sharding
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
-    OptimisticLockException, ArcticException
+    ArcticException
 from ..hooks import log_exception
 from ._pickle_store import PickleStore
 from ._version_store_utils import cleanup

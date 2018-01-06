@@ -18,7 +18,6 @@ import ystockquote
 
 from arctic import Arctic
 import collections
-import pandas
 import pandas as pd
 import pprint
 
@@ -30,7 +29,7 @@ import pprint
 
 def get_stock_history(ticker, start_date, end_date):
     data = ystockquote.get_historical_prices(ticker, start_date, end_date)
-    df = pandas.DataFrame(collections.OrderedDict(sorted(data.items()))).T
+    df = pd.DataFrame(collections.OrderedDict(sorted(data.items()))).T
     df = df.convert_objects(convert_numeric=True)
     return df
 

@@ -1,5 +1,4 @@
 from mock import patch, call
-import pytest
 
 from arctic.scripts import arctic_list_libraries
 

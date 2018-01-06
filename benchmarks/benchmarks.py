@@ -28,7 +28,7 @@ def gen_dataframe_compressible(cols, rows):
 def gen_series_compressible(rows):
     d = round(random.uniform(-100.0, 100.0), 1)
     data = [d * rows]
-        
+
     index = [range(rows)]
 
     return pd.Series(data=data, index=index)
@@ -56,8 +56,8 @@ class TimeSuiteWrite(object):
         self.lib = None
 
     def time_write_dataframe_random(self, idx):
-       self.lib.write('df_bench_random', df_random[idx])
-       
+        self.lib.write('df_bench_random', df_random[idx])
+
     def time_write_series_random(self, idx):
         self.lib.write('series_bench_random', s_random[idx])
 
@@ -71,7 +71,7 @@ class TimeSuiteWrite(object):
 class TimeSuiteRead(object):
     params = list(range(len(TEST_SIZES)))
     param_names = ['5K * 10^']
-    
+
     def __init__(self):
         self.store = Arctic("127.0.0.1")
 
@@ -85,7 +85,7 @@ class TimeSuiteRead(object):
     def teardown(self, arg):
         self.store.delete_library('test.lib')
         self.lib = None 
-        
+
     def time_read_dataframe(self, idx):
         self.lib.read('test_df')
 
@@ -93,7 +93,7 @@ class TimeSuiteRead(object):
 class TimeSuiteAppend(object):
     params = list(range(len(TEST_SIZES)))
     param_names = ['5K * 10^']
-    
+
     def __init__(self):
         self.store = Arctic("127.0.0.1")
 
@@ -107,6 +107,6 @@ class TimeSuiteAppend(object):
     def teardown(self, arg):
         self.store.delete_library('test.lib')
         self.lib = None 
-        
+
     def time_append_dataframe(self, idx):
         self.lib.append('test_df', df_random[idx])
