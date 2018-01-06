@@ -754,4 +754,21 @@ class TickStore(object):
         """
         res = self._collection.find_one({SYMBOL: symbol}, projection={ID: 0, END: 1},
                                         sort=[(START, pymongo.DESCENDING)])
+        if res is None:
+            raise NoDataFoundException("No Data found for {}".format(symbol))
         return utc_dt_to_local_dt(res[END])
+
+    def min_date(self, symbol):
+        """
+        Return the minimum datetime stored for a particular symbol
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        """
+        res = self._collection.find_one({SYMBOL: symbol}, projection={ID: 0, START: 1},
+                                        sort=[(START, pymongo.ASCENDING)])
+        if res is None:
+            raise NoDataFoundException("No Data found for {}".format(symbol))
+        return utc_dt_to_local_dt(res[START])
