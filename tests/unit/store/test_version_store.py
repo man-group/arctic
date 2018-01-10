@@ -6,7 +6,7 @@ from bson import ObjectId
 from datetime import datetime as dt, timedelta as dtd
 from mock import patch, MagicMock, sentinel, create_autospec, Mock, call, ANY
 from pymongo import ReadPreference, read_preferences
-from pymongo.errors import OperationFailure
+from pymongo.errors import OperationFailure, DuplicateKeyError
 from pymongo.collection import Collection
 
 from arctic.date import mktz
@@ -340,6 +340,26 @@ def test_write_empty_metadata():
         assert vs.write.called is False
 
 
+def test_write_metadata_insert_version_dupkeyerror():
+    vs = _create_mock_versionstore()
+    vs._versions.insert_one.__name__ = 'insert_one'
+    vs._versions.insert_one.side_effect = [DuplicateKeyError('dup key error'), None]
+    VersionStore.write_metadata(vs, symbol=TEST_SYMBOL, metadata=META_TO_WRITE)
+    assert vs._version_nums.find_one_and_update.call_count == 2
+    assert vs._versions.insert_one.call_count == 2
+    assert vs._publish_change.call_count == 1
+
+
+def test_write_metadata_insert_version_opfailure():
+    vs = _create_mock_versionstore()
+    vs._versions.insert_one.__name__ = 'insert_one'
+    vs._versions.insert_one.side_effect = [OperationFailure('op failure'), None]
+    VersionStore.write_metadata(vs, symbol=TEST_SYMBOL, metadata=META_TO_WRITE)
+    assert vs._version_nums.find_one_and_update.call_count == 1
+    assert vs._versions.insert_one.call_count == 2
+    assert vs._publish_change.call_count == 1
+
+
 def test_restore_version():
     vs = _create_mock_versionstore()
     expected_new_version = TPL_VERSION.copy()
@@ -373,6 +393,28 @@ def test_restore_version_data_missing_symbol():
     assert vs._publish_change.called is False
 
 
+def test_restore_version_insert_version_dupkeyerror():
+    vs = _create_mock_versionstore()
+    vs._versions.insert_one.__name__ = 'insert_one'
+    vs._versions.insert_one.side_effect = [DuplicateKeyError('dup key error'), None]
+    VersionStore.restore_version(vs, symbol=TEST_SYMBOL,
+                                 as_of=TPL_VERSION['version'], prune_previous_version=True)
+    assert vs._version_nums.find_one_and_update.call_count == 2
+    assert vs._versions.insert_one.call_count == 2
+    assert vs._publish_change.call_count == 1
+
+
+def test_restore_version_insert_version_opfailure():
+    vs = _create_mock_versionstore()
+    vs._versions.insert_one.__name__ = 'insert_one'
+    vs._versions.insert_one.side_effect = [OperationFailure('op failure'), None]
+    VersionStore.restore_version(vs, symbol=TEST_SYMBOL,
+                                 as_of=TPL_VERSION['version'], prune_previous_version=True)
+    assert vs._version_nums.find_one_and_update.call_count == 1
+    assert vs._versions.insert_one.call_count == 2
+    assert vs._publish_change.call_count == 1
+
+
 def test_write_error_clean_retry():
     write_handler = Mock(write=Mock(__name__=""))
     write_handler.write.side_effect = [OperationFailure("mongo failure"), None]
@@ -389,6 +431,44 @@ def test_write_error_clean_retry():
     assert vs._versions.find_one.call_count == 2
     assert write_handler.write.call_count == 2
     assert vs._versions.insert_one.call_count == 1
+    assert vs._publish_change.call_count == 1
+
+
+def test_write_insert_version_duplicatekey():
+    write_handler = Mock(write=Mock(__name__=""))
+    vs = create_autospec(VersionStore, instance=True,
+                         _collection=Mock(),
+                         _version_nums=Mock(find_one_and_update=Mock(return_value={'version': 1})),
+                         _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")),
+                         _arctic_lib=create_autospec(ArcticLibraryBinding),
+                         _publish_changes=False)
+    vs._versions.insert_one.side_effect = [DuplicateKeyError("dup key error"), None]
+    vs._collection.database.connection.nodes = []
+    vs._write_handler.return_value = write_handler
+    VersionStore.write(vs, 'sym', sentinel.data, prune_previous_version=False)
+    assert vs._version_nums.find_one_and_update.call_count == 2
+    assert vs._versions.find_one.call_count == 2
+    assert write_handler.write.call_count == 2
+    assert vs._versions.insert_one.call_count == 2
+    assert vs._publish_change.call_count == 1
+
+
+def test_write_insert_version_operror():
+    write_handler = Mock(write=Mock(__name__=""))
+    vs = create_autospec(VersionStore, instance=True,
+                         _collection=Mock(),
+                         _version_nums=Mock(find_one_and_update=Mock(return_value={'version': 1})),
+                         _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")),
+                         _arctic_lib=create_autospec(ArcticLibraryBinding),
+                         _publish_changes=False)
+    vs._versions.insert_one.side_effect = [OperationFailure("mongo op error"), None]
+    vs._collection.database.connection.nodes = []
+    vs._write_handler.return_value = write_handler
+    VersionStore.write(vs, 'sym', sentinel.data, prune_previous_version=False)
+    assert vs._version_nums.find_one_and_update.call_count == 1
+    assert vs._versions.find_one.call_count == 1
+    assert write_handler.write.call_count == 1
+    assert vs._versions.insert_one.call_count == 2
     assert vs._publish_change.call_count == 1
 
 
@@ -410,4 +490,45 @@ def test_append_error_clean_retry():
     assert vs._versions.find_one.call_count == 2
     assert read_handler.append.call_count == 2
     assert vs._versions.insert_one.call_count == 1
+    assert vs._publish_change.call_count == 1
+
+
+def test_append_insert_version_duplicatekey():
+    read_handler = Mock(append=Mock(__name__=""))
+    previous_version = TPL_VERSION.copy()
+    previous_version['version'] = 1
+    vs = create_autospec(VersionStore, instance=True,
+                         _collection=Mock(),
+                         _version_nums=Mock(find_one_and_update=Mock(return_value={'version': previous_version['version']+1})),
+                         _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one", return_value=previous_version)),
+                         _arctic_lib=create_autospec(ArcticLibraryBinding),
+                         _publish_changes=False)
+    vs._versions.insert_one.side_effect = [DuplicateKeyError("dup key error"), None]
+    vs._collection.database.connection.nodes = []
+    vs._read_handler.return_value = read_handler
+    VersionStore.append(vs, 'sym', [1, 2, 3], prune_previous_version=False, upsert=False)
+    assert vs._version_nums.find_one_and_update.call_count == 2
+    assert vs._versions.find_one.call_count == 2
+    assert read_handler.append.call_count == 2
+    assert vs._versions.insert_one.call_count == 2
+    assert vs._publish_change.call_count == 1
+
+def test_append_insert_version_operror():
+    read_handler = Mock(append=Mock(__name__=""))
+    previous_version = TPL_VERSION.copy()
+    previous_version['version'] = 1
+    vs = create_autospec(VersionStore, instance=True,
+                         _collection=Mock(),
+                         _version_nums=Mock(find_one_and_update=Mock(return_value={'version': previous_version['version']+1})),
+                         _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one", return_value=previous_version)),
+                         _arctic_lib=create_autospec(ArcticLibraryBinding),
+                         _publish_changes=False)
+    vs._versions.insert_one.side_effect = [OperationFailure("mongo op error"), None]
+    vs._collection.database.connection.nodes = []
+    vs._read_handler.return_value = read_handler
+    VersionStore.append(vs, 'sym', [1, 2, 3], prune_previous_version=False, upsert=False)
+    assert vs._version_nums.find_one_and_update.call_count == 1
+    assert vs._versions.find_one.call_count == 1
+    assert read_handler.append.call_count == 1
+    assert vs._versions.insert_one.call_count == 2
     assert vs._publish_change.call_count == 1
