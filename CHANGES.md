@@ -2,6 +2,7 @@
 
 ### 1.57
   * Feature: #206 String support for tickstore
+  * Bugfix: #486 improve mongo_retry robustness with failures for version store write/append
 
 ### 1.56 (2017-12-21)
   * Bugfix: #468 Re-adding compatibility for pandas 0.20.x
