@@ -4,7 +4,7 @@ import logging
 import bson
 from pymongo import ReadPreference
 import pymongo
-from pymongo.errors import OperationFailure, AutoReconnect
+from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
 from .._util import indent, enable_sharding
 from ..date import mktz, datetime_to_ms, ms_to_datetime
@@ -509,7 +509,15 @@ class VersionStore(object):
         version['version'] = next_ver
 
         # Insert the new version into the version DB
-        mongo_retry(self._versions.insert_one)(version)
+        try:
+            # Keep here the mongo_retry to avoid incrementing versions and polluting the DB with garbage segments,
+            # upon intermittent Mongo errors
+            # If, however, we get a DuplicateKeyError, suppress it and raise OperationFailure, so that the method-scoped
+            # mongo_retry re-tries and creates a new version, to overcome the issue.
+            mongo_retry(self._versions.insert_one)(version)
+        except DuplicateKeyError as err:
+            logger.exception(err)
+            raise OperationFailure("A version with the same _id exits, force a clean retry")
 
         self._publish_change(symbol, version)
 
