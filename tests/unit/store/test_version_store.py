@@ -372,3 +372,42 @@ def test_restore_version_data_missing_symbol():
     assert vs._versions.insert_one.called is False
     assert vs._publish_change.called is False
 
+
+def test_write_error_clean_retry():
+    write_handler = Mock(write=Mock(__name__=""))
+    write_handler.write.side_effect = [OperationFailure("mongo failure"), None]
+    vs = create_autospec(VersionStore, instance=True,
+                         _collection=Mock(),
+                         _version_nums=Mock(find_one_and_update=Mock(return_value={'version': 1})),
+                         _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")),
+                         _arctic_lib=create_autospec(ArcticLibraryBinding),
+                         _publish_changes=False)
+    vs._collection.database.connection.nodes = []
+    vs._write_handler.return_value = write_handler
+    VersionStore.write(vs, 'sym', sentinel.data, prune_previous_version=False)
+    assert vs._version_nums.find_one_and_update.call_count == 2
+    assert vs._versions.find_one.call_count == 2
+    assert write_handler.write.call_count == 2
+    assert vs._versions.insert_one.call_count == 1
+    assert vs._publish_change.call_count == 1
+
+
+def test_append_error_clean_retry():
+    read_handler = Mock(append=Mock(__name__=""))
+    read_handler.append.side_effect = [OperationFailure("mongo failure"), None]
+    previous_version = TPL_VERSION.copy()
+    previous_version['version'] = 1
+    vs = create_autospec(VersionStore, instance=True,
+                         _collection=Mock(),
+                         _version_nums=Mock(find_one_and_update=Mock(return_value={'version': previous_version['version']+1})),
+                         _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one", return_value=previous_version)),
+                         _arctic_lib=create_autospec(ArcticLibraryBinding),
+                         _publish_changes=False)
+    vs._collection.database.connection.nodes = []
+    vs._read_handler.return_value = read_handler
+    VersionStore.append(vs, 'sym', [1, 2, 3], prune_previous_version=False, upsert=False)
+    assert vs._version_nums.find_one_and_update.call_count == 2
+    assert vs._versions.find_one.call_count == 2
+    assert read_handler.append.call_count == 2
+    assert vs._versions.insert_one.call_count == 1
+    assert vs._publish_change.call_count == 1

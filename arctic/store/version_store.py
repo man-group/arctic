@@ -500,9 +500,9 @@ class VersionStore(object):
         elif 'metadata' in previous_version:
             version['metadata'] = previous_version['metadata']
 
-        if handler and hasattr(handler, 'append'):
-            mongo_retry(handler.append)(self._arctic_lib, version, symbol, data,
-                                        previous_version, dirty_append=dirty_append, **kwargs)
+        if handler and hasattr(handler, 'append') and callable(handler.append):
+            handler.append(self._arctic_lib, version, symbol, data,
+                           previous_version, dirty_append=dirty_append, **kwargs)
         else:
             raise Exception("Append not implemented for handler %s" % handler)
 
@@ -560,7 +560,7 @@ class VersionStore(object):
                                                    sort=[('version', pymongo.DESCENDING)])
 
         handler = self._write_handler(version, symbol, data, **kwargs)
-        mongo_retry(handler.write)(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
+        handler.write(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
 
         # Insert the new version into the version DB
         mongo_retry(self._versions.insert_one)(version)
