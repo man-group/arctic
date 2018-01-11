@@ -200,7 +200,7 @@ class NdarrayStore(object):
                                    symbol, version['version'], segment_count, i + 1, collection.database.name + '.' + collection.name))
 
         dtype = self._dtype(version['dtype'], version.get('dtype_metadata', {}))
-        rtn = np.fromstring(data, dtype=dtype).reshape(version.get('shape', (-1)))
+        rtn = np.frombuffer(data, dtype=dtype).reshape(version.get('shape', (-1)))
         return rtn
 
     def _promote_types(self, dtype, dtype_str):
