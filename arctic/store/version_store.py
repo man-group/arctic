@@ -4,7 +4,7 @@ import logging
 import bson
 from pymongo import ReadPreference
 import pymongo
-from pymongo.errors import OperationFailure, AutoReconnect
+from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
 from .._util import indent, enable_sharding
 from ..date import mktz, datetime_to_ms, ms_to_datetime
@@ -437,6 +437,17 @@ class VersionStore(object):
 
         return _version
 
+    def _insert_version(self, version):
+        try:
+            # Keep here the mongo_retry to avoid incrementing versions and polluting the DB with garbage segments,
+            # upon intermittent Mongo errors
+            # If, however, we get a DuplicateKeyError, suppress it and raise OperationFailure, so that the method-scoped
+            # mongo_retry re-tries and creates a new version, to overcome the issue.
+            mongo_retry(self._versions.insert_one)(version)
+        except DuplicateKeyError as err:
+            logger.exception(err)
+            raise OperationFailure("A version with the same _id exists, force a clean retry")
+
     @mongo_retry
     def append(self, symbol, data, metadata=None, prune_previous_version=True, upsert=True, **kwargs):
         """
@@ -500,16 +511,16 @@ class VersionStore(object):
         elif 'metadata' in previous_version:
             version['metadata'] = previous_version['metadata']
 
-        if handler and hasattr(handler, 'append'):
-            mongo_retry(handler.append)(self._arctic_lib, version, symbol, data,
-                                        previous_version, dirty_append=dirty_append, **kwargs)
+        if handler and hasattr(handler, 'append') and callable(handler.append):
+            handler.append(self._arctic_lib, version, symbol, data,
+                           previous_version, dirty_append=dirty_append, **kwargs)
         else:
             raise Exception("Append not implemented for handler %s" % handler)
 
         version['version'] = next_ver
 
         # Insert the new version into the version DB
-        mongo_retry(self._versions.insert_one)(version)
+        self._insert_version(version)
 
         self._publish_change(symbol, version)
 
@@ -560,10 +571,10 @@ class VersionStore(object):
                                                    sort=[('version', pymongo.DESCENDING)])
 
         handler = self._write_handler(version, symbol, data, **kwargs)
-        mongo_retry(handler.write)(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
+        handler.write(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
 
         # Insert the new version into the version DB
-        mongo_retry(self._versions.insert_one)(version)
+        self._insert_version(version)
 
         if prune_previous_version and previous_version:
             self._prune_previous_versions(symbol)
@@ -589,7 +600,7 @@ class VersionStore(object):
 
         # Insert the new version into the version DB
         # (must come before the pruning, otherwise base version won't be preserved)
-        mongo_retry(self._versions.insert_one)(new_version)
+        self._insert_version(new_version)
 
         # Check if in the meanwhile the reference version (based on which we updated incrementally) has been removed
         last_look = self._versions.find_one({'_id': reference_version['_id']})
@@ -597,9 +608,9 @@ class VersionStore(object):
             # Revert the change
             mongo_retry(self._versions.delete_one)({'_id': new_version['_id']})
             # Indicate the failure
-            raise pymongo.errors.OperationFailure("Failed to write metadata for symbol %s. "
-                                                  "The previous version (%s, %d) has been removed during the update" %
-                                                  (symbol, str(reference_version['_id']), reference_version['version']))
+            raise OperationFailure("Failed to write metadata for symbol %s. "
+                                   "The previous version (%s, %d) has been removed during the update" %
+                                   (symbol, str(reference_version['_id']), reference_version['version']))
 
 
         if prune_previous_version and reference_version:
@@ -612,6 +623,7 @@ class VersionStore(object):
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=new_version['version'],
                              metadata=new_version.get('metadata'), data=None)
 
+    @mongo_retry
     def write_metadata(self, symbol, metadata, prune_previous_version=True, **kwargs):
         """
         Write 'metadata' under the specified 'symbol' name to this library.
@@ -659,6 +671,7 @@ class VersionStore(object):
 
         return self._add_new_version_using_reference(symbol, version, previous_version, prune_previous_version)
 
+    @mongo_retry
     def restore_version(self, symbol, as_of, prune_previous_version=True):
         """
         Restore the specified 'symbol' data and metadata to the state of a given version/snapshot/date.
@@ -684,7 +697,7 @@ class VersionStore(object):
             VersionedItem named tuple containing the metadata of the written symbol's version document in the store.
         """
         # if version/snapshot/data supplied in "as_of" does not exist, will fail fast with NoDataFoundException
-        version_to_restore = mongo_retry(self._read_metadata)(symbol, as_of=as_of)
+        version_to_restore = self._read_metadata(symbol, as_of=as_of)
 
         # Reaching here means that data and/or metadata exist and we are all set to update the metadata
         new_version_num = self._version_nums.find_one_and_update({'symbol': symbol},
