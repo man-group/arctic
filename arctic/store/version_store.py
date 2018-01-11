@@ -437,6 +437,17 @@ class VersionStore(object):
 
         return _version
 
+    def _insert_version(self, version):
+        try:
+            # Keep here the mongo_retry to avoid incrementing versions and polluting the DB with garbage segments,
+            # upon intermittent Mongo errors
+            # If, however, we get a DuplicateKeyError, suppress it and raise OperationFailure, so that the method-scoped
+            # mongo_retry re-tries and creates a new version, to overcome the issue.
+            mongo_retry(self._versions.insert_one)(version)
+        except DuplicateKeyError as err:
+            logger.exception(err)
+            raise OperationFailure("A version with the same _id exists, force a clean retry")
+
     @mongo_retry
     def append(self, symbol, data, metadata=None, prune_previous_version=True, upsert=True, **kwargs):
         """
@@ -509,15 +520,7 @@ class VersionStore(object):
         version['version'] = next_ver
 
         # Insert the new version into the version DB
-        try:
-            # Keep here the mongo_retry to avoid incrementing versions and polluting the DB with garbage segments,
-            # upon intermittent Mongo errors
-            # If, however, we get a DuplicateKeyError, suppress it and raise OperationFailure, so that the method-scoped
-            # mongo_retry re-tries and creates a new version, to overcome the issue.
-            mongo_retry(self._versions.insert_one)(version)
-        except DuplicateKeyError as err:
-            logger.exception(err)
-            raise OperationFailure("A version with the same _id exists, force a clean retry")
+        self._insert_version(version)
 
         self._publish_change(symbol, version)
 
@@ -571,11 +574,7 @@ class VersionStore(object):
         handler.write(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
 
         # Insert the new version into the version DB
-        try:
-            mongo_retry(self._versions.insert_one)(version)
-        except DuplicateKeyError as err:
-            logger.exception(err)
-            raise OperationFailure("A version with the same _id exists, force a clean retry")
+        self._insert_version(version)
 
         if prune_previous_version and previous_version:
             self._prune_previous_versions(symbol)
@@ -601,11 +600,7 @@ class VersionStore(object):
 
         # Insert the new version into the version DB
         # (must come before the pruning, otherwise base version won't be preserved)
-        try:
-            mongo_retry(self._versions.insert_one)(new_version)
-        except DuplicateKeyError as err:
-            logger.exception(err)
-            raise OperationFailure("A version with the same _id exists, force a clean retry")
+        self._insert_version(new_version)
 
         # Check if in the meanwhile the reference version (based on which we updated incrementally) has been removed
         last_look = self._versions.find_one({'_id': reference_version['_id']})

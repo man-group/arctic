@@ -270,6 +270,7 @@ MOCK_OBJID = ObjectId('5a2ffdf817f7041a4ff1aaaa')
 
 def _create_mock_versionstore():
     vs = create_autospec(VersionStore, _arctic_lib=Mock(), _version_nums=Mock(), _versions=Mock())
+    vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
     vs._arctic_lib.get_name.return_value = TEST_LIB
     vs._read_metadata.return_value = TPL_VERSION
     vs._version_nums.find_one_and_update.return_value = {'version': TPL_VERSION['version'] + 1}
@@ -424,6 +425,7 @@ def test_write_error_clean_retry():
                          _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")),
                          _arctic_lib=create_autospec(ArcticLibraryBinding),
                          _publish_changes=False)
+    vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
     vs._collection.database.connection.nodes = []
     vs._write_handler.return_value = write_handler
     VersionStore.write(vs, 'sym', sentinel.data, prune_previous_version=False)
@@ -442,6 +444,7 @@ def test_write_insert_version_duplicatekey():
                          _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")),
                          _arctic_lib=create_autospec(ArcticLibraryBinding),
                          _publish_changes=False)
+    vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
     vs._versions.insert_one.side_effect = [DuplicateKeyError("dup key error"), None]
     vs._collection.database.connection.nodes = []
     vs._write_handler.return_value = write_handler
@@ -461,6 +464,7 @@ def test_write_insert_version_operror():
                          _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")),
                          _arctic_lib=create_autospec(ArcticLibraryBinding),
                          _publish_changes=False)
+    vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
     vs._versions.insert_one.side_effect = [OperationFailure("mongo op error"), None]
     vs._collection.database.connection.nodes = []
     vs._write_handler.return_value = write_handler
@@ -483,6 +487,7 @@ def test_append_error_clean_retry():
                          _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one", return_value=previous_version)),
                          _arctic_lib=create_autospec(ArcticLibraryBinding),
                          _publish_changes=False)
+    vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
     vs._collection.database.connection.nodes = []
     vs._read_handler.return_value = read_handler
     VersionStore.append(vs, 'sym', [1, 2, 3], prune_previous_version=False, upsert=False)
@@ -503,6 +508,7 @@ def test_append_insert_version_duplicatekey():
                          _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one", return_value=previous_version)),
                          _arctic_lib=create_autospec(ArcticLibraryBinding),
                          _publish_changes=False)
+    vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
     vs._versions.insert_one.side_effect = [DuplicateKeyError("dup key error"), None]
     vs._collection.database.connection.nodes = []
     vs._read_handler.return_value = read_handler
@@ -523,6 +529,7 @@ def test_append_insert_version_operror():
                          _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one", return_value=previous_version)),
                          _arctic_lib=create_autospec(ArcticLibraryBinding),
                          _publish_changes=False)
+    vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
     vs._versions.insert_one.side_effect = [OperationFailure("mongo op error"), None]
     vs._collection.database.connection.nodes = []
     vs._read_handler.return_value = read_handler
