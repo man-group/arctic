@@ -899,3 +899,10 @@ def test_read_write_multiindex_store_keeps_timezone(library):
     assert list(library.read('spam').data.index[0]) == row0[:-1]
     assert list(library.read('spam').data.index[1]) == row1[:-1]
 
+
+def test_mutable_df(library):
+    s = DataFrame(data=[1, 2, 3], index=[4, 5, 6])
+    s.__array__().setflags(write=True)
+    library.write('pandas', s)
+    read_s = library.read('pandas')
+    assert read_s.data.__array__().flags['WRITEABLE']
