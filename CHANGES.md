@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.58
+  * Bugfix: #491 roll back the use of frombuffer to fromstring, fixes the read-only ndarray issue
+
 ### 1.57
   * Feature: #206 String support for tickstore
   * Bugfix: #486 improve mongo_retry robustness with failures for version store write/append

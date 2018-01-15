@@ -124,6 +124,15 @@ def test_save_read_large_ndarray(library):
     assert np.all(ndarr == saved_arr)
 
 
+def test_mutable_ndarray(library):
+    dtype = np.dtype([('abc', 'int64')])
+    ndarr = np.arange(32).view(dtype=dtype)
+    ndarr.setflags(write=True)
+    library.write('MYARR', ndarr)
+    saved_arr = library.read('MYARR').data
+    assert saved_arr.flags['WRITEABLE']
+
+
 @pytest.mark.xfail(reason="delete_version not safe with append...")
 def test_delete_version_shouldnt_break_read(library):
     data = np.arange(30)

@@ -42,7 +42,7 @@ def my_auth_hook(host, app_name, database_name):
     AUTH_COUNT += 1
 
 
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_multiprocessing_safety(mongo_host, library_name):
     # Create/initialize library at the parent process, then spawn children, and start them aligned in time
     total_processes = 64
@@ -70,7 +70,7 @@ def test_multiprocessing_safety(mongo_host, library_name):
     assert isinstance(MY_ARCTIC.get_library(library_name), VersionStore)
 
 
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(600)
 def test_multiprocessing_safety_parent_children_race(mongo_host, library_name):
     # Create Arctic and directly fork/start children (no wait)
     total_iterations = 12
