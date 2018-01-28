@@ -1,9 +1,12 @@
 ## Changelog
 
-### 1.58
+### 1.59
+  * Bugfix: Increase performance of invalid segment check in chunkstore
+
+### 1.58 (2018-1-15)
   * Bugfix: #491 roll back the use of frombuffer to fromstring, fixes the read-only ndarray issue
 
-### 1.57
+### 1.57 (2018-1-11)
   * Feature: #206 String support for tickstore
   * Bugfix: #486 improve mongo_retry robustness with failures for version store write/append
 
