@@ -286,7 +286,7 @@ class ChunkStore(object):
 
 
         skip_filter = not filter_data or chunk_range is None
-        
+
         if len(symbol) > 1:
             return {sym: deser(chunks[sym], **kwargs) if skip_filter else chunker.filter(deser(chunks[sym], **kwargs), chunk_range) for sym in symbol}
         else:
@@ -330,6 +330,9 @@ class ChunkStore(object):
             chunk_size:
                 used by chunker to break data into discrete chunks.
                 see specific chunkers for more information about this param.
+            func: function
+                function to apply to each chunk before writing. Function
+                can not modify the date column.
         """
         if not isinstance(item, (DataFrame, Series)):
             raise Exception("Can only chunk DataFrames and Series")
