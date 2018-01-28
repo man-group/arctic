@@ -4,6 +4,7 @@ from datetime import timedelta
 
 import pandas as pd
 from pandas import DataFrame, Index, MultiIndex
+from pandas.util.testing import assert_frame_equal
 
 from arctic.chunkstore.utils import read_apply
 
@@ -30,10 +31,12 @@ def create_test_data(size=5, index=True, multiindex=True, random_data=True, rand
 
 
 def test_read_apply(chunkstore_lib):
-    df = create_test_data()
-    chunkstore_lib.write('test', df)
+    df = create_test_data(index=False, size=20)
+    chunkstore_lib.write('test', df, chunk_size='M')
 
     def func(df):
-        df['data1'] += 1.0
+        df['data0'] += 1.0
+        return df
 
-    read_apply(chunkstore_lib, 'test', func)
+    for data in read_apply(chunkstore_lib, 'test', func):
+        assert_frame_equal(data, func(df))

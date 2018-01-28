@@ -1257,3 +1257,14 @@ def test_chunkstore_multiread_samedate(chunkstore_lib):
     assert(len(ret['c']) == 0)
 
 
+def test_write_dataframe_with_func(chunkstore_lib):
+    def f(data):
+        data['data0'] += 1.0
+        return data
+
+    df = create_test_data()
+    chunkstore_lib.write('test_df', df, chunk_size='D', func=f)
+    read_df = chunkstore_lib.read('test_df')
+    
+    df['data0'] += 1.0
+    assert_frame_equal(df, read_df)
