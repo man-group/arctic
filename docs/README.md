@@ -54,19 +54,26 @@ date
 ```
 
 
+Other basic methods:
 
-...
-...
-...
-...
+* `library.list_symbols()`
+    - Does what you might expect - lists all the symbols in the given library
+      ```
+      >>> lib.list_symbols()
+
+      ['US_EQUITIES', 'EUR_EQUITIES', ...]
+      ```
+* `arctic.get_quota(library_name)`, `arctic.set_quota(library_name, quota_in_bytes)`
+   - Arctic internally sets quotas on libraries so they do not consume too much space.    You can check and set quotas with these two methods. Note these operate on the       `Arctic` object, not on libraries  
 
 
 
-
-
+### Arctic Storage Engines
 
 Arctic is designed to be very extensible and currently supports a numer of different use cases. To understand what Arctic is capable of, one must understand the storage models it uses. Arctic currently supports three storage engines
 
-* TickStore
-* VersionStore
+* [TickStore](tickstore.md)
+* [VersionStore](versionstore.md)
 * [Chunkstore](chunkstore.md)
+
+Each one has various features and is designed to support specific and general use cases. 
