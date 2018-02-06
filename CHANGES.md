@@ -2,6 +2,7 @@
 
 ### 1.59
   * Bugfix: Increase performance of invalid segment check in chunkstore
+  * Bugfix: #501 Fix the spurious data integrity exceptions at write path, due to moving chunks form the balancer
 
 ### 1.58 (2018-1-15)
   * Bugfix: #491 roll back the use of frombuffer to fromstring, fixes the read-only ndarray issue
