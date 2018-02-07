@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.60
+  * Bugfix: #503 ChunkStore: speedup check for -1 segments
+
 ### 1.58
   * Bugfix: #491 roll back the use of frombuffer to fromstring, fixes the read-only ndarray issue
 
