@@ -1,6 +1,9 @@
 ## Changelog
 
-### 1.59
+### 1.60
+  * Bugfix: #503 ChunkStore: speedup check for -1 segments
+
+### 1.59 (2018-2-6)
   * Bugfix: Increase performance of invalid segment check in chunkstore
   * Bugfix: #501 Fix the spurious data integrity exceptions at write path, due to moving chunks form the balancer
 
