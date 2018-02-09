@@ -2,6 +2,7 @@
 
 ### 1.60
   * Bugfix: #503 ChunkStore: speedup check for -1 segments
+  * Feature: #504 Increasing number of libraries in Arctic to 5000.
 
 ### 1.59 (2018-2-6)
   * Bugfix: Increase performance of invalid segment check in chunkstore

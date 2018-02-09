@@ -110,7 +110,7 @@ class Arctic(object):
             mongo_host.server_info()
             self.mongo_host = ",".join(["{}:{}".format(x[0], x[1]) for x in mongo_host.nodes])
             self._adminDB = self._conn.admin
-    
+
     @property
     @mongo_retry
     def _conn(self):
@@ -209,8 +209,10 @@ class Arctic(object):
             Arguments passed to the Library type for initialization.
         """
         l = ArcticLibraryBinding(self, library)
-        # Check that we don't create too many namespaces
-        if len(self._conn[l.database_name].collection_names()) > 3000:
+        # check that we don't create too many namespaces
+        # can be disabled check_library_count=False
+        check_library_count = kwargs.pop('check_library_count', True)
+        if len(self._conn[l.database_name].collection_names()) > 5000 and check_library_count:
             raise ArcticException("Too many namespaces %s, not creating: %s" %
                                   (len(self._conn[l.database_name].collection_names()), library))
         l.set_library_type(lib_type)
@@ -458,7 +460,7 @@ class ArcticLibraryBinding(object):
     def get_top_level_collection(self):
         """
         Return the top-level collection for the Library.  This collection is to be used
-        for storing data.  
+        for storing data.
 
         Note we expect (and callers require) this collection to have default read-preference: primary
         The read path may choose to reduce this if secondary reads are allowed.
