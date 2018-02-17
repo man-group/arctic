@@ -1,6 +1,6 @@
 # Arctic Documentation
 
-Arctic is a tickstore database that sits atop MongoDB. Arctic supports serialization of a number of datatypes for storage in the mongo document model.
+Arctic is a timeseries / dataframe database that sits atop MongoDB. Arctic supports serialization of a number of datatypes for storage in the mongo document model.
 
 Arctic provides a [wrapper](https://github.com/manahl/arctic/blob/docs/arctic/arctic.py) for handling connections to Mongo. The `Arctic` class is what actually connects to Arctic. 
 
@@ -33,9 +33,9 @@ Once a library is initialized, you can access it like so:
 >>> lib = conn['library_name']
 ```
 
-Wtih this handle to the library, we can begin to store and retrieve data from Arctic.
+With this handle to the library, we can begin to store and retrieve data from Arctic.
 
-(note, most of the storage engines support the same basic methods (read, write, etc), but each have their own set of unique methods as well)
+(note, most of the storage engines support the same basic methods (`read`, `write`, etc), but each have their own set of unique methods as well)
 
 `write` in its most basic form takes an Arctic `symbol` and the data. The `symbol` is a user defined key that is used to store/retrieve the data. The `data` in most cases is a Pandas DataFrame, though some storage engines support other types (all support dataframes, and some support dicts and pickleable objects). 
 
