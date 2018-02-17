@@ -2,7 +2,7 @@
 
 Arctic is a timeseries / dataframe database that sits atop MongoDB. Arctic supports serialization of a number of datatypes for storage in the mongo document model.
 
-Arctic provides a [wrapper](https://github.com/manahl/arctic/blob/docs/arctic/arctic.py) for handling connections to Mongo. The `Arctic` class is what actually connects to Arctic. 
+Arctic provides a [wrapper](../arctic/arctic.py) for handling connections to Mongo. The `Arctic` class is what actually connects to Arctic. 
 
 ```
 >>> conn = Arctic('127.0.0.1')
