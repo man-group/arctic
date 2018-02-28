@@ -1,12 +1,13 @@
 import logging
-import hashlib
-from collections import defaultdict
-from itertools import groupby
-
 import pymongo
+import hashlib
+import bson
+from collections import defaultdict
+
 from bson.binary import Binary
 from pandas import DataFrame, Series
 from six.moves import xrange
+from itertools import groupby
 from pymongo.errors import OperationFailure
 
 from ..decorators import mongo_retry
@@ -85,8 +86,9 @@ class ChunkStore(object):
     def _check_invalid_segment(self):
         # Issue 442
         # for legacy data that was incorectly marked with segment start of -1
-        if self._collection.find({SEGMENT: -1}).count() > 0:
-           logger.error("Found malformed segments. Data must be rewritten or fixed with chunkstore segment_id_repair tool")
+        for symbol in self.list_symbols():
+            if self._collection.find({SYMBOL: symbol, SEGMENT: -1}).count() > 1:
+                logger.warning("Symbol %s has malformed segments. Data must be rewritten or fixed with chunkstore segment_id_repair tool" % symbol)
 
     @mongo_retry
     def _reset(self):
@@ -286,7 +288,7 @@ class ChunkStore(object):
 
 
         skip_filter = not filter_data or chunk_range is None
-        
+
         if len(symbol) > 1:
             return {sym: deser(chunks[sym], **kwargs) if skip_filter else chunker.filter(deser(chunks[sym], **kwargs), chunk_range) for sym in symbol}
         else:
@@ -330,6 +332,9 @@ class ChunkStore(object):
             chunk_size:
                 used by chunker to break data into discrete chunks.
                 see specific chunkers for more information about this param.
+            func: function
+                function to apply to each chunk before writing. Function
+                can not modify the date column.
         """
         if not isinstance(item, (DataFrame, Series)):
             raise Exception("Can only chunk DataFrames and Series")
@@ -451,7 +456,7 @@ class ChunkStore(object):
 
             data = SER_MAP[sym[SERIALIZER]].serialize(record)
             meta = data[METADATA]
-            
+
             chunk_count = int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)
             seg_count = self._collection.count({SYMBOL: symbol, START: start, END: end})
             # remove old segments for this chunk in case we now have less
