@@ -29,19 +29,41 @@ def test_delete_version_version_not_found():
 def test_list_versions_localTime():
     # Object ID's are stored in UTC. We need to ensure that the returned times
     # for versions are in the local  TimeZone
-    vs = create_autospec(VersionStore, instance=True,
-                         _versions=Mock())
-    vs._find_snapshots.return_value = 'snap'
+    vs = create_autospec(VersionStore, instance=True, _versions=Mock(), _snapshots=Mock())
+    mocked_snap_resp = [{'_id': 'abcde', 'name': 'snap'}]
+    vs._snapshots.find.return_value = mocked_snap_resp
+    vs._snapshots.find_one.return_value = mocked_snap_resp
     date = dt(2013, 4, 1, 9, 0)
     vs._versions.find.return_value = [{'_id': bson.ObjectId.from_datetime(date),
-                                       'symbol': 's', 'version': 10, 'metadata': None}]
-
+                                       'symbol': 's',
+                                       'version': 10,
+                                       'metadata': None,
+                                       'parent': [mocked_snap_resp[0]['_id']]}]
     version = list(VersionStore.list_versions(vs, "symbol"))[0]
     local_date = date.replace(tzinfo=mktz("UTC"))
     assert version == {'symbol': version['symbol'], 'version': version['version'],
                        # We return naive datetimes in 'default' time, which is London for us
                        'date': local_date,
-                       'snapshots': 'snap',
+                       'snapshots': ['snap'],
+                       'deleted': False}
+
+
+def test_list_versions_no_snapshot():
+    vs = create_autospec(VersionStore, instance=True, _versions=Mock(), _snapshots=Mock())
+    vs._snapshots.find.return_value = []
+    vs._snapshots.find_one.return_value = []
+    date = dt(2013, 4, 1, 9, 0)
+    vs._versions.find.return_value = [{'_id': bson.ObjectId.from_datetime(date),
+                                       'symbol': 's',
+                                       'version': 10,
+                                       'metadata': None,
+                                       'parent': []}]
+    version = list(VersionStore.list_versions(vs, "symbol"))[0]
+    local_date = date.replace(tzinfo=mktz("UTC"))
+    assert version == {'symbol': version['symbol'],
+                       'version': version['version'],
+                       'date': local_date,
+                       'snapshots': [],
                        'deleted': False}
 
 

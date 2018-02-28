@@ -247,19 +247,23 @@ class VersionStore(object):
                 raise NoDataFoundException('No snapshot %s in library %s' % (snapshot, self._arctic_lib.get_name()))
 
         versions = []
+        snapshots = None
         for symbol in symbols:
             query['symbol'] = symbol
             seen_symbols = set()
             for version in self._versions.find(query, projection=['symbol', 'version', 'parent', 'metadata.deleted'], sort=[('version', -1)]):
                 if latest_only and version['symbol'] in seen_symbols:
                     continue
+                if snapshots is None:
+                    # populate only once and if is really going to be used
+                    snapshots = {ss.get('_id'): ss.get('name') for ss in self._snapshots.find()}
                 seen_symbols.add(version['symbol'])
                 meta = version.get('metadata')
                 versions.append({'symbol': version['symbol'], 'version': version['version'],
                                  'deleted': meta.get('deleted', False) if meta else False,
                                  # We return offset-aware datetimes in Local Time.
                                  'date': ms_to_datetime(datetime_to_ms(version['_id'].generation_time)),
-                                 'snapshots': self._find_snapshots(version.get('parent', []))})
+                                 'snapshots': [snapshots.get(s) for s in version.get('parent', [])]})
         return versions
 
     def _find_snapshots(self, parent_ids):
