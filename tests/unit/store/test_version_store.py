@@ -105,7 +105,7 @@ def test_read_as_of_LondonTime():
     versions = vs._versions.with_options.return_value
     versions.find_one.assert_called_once_with({'symbol':'symbol', '_id':
                                               {'$lt': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0, tzinfo=mktz()) + dtd(seconds=1))}},
-                                             sort=[('_id', pymongo.DESCENDING)])
+                                             sort=[('symbol', pymongo.DESCENDING), ('version', pymongo.DESCENDING)])
 
 
 def test_read_as_of_NotNaive():
@@ -116,7 +116,7 @@ def test_read_as_of_NotNaive():
     versions = vs._versions.with_options.return_value
     versions.find_one.assert_called_once_with({'symbol':'symbol', '_id':
                                               {'$lt': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0, tzinfo=mktz('Europe/Paris')) + dtd(seconds=1))}},
-                                             sort=[('_id', pymongo.DESCENDING)])
+                                             sort=[('symbol', pymongo.DESCENDING), ('version', pymongo.DESCENDING)])
 
 
 def test_read_metadata_no_asof():
@@ -236,6 +236,22 @@ def test_snapshot():
                                                 call('bar', as_of=None, read_preference=ReadPreference.PRIMARY)] or 
                                                 vs._read_metadata.call_args_list == [call('bar', as_of=None, read_preference=ReadPreference.PRIMARY),
                                                 call('foo', as_of=None, read_preference=ReadPreference.PRIMARY)])
+
+
+def test_list_symbols_default_pipeline():
+    versions = Mock()
+    vs = create_autospec(VersionStore, _versions=versions)
+    versions.aggregate.return_value = []
+
+    VersionStore.list_symbols(vs)
+
+    pipeline = [
+        {'$sort': bson.SON([('symbol', pymongo.DESCENDING), ('version', pymongo.DESCENDING)])},
+        {'$group': {'_id': '$symbol', 'deleted': {'$first': '$metadata.deleted'}}},
+        {'$match': {'deleted': {'$ne': True}}},
+        {'$project': {'_id': 0, 'symbol': '$_id'}}
+    ]
+    versions.aggregate.assert_called_once_with(pipeline)
 
 
 def test_snapshot_duplicate_raises_exception():

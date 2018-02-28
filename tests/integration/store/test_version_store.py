@@ -1,5 +1,6 @@
 import bson
 import six
+import struct
 from bson.son import SON
 from datetime import datetime as dt, timedelta as dtd
 import pandas as pd
@@ -8,7 +9,7 @@ from pymongo.errors import OperationFailure
 from pymongo.read_preferences import ReadPreference
 from pymongo.server_type import SERVER_TYPE
 from datetime import datetime
-from mock import patch
+from mock import Mock, patch
 import time
 import pytest
 import numpy as np
@@ -149,6 +150,28 @@ def test_read_metadata(library):
     assert after.metadata['key'] == 'value'
     assert after.version
     assert after.data is None
+
+
+def test_read_metadata_newer_version_with_lower_id(library):
+    now_timestamp = int(time.time())
+    now = struct.pack(">i", now_timestamp)
+    old_id = bson.ObjectId(now + b"\x00\x00\x00\x00\x00\x00\x00\x00")
+    new_id = bson.ObjectId(now + b"\x00\x00\x00\x00\x00\x00\x00\x01")
+    object_id_class = Mock()
+    object_id_class.from_datetime = bson.ObjectId.from_datetime
+
+    object_id_class.return_value = new_id
+    with patch("bson.ObjectId", object_id_class):
+        library.write(symbol, ts1)
+
+    library.snapshot('s1')
+
+    object_id_class.return_value = old_id
+    with patch("bson.ObjectId", object_id_class):
+        library.write(symbol, ts2)
+
+    now_dt = datetime.fromtimestamp(now_timestamp)
+    assert library.read_metadata(symbol, as_of=now_dt).version == 2
 
 
 def test_read_metadata_throws_on_deleted_symbol(library):
@@ -946,6 +969,26 @@ def test_list_symbols_regex(library):
     assert 'furble' not in library.list_symbols(a=1, regex='asd')
     assert library.list_symbols(a={'$gt': 5}, regex='asd') == []
     assert library.list_symbols(b={'$gt': 5}, regex='asd') == ['asdf']
+
+
+def test_list_symbols_newer_version_with_lower_id(library):
+    now = struct.pack(">i", int(time.time()))
+    old_id = bson.ObjectId(now + b"\x00\x00\x00\x00\x00\x00\x00\x00")
+    new_id = bson.ObjectId(now + b"\x00\x00\x00\x00\x00\x00\x00\x01")
+    object_id_class = Mock()
+    object_id_class.from_datetime = bson.ObjectId.from_datetime
+
+    object_id_class.return_value = new_id
+    with patch("bson.ObjectId", object_id_class):
+        library.write(symbol, ts1)
+
+    library.snapshot('s1')
+
+    object_id_class.return_value = old_id
+    with patch("bson.ObjectId", object_id_class):
+        library.delete(symbol)
+
+    assert symbol not in library.list_symbols()
 
 
 def test_date_range_large(library):
