@@ -3,6 +3,7 @@
 ### 1.61
   * Feature: #288 Mapping reads and writes over chunks in chunkstore
   * Bugfix: #508 VersionStore: list_symbols and read now always returns latest version
+  * Bugfix: #512 Improved performance for list_versions
 
 ### 1.60 (2018-2-13)
   * Bugfix: #503 ChunkStore: speedup check for -1 segments
