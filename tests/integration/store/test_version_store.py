@@ -16,6 +16,7 @@ import numpy as np
 
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException
 from arctic.date import DateRange
+from arctic.store import _version_store_utils
 
 from ...util import read_str_as_pandas
 from arctic.date._mktz import mktz
@@ -1265,3 +1266,23 @@ def test_restore_version_snapshot(library):
         assert_frame_equal(v.data, mydf_a)
         assert v.metadata == {'field_b': 1}
         assert library._read_metadata(symbol, as_of='SNAP_1').get('version') == 3
+
+
+def test_prune_previous_versions_retries_on_cleanup_error(library):
+    original_cleanup = _version_store_utils.cleanup
+    def _cleanup(*args, **kwargs):
+        if _cleanup.first_try:
+            _cleanup.first_try = False
+            raise OperationFailure(0)
+        else:
+            return original_cleanup(*args, **kwargs)
+    _cleanup.first_try = True
+
+    library.write(symbol, ts1)
+    library.write(symbol, ts2)
+
+    with patch("arctic.store.version_store.cleanup", side_effect=_cleanup) as cleanup:
+        cleanup.__name__ = "cleanup"  # required by functools.wraps
+        library._prune_previous_versions(symbol, keep_mins=0)
+
+    assert len(list(library._arctic_lib.get_top_level_collection().find({'symbol': symbol}))) == 1

@@ -764,7 +764,7 @@ class VersionStore(object):
         # Delete the version documents
         mongo_retry(self._versions.delete_many)({'_id': {'$in': version_ids}})
         # Cleanup any chunks
-        cleanup(self._arctic_lib, symbol, version_ids)
+        mongo_retry(cleanup)(self._arctic_lib, symbol, version_ids)
 
     @mongo_retry
     def _delete_version(self, symbol, version_num, do_cleanup=True):
