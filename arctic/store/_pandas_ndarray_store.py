@@ -172,9 +172,10 @@ class PandasDataFrameStore(PandasStore):
             return True
         return False
 
-    def write(self, arctic_lib, version, symbol, item, previous_version):
+    def write(self, arctic_lib, version, symbol, item, previous_version, fw_pointers=False):
         item, md = self.SERIALIZER.serialize(item)
-        super(PandasDataFrameStore, self).write(arctic_lib, version, symbol, item, previous_version, dtype=md)
+        super(PandasDataFrameStore, self).write(arctic_lib, version, symbol, item, previous_version,
+                                                dtype=md, fw_pointers=fw_pointers)
 
     def append(self, arctic_lib, version, symbol, item, previous_version, **kwargs):
         item, md = self.SERIALIZER.serialize(item)

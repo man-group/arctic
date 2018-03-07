@@ -549,7 +549,7 @@ class VersionStore(object):
             mongo_retry(self._changes.insert_one)(version)
 
     @mongo_retry
-    def write(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
+    def write(self, symbol, data, metadata=None, prune_previous_version=True, fw_pointers=False, **kwargs):
         """
         Write 'data' under the specified 'symbol' name to this library.
 
@@ -585,7 +585,8 @@ class VersionStore(object):
                                                    sort=[('version', pymongo.DESCENDING)])
 
         handler = self._write_handler(version, symbol, data, **kwargs)
-        handler.write(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
+
+        handler.write(self._arctic_lib, version, symbol, data, previous_version, fw_pointers=fw_pointers, **kwargs)
 
         if prune_previous_version and previous_version:
             self._prune_previous_versions(symbol)

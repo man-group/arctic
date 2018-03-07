@@ -1,3 +1,5 @@
+import time
+
 import logging
 import hashlib
 
@@ -212,8 +214,20 @@ class NdarrayStore(object):
 
         segments = []
         i = -1
+        start_t = time.time()
+        with_fw_pointers = version.get('fw_pointers') is not None
+        if with_fw_pointers:
+            spec = {
+                'symbol': symbol,  # hit the right shard
+                '_id': {'$in': version.get('fw_pointers')}
+            }
+
         for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
             segments.append(decompress(x['data']) if x['compressed'] else x['data'])
+
+        logger.info('{}: lookup time = {}'.format(
+            "with fw_pointers" if with_fw_pointers else "without fw_pointers",
+            round(time.time()-start_t, 4)))
 
         data = b''.join(segments)
 
@@ -286,7 +300,7 @@ class NdarrayStore(object):
             version['type'] = self.TYPE
             self._do_append(collection, version, symbol, item, previous_version, dirty_append)
 
-    def _do_append(self, collection, version, symbol, item, previous_version, dirty_append):
+    def _do_append(self, collection, version, symbol, item, previous_version, dirty_append, fw_pointers=False):
 
         data = item.tostring()
         # Compatibility with Arctic 1.22.0 that didn't write base_sha into the version document
@@ -411,7 +425,7 @@ class NdarrayStore(object):
         sha.update(item.tostring())
         return Binary(sha.digest())
 
-    def write(self, arctic_lib, version, symbol, item, previous_version, dtype=None):
+    def write(self, arctic_lib, version, symbol, item, previous_version, dtype=None, fw_pointers=False):
         collection = arctic_lib.get_top_level_collection()
         if item.dtype.hasobject:
             raise UnhandledDtypeException()
@@ -430,13 +444,14 @@ class NdarrayStore(object):
                     and self.checksum(item[:previous_version['up_to']]) == previous_version['sha']:
                 # The first n rows are identical to the previous version, so just append.
                 # Do a 'dirty' append (i.e. concat & start from a new base version) for safety
-                self._do_append(collection, version, symbol, item[previous_version['up_to']:], previous_version, dirty_append=True)
+                self._do_append(collection, version, symbol, item[previous_version['up_to']:], previous_version,
+                                dirty_append=True, fw_pointers=fw_pointers)
                 return
 
         version['base_sha'] = version['sha']
-        self._do_write(collection, version, symbol, item, previous_version)
+        self._do_write(collection, version, symbol, item, previous_version, fw_pointers=fw_pointers)
 
-    def _do_write(self, collection, version, symbol, item, previous_version, segment_offset=0):
+    def _do_write(self, collection, version, symbol, item, previous_version, segment_offset=0, fw_pointers=False):
 
         sze = int(item.dtype.itemsize * np.prod(item.shape[1:]))
 
@@ -445,11 +460,9 @@ class NdarrayStore(object):
 
         previous_shas = []
         if previous_version:
-            previous_shas = set([Binary(x['sha']) for x in
-                                 collection.find({'symbol': symbol},
-                                                 projection={'sha': 1, '_id': 0},
-                                                 )
-                                 ])
+            previous_shas = {Binary(x['sha']) for x in
+                             collection.find({'symbol': symbol},
+                                             projection={'sha': 1, '_id': 0})}
 
         length = len(item)
 
@@ -467,7 +480,7 @@ class NdarrayStore(object):
         compressed_chunks = compress_array(chunks)
 
         # Write
-        bulk = []
+        bulk, result = [], None
         for i, chunk in zip(idxs, compressed_chunks):
             segment = {'data': Binary(chunk), 'compressed': True}
             segment['segment'] = min((i + 1) * chunk_size - 1, length - 1) + segment_offset
@@ -482,7 +495,10 @@ class NdarrayStore(object):
                 bulk.append(pymongo.UpdateOne({'symbol': symbol, 'sha': sha, 'segment': segment['segment']},
                                               {'$addToSet': {'parent': version['_id']}}))
         if i != -1:
-            collection.bulk_write(bulk, ordered=False)
+            result = collection.bulk_write(bulk, ordered=False)
+
+        if fw_pointers and result:
+            version['fw_pointers'] = list({s_id for _, s_id in result.upserted_ids.iteritems()})
 
         segment_index = self._segment_index(item, existing_index=existing_index, start=segment_offset,
                                             new_segments=segment_index)
