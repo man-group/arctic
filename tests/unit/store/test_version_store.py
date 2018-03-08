@@ -195,7 +195,7 @@ def test_prune_previous_versions_0_timeout():
     self._versions.with_options.return_value.find.return_value = []
     with patch('arctic.store.version_store.dt') as dt:
         dt.utcnow.return_value = datetime.datetime(2013, 10, 1)
-        VersionStore._prune_previous_versions(self, sentinel.symbol, keep_mins=0)
+        VersionStore._find_prunable_version_ids(self, sentinel.symbol, keep_mins=0)
     assert self._versions.with_options.call_args_list == [call(read_preference=ReadPreference.PRIMARY)]
     assert self._versions.with_options.return_value.find.call_args_list == [
                                                   call({'$or': [{'parent': {'$exists': False}},
@@ -204,7 +204,7 @@ def test_prune_previous_versions_0_timeout():
                                                         '_id': {'$lt': bson.ObjectId('524a10810000000000000000')}},
                                                        sort=[('version', -1)],
                                                        skip=1,
-                                                       projection=['_id', 'type'])]
+                                                       projection=['_id'])]
 
 
 def test_read_handles_operation_failure():

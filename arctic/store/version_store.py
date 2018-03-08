@@ -713,51 +713,61 @@ class VersionStore(object):
 
         return self._add_new_version_using_reference(symbol, version, version_to_restore, prune_previous_version)
 
+    def _find_prunable_version_ids(self, symbol, keep_mins):
+        """
+        Find all non-snapshotted versions of a symbol that are older than a version that's at least keep_mins
+        minutes old.
+
+        Based on documents available on the secondary.
+        """
+        read_preference = ReadPreference.SECONDARY_PREFERRED if keep_mins > 0 else ReadPreference.PRIMARY
+        versions = self._versions.with_options(read_preference=read_preference)
+        query = {'symbol': symbol,
+                 # Not snapshotted
+                 '$or': [{'parent': {'$exists': False}}, {'parent': []}],
+                 # At least 'keep_mins' old
+                 '_id': {'$lt': bson.ObjectId.from_datetime(dt.utcnow()
+                                                            # Add one second as the ObjectId
+                                                            # str has random fuzz
+                                                            + timedelta(seconds=1)
+                                                            - timedelta(minutes=keep_mins)
+                                                            )
+                         }
+                 }
+        cursor = versions.find(query,
+                               # Using version number here instead of _id as there's a very unlikely case
+                               # where the versions are created on different hosts or processes at exactly
+                               # the same time.
+                               sort=[('version', pymongo.DESCENDING)],
+                               # Keep one, that's at least 10 mins old, around
+                               # (cope with replication delay)
+                               skip=1,
+                               projection=['_id'],
+                               )
+        return [version["_id"] for version in cursor]
+
+    def _find_base_version_ids(self, symbol, version_ids):
+        """
+        Return all base_version_ids for a symbol that are not bases of version_ids
+        """
+        cursor = self._versions.find({'symbol': symbol,
+                                      '_id': {'$nin': version_ids},
+                                      'base_version_id': {'$exists': True},
+                                      },
+                                     projection=['base_version_id'],
+                                     )
+        return [version["base_version_id"] for version in cursor]
+
     def _prune_previous_versions(self, symbol, keep_mins=120):
         """
         Prune versions, not pointed at by snapshots which are at least keep_mins old.
         """
-        # Find all non-snapshotted versions older than a version that's at least keep_mins minutes old
-        # Based on documents available on the secondary
-        versions_find = mongo_retry(self._versions.with_options(read_preference=ReadPreference.SECONDARY_PREFERRED if keep_mins > 0 else
-                                                                ReadPreference.PRIMARY)
-                                    .find)
-        versions = list(versions_find({  # Find versions of this symbol
-                                       'symbol': symbol,
-                                       # Not snapshotted
-                                       '$or': [{'parent': {'$exists': False}}, {'parent': []}],
-                                       # At least 'keep_mins' old
-                                       '_id': {'$lt': bson.ObjectId.from_datetime(
-                                                        dt.utcnow()
-                                                        # Add one second as the ObjectId str has random fuzz
-                                                        + timedelta(seconds=1)
-                                                        - timedelta(minutes=keep_mins))
-                                               }
-                                       },
-                                      # Using version number here instead of _id as there's a very unlikely case
-                                      # where the versions are created on different hosts or processes at exactly
-                                      # the same time.
-                                      sort=[('version', pymongo.DESCENDING)],
-                                      # Keep one, that's at least 10 mins old, around
-                                      # (cope with replication delay)
-                                      skip=1,
-                                      projection=['_id', 'type'],
-                                      ))
-        if not versions:
+        prunable_ids = mongo_retry(self._find_prunable_version_ids)(symbol, keep_mins)
+        if not prunable_ids:
             return
-        version_ids = [v['_id'] for v in versions]
 
-        # Find any version_ids that are the basis of other, 'current' versions - don't prune these.
-        base_versions = set([x['base_version_id'] for x in mongo_retry(self._versions.find)({
-                                            'symbol': symbol,
-                                            '_id': {'$nin': version_ids},
-                                            'base_version_id':{'$exists':True},
-                                           },
-                                           projection=['base_version_id'],
-                                           )])
-
-        version_ids = list(set(version_ids) - base_versions)
-
+        base_version_ids = mongo_retry(self._find_base_version_ids)(symbol, prunable_ids)
+        version_ids = list(set(prunable_ids) - set(base_version_ids))
         if not version_ids:
             return
 

@@ -1,15 +1,14 @@
 import bson
 import six
 import struct
-from bson.son import SON
 from datetime import datetime as dt, timedelta as dtd
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
 from pymongo.errors import OperationFailure
-from pymongo.read_preferences import ReadPreference
 from pymongo.server_type import SERVER_TYPE
 from datetime import datetime
 from mock import Mock, patch
+import inspect
 import time
 import pytest
 import numpy as np
@@ -1286,3 +1285,24 @@ def test_prune_previous_versions_retries_on_cleanup_error(library):
         library._prune_previous_versions(symbol, keep_mins=0)
 
     assert len(list(library._arctic_lib.get_top_level_collection().find({'symbol': symbol}))) == 1
+
+
+def test_prune_previous_versions_retries_find_calls(library):
+    original_next = pymongo.cursor.Cursor.next
+
+    callers = set()
+    def _next(*args, **kwargs):
+        vs_caller_name = next(c for c in inspect.stack() if c[1].endswith('arctic/store/version_store.py'))[3]
+        if vs_caller_name not in callers:
+            callers.add(vs_caller_name)
+            raise OperationFailure(0)
+        else:
+            return original_next(*args, **kwargs)
+
+    library.write(symbol, ts1, prune_previous_version=False)
+    library.write(symbol, ts2, prune_previous_version=False)
+
+    with patch.object(pymongo.cursor.Cursor, "next", autospec=True, side_effect=_next):
+        library._prune_previous_versions(symbol, keep_mins=0)
+
+    assert library._versions.count({'symbol': symbol}) == 1
