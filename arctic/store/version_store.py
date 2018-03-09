@@ -518,15 +518,15 @@ class VersionStore(object):
         else:
             raise Exception("Append not implemented for handler %s" % handler)
 
-        version['version'] = next_ver
-
-        # Insert the new version into the version DB
-        self._insert_version(version)
-
         self._publish_change(symbol, version)
 
         if prune_previous_version and previous_version:
-            self._prune_previous_versions(symbol)
+            # Does not allow prune to remove the base of the new version
+            self._prune_previous_versions(symbol, keep_version=version.get('base_version_id'))
+
+        # Insert the new version into the version DB
+        version['version'] = next_ver
+        self._insert_version(version)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
                              metadata=version.pop('metadata', None), data=None)
@@ -574,15 +574,15 @@ class VersionStore(object):
         handler = self._write_handler(version, symbol, data, **kwargs)
         handler.write(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
 
-        # Insert the new version into the version DB
-        self._insert_version(version)
-
         if prune_previous_version and previous_version:
             self._prune_previous_versions(symbol)
 
-        logger.debug('Finished writing versions for %s', symbol)
-
         self._publish_change(symbol, version)
+
+        # Insert the new version into the version DB
+        self._insert_version(version)
+
+        logger.debug('Finished writing versions for %s', symbol)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
                              metadata=version.pop('metadata', None), data=None)
@@ -739,8 +739,7 @@ class VersionStore(object):
                                # where the versions are created on different hosts or processes at exactly
                                # the same time.
                                sort=[('version', pymongo.DESCENDING)],
-                               # Keep one, that's at least 10 mins old, around
-                               # (cope with replication delay)
+                               # Guarantees at least one version is kept
                                skip=1,
                                projection=['_id'],
                                )
@@ -758,11 +757,17 @@ class VersionStore(object):
                                      )
         return [version["base_version_id"] for version in cursor]
 
-    def _prune_previous_versions(self, symbol, keep_mins=120):
+    def _prune_previous_versions(self, symbol, keep_mins=120, keep_version=None):
         """
-        Prune versions, not pointed at by snapshots which are at least keep_mins old.
+        Prune versions, not pointed at by snapshots which are at least keep_mins old. Prune will never
+        remove all versions.
         """
         prunable_ids = mongo_retry(self._find_prunable_version_ids)(symbol, keep_mins)
+        if keep_version is not None:
+            try:
+                prunable_ids.remove(keep_version)
+            except ValueError:
+                pass
         if not prunable_ids:
             return
 

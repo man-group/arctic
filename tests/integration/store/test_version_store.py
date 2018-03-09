@@ -13,6 +13,7 @@ import time
 import pytest
 import numpy as np
 
+import arctic
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException
 from arctic.date import DateRange
 from arctic.store import _version_store_utils
@@ -1306,3 +1307,68 @@ def test_prune_previous_versions_retries_find_calls(library):
         library._prune_previous_versions(symbol, keep_mins=0)
 
     assert library._versions.count({'symbol': symbol}) == 1
+
+
+def test_append_does_not_duplicate_data_when_prune_fails(library):
+    side_effect = [OperationFailure(0), arctic.store.version_store.VersionStore._prune_previous_versions]
+    new_data = read_str_as_pandas("""times | near
+    2013-01-01 17:06:11.040 |  7.0
+    2013-01-02 17:06:11.040 |  8.2
+    2013-01-03 17:06:11.040 |  3.5
+    2013-01-04 17:06:11.040 |  0.7""")
+    library.write(symbol, ts1)
+
+    with patch.object(arctic.store.version_store.VersionStore, "_prune_previous_versions", autospec=True, side_effect=side_effect):
+        library.append(symbol, new_data)
+
+    data = library.read(symbol).data
+    assert len(set(data.index)) == len(data.index)
+
+
+def test_append_does_not_duplicate_data_when_publish_fails(library):
+    side_effect = [OperationFailure(0), arctic.store.version_store.VersionStore._publish_change]
+    new_data = read_str_as_pandas("""times | near
+    2013-01-01 17:06:11.040 |  7.0
+    2013-01-02 17:06:11.040 |  8.2
+    2013-01-03 17:06:11.040 |  3.5
+    2013-01-04 17:06:11.040 |  0.7""")
+    library.write(symbol, ts1)
+
+    with patch.object(arctic.store.version_store.VersionStore, "_publish_change", autospec=True, side_effect=side_effect):
+        library.append(symbol, new_data)
+
+    data = library.read(symbol).data
+    assert len(set(data.index)) == len(data.index)
+
+
+def test_write_does_not_succeed_with_a_prune_error(library):
+    # More than max retries OperationFailure would be more realistic, but ValueError is used for simplicity
+    side_effect = [ValueError, arctic.store.version_store.VersionStore._prune_previous_versions]
+    library.write(symbol, ts1)
+
+    with patch.object(arctic.store.version_store.VersionStore, "_prune_previous_versions", autospec=True, side_effect=side_effect):
+        with pytest.raises(ValueError):
+            library.write(symbol, ts1)
+
+    assert len(library.list_versions(symbol)) == 1
+
+
+def test_write_does_not_succeed_with_a_publish_error(library):
+    # More than max retries OperationFailure would be more realistic, but ValueError is used for simplicity
+    side_effect = [ValueError, arctic.store.version_store.VersionStore._publish_change]
+
+    with patch.object(arctic.store.version_store.VersionStore, "_publish_change", autospec=True, side_effect=side_effect):
+        with pytest.raises(ValueError):
+            library.append(symbol, ts1)
+
+    assert not library.list_versions(symbol)
+
+
+def test_prune_keeps_version(library):
+    library.write(symbol, ts1)
+    library.write(symbol, ts1)
+    old_version = [v["_id"] for v in library._versions.find({"symbol": symbol}, sort=[("_id", 1)])][0]
+
+    library._prune_previous_versions(symbol, keep_mins=0, keep_version=old_version)
+
+    assert len(library.list_versions(symbol)) == 2

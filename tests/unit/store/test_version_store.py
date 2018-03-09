@@ -490,8 +490,8 @@ def test_write_insert_version_duplicatekey():
     assert vs._version_nums.find_one_and_update.call_count == 2
     assert vs._versions.find_one.call_count == 2
     assert write_handler.write.call_count == 2
+    assert vs._publish_change.call_count == 2
     assert vs._versions.insert_one.call_count == 2
-    assert vs._publish_change.call_count == 1
 
 
 def test_write_insert_version_operror():
@@ -555,7 +555,7 @@ def test_append_insert_version_duplicatekey():
     assert vs._versions.find_one.call_count == 2
     assert read_handler.append.call_count == 2
     assert vs._versions.insert_one.call_count == 2
-    assert vs._publish_change.call_count == 1
+    assert vs._publish_change.call_count == 2
 
 def test_append_insert_version_operror():
     read_handler = Mock(append=Mock(__name__=""))
