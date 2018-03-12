@@ -219,7 +219,8 @@ class NdarrayStore(object):
         if with_fw_pointers:
             spec = {
                 'symbol': symbol,  # hit the right shard
-                '_id': {'$in': version.get('fw_pointers')}
+                '_id': {'$in': version.get('fw_pointers')},
+                'segment': {'$lt': to_index}
             }
 
         for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
