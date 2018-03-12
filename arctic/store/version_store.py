@@ -713,6 +713,7 @@ class VersionStore(object):
 
         return self._add_new_version_using_reference(symbol, version, version_to_restore, prune_previous_version)
 
+    @mongo_retry
     def _find_prunable_version_ids(self, symbol, keep_mins):
         """
         Find all non-snapshotted versions of a symbol that are older than a version that's at least keep_mins
@@ -745,6 +746,7 @@ class VersionStore(object):
                                )
         return [version["_id"] for version in cursor]
 
+    @mongo_retry
     def _find_base_version_ids(self, symbol, version_ids):
         """
         Return all base_version_ids for a symbol that are not bases of version_ids
@@ -762,7 +764,7 @@ class VersionStore(object):
         Prune versions, not pointed at by snapshots which are at least keep_mins old. Prune will never
         remove all versions.
         """
-        prunable_ids = mongo_retry(self._find_prunable_version_ids)(symbol, keep_mins)
+        prunable_ids = self._find_prunable_version_ids(symbol, keep_mins)
         if keep_version is not None:
             try:
                 prunable_ids.remove(keep_version)
@@ -771,7 +773,7 @@ class VersionStore(object):
         if not prunable_ids:
             return
 
-        base_version_ids = mongo_retry(self._find_base_version_ids)(symbol, prunable_ids)
+        base_version_ids = self._find_base_version_ids(symbol, prunable_ids)
         version_ids = list(set(prunable_ids) - set(base_version_ids))
         if not version_ids:
             return
