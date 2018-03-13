@@ -992,6 +992,27 @@ def test_list_symbols_newer_version_with_lower_id(library):
     assert symbol not in library.list_symbols()
 
 
+def test_list_symbols_write_snapshot_write_delete(library):
+    library.write('asdf', {'foo': 'bar'})
+    symbol = 'sym_a'
+    library.write(symbol, {'foo2': 'bar2'}, prune_previous_version=False)
+    library.snapshot('s1')
+    library.write(symbol, {'foo3': 'bar2'}, prune_previous_version=False)
+    library.delete(symbol)
+    # at this point we have one version retained from 's1' and
+    # one more version added with delete (version with foo3 is pruned)
+    # The list_symbols should return only 'asdf'
+    assert library.list_symbols() == ['asdf']
+
+
+def test_list_symbols_delete_write(library):
+    symbol = 'sym_a'
+    library.write(symbol, {'foo': 'bar2'}, prune_previous_version=False)
+    library.delete(symbol)
+    library.write(symbol, {'foo2': 'bar2'}, prune_previous_version=False)
+    assert library.list_symbols() == [symbol]
+
+
 def test_date_range_large(library):
     index = [dt(2017,1,1)]*20000 + [dt(2017,1,2)]*20000
     data = np.random.random((40000, 10))

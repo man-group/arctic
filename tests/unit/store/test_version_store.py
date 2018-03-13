@@ -268,12 +268,20 @@ def test_list_symbols_default_pipeline():
     VersionStore.list_symbols(vs)
 
     pipeline = [
-        {'$sort': bson.SON([('symbol', pymongo.DESCENDING), ('version', pymongo.DESCENDING)])},
-        {'$group': {'_id': '$symbol', 'deleted': {'$first': '$metadata.deleted'}}},
-        {'$match': {'deleted': {'$ne': True}}},
-        {'$project': {'_id': 0, 'symbol': '$_id'}}
+        {'$group': {
+            '_id': '$symbol',
+            'version_custom': {
+                '$max': {
+                    '$add': [
+                        {'$multiply': ['$version', 2]},
+                        {'$cond': [{'$eq': ['$metadata.deleted', True]}, 1, 0]}
+                    ]
+                }
+            },
+        }},
+        {'$match': {'version_custom': {'$mod': [2, 0]}}}
     ]
-    versions.aggregate.assert_called_once_with(pipeline)
+    versions.aggregate.assert_called_once_with(pipeline, allowDiskUse=True)
 
 
 def test_snapshot_duplicate_raises_exception():
