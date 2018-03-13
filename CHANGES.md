@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.62
+  * Bugfix: #517 VersionStore: append does not duplicate data in certain corner cases
+
 ### 1.61 (2018-3-2)
   * Feature: #288 Mapping reads and writes over chunks in chunkstore
   * Bugfix: #508 VersionStore: list_symbols and read now always returns latest version
