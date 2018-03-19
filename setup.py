@@ -29,7 +29,7 @@ import platform
 link_args = ['']
 
 if platform.system().lower() == 'darwin':
-    # clang on macOS does not work with OpenMP
+ 
     ccs = ["/usr/local/bin/g++-5",
            "/usr/local/bin/g++-6",
            "/usr/local/bin/g++-7",
