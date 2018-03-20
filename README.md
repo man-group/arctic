@@ -117,10 +117,8 @@ Arctic currently works with:
 
 
 Operating Systems:
-
  * Linux
  * macOS
-
 
 ## Acknowledgements
 
