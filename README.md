@@ -108,7 +108,7 @@ Arctic storage implementations are **pluggable**.  VersionStore is the default.
 
 ## Requirements
 
-##### Arctic currently works with:
+Arctic currently works with:
 
  * Python 2.7, 3.4, 3.5, 3.6
  * pymongo >= 3.0
@@ -116,13 +116,11 @@ Arctic storage implementations are **pluggable**.  VersionStore is the default.
  * MongoDB >= 2.4.x
 
 
-##### Operating Systems:
+Operating Systems:
 
  * Linux
  * macOS
 
-##### Installation on macOS
-To install on macOS, either of the gcc or llvm compilers must be installed. Apple's llvm compiler included with Xcode or Command Line Tools will not work.  The easiest way to install one of these compilers is to use [Homebrew](https://brew.sh).  Once Homebrew is installed, issue the command `brew install gcc` or `brew install llvm`.  If you choose to install llvm, you also have to `brew install libomp`.  These can be uninstalled later by issuing a `brew uninstall ...` command.
 
 ## Acknowledgements
 
