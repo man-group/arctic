@@ -26,10 +26,10 @@ import os
 import platform
 
 
-link_args = ['']
+link_args = ['-fopenmp']
 
 if platform.system().lower() == 'darwin':
- 
+    # clang on macOS does not work with OpenMP
     ccs = ["/usr/local/bin/g++-5",
            "/usr/local/bin/g++-6",
            "/usr/local/bin/g++-7",
@@ -40,14 +40,16 @@ if platform.system().lower() == 'darwin':
             cc = compiler
     if cc is None:
         raise ValueError("You must install clang-6.0 or gcc/g++. You can install with homebrew: brew install gcc or brew install llvm")
+    if 'clang' in cc and os.path.isdir("/usr/local/opt/libomp")==False:
+        raise ValueError("You must also install libomp.  You can install with homebrew: brew install libomp")
     os.environ["CC"] = cc if 'clang' in cc else cc.replace("g++", "gcc")
     os.environ["CXX"] = cc
     # not all OSX/clang compiler flags supported by GCC. For some reason
     # these sometimes are generated and used. Cython will still add more flags.
     os.environ["CFLAGS"] = "-fno-common -fno-strict-aliasing -DENABLE_DTRACE -DMACOSX -DNDEBUG -Wall -g -fwrapv -Os"
 
-    if 'g++' in cc:
-        link_args = ['-fopenmp']
+    if 'clang' in cc:
+        link_args = ['-fopenmp=libomp']
 
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672
