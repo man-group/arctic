@@ -39,7 +39,9 @@ if platform.system().lower() == 'darwin':
         if os.path.isfile(compiler):
             cc = compiler
     if cc is None:
-        raise ValueError("You must install clang-5.0 or gcc/g++. You can install with homebrew: brew install gcc or brew install llvm")
+        raise ValueError("You must install clang-6.0 or gcc/g++. You can install with homebrew: brew install gcc or brew install llvm")
+    if 'clang' in cc and os.path.isdir("/usr/local/opt/libomp")==False:
+        raise ValueError("You must also install libomp.  You can install with homebrew: brew install libomp")
     os.environ["CC"] = cc if 'clang' in cc else cc.replace("g++", "gcc")
     os.environ["CXX"] = cc
     # not all OSX/clang compiler flags supported by GCC. For some reason
@@ -47,7 +49,7 @@ if platform.system().lower() == 'darwin':
     os.environ["CFLAGS"] = "-fno-common -fno-strict-aliasing -DENABLE_DTRACE -DMACOSX -DNDEBUG -Wall -g -fwrapv -Os"
 
     if 'clang' in cc:
-        link_args = ['-fopenmp=libiomp5']
+        link_args = ['-fopenmp=libomp']
 
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672
