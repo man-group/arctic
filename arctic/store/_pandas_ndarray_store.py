@@ -172,7 +172,7 @@ class PandasDataFrameStore(PandasStore):
             return True
         return False
 
-    def write(self, arctic_lib, version, symbol, item, previous_version, fw_pointers=False):
+    def write(self, arctic_lib, version, symbol, item, previous_version, fw_pointers=None):
         item, md = self.SERIALIZER.serialize(item)
         super(PandasDataFrameStore, self).write(arctic_lib, version, symbol, item, previous_version,
                                                 dtype=md, fw_pointers=fw_pointers)

@@ -9,12 +9,13 @@ import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
 from ..decorators import mongo_retry
-from ..exceptions import UnhandledDtypeException, DataIntegrityException
+from ..exceptions import UnhandledDtypeException, DataIntegrityException, ArcticException
 from ._version_store_utils import checksum
 
 from .._compression import compress_array, decompress
 from six.moves import xrange
 
+from arctic.store.fw_pointers import WITH_ID, WITH_SHA, get_fw_pointers_type
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +143,14 @@ class NdarrayStore(object):
             collection.create_index([('symbol', pymongo.ASCENDING),
                                      ('parent', pymongo.ASCENDING),
                                      ('segment', pymongo.ASCENDING)], unique=True, background=True)
+
+            collection.create_index([('symbol', pymongo.ASCENDING),
+                                     ('_id', pymongo.ASCENDING),
+                                     ('segment', pymongo.ASCENDING)], unique=True, background=True)
+
+            collection.create_index([('symbol', pymongo.ASCENDING),
+                                     ('sha', pymongo.ASCENDING),
+                                     ('segment', pymongo.ASCENDING)], unique=True, background=True)
         except OperationFailure as e:
             if "can't use unique indexes" in str(e):
                 return
@@ -190,7 +199,22 @@ class NdarrayStore(object):
         collection = arctic_lib.get_top_level_collection()
         if read_preference:
             collection = collection.with_options(read_preference=read_preference)
-        return self._do_read(collection, version, symbol, index_range=index_range)
+        ret = self._do_read(collection, version, symbol, index_range=index_range)
+        return ret
+
+    MEASUREMENTS = dict()
+
+    @classmethod
+    def add_measurement(cls, key, value):
+        if key not in cls.MEASUREMENTS:
+            cls.MEASUREMENTS[key] = [value]
+        else:
+            cls.MEASUREMENTS[key].append(value)
+    
+    @classmethod
+    def reset_measurements(cls):
+        for k, v in cls.MEASUREMENTS.iteritems():
+            del v[:]
 
     def _do_read(self, collection, version, symbol, index_range=None):
         '''
@@ -201,34 +225,48 @@ class NdarrayStore(object):
         to_index = version['up_to']
         if index_range and index_range[1] and index_range[1] < version['up_to']:
             to_index = index_range[1]
-        segment_count = None
 
-        spec = {'symbol': symbol,
-                'parent': version.get('base_version_id', version['_id']),
-                'segment': {'$lt': to_index}
-                }
+        segments = []
+        i = -1
+        fw_pointers_type = get_fw_pointers_type(version)
+
+        spec = {
+            'symbol': symbol,  # hit the right shard
+        }
+
+        if fw_pointers_type == WITH_ID:
+            spec['_id'] = {'$in': version.get(WITH_ID)}
+        elif fw_pointers_type == WITH_SHA:
+            spec['sha'] = {'$in': version.get(WITH_SHA)}
+        else:
+            spec['parent'] = version.get('base_version_id', version['_id'])
+
+        spec['segment'] = {'$lt': to_index}
+
+        segment_count = None
         if from_index is not None:
             spec['segment']['$gte'] = from_index
         else:
             segment_count = version.get('segment_count', None)
 
-        segments = []
-        i = -1
-        start_t = time.time()
-        with_fw_pointers = version.get('fw_pointers') is not None
-        if with_fw_pointers:
-            spec = {
-                'symbol': symbol,  # hit the right shard
-                '_id': {'$in': version.get('fw_pointers')},
-                'segment': {'$lt': to_index}
-            }
+        # Bench start
+        start_t_local = time.time()
+        if fw_pointers_type is None:
+            matched_segments = list(collection.find(spec, sort=[('segment', pymongo.ASCENDING)], ))
+        else:
+            matched_segments = sorted(list(collection.find(spec)), key=lambda v: v.get('segment', 0))
+        # Bench finish
+        delta = time.time() - start_t_local
+        self.add_measurement(fw_pointers_type+'_read', delta)
+        # logger.info('{}: lookup time = {}'.format(fw_pointers_type, round(delta, 4)))
 
-        for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
+        start_t_local = time.time()
+        for i, x in enumerate(matched_segments):
             segments.append(decompress(x['data']) if x['compressed'] else x['data'])
+        delta = time.time() - start_t_local
+        self.add_measurement(fw_pointers_type + '_decompress', delta)
 
-        logger.info('{}: lookup time = {}'.format(
-            "with fw_pointers" if with_fw_pointers else "without fw_pointers",
-            round(time.time()-start_t, 4)))
+        start_t_local = time.time()
 
         data = b''.join(segments)
 
@@ -242,6 +280,9 @@ class NdarrayStore(object):
 
         dtype = self._dtype(version['dtype'], version.get('dtype_metadata', {}))
         rtn = np.fromstring(data, dtype=dtype).reshape(version.get('shape', (-1)))
+        delta = time.time() - start_t_local
+        self.add_measurement(fw_pointers_type + '_createNumPy', delta)
+
         return rtn
 
     def _promote_types(self, dtype, dtype_str):
@@ -301,7 +342,7 @@ class NdarrayStore(object):
             version['type'] = self.TYPE
             self._do_append(collection, version, symbol, item, previous_version, dirty_append)
 
-    def _do_append(self, collection, version, symbol, item, previous_version, dirty_append, fw_pointers=False):
+    def _do_append(self, collection, version, symbol, item, previous_version, dirty_append, fw_pointers=None):
 
         data = item.tostring()
         # Compatibility with Arctic 1.22.0 that didn't write base_sha into the version document
@@ -322,7 +363,7 @@ class NdarrayStore(object):
             version['base_version_id'] = previous_version.get('base_version_id', previous_version['_id'])
 
             if len(item) > 0:
-
+                
                 segment = {'data': Binary(data), 'compressed': False}
                 segment['segment'] = version['up_to'] - 1
                 try:
@@ -426,7 +467,7 @@ class NdarrayStore(object):
         sha.update(item.tostring())
         return Binary(sha.digest())
 
-    def write(self, arctic_lib, version, symbol, item, previous_version, dtype=None, fw_pointers=False):
+    def write(self, arctic_lib, version, symbol, item, previous_version, dtype=None, fw_pointers=None):
         collection = arctic_lib.get_top_level_collection()
         if item.dtype.hasobject:
             raise UnhandledDtypeException()
@@ -452,12 +493,15 @@ class NdarrayStore(object):
         version['base_sha'] = version['sha']
         self._do_write(collection, version, symbol, item, previous_version, fw_pointers=fw_pointers)
 
-    def _do_write(self, collection, version, symbol, item, previous_version, segment_offset=0, fw_pointers=False):
+    def _do_write(self, collection, version, symbol, item, previous_version, segment_offset=0, fw_pointers=None):
 
-        sze = int(item.dtype.itemsize * np.prod(item.shape[1:]))
+        row_sze = int(item.dtype.itemsize * np.prod(item.shape[1:]))
 
         # chunk and store the data by (uncompressed) size
-        chunk_size = int(_CHUNK_SIZE / sze)
+        rows_per_chunk = int(_CHUNK_SIZE / row_sze)
+
+        if rows_per_chunk <= 0:
+            raise ArcticException('Aborting write. Row size is too large (%s > %s)' % (row_sze, _CHUNK_SIZE))
 
         previous_shas = []
         if previous_version:
@@ -476,19 +520,24 @@ class NdarrayStore(object):
         i = -1
 
         # Compress
-        idxs = xrange(int(np.ceil(float(length) / chunk_size)))
-        chunks = [(item[i * chunk_size: (i + 1) * chunk_size]).tostring() for i in idxs]
+        idxs = xrange(int(np.ceil(float(length) / rows_per_chunk)))
+        chunks = [(item[i * rows_per_chunk: (i + 1) * rows_per_chunk]).tostring() for i in idxs]
         compressed_chunks = compress_array(chunks)
+
+        # for fw_pointers
+        all_shas = []
 
         # Write
         bulk, result = [], None
         for i, chunk in zip(idxs, compressed_chunks):
             segment = {'data': Binary(chunk), 'compressed': True}
-            segment['segment'] = min((i + 1) * chunk_size - 1, length - 1) + segment_offset
+            segment['segment'] = min((i + 1) * rows_per_chunk - 1, length - 1) + segment_offset
             segment_index.append(segment['segment'])
             sha = checksum(symbol, segment)
             if sha not in previous_shas:
                 segment['sha'] = sha
+                # for fw_pointers
+                all_shas.append(sha)
                 bulk.append(pymongo.UpdateOne({'symbol': symbol, 'sha': sha, 'segment': segment['segment']},
                                               {'$set': segment, '$addToSet': {'parent': version['_id']}},
                                               upsert=True))
@@ -497,9 +546,14 @@ class NdarrayStore(object):
                                               {'$addToSet': {'parent': version['_id']}}))
         if i != -1:
             result = collection.bulk_write(bulk, ordered=False)
-
-        if fw_pointers and result:
-            version['fw_pointers'] = list({s_id for _, s_id in result.upserted_ids.iteritems()})
+            
+        if result:
+            if fw_pointers is WITH_ID:
+                version[WITH_ID] = list({s_id for _, s_id in result.upserted_ids.iteritems()})
+            elif fw_pointers is WITH_SHA:
+                # it is safe to assume all documents with individual SHAs have been written
+                # because check_written deals with integrity checks
+                version[WITH_SHA] = all_shas
 
         segment_index = self._segment_index(item, existing_index=existing_index, start=segment_offset,
                                             new_segments=segment_index)

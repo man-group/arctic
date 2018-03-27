@@ -1,11 +1,12 @@
 from datetime import datetime as dt, timedelta
 import logging
-
+import time
 import bson
 from pymongo import ReadPreference
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
+from arctic.store.fw_pointers import get_fw_pointers_type
 from .._util import indent, enable_sharding
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
@@ -16,6 +17,9 @@ from ._pickle_store import PickleStore
 from ._version_store_utils import cleanup
 from .versioned_item import VersionedItem
 import six
+
+from ._ndarray_store import NdarrayStore
+
 
 logger = logging.getLogger(__name__)
 
@@ -334,11 +338,16 @@ class VersionStore(object):
         -------
         VersionedItem namedtuple which contains a .data and .metadata element
         """
+        start_t = time.time()
         try:
             read_preference = self._read_preference(allow_secondary)
             _version = self._read_metadata(symbol, as_of=as_of, read_preference=read_preference)
-            return self._do_read(symbol, _version, from_version,
-                                 date_range=date_range, read_preference=read_preference, **kwargs)
+            ret = self._do_read(symbol, _version, from_version,
+                                date_range=date_range, read_preference=read_preference, **kwargs)
+            fw_pointers_type = get_fw_pointers_type(_version)
+            delta = time.time() - start_t
+            NdarrayStore.add_measurement(fw_pointers_type+'_total', delta)
+            return ret
         except (OperationFailure, AutoReconnect) as e:
             # Log the exception so we know how often this is happening
             log_exception('read', e, 1)
@@ -549,7 +558,7 @@ class VersionStore(object):
             mongo_retry(self._changes.insert_one)(version)
 
     @mongo_retry
-    def write(self, symbol, data, metadata=None, prune_previous_version=True, fw_pointers=False, **kwargs):
+    def write(self, symbol, data, metadata=None, prune_previous_version=True, fw_pointers=None, **kwargs):
         """
         Write 'data' under the specified 'symbol' name to this library.
 
@@ -626,7 +635,6 @@ class VersionStore(object):
             raise OperationFailure("Failed to write metadata for symbol %s. "
                                    "The previous version (%s, %d) has been removed during the update" %
                                    (symbol, str(reference_version['_id']), reference_version['version']))
-
 
         if prune_previous_version and reference_version:
             self._prune_previous_versions(symbol)
