@@ -19,7 +19,6 @@ from pprint import pprint
 
 # To auth with user/password when using  cluster
 AuthCreds = namedtuple('AuthCreds', 'user password')
-register_get_auth_hook(lambda host, app_name, database_name: AuthCreds('user', 'password'))
 
 
 def get_random_df(nrows, ncols):
@@ -47,9 +46,12 @@ def initialize_library(mongo_host, lib_name='test_lib', init_quota=None, force_d
     return lib
 
 
-def populate_with_existing_data(lib, num_existing_symbols, df_rows=None, df_cols=None, data_df=None, base_sym_name='existing_sym'):
+def populate_with_existing_data(lib, num_existing_symbols, df_rows=None, df_cols=None, data_df=None,
+                                base_sym_name='existing_sym', do_print=False):
     logging.info('Populate with existing documents')
     for i in range(num_existing_symbols):
+        if do_print:
+            logging.info('writting dataframe {} of {}'.format(i, num_existing_symbols))
         lib.write("{}_{}".format(base_sym_name, i), data_df if data_df is not None else get_random_df(df_rows, df_cols))
     logging.info('Done populating with existing documents')
 
@@ -136,55 +138,161 @@ def plot_results(fw_pointer_types, component, title, save_figure_path=None):
         plt.show()
 
 
-def main():
-    # mongo_host = 'dpediaditakis.hn.ada.res.ahl:27017'  # cluster
-    # mongo_host = 'dpediaditakis.hn.ada.res.ahl:27117'  # single
-    mongo_host = 'dpediaditakis.hn.ada.res.ahl:27217'  # single ram disk
-    desc = 'Mongo RamDisk Single'
-    fig_save_path = os.path.join('/users/is/dpediaditakis/Documents/results_arctic', desc.replace(' ', '_'))
-    if not os.path.exists(fig_save_path):
-        os.makedirs(fig_save_path)
+DEFAULT_PLOT_CONFIG = {
+    'fw_pointer_types': (LEGACY,),
+    'component': ('read',),
+    'title_prefix': 'Only Arctic read'
+}
 
+def do_benchmark(mongo_host, desc, config, quota, force_drop, populate_existing_data, save_figure):
+    fig_save_path = None
+    if save_figure:
+        fig_save_path = os.path.join('/users/is/dpediaditakis/Documents/results_arctic', desc.replace(' ', '_'))
+        if not os.path.exists(fig_save_path):
+            os.makedirs(fig_save_path)
 
-    # lib = initialize_library(mongo_host, lib_name='test_lib', init_quota=5.0, force_drop=True)
-    # populate_with_existing_data(lib,
-    #                             num_existing_symbols=100000,
-    #                             base_sym_name='existing_sym_c',
-    #                             # df_rows=10*20000, df_cols=12,
-    #                             # data_df=get_random_df(10*20000, 12)
-    #                             data_df=get_random_df(100, 12)
-    #                             )
+    lib = initialize_library(mongo_host, lib_name='test_lib', init_quota=quota, force_drop=bool(force_drop))
 
-    lib = initialize_library(mongo_host, lib_name='test_lib', init_quota=21.0)
+    if populate_existing_data:
+        # Some large
+        populate_with_existing_data(lib,
+                                    num_existing_symbols=config.get('existing_large_num', 100),
+                                    base_sym_name='existing_sym_large',
+                                    data_df=get_random_df(*config.get('existing_large_dim', (2*20000, 12))),
+                                    do_print=True
+                                    )
+        # Many small
+        populate_with_existing_data(lib,
+                                    num_existing_symbols=config.get('existing_small_num', 5000),
+                                    base_sym_name='existing_sym_small',
+                                    data_df=get_random_df(*config.get('existing_small_dim', (100, 12)))
+                                    )
 
-    test_syms = get_test_symbols(num_symbols=100, base_sym_name='sym')
+    test_syms = get_test_symbols(num_symbols=config.get('test_syms_num', 10), base_sym_name='sym')
 
-    iterations = 10
-    do_legacy, do_with_ids, do_with_shas = True, True, True
-    for num_rows in (100, 5000, 1*20000, 10*20000, 50*20000):
+    for num_rows in config.get('test_syms_rows', (100, 5000, 2*20000)):
         write_test_symbols(lib, test_syms,
-                       # nrows=100, ncols=16,
-                       # data_df=get_random_df(2 * 20000, 12)
-                       data_df=get_random_df(num_rows, 12)
-                       # data_df=get_random_df(20*20000, 12)
-                       )
+                           data_df=get_random_df(num_rows, config.get('test_syms_cols', 12)))
         reset_experiment()
 
-        run_experiment(lib, test_syms, num_iterations=iterations,
-                       do_legacy=do_legacy, do_with_ids=do_with_ids, do_with_shas=do_with_shas)
+        run_experiment(lib, test_syms,
+                       num_iterations=config.get('iterations', 1),
+                       do_legacy=config.get('do_legacy', True),
+                       do_with_ids=config.get('do_with_ids', True),
+                       do_with_shas=config.get('do_with_shas', True))
+        
+        for plot_config in config.get('plots', (DEFAULT_PLOT_CONFIG,)):
+            fw_ptrs = plot_config.get('fw_pointer_types', (LEGACY,))
+            component = plot_config.get('component', ('read',))
+            title_prefix = plot_config.get('title_prefix', '')
+            plot_results(fw_pointer_types=fw_ptrs,
+                         component=component,
+                         title='{} {} \n[read] \n({} rows) \n({})'.format(title_prefix, fw_ptrs, num_rows, desc),
+                         save_figure_path=fig_save_path)
 
-        plot_results(fw_pointer_types=(WITH_ID, WITH_SHA, LEGACY),
-                     component=['read'],
-                     title='Comparison {} \n[read] \n({} rows) \n({})'.format((WITH_ID, WITH_SHA, LEGACY), num_rows, desc),
-                     save_figure_path=fig_save_path
-                     )
+def main():
+    my_config = {
+        'fig_path': '/users/is/dpediaditakis/Documents/results_arctic',
 
-        plot_results(fw_pointer_types=(LEGACY, ),
-                     component=['total', 'read', 'createNumPy', 'decompress'],
-                     title='Breakdown {} \n[{}] \n({} rows) \n({})'.format(LEGACY, ('total', 'read', 'createNumPy', 'decompress'), num_rows, desc),
-                     save_figure_path=fig_save_path
-                     )
+        # Existing Data
+        'existing_large_num': 1,
+        'existing_large_dim': (10 * 20000, 12),
+        'existing_small_num': 20,
+        'existing_small_dim': (100, 12),
+
+        # Experiment symbols
+        'test_syms_num': 1,
+        'test_syms_rows': (100,),  # 5000 , 1 * 20000, 10 * 20000, 25 * 20000),
+        'test_syms_cols': 12,
+
+        # Number of iterations
+        'iterations': 1000,
+
+        # Experiment read implementation
+        'do_legacy': True,
+        'do_with_ids': True,
+        'do_with_shas': True,
+
+        # Plotting options
+        'plots': [
+            {
+                'fw_pointer_types': (WITH_ID, WITH_SHA, LEGACY),
+                'component': ['read'],
+                'title_prefix': 'Comparison'
+            },
+            {
+                'fw_pointer_types': (LEGACY),
+                'component': ['total', 'read', 'createNumPy', 'decompress'],
+                'title_prefix': 'Breakdown'
+            }
+        ]
+    }
+
+    register_get_auth_hook(lambda host, app_name, database_name: AuthCreds('user', 'password'))
+    # register_get_auth_hook(lambda host, app_name, database_name: AuthCreds('admin', 'bongodev1'))
+    # register_get_auth_hook(lambda host, app_name, database_name: AuthCreds('admin', '???????'))
+    
+    do_benchmark(
+        mongo_host='dpediaditakis.hn.ada.res.ahl:27217',  # single ram disk
+        desc='Mongo RamDisk Single Deleteme',
+        config=my_config,
+        quota=21.0,
+        force_drop=True,
+        populate_existing_data=True,
+        save_figure=True)
 
 
 if __name__ == '__main__':
     main()
+
+# my_config = {
+#     'fig_path': '/users/is/dpediaditakis/Documents/results_arctic',
+# 
+#     # Existing Data
+#     'existing_large_num': 100,
+#     'existing_large_dim': (10 * 20000, 12),
+#     'existing_small_num': 200000,
+#     'existing_small_dim': (10 * 20000, 12),
+# 
+#     # Experiment symbols
+#     'test_syms_num': 25,
+#     'test_syms_rows': (100, 5000, 1 * 20000, 10 * 20000, 25 * 20000),
+#     'test_syms_cols': 12,
+# 
+#     # Number of iterations
+#     'iterations': 10,
+# 
+#     # Experiment read implementation
+#     'do_legacy': True,
+#     'do_with_ids': True,
+#     'do_with_shas': True
+# 
+#     # Plotting options
+#     'plots': [
+#         {
+#             'fw_pointer_types': (WITH_ID, WITH_SHA, LEGACY),
+#             'component': ['read'],
+#             'title_prefix': 'Comparison'
+#         },
+#         {
+#             'fw_pointer_types': (LEGACY),
+#             'component': ['total', 'read', 'createNumPy', 'decompress'],
+#             'title_prefix': 'Breakdown'
+#         }
+#     ]
+# }
+
+# mongo_host = '0.switch.research.mongo.res.ahl:27017'  # research cluster
+# desc = 'Research Mongo Cluster'
+
+# mongo_host = 'dlondbahls80:27201'  # new dev cluster
+# desc = 'Dev Mongo Cluster'
+
+# mongo_host = 'dpediaditakis.hn.ada.res.ahl:27017'  # local cluster
+# desc = 'Mongo iscsi Cluster'
+
+# mongo_host = 'dpediaditakis.hn.ada.res.ahl:27117'  # single
+# desc = 'Mongo iscsi Single'
+
+# mongo_host = 'dpediaditakis.hn.ada.res.ahl:27217'  # single ram disk
+# desc = 'Mongo RamDisk Single'
