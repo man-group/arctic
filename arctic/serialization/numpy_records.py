@@ -106,8 +106,10 @@ class PandasSerializer(object):
         """
 
         index_names, ix_vals, metadata = self._index_to_records(df)
-        columns, column_vals = self._column_data(df)
+        columns, column_vals, multi_column = self._column_data(df)
 
+        if multi_column is not None:
+            metadata['multi_column'] = multi_column
         metadata['columns'] = columns
         names = index_names + columns
 
@@ -118,6 +120,7 @@ class PandasSerializer(object):
         dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
                          metadata=metadata)
 
+        # The argument names is ignored when dtype is passed
         rtn = np.rec.fromarrays(arrays, dtype=dtype, names=names)
         # For some reason the dtype metadata is lost in the line above
         # and setting rtn.dtype to dtype does not preserve the metadata
@@ -160,7 +163,7 @@ class SeriesSerializer(PandasSerializer):
             log.info("Series has no name, defaulting to 'values'")
         columns = [s.name if s.name else 'values']
         column_vals = [s.values]
-        return columns, column_vals
+        return columns, column_vals, None
 
     def deserialize(self, item):
         index = self._index_from_records(item)
@@ -179,7 +182,16 @@ class DataFrameSerializer(PandasSerializer):
         if columns != list(df.columns):
             log.info("Dataframe column names converted to strings")
         column_vals = [df[c].values for c in df.columns]
-        return columns, column_vals
+
+        if isinstance(df.columns, MultiIndex):
+            ix_vals, ix_names, _ = self._multi_index_to_records(len(df), df.columns)
+            vals = [list(val) for val in ix_vals]
+            str_vals = [map(str, val) for val in ix_vals]
+            if vals != str_vals:
+                log.info("Dataframe column names converted to strings")
+            return columns, column_vals, {"names": list(ix_names), "values": str_vals}
+        else:
+            return columns, column_vals, None
 
     def deserialize(self, item):
         index = self._index_from_records(item)
@@ -189,7 +201,13 @@ class DataFrameSerializer(PandasSerializer):
             return DataFrame(rdata, index=index)
 
         columns = item.dtype.metadata['columns']
-        return DataFrame(data=item[column_fields], index=index, columns=columns)
+        df = DataFrame(data=item[column_fields], index=index, columns=columns)
+
+        multi_column = item.dtype.metadata.get('multi_column')
+        if multi_column is not None:
+            df.columns = MultiIndex.from_arrays(multi_column["values"], names=multi_column["names"])
+
+        return df
 
     def serialize(self, item, string_max_len=None):
         return self._to_records(item, string_max_len)
