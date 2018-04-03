@@ -259,7 +259,7 @@ def test_save_read_multi_index_and_multi_columns_dataframe(library):
 
     saved = library.read('test')
 
-    assert type(saved.data.index) == type(df.index)
+    assert isinstance(saved.data.index, df.index.__class__)
     assert np.all(saved.data.index == df.index)
     assert np.all(saved.data.columns == df.columns)
     assert np.all(saved.data == df)

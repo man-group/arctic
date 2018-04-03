@@ -28,23 +28,25 @@ def _to_primitive(arr, string_max_len=None):
     return arr
 
 
+def _multi_index_to_records(df_len, index):
+    # array of tuples to numpy cols. copy copy copy
+    if df_len > 0:
+        ix_vals = list(map(np.array, [index.get_level_values(i) for i in range(index.nlevels)]))
+    else:
+        # empty multi index has no size, create empty arrays for recarry..
+        ix_vals = [np.array([]) for n in index.names]
+    index_names = list(index.names)
+    count = 0
+    for i, n in enumerate(index_names):
+        if n is None:
+            index_names[i] = 'level_%d' % count
+            count += 1
+            log.info("Level in MultiIndex has no name, defaulting to %s" % index_names[i])
+    index_tz = [get_timezone(i.tz) if isinstance(i, DatetimeIndex) else None for i in index.levels]
+    return ix_vals, index_names, index_tz
+
+
 class PandasSerializer(object):
-    def _multi_index_to_records(self, df_len, index):
-        # array of tuples to numpy cols. copy copy copy
-        if df_len > 0:
-            ix_vals = list(map(np.array, [index.get_level_values(i) for i in range(index.nlevels)]))
-        else:
-            # empty multi index has no size, create empty arrays for recarry..
-            ix_vals = [np.array([]) for n in index.names]
-        index_names = list(index.names)
-        count = 0
-        for i, n in enumerate(index_names):
-            if n is None:
-                index_names[i] = 'level_%d' % count
-                count += 1
-                log.info("Level in MultiIndex has no name, defaulting to %s" % index_names[i])
-        index_tz = [get_timezone(i.tz) if isinstance(i, DatetimeIndex) else None for i in index.levels]
-        return ix_vals, index_names, index_tz
 
     def _index_to_records(self, df):
         metadata = {}
@@ -52,7 +54,7 @@ class PandasSerializer(object):
         index_tz = None
 
         if isinstance(index, MultiIndex):
-            ix_vals, index_names, index_tz = self._multi_index_to_records(len(df), index)
+            ix_vals, index_names, index_tz = _multi_index_to_records(len(df), index)
         else:
             ix_vals = [index.values]
             index_names = list(index.names)
@@ -184,7 +186,7 @@ class DataFrameSerializer(PandasSerializer):
         column_vals = [df[c].values for c in df.columns]
 
         if isinstance(df.columns, MultiIndex):
-            ix_vals, ix_names, _ = self._multi_index_to_records(len(df), df.columns)
+            ix_vals, ix_names, _ = _multi_index_to_records(len(df), df.columns)
             vals = [list(val) for val in ix_vals]
             str_vals = [map(str, val) for val in ix_vals]
             if vals != str_vals:
