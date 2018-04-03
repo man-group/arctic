@@ -190,6 +190,7 @@ def do_benchmark(mongo_host, desc, config, quota, force_drop, populate_existing_
                          title='{} {} \n[read] \n({} rows) \n({})'.format(title_prefix, fw_ptrs, num_rows, desc),
                          save_figure_path=fig_save_path)
 
+
 def main():
     my_config = {
         'fig_path': '/users/is/dpediaditakis/Documents/results_arctic',
@@ -296,3 +297,84 @@ if __name__ == '__main__':
 
 # mongo_host = 'dpediaditakis.hn.ada.res.ahl:27217'  # single ram disk
 # desc = 'Mongo RamDisk Single'
+
+
+# import time
+# import numpy as np
+# import pymongo
+# from ahl.mongo import Mongoose
+#
+# WITH_ID = 'fw_pointers_with_id'
+# WITH_SHA = 'fw_pointers_with_sha'
+#
+# def build_query(lib, symbol):
+#     version = lib._versions.find_one({'symbol': symbol}, sort=[('version', pymongo.DESCENDING)])
+#     query = {'symbol': symbol}
+#     if WITH_ID in version:
+#         query['_id'] = {'$in': version[WITH_ID]}
+#     elif WITH_SHA in version:
+#         query['sha'] = {'$in': version[WITH_SHA]}
+#     else:
+#         query['parent'] = version.get('base_version_id', version['_id'])
+#     query['segment'] = {'$lt': version['up_to']}
+#     return query
+#
+#
+# def bench_sym(lib, symbol, iterations=100):
+#     query = build_query(lib, symbol)
+#     measurements = []
+#     for i in range(iterations):
+#         start = time.time()
+#         cursor = lib._collection.find(query, sort=[('segment', pymongo.ASCENDING)])
+#         res = list(cursor)
+#         delta = time.time() - start
+#         measurements.append(delta)
+#         # print len(res)
+#     print "\n\n{0}\nMean={1:.4f}\nStdev={2:.4f}\nMin={3:.4f}\nMax={4:.4f}".format(symbol,
+#                                                                                   np.mean(measurements),
+#                                                                                   np.std(measurements),
+#                                                                                   np.min(measurements),
+#                                                                                   np.max(measurements))
+
+
+# tdinew_res = Mongoose('research')['oneminute.TDI1MIN_NEW']
+# # symbol = 'FUT_FTL_200112_DIMOS'
+# # syms = tdinew_res.list_symbols()
+# # symbol = syms[0]
+#
+# bench_sym(tdinew_res, 'FUT_FTL_200112_DIMOS', iterations=500)
+# bench_sym(tdinew_res, 'FUT_FTL_200112_DIMOS_SHA', iterations=500)
+# bench_sym(tdinew_res, 'FUT_FTL_200112', iterations=500)
+
+
+
+
+
+# import arctic
+# import pymongo
+# from collections import namedtuple
+# from arctic.hooks import register_get_auth_hook
+# from pprint import pprint
+# from ahl.mongo.auth import get_auth
+#
+#
+# # register_get_auth_hook(get_auth)
+# # lib = Mongoose('research')['oneminute.TDI1MIN_NEW']
+# # symbol = 'FUT_FTL_200112'
+# # symbol = 'FUT_FTL_200112_DIMOS'
+# # symbol = 'FUT_FTL_200112_DIMOS_SHA'
+#
+# # To auth with user/password when using  cluster
+# AuthCreds = namedtuple('AuthCreds', 'user password')
+# register_get_auth_hook(lambda host, app_name, database_name: AuthCreds('user', 'password'))
+# at = arctic.Arctic('mongodb://localhost:27217')
+# lib = at['test_lib']
+# symbol = 'sym_0_ids'
+# query = build_query(lib, symbol)
+# expl = lib._collection.find(query, sort=[('segment', pymongo.ASCENDING)]).explain()
+# pprint(expl['queryPlanner'])
+#
+# bench_sym(lib, 'sym_0', iterations=5000)
+# bench_sym(lib, 'sym_0_ids', iterations=5000)
+# bench_sym(lib, 'sym_0_shas', iterations=5000)
+#

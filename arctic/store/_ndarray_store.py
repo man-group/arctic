@@ -243,6 +243,7 @@ class NdarrayStore(object):
 
         spec['segment'] = {'$lt': to_index}
 
+
         segment_count = None
         if from_index is not None:
             spec['segment']['$gte'] = from_index
