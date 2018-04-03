@@ -7,7 +7,7 @@ from pprint import pprint
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from pymongo import ASCENDING
+from pymongo import ASCENDING, DESCENDING
 
 import arctic
 from arctic.store.fw_pointers import WITH_ID, WITH_SHA, LEGACY, do_drop_index, do_create_index, IndexSpec
@@ -72,8 +72,8 @@ def get_test_symbols(num_symbols, base_sym_name='sym'):
 def write_test_symbols(lib, test_symbols, nrows=None, ncols=None, data_df=None):
     logging.info('Populating the test symbols')
     for sym_name in test_symbols:
-        lib.write(sym_name + '_ids', data_df if data_df is not None else get_random_df(nrows, ncols), fw_pointers=arctic.store.fw_pointers.WITH_ID)
-        lib.write(sym_name + '_shas', data_df if data_df is not None else get_random_df(nrows, ncols), fw_pointers=arctic.store.fw_pointers.WITH_SHA)
+        lib.write(sym_name + '_ids', data_df if data_df is not None else get_random_df(nrows, ncols), fw_pointers=WITH_ID)
+        lib.write(sym_name + '_shas', data_df if data_df is not None else get_random_df(nrows, ncols), fw_pointers=WITH_SHA)
         lib.write(sym_name, data_df if data_df is not None else get_random_df(nrows, ncols))
     logging.info('Done populating the test symbols')
 
@@ -202,167 +202,5 @@ def do_benchmark(mongo_host, desc, config, quota, force_drop, populate_existing_
                          save_figure_path=fig_save_path)
 
 
-def main():
-    # Specify the scenario of the experiment
-    scenario_config = {
-        'fig_path': os.path.join(os.path.expanduser('~'), 'Documents', 'results_arctic'),
-
-        # Existing Data
-        'existing_large_num': 1,
-        'existing_large_dim': (10 * 20000, 12),
-        'existing_small_num': 20,
-        'existing_small_dim': (100, 12),
-
-        # Experiment symbols
-        'test_syms_num': 1,
-        'test_syms_rows': (100,),  # 5000 , 1 * 20000, 10 * 20000, 25 * 20000),
-        'test_syms_cols': 12,
-
-        # Number of iterations
-        'iterations': 10,
-
-        # Experiment read implementation
-        'do_legacy': True,
-        'do_with_ids': True,
-        'do_with_shas': True,
-
-        # Plotting options
-        'plots': [
-            {
-                'fw_pointer_types': (WITH_ID, WITH_SHA, LEGACY),
-                'component': ['read'],
-                'title_prefix': 'Comparison'
-            },
-            {
-                'fw_pointer_types': (LEGACY),
-                'component': ['total', 'read', 'createNumPy', 'decompress'],
-                'title_prefix': 'Breakdown'
-            }
-        ]
-    }
-
-    # Configure authentication
-    register_get_auth_hook(lambda host, app_name, database_name: AuthCreds('user', 'password'))
-    # register_get_auth_hook(lambda host, app_name, database_name: AuthCreds('admin', '???????'))
-
-    # Run the benchmark
-    do_benchmark(
-        mongo_host='localhost:27217',  # single ram disk
-        desc='Deleteme',
-        config=scenario_config,
-        quota=21.0,
-        force_drop=False,
-        populate_existing_data=True,
-        save_figure=True,
-        drop_indexes=[
-            IndexSpec(keys=[('symbol', ASCENDING), ('sha', ASCENDING), ('segment', ASCENDING)], unique=True, background=True),
-            IndexSpec(keys=[('symbol', ASCENDING), ('_id', ASCENDING), ('segment', ASCENDING)], unique=True, background=True),
-        ],
-        create_indexes=[
-            IndexSpec(keys=[('symbol', ASCENDING), ('sha', ASCENDING), ('segment', ASCENDING)], unique=True, background=True),
-            # IndexSpec(keys=[('symbol', ASCENDING), ('_id', ASCENDING), ('segment', ASCENDING)], unique=True, background=True)
-        ],
-        exit_after_init=False
-    )
-
-
-if __name__ == '__main__':
-    main()
-
-
-
-# mongo_host = '0.switch.research.mongo.res.ahl:27017'  # research cluster
-# desc = 'Research Mongo Cluster'
-
-# mongo_host = 'dlondbahls80:27201'  # new dev cluster
-# desc = 'Dev Mongo Cluster'
-
-# mongo_host = 'dpediaditakis.hn.ada.res.ahl:27017'  # local cluster
-# desc = 'Mongo iscsi Cluster'
-
-# mongo_host = 'dpediaditakis.hn.ada.res.ahl:27117'  # single
-# desc = 'Mongo iscsi Single'
-
-# mongo_host = 'dpediaditakis.hn.ada.res.ahl:27217'  # single ram disk
-# desc = 'Mongo RamDisk Single'
-
-
-# import time
-# import numpy as np
-# import pymongo
-# from ahl.mongo import Mongoose
-#
-# WITH_ID = 'fw_pointers_with_id'
-# WITH_SHA = 'fw_pointers_with_sha'
-#
-# def build_query(lib, symbol):
-#     version = lib._versions.find_one({'symbol': symbol}, sort=[('version', pymongo.DESCENDING)])
-#     query = {'symbol': symbol}
-#     if WITH_ID in version:
-#         query['_id'] = {'$in': version[WITH_ID]}
-#     elif WITH_SHA in version:
-#         query['sha'] = {'$in': version[WITH_SHA]}
-#     else:
-#         query['parent'] = version.get('base_version_id', version['_id'])
-#     query['segment'] = {'$lt': version['up_to']}
-#     return query
-#
-#
-# def bench_sym(lib, symbol, iterations=100):
-#     query = build_query(lib, symbol)
-#     measurements = []
-#     for i in range(iterations):
-#         start = time.time()
-#         cursor = lib._collection.find(query, sort=[('segment', pymongo.ASCENDING)])
-#         res = list(cursor)
-#         delta = time.time() - start
-#         measurements.append(delta)
-#         # print len(res)
-#     print "\n\n{0}\nMean={1:.4f}\nStdev={2:.4f}\nMin={3:.4f}\nMax={4:.4f}".format(symbol,
-#                                                                                   np.mean(measurements),
-#                                                                                   np.std(measurements),
-#                                                                                   np.min(measurements),
-#                                                                                   np.max(measurements))
-
-
-# tdinew_res = Mongoose('research')['oneminute.TDI1MIN_NEW']
-# # symbol = 'FUT_FTL_200112_DIMOS'
-# # syms = tdinew_res.list_symbols()
-# # symbol = syms[0]
-#
-# bench_sym(tdinew_res, 'FUT_FTL_200112_DIMOS', iterations=500)
-# bench_sym(tdinew_res, 'FUT_FTL_200112_DIMOS_SHA', iterations=500)
-# bench_sym(tdinew_res, 'FUT_FTL_200112', iterations=500)
-
-
-
-
-
-# import arctic
-# import pymongo
-# from collections import namedtuple
-# from arctic.hooks import register_get_auth_hook
-# from pprint import pprint
-# from ahl.mongo.auth import get_auth
-#
-#
-# # register_get_auth_hook(get_auth)
-# # lib = Mongoose('research')['oneminute.TDI1MIN_NEW']
-# # symbol = 'FUT_FTL_200112'
-# # symbol = 'FUT_FTL_200112_DIMOS'
-# # symbol = 'FUT_FTL_200112_DIMOS_SHA'
-#
-# # To auth with user/password when using  cluster
-# AuthCreds = namedtuple('AuthCreds', 'user password')
-# register_get_auth_hook(lambda host, app_name, database_name: AuthCreds('user', 'password'))
-# at = arctic.Arctic('mongodb://localhost:27217')
-# lib = at['test_lib']
-# symbol = 'sym_0_ids'
-# query = build_query(lib, symbol)
-# expl = lib._collection.find(query, sort=[('segment', pymongo.ASCENDING)]).explain()
-# pprint(expl['queryPlanner'])
-#
-# bench_sym(lib, 'sym_0', iterations=5000)
-# bench_sym(lib, 'sym_0_ids', iterations=5000)
-# bench_sym(lib, 'sym_0_shas', iterations=5000)
-#
+def setup_auth(username, password):
+    register_get_auth_hook(lambda host, app_name, database_name: AuthCreds(username, password))
