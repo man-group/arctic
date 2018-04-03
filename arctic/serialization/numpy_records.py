@@ -188,7 +188,7 @@ class DataFrameSerializer(PandasSerializer):
         if isinstance(df.columns, MultiIndex):
             ix_vals, ix_names, _ = _multi_index_to_records(df.columns, False)
             vals = [list(val) for val in ix_vals]
-            str_vals = [map(str, val) for val in ix_vals]
+            str_vals = [list(map(str, val)) for val in ix_vals]
             if vals != str_vals:
                 log.info("Dataframe column names converted to strings")
             return columns, column_vals, {"names": list(ix_names), "values": str_vals}
