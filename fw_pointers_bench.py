@@ -1,21 +1,19 @@
-import arctic
-import pandas as pd
-import numpy as np
-import random
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+import os
 import logging
-
-from arctic.store.fw_pointers import WITH_ID, WITH_SHA, LEGACY
-
-logging.basicConfig(level=logging.INFO)
-from arctic.hooks import register_get_auth_hook
+import random
+from collections import namedtuple
+from pprint import pprint
 
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from pymongo import ASCENDING
 
-from collections import namedtuple
+import arctic
+from arctic.store.fw_pointers import WITH_ID, WITH_SHA, LEGACY, do_drop_index, do_create_index, IndexSpec
+from arctic.hooks import register_get_auth_hook
 
-import os
-from pprint import pprint
+logging.basicConfig(level=logging.INFO)
 
 # To auth with user/password when using  cluster
 AuthCreds = namedtuple('AuthCreds', 'user password')
@@ -32,13 +30,20 @@ def get_random_df(nrows, ncols):
     return ret_df
 
 
-def initialize_library(mongo_host, lib_name='test_lib', init_quota=None, force_drop=False):
+def initialize_library(mongo_host, lib_name='test_lib', init_quota=None, force_data_drop=False, 
+                       drop_indexes=None, create_indexes=None):
     at = arctic.Arctic('mongodb://' + mongo_host)  # single on ramdisk
-    if force_drop:
+    if force_data_drop:
         at.delete_library(lib_name)
         at.initialize_library(lib_name, arctic.VERSION_STORE, segment='month')
 
     lib = at.get_library(lib_name)
+
+    for idx_spec in (drop_indexes if drop_indexes else []):
+        do_drop_index(lib._collection, idx_spec)
+
+    for idx_spec in (create_indexes if create_indexes else []):
+        do_create_index(lib._collection, idx_spec)
 
     if init_quota:
         at.set_quota(lib_name, int(init_quota*1024**3))
@@ -144,14 +149,17 @@ DEFAULT_PLOT_CONFIG = {
     'title_prefix': 'Only Arctic read'
 }
 
-def do_benchmark(mongo_host, desc, config, quota, force_drop, populate_existing_data, save_figure):
+
+def do_benchmark(mongo_host, desc, config, quota, force_drop, populate_existing_data, save_figure,
+                 drop_indexes=None, create_indexes=None, exit_after_init=False):
     fig_save_path = None
     if save_figure:
         fig_save_path = os.path.join('/users/is/dpediaditakis/Documents/results_arctic', desc.replace(' ', '_'))
         if not os.path.exists(fig_save_path):
             os.makedirs(fig_save_path)
 
-    lib = initialize_library(mongo_host, lib_name='test_lib', init_quota=quota, force_drop=bool(force_drop))
+    lib = initialize_library(mongo_host, lib_name='test_lib', init_quota=quota, force_data_drop=bool(force_drop),
+                             drop_indexes=drop_indexes, create_indexes=create_indexes)
 
     if populate_existing_data:
         # Some large
@@ -167,6 +175,9 @@ def do_benchmark(mongo_host, desc, config, quota, force_drop, populate_existing_
                                     base_sym_name='existing_sym_small',
                                     data_df=get_random_df(*config.get('existing_small_dim', (100, 12)))
                                     )
+    # Stop here if flag is set, after initializing library and populating witht he existing data
+    if exit_after_init:
+        return
 
     test_syms = get_test_symbols(num_symbols=config.get('test_syms_num', 10), base_sym_name='sym')
 
@@ -192,8 +203,9 @@ def do_benchmark(mongo_host, desc, config, quota, force_drop, populate_existing_
 
 
 def main():
-    my_config = {
-        'fig_path': '/users/is/dpediaditakis/Documents/results_arctic',
+    # Specify the scenario of the experiment
+    scenario_config = {
+        'fig_path': os.path.join(os.path.expanduser('~'), 'Documents', 'results_arctic'),
 
         # Existing Data
         'existing_large_num': 1,
@@ -207,7 +219,7 @@ def main():
         'test_syms_cols': 12,
 
         # Number of iterations
-        'iterations': 1000,
+        'iterations': 10,
 
         # Experiment read implementation
         'do_legacy': True,
@@ -229,59 +241,35 @@ def main():
         ]
     }
 
+    # Configure authentication
     register_get_auth_hook(lambda host, app_name, database_name: AuthCreds('user', 'password'))
-    # register_get_auth_hook(lambda host, app_name, database_name: AuthCreds('admin', 'bongodev1'))
     # register_get_auth_hook(lambda host, app_name, database_name: AuthCreds('admin', '???????'))
-    
+
+    # Run the benchmark
     do_benchmark(
-        mongo_host='dpediaditakis.hn.ada.res.ahl:27217',  # single ram disk
-        desc='Mongo RamDisk Single Deleteme',
-        config=my_config,
+        mongo_host='localhost:27217',  # single ram disk
+        desc='Deleteme',
+        config=scenario_config,
         quota=21.0,
-        force_drop=True,
+        force_drop=False,
         populate_existing_data=True,
-        save_figure=True)
+        save_figure=True,
+        drop_indexes=[
+            IndexSpec(keys=[('symbol', ASCENDING), ('sha', ASCENDING), ('segment', ASCENDING)], unique=True, background=True),
+            IndexSpec(keys=[('symbol', ASCENDING), ('_id', ASCENDING), ('segment', ASCENDING)], unique=True, background=True),
+        ],
+        create_indexes=[
+            IndexSpec(keys=[('symbol', ASCENDING), ('sha', ASCENDING), ('segment', ASCENDING)], unique=True, background=True),
+            # IndexSpec(keys=[('symbol', ASCENDING), ('_id', ASCENDING), ('segment', ASCENDING)], unique=True, background=True)
+        ],
+        exit_after_init=False
+    )
 
 
 if __name__ == '__main__':
     main()
 
-# my_config = {
-#     'fig_path': '/users/is/dpediaditakis/Documents/results_arctic',
-# 
-#     # Existing Data
-#     'existing_large_num': 100,
-#     'existing_large_dim': (10 * 20000, 12),
-#     'existing_small_num': 200000,
-#     'existing_small_dim': (10 * 20000, 12),
-# 
-#     # Experiment symbols
-#     'test_syms_num': 25,
-#     'test_syms_rows': (100, 5000, 1 * 20000, 10 * 20000, 25 * 20000),
-#     'test_syms_cols': 12,
-# 
-#     # Number of iterations
-#     'iterations': 10,
-# 
-#     # Experiment read implementation
-#     'do_legacy': True,
-#     'do_with_ids': True,
-#     'do_with_shas': True
-# 
-#     # Plotting options
-#     'plots': [
-#         {
-#             'fw_pointer_types': (WITH_ID, WITH_SHA, LEGACY),
-#             'component': ['read'],
-#             'title_prefix': 'Comparison'
-#         },
-#         {
-#             'fw_pointer_types': (LEGACY),
-#             'component': ['total', 'read', 'createNumPy', 'decompress'],
-#             'title_prefix': 'Breakdown'
-#         }
-#     ]
-# }
+
 
 # mongo_host = '0.switch.research.mongo.res.ahl:27017'  # research cluster
 # desc = 'Research Mongo Cluster'

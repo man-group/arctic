@@ -144,13 +144,13 @@ class NdarrayStore(object):
                                      ('parent', pymongo.ASCENDING),
                                      ('segment', pymongo.ASCENDING)], unique=True, background=True)
 
-            collection.create_index([('symbol', pymongo.ASCENDING),
-                                     ('_id', pymongo.ASCENDING),
-                                     ('segment', pymongo.ASCENDING)], unique=True, background=True)
-
-            collection.create_index([('symbol', pymongo.ASCENDING),
-                                     ('sha', pymongo.ASCENDING),
-                                     ('segment', pymongo.ASCENDING)], unique=True, background=True)
+            # collection.create_index([('symbol', pymongo.ASCENDING),
+            #                          ('_id', pymongo.ASCENDING),
+            #                          ('segment', pymongo.ASCENDING)], unique=True, background=True)
+            #
+            # collection.create_index([('symbol', pymongo.ASCENDING),
+            #                          ('sha', pymongo.ASCENDING),
+            #                          ('segment', pymongo.ASCENDING)], unique=True, background=True)
         except OperationFailure as e:
             if "can't use unique indexes" in str(e):
                 return

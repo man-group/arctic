@@ -106,7 +106,7 @@ class Arctic(object):
             self.mongo_host = mongo_host
         else:
             self.__conn = mongo_host
-            # Workaround for: https://jira.mongodb.org/browse/PYTHON-927
+             # Workaround for: https://jira.mongodb.org/browse/PYTHON-927
             mongo_host.server_info()
             self.mongo_host = ",".join(["{}:{}".format(x[0], x[1]) for x in mongo_host.nodes])
             self._adminDB = self._conn.admin
