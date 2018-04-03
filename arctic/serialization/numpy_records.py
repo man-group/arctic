@@ -28,9 +28,9 @@ def _to_primitive(arr, string_max_len=None):
     return arr
 
 
-def _multi_index_to_records(df_len, index):
+def _multi_index_to_records(index, empty_index):
     # array of tuples to numpy cols. copy copy copy
-    if df_len > 0:
+    if not empty_index:
         ix_vals = list(map(np.array, [index.get_level_values(i) for i in range(index.nlevels)]))
     else:
         # empty multi index has no size, create empty arrays for recarry..
@@ -54,7 +54,7 @@ class PandasSerializer(object):
         index_tz = None
 
         if isinstance(index, MultiIndex):
-            ix_vals, index_names, index_tz = _multi_index_to_records(len(df), index)
+            ix_vals, index_names, index_tz = _multi_index_to_records(index, len(df) == 0)
         else:
             ix_vals = [index.values]
             index_names = list(index.names)
@@ -186,7 +186,7 @@ class DataFrameSerializer(PandasSerializer):
         column_vals = [df[c].values for c in df.columns]
 
         if isinstance(df.columns, MultiIndex):
-            ix_vals, ix_names, _ = _multi_index_to_records(len(df), df.columns)
+            ix_vals, ix_names, _ = _multi_index_to_records(df.columns, False)
             vals = [list(val) for val in ix_vals]
             str_vals = [map(str, val) for val in ix_vals]
             if vals != str_vals:
@@ -198,14 +198,18 @@ class DataFrameSerializer(PandasSerializer):
     def deserialize(self, item):
         index = self._index_from_records(item)
         column_fields = [x for x in item.dtype.names if x not in item.dtype.metadata['index']]
+        multi_column = item.dtype.metadata.get('multi_column')
         if len(item) == 0:
             rdata = item[column_fields] if len(column_fields) > 0 else None
-            return DataFrame(rdata, index=index)
+            if multi_column is not None:
+                columns = MultiIndex.from_arrays(multi_column["values"], names=multi_column["names"])
+                return DataFrame(rdata, index=index, columns=columns)
+            else:
+                return DataFrame(rdata, index=index)
 
         columns = item.dtype.metadata['columns']
         df = DataFrame(data=item[column_fields], index=index, columns=columns)
 
-        multi_column = item.dtype.metadata.get('multi_column')
         if multi_column is not None:
             df.columns = MultiIndex.from_arrays(multi_column["values"], names=multi_column["names"])
 
