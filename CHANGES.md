@@ -2,6 +2,7 @@
 
 ### 1.63
   * Bugfix: #521 Clang 6.0 compiler support on macOS
+  * Feature: #510 VersionStore: support multi column in pandas DataFrames
 
 ### 1.62 (2018-3-14)
   * Bugfix: #517 VersionStore: append does not duplicate data in certain corner cases

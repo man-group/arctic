@@ -210,6 +210,108 @@ STRAT F22 ASD 201312'''),
     assert np.all(expected.index.names == saved_df.index.names)
 
 
+def test_append_pandas_multi_columns_dataframe(library):
+    columns = pd.MultiIndex.from_product([["bar", "baz", "foo", "qux"], ["one", "two"]], names=["first", "second"])
+    df = pd.DataFrame(np.random.randn(2, 8), index=[0, 1], columns=columns)
+    df2 = pd.DataFrame(np.random.randn(2, 8), index=[2, 3], columns=columns)
+    library.write('test', df)
+    library.append('test', df2)
+
+    saved = library.read('test')
+
+    df = df.append(df2)
+    assert df.columns.equal_levels(saved.data.columns)
+    assert np.all(saved.data.columns == df.columns)
+    assert np.all(saved.data.columns.names == df.columns.names)
+    assert np.all(saved.data.index == df.index)
+    assert np.all(saved.data.values == df.values)
+
+
+def test_append_pandas_multi_columns_dataframe_new_column(library):
+    columns = pd.MultiIndex.from_product([["bar", "baz", "foo", "qux"], ["one", "two"]], names=["first", "second"])
+    df = pd.DataFrame(np.random.randn(2, 8), index=[0, 1], columns=columns)
+    df2 = pd.DataFrame(np.random.randn(2, 8), index=[2, 3], columns=columns)
+    library.write('test', df)
+    df2['bar', 'three'] = np.random.randn(2, 1)
+    library.append('test', df2)
+
+    saved = library.read('test')
+
+    df = df.append(df2)
+    columns = list(itertools.product(["bar", "baz", "foo", "qux"], ["one", "two"]))
+    assert np.all(saved.data[columns] == df[columns])
+    assert np.all(saved.data['bar', 'three'][2:] == df['bar', 'three'][2:])
+
+
+def test_save_read_pandas_multi_columns_empty_dataframe(library):
+    columns = pd.MultiIndex.from_product([["bar", "baz", "foo", "qux"], ["one", "two"]], names=["first", "second"])
+    df = pd.DataFrame([], columns=columns)
+    library.write('test', df)
+
+    saved = library.read('test')
+
+    assert df.columns.equal_levels(saved.data.columns)
+    assert np.all(saved.data.columns == df.columns)
+    assert np.all(saved.data.columns.names == df.columns.names)
+    assert np.all(saved.data.index == df.index)
+    assert np.all(saved.data.values == df.values)
+
+
+def test_save_read_pandas_multi_columns_dataframe(library):
+    columns = pd.MultiIndex.from_product([["bar", "baz", "foo", "qux"], ["one", "two"]], names=["first", "second"])
+    df = pd.DataFrame(np.random.randn(2, 8), columns=columns)
+    library.write('test', df)
+
+    saved = library.read('test')
+
+    assert df.columns.equal_levels(saved.data.columns)
+    assert np.all(saved.data.columns == df.columns)
+    assert np.all(saved.data.columns.names == df.columns.names)
+    assert np.all(saved.data.index == df.index)
+    assert np.all(saved.data.values == df.values)
+
+
+def test_save_read_pandas_multi_columns_no_names_dataframe(library):
+    columns = pd.MultiIndex.from_product([["bar", "baz", "foo", "qux"], ["one", "two"]])
+    df = pd.DataFrame(np.random.randn(2, 8), columns=columns)
+    library.write('test', df)
+
+    saved = library.read('test')
+
+    assert df.columns.equal_levels(saved.data.columns)
+    assert np.all(saved.data.columns == df.columns)
+    assert list(saved.data.columns.names) == ["level_0", "level_1"]
+    assert np.all(saved.data.index == df.index)
+    assert np.all(saved.data.values == df.values)
+
+
+def test_save_read_pandas_multi_columns_dataframe_with_int_levels(library):
+    columns = pd.MultiIndex.from_product([[1, 2, 'a'], ['c', 5]])
+    df = pd.DataFrame([[9, 2, 8, 1, 2, 3], [3, 4, 2, 9, 10, 11]], index=['x', 'y'], columns=columns)
+    library.write('test', df)
+
+    saved = library.read('test')
+
+    # Check that column names were converted to string
+    assert [list(sublevel) for sublevel in saved.data.columns.levels] == [list(map(str, sublevel)) for sublevel in df.columns.levels]
+    assert np.all(saved.data.index == df.index)
+    assert np.all(saved.data.values == df.values)
+
+
+def test_save_read_multi_index_and_multi_columns_dataframe(library):
+    columns = pd.MultiIndex.from_product([["bar", "baz", "foo", "qux"], ["one", "two"]])
+    index = pd.MultiIndex.from_product([["x", "y", "z"], ["a", "b"]])
+    df = pd.DataFrame(np.random.randn(6, 8), index=index, columns=columns)
+    library.write('test', df)
+
+    saved = library.read('test')
+
+    assert isinstance(saved.data.index, df.index.__class__)
+    assert np.all(saved.data.index == df.index)
+    assert np.all(saved.data.columns == df.columns)
+    assert np.all(saved.data == df)
+
+
 def test_append_pandas_dataframe(library):
     df = DataFrame(data=[1, 2, 3], index=DatetimeIndex(start='1/1/2011', periods=3, freq='H'))
     df2 = DataFrame(data=[4, 5, 6], index=DatetimeIndex(start='2/1/2011', periods=3, freq='H'))

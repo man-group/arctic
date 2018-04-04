@@ -28,39 +28,45 @@ def _to_primitive(arr, string_max_len=None):
     return arr
 
 
+def _multi_index_to_records(index, empty_index):
+    # array of tuples to numpy cols. copy copy copy
+    if not empty_index:
+        ix_vals = list(map(np.array, [index.get_level_values(i) for i in range(index.nlevels)]))
+    else:
+        # empty multi index has no size, create empty arrays for recarry..
+        ix_vals = [np.array([]) for n in index.names]
+    index_names = list(index.names)
+    count = 0
+    for i, n in enumerate(index_names):
+        if n is None:
+            index_names[i] = 'level_%d' % count
+            count += 1
+            log.info("Level in MultiIndex has no name, defaulting to %s" % index_names[i])
+    index_tz = [get_timezone(i.tz) if isinstance(i, DatetimeIndex) else None for i in index.levels]
+    return ix_vals, index_names, index_tz
+
+
 class PandasSerializer(object):
+
     def _index_to_records(self, df):
         metadata = {}
         index = df.index
+        index_tz = None
 
         if isinstance(index, MultiIndex):
-            # array of tuples to numpy cols. copy copy copy
-            if len(df) > 0:
-                ix_vals = list(map(np.array, [index.get_level_values(i) for i in range(index.nlevels)]))
-            else:
-                # empty multi index has no size, create empty arrays for recarry..
-                ix_vals = [np.array([]) for n in index.names]
+            ix_vals, index_names, index_tz = _multi_index_to_records(index, len(df) == 0)
         else:
             ix_vals = [index.values]
+            index_names = list(index.names)
+            if index_names[0] is None:
+                index_names = ['index']
+                log.info("Index has no name, defaulting to 'index'")
+            if isinstance(index, DatetimeIndex) and index.tz is not None:
+                index_tz = get_timezone(index.tz)
 
-        count = 0
-        index_names = list(index.names)
-        if isinstance(index, MultiIndex):
-            for i, n in enumerate(index_names):
-                if n is None:
-                    index_names[i] = 'level_%d' % count
-                    count += 1
-                    log.info("Level in MultiIndex has no name, defaulting to %s" % index_names[i])
-        elif index_names[0] is None:
-            index_names = ['index']
-            log.info("Index has no name, defaulting to 'index'")
-
+        if index_tz is not None:
+            metadata['index_tz'] = index_tz
         metadata['index'] = index_names
-
-        if isinstance(index, DatetimeIndex) and index.tz is not None:
-            metadata['index_tz'] = get_timezone(index.tz)
-        elif isinstance(index, MultiIndex):
-            metadata['index_tz'] = [get_timezone(i.tz) if isinstance(i, DatetimeIndex) else None for i in index.levels]
 
         return index_names, ix_vals, metadata
 
@@ -102,8 +108,10 @@ class PandasSerializer(object):
         """
 
         index_names, ix_vals, metadata = self._index_to_records(df)
-        columns, column_vals = self._column_data(df)
+        columns, column_vals, multi_column = self._column_data(df)
 
+        if multi_column is not None:
+            metadata['multi_column'] = multi_column
         metadata['columns'] = columns
         names = index_names + columns
 
@@ -114,6 +122,7 @@ class PandasSerializer(object):
         dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
                          metadata=metadata)
 
+        # The argument names is ignored when dtype is passed
         rtn = np.rec.fromarrays(arrays, dtype=dtype, names=names)
         # For some reason the dtype metadata is lost in the line above
         # and setting rtn.dtype to dtype does not preserve the metadata
@@ -156,7 +165,7 @@ class SeriesSerializer(PandasSerializer):
             log.info("Series has no name, defaulting to 'values'")
         columns = [s.name if s.name else 'values']
         column_vals = [s.values]
-        return columns, column_vals
+        return columns, column_vals, None
 
     def deserialize(self, item):
         index = self._index_from_records(item)
@@ -175,17 +184,36 @@ class DataFrameSerializer(PandasSerializer):
         if columns != list(df.columns):
             log.info("Dataframe column names converted to strings")
         column_vals = [df[c].values for c in df.columns]
-        return columns, column_vals
+
+        if isinstance(df.columns, MultiIndex):
+            ix_vals, ix_names, _ = _multi_index_to_records(df.columns, False)
+            vals = [list(val) for val in ix_vals]
+            str_vals = [list(map(str, val)) for val in ix_vals]
+            if vals != str_vals:
+                log.info("Dataframe column names converted to strings")
+            return columns, column_vals, {"names": list(ix_names), "values": str_vals}
+        else:
+            return columns, column_vals, None
 
     def deserialize(self, item):
         index = self._index_from_records(item)
         column_fields = [x for x in item.dtype.names if x not in item.dtype.metadata['index']]
+        multi_column = item.dtype.metadata.get('multi_column')
         if len(item) == 0:
             rdata = item[column_fields] if len(column_fields) > 0 else None
-            return DataFrame(rdata, index=index)
+            if multi_column is not None:
+                columns = MultiIndex.from_arrays(multi_column["values"], names=multi_column["names"])
+                return DataFrame(rdata, index=index, columns=columns)
+            else:
+                return DataFrame(rdata, index=index)
 
         columns = item.dtype.metadata['columns']
-        return DataFrame(data=item[column_fields], index=index, columns=columns)
+        df = DataFrame(data=item[column_fields], index=index, columns=columns)
+
+        if multi_column is not None:
+            df.columns = MultiIndex.from_arrays(multi_column["values"], names=multi_column["names"])
+
+        return df
 
     def serialize(self, item, string_max_len=None):
         return self._to_records(item, string_max_len)
