@@ -293,7 +293,7 @@ def test_save_read_pandas_multi_columns_dataframe_with_int_levels(library):
     saved = library.read('test')
 
     # Check that column names were converted to string
-    assert [list(sublevel) for sublevel in saved.data.columns.levels] == [map(str, sublevel) for sublevel in df.columns.levels]
+    assert [list(sublevel) for sublevel in saved.data.columns.levels] == [list(map(str, sublevel)) for sublevel in df.columns.levels]
     assert np.all(saved.data.index == df.index)
     assert np.all(saved.data.values == df.values)
 
