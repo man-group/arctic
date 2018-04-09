@@ -141,6 +141,8 @@ def compressarrHC(pStrList):
     return _compressarr(pStrList, LZ4_compressHC)
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef _compressarr(pStrList, int (*Fnptr_LZ4_compress)(const char *, char *, int) nogil):
     
     if len(pStrList) == 0:
