@@ -1,3 +1,5 @@
+import time
+
 from mock import patch, ANY, call
 
 from arctic.auth import Credential
@@ -12,8 +14,7 @@ def test_prune_versions_symbol(mongo_host, library, library_name):
             patch('pymongo.database.Database.authenticate', return_value=True):
 
         run_as_main(mpv.main, '--host', mongo_host, '--library', library_name, '--symbols', 'sym1,sym2')
-        prune_versions.assert_has_calls([call(ANY, 'sym1', 10),
-                                         call(ANY, 'sym2', 10), ])
+        prune_versions.assert_has_calls([call(ANY, ['sym1', 'sym2'], 10)])
 
 
 def test_prune_versions_full(mongo_host, library, library_name):
@@ -37,3 +38,40 @@ def test_prune_versions_full(mongo_host, library, library_name):
         library.delete_snapshot('snap1')
         run_as_main(mpv.main, '--host', mongo_host, '--library', library_name, '--keep-mins', 0)
         assert [x['version'] for x in library.list_versions('symbol')] == [3]
+
+
+def test_keep_recent_snapshots(library):
+    library.write("cherry", "blob")
+    half_a_day_ago = time.time() - (3600 * 12.)
+    with patch('time.time', return_value=half_a_day_ago):
+        library.snapshot("snappy")
+    library._snapshots.delete_one({"name": "snappy"})
+
+    mpv.prune_versions(library, ["cherry"], 10)
+
+    assert len(library._versions.find_one({"symbol": "cherry"}).get("parent", [])) == 1
+
+
+def test_fix_broken_snapshot_references(library):
+    library.write("cherry", "blob")
+    one_day_ago = time.time() - (3600 * 24.) - 10  # make sure we are a few seconds before 24 hours
+    with patch('time.time', return_value=one_day_ago):
+        library.snapshot("snappy")
+    library._snapshots.delete_one({"name": "snappy"})
+
+    mpv.prune_versions(library, ["cherry"], 10)
+
+    assert library._versions.find_one({"symbol": "cherry"}).get("parent", []) == []
+
+
+def test_keep_only_one_version(library):
+    library.write("cherry", "blob")
+    library.write("cherry", "blob")
+    one_day_ago = time.time() - (3600 * 24.) - 10  # make sure we are a few seconds before 24 hours
+    with patch('time.time', return_value=one_day_ago):
+        library.snapshot("snappy")
+    library._snapshots.delete_one({"name": "snappy"})
+
+    mpv.prune_versions(library, ["cherry"], 0)
+
+    assert len(list(library._versions.find({"symbol": "cherry"}))) == 1

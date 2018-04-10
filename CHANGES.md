@@ -1,6 +1,9 @@
 ## Changelog
 
-### 1.63
+### 1.64
+  * Bugfix: #531 arctic_prune_versions: clean broken snapshot references before pruning
+
+### 1.63 (2018-04-06)
   * Bugfix: #521 Clang 6.0 compiler support on macOS
   * Feature: #510 VersionStore: support multi column in pandas DataFrames
 
