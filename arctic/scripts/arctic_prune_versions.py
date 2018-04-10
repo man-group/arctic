@@ -10,8 +10,12 @@ from .utils import do_db_auth, setup_logging
 logger = logging.getLogger(__name__)
 
 
-def prune_versions(lib, symbol, keep_mins):
-    lib._prune_previous_versions(symbol, keep_mins=keep_mins)
+def prune_versions(lib, symbols, keep_mins):
+    logger.info("Fixing snapshot pointers")
+    lib._cleanup_orphaned_versions(dry_run=False)
+    for symbol in symbols:
+        logger.info("Pruning %s" % symbol)
+        lib._prune_previous_versions(symbol, keep_mins=keep_mins)
 
 
 def main():
@@ -52,9 +56,7 @@ def main():
         symbols = lib.list_symbols(all_symbols=True)
         logger.info("Found %s symbols" % len(symbols))
 
-    for s in symbols:
-        logger.info("Pruning %s" % s)
-        prune_versions(lib, s, opts.keep_mins)
+    prune_versions(lib, symbols, opts.keep_mins)
     logger.info("Done")
 
 
