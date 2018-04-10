@@ -27,6 +27,8 @@ import platform
 
 
 link_args = ['-fopenmp']
+# Avoid compiling error with prange. Similar to http://stackoverflow.com/questions/36577182/unable-to-assign-value-to-array-in-prange
+compile_args = ['-fopenmp', '-fpermissive']
 
 if platform.system().lower() == 'darwin':
     # clang on macOS does not work with OpenMP
@@ -50,6 +52,9 @@ if platform.system().lower() == 'darwin':
 
     if 'clang' in cc:
         link_args = ['-fopenmp=libomp']
+elif platform.system().lower() == 'windows':
+    compile_args = ['/openmp']
+    link_args = []
 
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672
@@ -115,7 +120,7 @@ def extensions():
     from Cython.Build import cythonize
     return cythonize(Extension('arctic._compress',
                                sources=["src/_compress.pyx", "src/lz4.c", "src/lz4hc.c"],
-                               extra_compile_args=['-fopenmp', '-fpermissive'], # Avoid compiling error with prange. Similar to http://stackoverflow.com/questions/36577182/unable-to-assign-value-to-array-in-prange
+                               extra_compile_args=compile_args,
                                extra_link_args=link_args))
 
 
