@@ -2,6 +2,7 @@
 
 ### 1.64
   * Bugfix: #531 arctic_prune_versions: clean broken snapshot references before pruning
+  * Feature: #490 add support to numpy 1.14
 
 ### 1.63 (2018-04-06)
   * Bugfix: #521 Clang 6.0 compiler support on macOS

@@ -139,7 +139,7 @@ setup(
     ext_modules=defer_cythonize(extensions),
     setup_requires=["six",
                     "cython",
-                    "numpy<=1.13.3",
+                    "numpy",
                     "setuptools-git",
                    ],
     install_requires=["cython",
