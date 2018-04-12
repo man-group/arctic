@@ -248,15 +248,10 @@ class NdarrayStore(object):
         else:
             segment_count = version.get('segment_count', None)
 
-        segments = []
+        data = bytearray()
         i = -1
         for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
-            segments.append(decompress(x['data']) if x['compressed'] else x['data'])
-
-        data = b''.join(segments)
-
-        # free up memory from initial copy of data
-        del segments
+            data.extend(decompress(x['data']) if x['compressed'] else x['data'])
 
         # Check that the correct number of segments has been returned
         if segment_count is not None and i + 1 != segment_count:
@@ -264,7 +259,7 @@ class NdarrayStore(object):
                                    symbol, version['version'], segment_count, i + 1, collection.database.name + '.' + collection.name))
 
         dtype = self._dtype(version['dtype'], version.get('dtype_metadata', {}))
-        rtn = np.fromstring(data, dtype=dtype).reshape(version.get('shape', (-1)))
+        rtn = np.frombuffer(data, dtype=dtype).reshape(version.get('shape', (-1)))
         return rtn
 
     def _promote_types(self, dtype, dtype_str):

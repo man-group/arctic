@@ -435,7 +435,8 @@ class TickStore(object):
         rtn = {}
         if doc[VERSION] != 3:
             raise ArcticException("Unhandled document version: %s" % doc[VERSION])
-        rtn[INDEX] = np.cumsum(np.fromstring(decompress(doc[INDEX]), dtype='uint64'))
+        # np.cumsum copies the read-only array created with frombuffer
+        rtn[INDEX] = np.cumsum(np.frombuffer(decompress(doc[INDEX]), dtype='uint64'))
         doc_length = len(rtn[INDEX])
         column_set.update(doc[COLUMNS].keys())
 
@@ -444,7 +445,8 @@ class TickStore(object):
         for c in column_set:
             try:
                 coldata = doc[COLUMNS][c]
-                mask = np.fromstring(decompress(coldata[ROWMASK]), dtype='uint8')
+                # the or below will make a copy of this read-only array
+                mask = np.frombuffer(decompress(coldata[ROWMASK]), dtype='uint8')
                 union_mask = union_mask | mask
             except KeyError:
                 rtn[c] = None
@@ -460,10 +462,13 @@ class TickStore(object):
             try:
                 coldata = doc[COLUMNS][c]
                 dtype = np.dtype(coldata[DTYPE])
-                values = np.fromstring(decompress(coldata[DATA]), dtype=dtype)
+                # values ends up being copied by pandas before being returned to the user. However, we
+                # copy it into a bytearray here for safety.
+                values = np.frombuffer(bytearray(decompress(coldata[DATA])), dtype=dtype)
                 self._set_or_promote_dtype(column_dtypes, c, dtype)
                 rtn[c] = self._empty(rtn_length, dtype=column_dtypes[c])
-                rowmask = np.unpackbits(np.fromstring(decompress(coldata[ROWMASK]),
+                # unpackbits will make a copy of the read-only array created by frombuffer
+                rowmask = np.unpackbits(np.frombuffer(decompress(coldata[ROWMASK]),
                                         dtype='uint8'))[:doc_length].astype('bool')
                 rowmask = rowmask[union_mask]
                 rtn[c][rowmask] = values

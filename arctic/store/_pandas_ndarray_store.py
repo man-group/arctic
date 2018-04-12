@@ -51,7 +51,8 @@ class PandasStore(NdarrayStore):
                                                dtype=INDEX_DTYPE)
             # append to existing index if exists
             if existing_index:
-                existing_index_arr = np.fromstring(decompress(existing_index), dtype=INDEX_DTYPE)
+                # existing_index_arr is read-only but it's never written to
+                existing_index_arr = np.frombuffer(decompress(existing_index), dtype=INDEX_DTYPE)
                 if start > 0:
                     existing_index_arr = existing_index_arr[existing_index_arr['index'] < start]
                 index = np.concatenate((existing_index_arr, index))
@@ -74,7 +75,8 @@ class PandasStore(NdarrayStore):
         with the date_range. As the segment index is (id -> last datetime)
         we need to take care in choosing the correct chunks. """
         if date_range and 'segment_index' in version:
-            index = np.fromstring(decompress(version['segment_index']), dtype=INDEX_DTYPE)
+            # index is read-only but it's never written to
+            index = np.frombuffer(decompress(version['segment_index']), dtype=INDEX_DTYPE)
             dtcol = self._datetime64_index(index)
             if dtcol and len(index):
                 dts = index[dtcol]

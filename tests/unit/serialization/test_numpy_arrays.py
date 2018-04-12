@@ -92,3 +92,12 @@ def test_multi_column_fail():
     with pytest.raises(Exception) as e:
         n.deserialize(a, columns=['A', 'B'])
     assert('Duplicate' in str(e))
+
+
+def test_dataframe_writable_after_objify():
+    f = FrameConverter()
+    df = pd.DataFrame(data={'one': [5, 6, 2]})
+    df = f.objify(f.docify(df))
+    df['one'] = 7
+
+    assert np.all(df['one'].values == np.array([7, 7, 7]))
