@@ -15,6 +15,18 @@ from tests.integration.store.test_version_store import _query
 register_versioned_storage(NdarrayStore)
 
 
+def test_write_new_column_name_to_arctic_1_40_data(ndarray_store_with_uncompressed_write):
+    store = ndarray_store_with_uncompressed_write['store']
+    symbol = ndarray_store_with_uncompressed_write['symbol']
+
+    arr = store.read(symbol).data
+    new_arr = np.array(list(arr) + [(2,)], dtype=[('fgh', '<i8')])
+
+    store.write(symbol, new_arr)
+
+    assert np.all(store.read(symbol).data == new_arr)
+
+
 def test_save_read_simple_ndarray(library):
     ndarr = np.ones(1000)
     library.write('MYARR', ndarr)

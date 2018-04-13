@@ -22,6 +22,16 @@ from tests.util import read_str_as_pandas
 register_versioned_storage(PandasDataFrameStore)
 
 
+def test_write_multi_column_to_arctic_1_40_data(multicolumn_store_with_uncompressed_write):
+    store = multicolumn_store_with_uncompressed_write['store']
+    symbol = multicolumn_store_with_uncompressed_write['symbol']
+
+    df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], index=['x', 'y', 'z'], columns=[[u'a', 'w'], ['a', 'v']])
+    store.write(symbol, df)
+
+    assert np.all(store.read(symbol).data == df)
+
+
 def test_save_read_pandas_series(library):
     s = Series(data=[1, 2, 3], index=[4, 5, 6])
     library.write('pandas', s)
