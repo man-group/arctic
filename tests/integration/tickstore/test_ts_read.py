@@ -45,6 +45,35 @@ def test_read(tickstore_lib):
     assert tickstore_lib._collection.find_one()['c'] == 2
 
 
+def test_read_data_is_modifiable(tickstore_lib):
+    data = [{'ASK': 1545.25,
+                  'ASKSIZE': 1002.0,
+                  'BID': 1545.0,
+                  'BIDSIZE': 55.0,
+                  'CUMVOL': 2187387.0,
+                  'DELETED_TIME': 0,
+                  'INSTRTYPE': 'FUT',
+                  'PRICE': 1545.0,
+                  'SIZE': 1.0,
+                  'TICK_STATUS': 0,
+                  'TRADEHIGH': 1561.75,
+                  'TRADELOW': 1537.25,
+                  'index': 1185076787070},
+                 {'CUMVOL': 354.0,
+                  'DELETED_TIME': 0,
+                  'PRICE': 1543.75,
+                  'SIZE': 354.0,
+                  'TRADEHIGH': 1543.75,
+                  'TRADELOW': 1543.75,
+                  'index': 1185141600600}]
+    tickstore_lib.write('FEED::SYMBOL', data)
+
+    df = tickstore_lib.read('FEED::SYMBOL', columns=['BID', 'ASK', 'PRICE'])
+
+    df[['BID', 'ASK', 'PRICE']] = 7
+    assert np.all(df[['BID', 'ASK', 'PRICE']].values == np.array([[7, 7, 7], [7, 7, 7]]))
+
+
 def test_read_allow_secondary(tickstore_lib):
     data = [{'ASK': 1545.25,
                   'ASKSIZE': 1002.0,

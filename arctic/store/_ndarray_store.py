@@ -62,6 +62,44 @@ def _attempt_update_unchanged(symbol, unchanged_segment_ids, collection, version
             symbol, previous_version['version'], result.matched_count, len(unchanged_segment_ids)))
 
 
+def _resize_with_dtype(arr, dtype):
+    """
+    This function will transform arr into an array with the same type as dtype. It will do this by
+    filling new columns with zeros (or NaNs, if it is a float column). Also, columns that are not
+    in the new dtype will be dropped.
+    """
+    structured_arrays = dtype.names is not None and arr.dtype.names is not None
+    old_columns = set(arr.dtype.names or [])
+    new_columns = set(dtype.names or [])
+
+    # In numpy 1.9 the ndarray.astype method used to handle changes in number of fields. The code below
+    # should replicate the same behaviour the old astype used to have.
+    #
+    # One may be tempted to use np.lib.recfunctions.stack_arrays to implement both this step and the
+    # concatenate that follows but it 2x slower and it requires providing your own default values (instead
+    # of np.zeros).
+    #
+    # Numpy 1.14 supports doing new_arr[old_columns] = arr[old_columns], which is faster than the code below
+    # (in benchmarks it seems to be even slightly faster than using the old astype). However, that is not
+    # supported by numpy 1.9.2.
+    if structured_arrays and (old_columns != new_columns):
+        new_arr = np.zeros(arr.shape, dtype)
+        for c in old_columns & new_columns:
+            new_arr[c] = arr[c]
+
+        # missing float columns should default to nan rather than zero
+        _is_float_type = lambda _dtype: _dtype.type in (np.float32, np.float64)
+        _is_void_float_type = lambda _dtype: _dtype.type == np.void and _is_float_type(_dtype.subdtype[0])
+        _is_float_or_void_float_type = lambda _dtype: _is_float_type(_dtype) or _is_void_float_type(_dtype)
+        _is_float = lambda column: _is_float_or_void_float_type(dtype.fields[column][0])
+        for new_column in filter(_is_float, new_columns - old_columns):
+            new_arr[new_column] = np.nan
+    else:
+        new_arr = arr.astype(dtype)
+
+    return new_arr
+
+
 class NdarrayStore(object):
     """Chunked store for arbitrary ndarrays, supporting append.
 
@@ -210,15 +248,10 @@ class NdarrayStore(object):
         else:
             segment_count = version.get('segment_count', None)
 
-        segments = []
+        data = bytearray()
         i = -1
         for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
-            segments.append(decompress(x['data']) if x['compressed'] else x['data'])
-
-        data = b''.join(segments)
-
-        # free up memory from initial copy of data
-        del segments
+            data.extend(decompress(x['data']) if x['compressed'] else x['data'])
 
         # Check that the correct number of segments has been returned
         if segment_count is not None and i + 1 != segment_count:
@@ -226,7 +259,7 @@ class NdarrayStore(object):
                                    symbol, version['version'], segment_count, i + 1, collection.database.name + '.' + collection.name))
 
         dtype = self._dtype(version['dtype'], version.get('dtype_metadata', {}))
-        rtn = np.fromstring(data, dtype=dtype).reshape(version.get('shape', (-1)))
+        rtn = np.frombuffer(data, dtype=dtype).reshape(version.get('shape', (-1)))
         return rtn
 
     def _promote_types(self, dtype, dtype_str):
@@ -247,6 +280,9 @@ class NdarrayStore(object):
 
         if not dtype:
             dtype = item.dtype
+
+        if (self._dtype(previous_version['dtype']).fields is None) != (dtype.fields is None):
+            raise ValueError("type changes to or from structured array not supported")
         
         if previous_version['up_to'] == 0:
             dtype = dtype
@@ -263,17 +299,10 @@ class NdarrayStore(object):
             version['dtype_metadata'] = dict(dtype.metadata or {})
             version['type'] = self.TYPE
 
-            old_arr = self._do_read(collection, previous_version, symbol).astype(dtype)
-            # missing float columns should default to nan rather than zero
-            old_dtype = self._dtype(previous_version['dtype'])
-            if dtype.names is not None and old_dtype.names is not None:
-                new_columns = set(dtype.names) - set(old_dtype.names)
-                _is_float_type = lambda _dtype: _dtype.type in (np.float32, np.float64)
-                _is_void_float_type = lambda _dtype: _dtype.type == np.void and _is_float_type(_dtype.subdtype[0])
-                _is_float_or_void_float_type = lambda _dtype: _is_float_type(_dtype) or _is_void_float_type(_dtype)
-                _is_float = lambda column: _is_float_or_void_float_type(dtype.fields[column][0])
-                for new_column in filter(_is_float, new_columns):
-                    old_arr[new_column] = np.nan
+            # This function will drop columns read from the previous version if they are not found in the
+            # new append. However, the promote_types will raise an exception in that case and this code
+            # will not be reached.
+            old_arr = _resize_with_dtype(self._do_read(collection, previous_version, symbol), dtype)
 
             item = np.concatenate([old_arr, item])
             version['up_to'] = len(item)
