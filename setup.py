@@ -183,6 +183,7 @@ setup(
         "Programming Language :: Cython",
         "Operating System :: POSIX",
         "Operating System :: MacOS",
+        "Operating System :: Microsoft :: Windows",
         "Topic :: Database",
         "Topic :: Database :: Front-Ends",
         "Topic :: Software Development :: Libraries",
