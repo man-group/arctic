@@ -119,6 +119,7 @@ Arctic currently works with:
 Operating Systems:
  * Linux
  * macOS
+ * Windows 10
 
 ## Acknowledgements
 
