@@ -76,7 +76,7 @@ def test_datetime_roundtrip_est_tz():
 @pytest.mark.parametrize("microseconds,expected", [
     (807000, 1074069004807),
     (807243, 1074069004807),
-    (807675, 1074069004808)
+    (807675, 1074069004807)
 ])
 def test_millisecond_conversion(microseconds, expected):
     pdt = datetime.datetime(2004, 1, 14, 8, 30, 4, microseconds, tzinfo=pytz.utc)
