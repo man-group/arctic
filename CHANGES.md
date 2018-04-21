@@ -1,6 +1,7 @@
 ## Changelog
 
 ### 1.66
+  * Bugfix: #168 Do not allow empty string as a column name
 
 ### 1.65 (2018-04-16)
   * Bugfix: #534 VersionStore: overwriting a symbol with different dtype (but same data format) does not
