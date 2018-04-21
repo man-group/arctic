@@ -23,35 +23,39 @@ from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
 import sys
 import os
+import subprocess
 import platform
-
 
 link_args = ['-fopenmp']
 # Avoid compiling error with prange. Similar to http://stackoverflow.com/questions/36577182/unable-to-assign-value-to-array-in-prange
 compile_args = ['-fopenmp', '-fpermissive']
 
 if platform.system().lower() == 'darwin':
-    # clang on macOS does not work with OpenMP
-    ccs = ["/usr/local/bin/g++-5",
-           "/usr/local/bin/g++-6",
-           "/usr/local/bin/g++-7",
-           "/usr/local/opt/llvm/bin/clang"]
-    cc = None
-    for compiler in ccs:
-        if os.path.isfile(compiler):
-            cc = compiler
-    if cc is None:
-        raise ValueError("You must install clang-6.0 or gcc/g++. You can install with homebrew: brew install gcc or brew install llvm")
-    if 'clang' in cc and os.path.isdir("/usr/local/opt/libomp")==False:
-        raise ValueError("You must also install libomp.  You can install with homebrew: brew install libomp")
-    os.environ["CC"] = cc if 'clang' in cc else cc.replace("g++", "gcc")
-    os.environ["CXX"] = cc
+    # if a recent compiler on PATH (e.g. from anaconda) then let's use that
+    gcc_out = subprocess.check_output(['gcc', '-v'], stderr=subprocess.STDOUT)
+    if b'LLVM' in gcc_out:    
+        # clang on macOS does not work with OpenMP
+        ccs = ["/usr/local/bin/g++-5",
+               "/usr/local/bin/g++-6",
+               "/usr/local/bin/g++-7",
+               "/usr/local/opt/llvm/bin/clang"]
+        cc = None
+        for compiler in ccs:
+            if os.path.isfile(compiler):
+                cc = compiler
+        if cc is None:
+            raise ValueError("You must install clang-6.0 or gcc/g++. You can install with homebrew: brew install gcc or brew install llvm")
+        if 'clang' in cc and os.path.isdir("/usr/local/opt/libomp")==False:
+            raise ValueError("You must also install libomp.  You can install with homebrew: brew install libomp")
+        os.environ["CC"] = cc if 'clang' in cc else cc.replace("g++", "gcc")
+        os.environ["CXX"] = cc
+        if 'clang' in cc:
+            link_args = ['-fopenmp=libomp']
+    
     # not all OSX/clang compiler flags supported by GCC. For some reason
     # these sometimes are generated and used. Cython will still add more flags.
     os.environ["CFLAGS"] = "-fno-common -fno-strict-aliasing -DENABLE_DTRACE -DMACOSX -DNDEBUG -Wall -g -fwrapv -Os"
 
-    if 'clang' in cc:
-        link_args = ['-fopenmp=libomp']
 elif platform.system().lower() == 'windows':
     compile_args = ['/openmp']
     link_args = []
