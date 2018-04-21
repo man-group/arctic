@@ -1,10 +1,10 @@
 import logging
 import os
+import re
+import threading
 
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect
-import threading
-
 from ._util import indent
 from .auth import authenticate, get_auth
 from .decorators import mongo_retry
@@ -231,8 +231,11 @@ class Arctic(object):
         library : `str`
             The name of the library. e.g. 'library' or 'user.library'
         """
+
         l = ArcticLibraryBinding(self, library)
         colname = l.get_top_level_collection().name
+        if not [c for c in l._db.collection_names(False) if re.match("^XBTUSD([\.].*)?$", c)]:
+            logger.info('Nothing to delete. Arctic library %s does not exist.' % colname)
         logger.info('Dropping collection: %s' % colname)
         l._db.drop_collection(colname)
         for coll in l._db.collection_names():
