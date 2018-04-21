@@ -91,7 +91,7 @@ def test_store_item_new_version(library, library_name):
 
 
 def test_store_item_read_preference(library_secondary, library_name):
-    with patch('arctic.arctic.ArcticLibraryBinding.check_quota'), \
+    with patch('arctic.backends.mongo.ArcticLibraryBinding.check_quota'), \
          patch('pymongo.message.query', side_effect=_query(False, library_name)) as query, \
          patch('pymongo.server_description.ServerDescription.server_type', SERVER_TYPE.Mongos):
         # write an item
@@ -1051,7 +1051,7 @@ def _rnd_df(nrows, ncols):
 def test_write_metadata(library):
     symbol = 'FTL'
     mydf_a, mydf_b = _rnd_df(10, 5), _rnd_df(10, 5)
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
         library.write(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
         library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 3 (only metadata)
@@ -1065,7 +1065,7 @@ def test_write_metadata(library):
 def test_write_metadata_followed_by_append(library):
     symbol = 'FTL'
     mydf_a, mydf_b = _rnd_df(10, 5), _rnd_df(10, 5)
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
         library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2 (only metadata)
         library.append(symbol, data=mydf_b,metadata={'field_c': 1})  # creates version 3
@@ -1083,7 +1083,7 @@ def test_write_metadata_followed_by_append(library):
 
 def test_write_metadata_new_symbol(library):
     symbol = 'FTL'
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 1 (only metadata)
         v = library.read(symbol)
         assert v.data == None
@@ -1094,7 +1094,7 @@ def test_write_metadata_new_symbol(library):
 def test_write_metadata_after_append(library):
     symbol = 'FTL'
     mydf_a, mydf_b = _rnd_df(10, 5), _rnd_df(10, 5)
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
         library.append(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
         library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 3
@@ -1107,7 +1107,7 @@ def test_write_metadata_after_append(library):
 def test_write_metadata_purge_previous_versions(library):
     symbol = 'FTL'
     mydf_a, mydf_b, mydf_c = _rnd_df(10, 5), _rnd_df(10, 5), _rnd_df(10, 5)
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
         library.write(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
         assert library._read_metadata(symbol).get('version') == 2
@@ -1135,7 +1135,7 @@ def test_write_metadata_delete_symbol(library):
     symbol = 'FTL'
     mydf_a = _rnd_df(10, 5)
     mydf_b = _rnd_df(10, 5)
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
         library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2 (only metadata)
 
@@ -1151,7 +1151,7 @@ def test_write_metadata_delete_symbol(library):
 def test_write_metadata_snapshots(library):
     symbol = 'FTL'
     mydf_a, mydf_b = _rnd_df(10, 5), _rnd_df(10, 5)
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
         library.snapshot('SNAP_1')
         library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2 (only metadata)
@@ -1178,7 +1178,7 @@ def test_restore_version(library):
     symbol = 'FTL'
     mydf_a = _rnd_df(10, 5)
     mydf_b = _rnd_df(10, 5)
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
         library.write(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
 
@@ -1202,7 +1202,7 @@ def test_restore_version_followed_by_append(library):
     mydf_a = _rnd_df(10, 5)
     mydf_b = _rnd_df(10, 5)
     mydf_c = _rnd_df(10, 5)
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
         library.write(symbol, data=mydf_b, metadata={'field_b': 2})  # creates version 2
         library.restore_version(symbol, as_of=1)  # creates version 3
@@ -1222,7 +1222,7 @@ def test_restore_version_purging_previous_versions(library):
     symbol = 'FTL'
     mydf_a = _rnd_df(10, 5)
     mydf_b = _rnd_df(10, 5)
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
         library.write(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
 
@@ -1243,7 +1243,7 @@ def test_restore_version_purging_previous_versions(library):
 def test_restore_version_non_existent_version(library):
     symbol = 'FTL'
     mydf_a = _rnd_df(10, 5)
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
 
         with pytest.raises(NoDataFoundException):
@@ -1259,7 +1259,7 @@ def test_restore_version_which_updated_only_metadata(library):
     symbol = 'FTL'
     mydf_a = _rnd_df(10, 5)
     mydf_b = _rnd_df(10, 5)
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
         library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2
         library.write(symbol, data=mydf_b)  # creates version 3
@@ -1276,7 +1276,7 @@ def test_restore_version_snapshot(library):
     symbol = 'FTL'
     mydf_a = _rnd_df(10, 5)
     mydf_b = _rnd_df(10, 5)
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
         library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2
         library.restore_version(symbol, as_of=2)  # creates version 3
