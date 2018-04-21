@@ -231,10 +231,9 @@ class Arctic(object):
         library : `str`
             The name of the library. e.g. 'library' or 'user.library'
         """
-
         l = ArcticLibraryBinding(self, library)
         colname = l.get_top_level_collection().name
-        if not [c for c in l._db.collection_names(False) if re.match("^XBTUSD([\.].*)?$", c)]:
+        if not [c for c in l._db.collection_names(False) if re.match("^{}([\.].*)?$".format(colname), c)]:
             logger.info('Nothing to delete. Arctic library %s does not exist.' % colname)
         logger.info('Dropping collection: %s' % colname)
         l._db.drop_collection(colname)
