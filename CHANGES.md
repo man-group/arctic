@@ -7,6 +7,7 @@
   * Bugfix: #534 VersionStore: overwriting a symbol with different dtype (but same data format) does not
                  raise exceptions anymore
   * Bugfix: #531 arctic_prune_versions: clean broken snapshot references before pruning
+  * Bugfix: setup.py develop in a conda environment on Mac
   * Feature: #490 add support to numpy 1.14
 
 ### 1.63 (2018-04-06)
