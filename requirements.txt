@@ -1,0 +1,26 @@
+# Pinned deps
+numpy==1.9.2
+pandas==0.16.2
+mock==1.0.1
+
+# Floating deps
+coverage
+cython
+decorator
+enum34
+lz4
+pymongo
+python-dateutil
+pytz
+tzlocal
+
+# Tests Requires
+mockextras
+pytest
+pytest-cov
+python-coveralls
+pytest-server-fixtures==1.2.3
+pytest-shutil==1.2.2
+pytest-timeout
+pytest-xdist
+lz4
