@@ -2,6 +2,7 @@ import logging
 import numpy as np
 
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
+from ..exceptions import ArcticException
 try:  # 0.21+ Compatibility
     from pandas._libs.tslib import Timestamp
     from pandas._libs.tslibs.timezones import get_timezone
@@ -109,6 +110,9 @@ class PandasSerializer(object):
 
         index_names, ix_vals, metadata = self._index_to_records(df)
         columns, column_vals, multi_column = self._column_data(df)
+
+        if "" in columns:
+            raise ArcticException("Cannot use empty string as a column name.")
 
         if multi_column is not None:
             metadata['multi_column'] = multi_column
