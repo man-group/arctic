@@ -3,9 +3,8 @@ from mock import patch
 import numpy as np
 from pandas.util.testing import assert_frame_equal
 import pytest
-
-from arctic import arctic as m
-from arctic.date import mktz
+import pytz
+from arctic.date import mktz, DateRange
 from arctic.exceptions import OverlappingDataException, \
     NoDataFoundException
 from arctic.tickstore.tickstore import SYMBOL, START, END, COUNT, COLUMNS
@@ -79,7 +78,7 @@ def test_ts_write_pandas(tickstore_lib):
 
     read = tickstore_lib.read('SYM', columns=None)
     assert_frame_equal(read, data, check_names=False)
-    
+
 
 def test_ts_write_named_col(tickstore_lib):
     data = DUMMY_DATA
@@ -96,3 +95,16 @@ def test_ts_write_named_col(tickstore_lib):
 
     read = tickstore_lib.read('SYM')
     assert(read.index.name is None)
+
+
+def test_millisecond_roundtrip(tickstore_lib):
+    test_time = dt(2004, 1, 14, 8, 30, 4, 807000, tzinfo=pytz.utc)
+
+    data = [{'index': test_time, 'price': 9142.12, 'qualifiers': ''}]
+    tickstore_lib.write('blah', data)
+
+    data_range = DateRange(dt(2004, 1, 14, tzinfo=pytz.utc),
+                           dt(2004, 1, 15, tzinfo=pytz.utc))
+    reread = tickstore_lib.read('blah', data_range)
+
+    assert reread.index[0].to_datetime() == test_time
