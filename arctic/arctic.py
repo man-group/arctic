@@ -1,6 +1,6 @@
-from arctic.exceptions import ArcticException
-from arctic.backends.mongo import MongoBackend
-from arctic.backends.backends import LIBRARY_TYPES, VERSION_STORE, METADATA_STORE, TICK_STORE, CHUNK_STORE
+from .exceptions import ArcticException
+from .backends.mongo import MongoBackend
+from .backends.backends import LIBRARY_TYPES, VERSION_STORE, METADATA_STORE, TICK_STORE, CHUNK_STORE
 
 
 __all__ = ['Arctic', 'VERSION_STORE', 'METADATA_STORE', 'TICK_STORE', 'CHUNK_STORE', 'register_library_type']
