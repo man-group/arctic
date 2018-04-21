@@ -23,4 +23,3 @@ pytest-server-fixtures==1.2.3
 pytest-shutil==1.2.2
 pytest-timeout
 pytest-xdist
-lz4

@@ -27,7 +27,11 @@ jobs:
     # To see the list of pre-built images that CircleCI provides for most common languages see
     # https://circleci.com/docs/2.0/circleci-images/
     docker:
-    - image: circleci/python:3-stretch
+    # no libssl in python:3 required by mongod
+#    - image: circleci/python:3-stretch
+    - image: circleci/build-image:ubuntu-14.04-XXL-upstart-1189-5614f37
+      command: /sbin/init
+    
     steps:
 
     - checkout
@@ -40,7 +44,15 @@ jobs:
       # https://circleci.com/docs/2.0/language-python/
     - restore_cache: # restores saved dependency cache if the Branch key template or requirements.txt files have not changed since the previous run
         key: deps1-{{ .Branch }}-{{ checksum "requirements.txt" }}
-    - run: # install and activate virtual environment with pip
+# Python image doens't obviously have libssl - not sure how to get it
+#    - run:
+#        name: Install Mongo
+#        command: |
+#          wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian81-v3.4-latest.tgz
+#          tar -zxvf mongodb-linux-x86_64-debian81-v3.4-latest.tgz
+#          sudo mv mongodb-*/bin/* /usr/local/bin/
+    - run: 
+        name: Install arctic requirements
         command: |
           python3 -m venv venv
           . venv/bin/activate
