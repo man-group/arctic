@@ -233,7 +233,7 @@ class Arctic(object):
         """
         l = ArcticLibraryBinding(self, library)
         colname = l.get_top_level_collection().name
-        if not [c for c in l._db.collection_names(False) if re.match("^{}([\.].*)?$".format(colname), c)]:
+        if not [c for c in l._db.collection_names(False) if re.match(r"^{}([\.].*)?$".format(colname), c)]:
             logger.info('Nothing to delete. Arctic library %s does not exist.' % colname)
         logger.info('Dropping collection: %s' % colname)
         l._db.drop_collection(colname)
