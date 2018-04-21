@@ -4,8 +4,9 @@ import pymongo
 import logging
 
 from ..hooks import get_mongodb_uri
-from ..arctic import Arctic, VERSION_STORE, LIBRARY_TYPES, \
-    ArcticLibraryBinding
+from arctic.arctic import Arctic
+from arctic.backends.backends import VERSION_STORE, LIBRARY_TYPES
+from arctic.backends.mongo import ArcticLibraryBinding
 from .utils import do_db_auth, setup_logging
 
 logger = logging.getLogger(__name__)

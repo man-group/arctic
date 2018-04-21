@@ -38,7 +38,10 @@ class Arctic(object):
 
     @property
     def _conn(self):
-        self.backend._conn
+        return self.backend._conn
+    
+    def __getattr__(self, attr):
+        return getattr(self.backend, attr)
 
     def reset(self):
         self.backend.reset()
@@ -54,6 +57,9 @@ class Arctic(object):
 
     def __setstate__(self, state):
         return self.backend.__setstate__(state)
+
+    def __getitem__(self, key):
+        return self.backend.__getitem__(key)
 
     def list_libraries(self):
         return self.backend.list_libraries()

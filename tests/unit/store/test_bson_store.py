@@ -1,5 +1,5 @@
 from arctic.store.bson_store import BSONStore
-from arctic.arctic import ArcticLibraryBinding
+from arctic.backends.mongo import ArcticLibraryBinding
 from arctic import Arctic
 from pymongo.collection import Collection
 from mock import sentinel, create_autospec, patch, call

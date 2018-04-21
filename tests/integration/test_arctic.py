@@ -37,8 +37,8 @@ def test_reset_Arctic(mongo_host, library_name):
 def test_re_authenticate_on_arctic_reset(mongo_host, library_name):
     from collections import namedtuple
     Cred = namedtuple('Cred', 'user, password')
-    with patch('arctic.arctic.authenticate') as auth_mock, \
-            patch('arctic.arctic.get_auth') as get_auth_mock:
+    with patch('arctic.backends.mongo.authenticate') as auth_mock, \
+            patch('arctic.backends.mongo.get_auth') as get_auth_mock:
         auth_mock.return_value = True
         get_auth_mock.return_value = Cred(user='a_username', password='a_passwd')
         arctic = Arctic(mongo_host=mongo_host)
@@ -164,7 +164,7 @@ def test_quota(arctic, library, library_name):
 
 
 def test_check_quota(arctic, library, library_name):
-    with patch('arctic.arctic.logger.info') as info:
+    with patch('arctic.backends.mongo.logger.info') as info:
         arctic.check_quota(library_name)
     assert info.call_count == 1
 

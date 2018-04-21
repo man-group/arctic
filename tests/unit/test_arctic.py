@@ -8,8 +8,9 @@ from pymongo.errors import OperationFailure, ServerSelectionTimeoutError, AutoRe
 from pymongo.mongo_client import MongoClient
 
 from arctic.auth import Credential
-from arctic.arctic import Arctic, ArcticLibraryBinding, \
-    register_library_type, LIBRARY_TYPES
+from arctic.arctic import Arctic, register_library_type
+from arctic.backends.mongo import ArcticLibraryBinding
+from arctic.backends.backends import LIBRARY_TYPES
 from arctic.exceptions import LibraryNotFoundException, \
     ArcticException, QuotaExceededException
 import six

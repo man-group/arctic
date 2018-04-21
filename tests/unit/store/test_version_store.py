@@ -12,7 +12,8 @@ from pymongo.collection import Collection
 from arctic.date import mktz
 from arctic.store import version_store
 from arctic.store.version_store import VersionStore, VersionedItem
-from arctic.arctic import ArcticLibraryBinding, Arctic
+from arctic.arctic import Arctic
+from arctic.backends.mongo import ArcticLibraryBinding 
 from arctic.exceptions import ConcurrentModificationException, DuplicateSnapshotException, NoDataFoundException
 
 
