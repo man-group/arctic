@@ -22,7 +22,7 @@ class Arctic(object):
     specific functionality.
     """
 
-    def __init__(self, *args, backend='mongo', **kwargs):
+    def __init__(self, *args, **kwargs):
         """
         Constructs a Arctic Datastore.
 
@@ -32,6 +32,10 @@ class Arctic(object):
                  - mongo
         args, kwargs: passed to backend
         """
+        backend = kwargs.get('backend', 'mongo')
+        if 'backend' in kwargs:
+            del kwargs['backend']
+
         self.backend = None
         if backend == 'mongo':
             self.backend = MongoBackend(*args, **kwargs)
