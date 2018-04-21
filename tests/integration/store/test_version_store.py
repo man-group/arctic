@@ -1396,7 +1396,7 @@ def test_prune_keeps_version(library):
 
 
 def test_empty_string_column_name(library):
-    df = pd.DataFrame(data=range(3), index=range(3))
+    df = pd.DataFrame(data=[0, 1, 2], index=[0, 1, 2])
     df.columns = ['']
 
     with pytest.raises(ArcticException):
