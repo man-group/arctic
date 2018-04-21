@@ -1,5 +1,3 @@
-import time
-
 import logging
 import hashlib
 
@@ -15,7 +13,8 @@ from ._version_store_utils import checksum
 from .._compression import compress_array, decompress
 from six.moves import xrange
 
-from arctic.store.fw_pointers import WITH_ID, WITH_SHA, get_fw_pointers_type
+from ..helpers.fw_pointers import WITH_ID, WITH_SHA, get_fw_pointers_type
+from ..helpers.measurement import measure_block
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +142,6 @@ class NdarrayStore(object):
             collection.create_index([('symbol', pymongo.ASCENDING),
                                      ('parent', pymongo.ASCENDING),
                                      ('segment', pymongo.ASCENDING)], unique=True, background=True)
-
             # collection.create_index([('symbol', pymongo.ASCENDING),
             #                          ('_id', pymongo.ASCENDING),
             #                          ('segment', pymongo.ASCENDING)], unique=True, background=True)
@@ -202,20 +200,6 @@ class NdarrayStore(object):
         ret = self._do_read(collection, version, symbol, index_range=index_range)
         return ret
 
-    MEASUREMENTS = dict()
-
-    @classmethod
-    def add_measurement(cls, key, value):
-        if key not in cls.MEASUREMENTS:
-            cls.MEASUREMENTS[key] = [value]
-        else:
-            cls.MEASUREMENTS[key].append(value)
-    
-    @classmethod
-    def reset_measurements(cls):
-        for k, v in cls.MEASUREMENTS.iteritems():
-            del v[:]
-
     def _do_read(self, collection, version, symbol, index_range=None):
         '''
         index_range is a 2-tuple of integers - a [from, to) range of segments to be read. 
@@ -250,41 +234,46 @@ class NdarrayStore(object):
         else:
             segment_count = version.get('segment_count', None)
 
-        # Bench start
-        start_t_local = time.time()
-        if fw_pointers_type is None:
-            matched_segments = list(collection.find(spec, sort=[('segment', pymongo.ASCENDING)], ))
-        else:
-            matched_segments = sorted(list(collection.find(spec)), key=lambda v: v.get('segment', 0))
-        # Bench finish
-        delta = time.time() - start_t_local
-        self.add_measurement(fw_pointers_type+'_read', delta)
-        # logger.info('{}: lookup time = {}'.format(fw_pointers_type, round(delta, 4)))
+        # Bench read
+        with measure_block(fw_pointers_type+'_read'):
+            # start_t_local = time.time()
+            if fw_pointers_type is None:
+                matched_segments = list(collection.find(spec, sort=[('segment', pymongo.ASCENDING)], ))
+            else:
+                matched_segments = sorted(list(collection.find(spec)), key=lambda v: v.get('segment', 0))
+            # Bench finish
+            # delta = time.time() - start_t_local
+            # self.add_measurement(fw_pointers_type+'_read', delta)
+            # logger.info('{}: lookup time = {}'.format(fw_pointers_type, round(delta, 4)))
 
-        start_t_local = time.time()
-        for i, x in enumerate(matched_segments):
-            segments.append(decompress(x['data']) if x['compressed'] else x['data'])
-        delta = time.time() - start_t_local
-        self.add_measurement(fw_pointers_type + '_decompress', delta)
+        # Bench decompress
+        with measure_block(fw_pointers_type+'_decompress'):
+            #
+            # start_t_local = time.time()
+            for i, x in enumerate(matched_segments):
+                segments.append(decompress(x['data']) if x['compressed'] else x['data'])
+            # delta = time.time() - start_t_local
+            # self.add_measurement(fw_pointers_type + '_decompress', delta)
 
-        start_t_local = time.time()
+        # Bench numpy array creation
+        with measure_block(fw_pointers_type + '_createNumPy'):
+            # start_t_local = time.time()
+            #
+            data = b''.join(segments)
 
-        data = b''.join(segments)
+            # free up memory from initial copy of data
+            del segments
 
-        # free up memory from initial copy of data
-        del segments
+            # Check that the correct number of segments has been returned
+            if segment_count is not None and i + 1 != segment_count:
+                raise OperationFailure("Incorrect number of segments returned for {}:{}.  Expected: {}, but got {}. {}".format(
+                                       symbol, version['version'], segment_count, i + 1, collection.database.name + '.' + collection.name))
 
-        # Check that the correct number of segments has been returned
-        if segment_count is not None and i + 1 != segment_count:
-            raise OperationFailure("Incorrect number of segments returned for {}:{}.  Expected: {}, but got {}. {}".format(
-                                   symbol, version['version'], segment_count, i + 1, collection.database.name + '.' + collection.name))
-
-        dtype = self._dtype(version['dtype'], version.get('dtype_metadata', {}))
-        rtn = np.fromstring(data, dtype=dtype).reshape(version.get('shape', (-1)))
-        delta = time.time() - start_t_local
-        self.add_measurement(fw_pointers_type + '_createNumPy', delta)
-
-        return rtn
+            dtype = self._dtype(version['dtype'], version.get('dtype_metadata', {}))
+            rtn = np.fromstring(data, dtype=dtype).reshape(version.get('shape', (-1)))
+            # delta = time.time() - start_t_local
+            # self.add_measurement(fw_pointers_type + '_createNumPy', delta)
+            return rtn
 
     def _promote_types(self, dtype, dtype_str):
         if dtype_str == str(dtype):

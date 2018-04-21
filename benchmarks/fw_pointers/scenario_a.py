@@ -1,7 +1,11 @@
 import os
 
-from fw_pointers_bench import do_benchmark, IndexSpec, setup_auth, ASCENDING, DESCENDING, WITH_ID, WITH_SHA, LEGACY
+from pymongo import ASCENDING, DESCENDING
 
+from fw_pointers_bench import do_benchmark, setup_auth, WITH_ID, WITH_SHA, LEGACY
+
+
+sp = IndexSpec(keys=[('symbol', ASCENDING), ('sha', ASCENDING), ('segment', ASCENDING)], unique=True, background=True),
 
 def main():
     # Specify the scenario of the experiment

@@ -6,12 +6,12 @@ from pymongo import ReadPreference
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
-from arctic.store.fw_pointers import get_fw_pointers_type
+from arctic.helpers.fw_pointers import get_fw_pointers_type
+from arctic.helpers.measurement import add_measurement
 from .._util import indent, enable_sharding
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
-from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
-    ArcticException
+from ..exceptions import NoDataFoundException, DuplicateSnapshotException
 from ..hooks import log_exception
 from ._pickle_store import PickleStore
 from ._version_store_utils import cleanup
@@ -345,8 +345,8 @@ class VersionStore(object):
             ret = self._do_read(symbol, _version, from_version,
                                 date_range=date_range, read_preference=read_preference, **kwargs)
             fw_pointers_type = get_fw_pointers_type(_version)
-            delta = time.time() - start_t
-            NdarrayStore.add_measurement(fw_pointers_type+'_total', delta)
+            # can't use context manager measurement here, we get the fw pointer type only after the metadata read
+            add_measurement(fw_pointers_type+'_total', time.time() - start_t)
             return ret
         except (OperationFailure, AutoReconnect) as e:
             # Log the exception so we know how often this is happening

@@ -7,10 +7,10 @@ from pprint import pprint
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from pymongo import ASCENDING, DESCENDING
 
 import arctic
-from arctic.store.fw_pointers import WITH_ID, WITH_SHA, LEGACY, do_drop_index, do_create_index, IndexSpec
+from arctic.helpers.fw_pointers import WITH_ID, WITH_SHA, LEGACY, do_drop_index, do_create_index
+from arctic.helpers.measurement import enable_measurements, reset_measurements
 from arctic.hooks import register_get_auth_hook
 
 logging.basicConfig(level=logging.INFO)
@@ -62,7 +62,8 @@ def populate_with_existing_data(lib, num_existing_symbols, df_rows=None, df_cols
 
 
 def reset_experiment():
-    arctic.store._ndarray_store.NdarrayStore.reset_measurements()
+    reset_measurements()
+    enable_measurements()
 
 
 def get_test_symbols(num_symbols, base_sym_name='sym'):
@@ -154,7 +155,9 @@ def do_benchmark(mongo_host, desc, config, quota, force_drop, populate_existing_
                  drop_indexes=None, create_indexes=None, exit_after_init=False):
     fig_save_path = None
     if save_figure:
-        fig_save_path = os.path.join('/users/is/dpediaditakis/Documents/results_arctic', desc.replace(' ', '_'))
+        fig_save_path = os.path.join(
+            config.get('fig_path', os.getcwd()),
+            desc.replace(' ', '_'))
         if not os.path.exists(fig_save_path):
             os.makedirs(fig_save_path)
 
