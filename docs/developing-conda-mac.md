@@ -57,11 +57,6 @@ l.write('thing', object())
 
 ## Issues
 
-### Not using the correct compiler on Mac OS X
-
-FIXME: setup.py needs patching to use anaconda cc / g++ directly
-
-
 ### tzlocal issue with pytz == 1.5.1
 
 ```
