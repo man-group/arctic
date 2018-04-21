@@ -71,3 +71,14 @@ def test_datetime_roundtrip_est_tz():
     pdt = datetime.datetime(2012, 1, 12, 12, 12, 12, 123000, tzinfo=mktz('EST'))
     pdt2 = ms_to_datetime(datetime_to_ms(pdt))
     assert pdt2.replace(tzinfo=mktz()) == pdt
+
+
+@pytest.mark.parametrize("microseconds,expected", [
+    (807000, 1074069004807L),
+    (807243, 1074069004807L),
+    (807675, 1074069004808L)
+])
+def test_millisecond_conversion(microseconds, expected):
+    pdt = datetime.datetime(2004, 1, 14, 8, 30, 4, microseconds, tzinfo=pytz.utc)
+    pdt2 = datetime_to_ms(pdt)
+    assert pdt2 == expected

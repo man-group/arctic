@@ -163,7 +163,10 @@ def _add_tzone(dtm):
 def datetime_to_ms(d):
     """Convert a Python datetime object to a millisecond epoch (UTC) time value."""
     try:
-        return long((calendar.timegm(_add_tzone(d).utctimetuple()) + d.microsecond / 1000000.0) * 1e3)
+        millisecond = d.microsecond // 1000
+        if d.microsecond % 1000 >= 500:
+            millisecond += 1
+        return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
     except AttributeError:
         raise TypeError('expect Python datetime object, not %s' % type(d))
 
