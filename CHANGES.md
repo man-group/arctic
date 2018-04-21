@@ -1,5 +1,7 @@
 ## Changelog
 
+### 1.66
+
 ### 1.65 (2018-04-16)
   * Bugfix: #534 VersionStore: overwriting a symbol with different dtype (but same data format) does not
                  raise exceptions anymore
