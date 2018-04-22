@@ -1,6 +1,10 @@
 from __future__ import print_function
 import random
-import lz4
+try:
+    from lz4 import compressHC as lz4_compress, decompress as lz4_decompress
+except ImportError as e:
+    from lz4.frame import compress as lz4_compress, decompress as lz4_decompress
+
 import string
 import pytest
 import six
@@ -24,7 +28,7 @@ def test_performance_sequential(n, length):
     c.decompressarr(c.compressarrHC(_strarr))
     clz4_time_p = (dt.now() - now).total_seconds()
     now = dt.now()
-    [lz4.decompress(y) for y in [lz4.compressHC(x) for x in _strarr]]
+    [lz4_decompress(y) for y in [lz4_compress(x) for x in _strarr]]
     lz4_time = (dt.now() - now).total_seconds()
     print()
     print("LZ4 Test %sx len:%s" % (n, length))
