@@ -10,39 +10,13 @@ cdef extern from "lz4.h":
     cdef int LZ4_compressBound(int isize) nogil
     cdef int LZ4_decompress_safe(const char* source, char* dest, int compressedSize, int maxOutputSize) nogil
 
-
-cdef extern from "lz4frame.h":
-    ctypedef enum LZ4F_enum_t:
-      enum_field1 = 1
-      enum_field2 = 2
-      enum_field3 = 3
-
-    ctypedef struct LZ4F_frameInfo_t:
-      LZ4F_enum_t     blockSizeID
-      LZ4F_enum_t       blockMode
-      LZ4F_enum_t contentChecksumFlag
-      LZ4F_enum_t       frameType
-      unsigned long long     contentSize
-      unsigned               dictID
-      LZ4F_enum_t   blockChecksumFlag
-
-    ctypedef struct LZ4F_preferences_t:
-      LZ4F_frameInfo_t frameInfo
-      int compressionLevel
-      unsigned autoFlush
-      unsigned reserved[4]
-
-    cdef int LZ4F_compressFrame(void* dstBuffer, size_t dstCapacity, const void* srcBuffer,
-                                size_t srcSize, const LZ4F_preferences_t* preferencesPtr) nogil
-
+cdef extern from "lz4f_toplevel.h":
+    cdef size_t LZ4F_compressFrame_default(void* dstBuffer, void* srcBuffer, size_t srcSize) nogil
 
 cdef extern from "lz4hc.h":
     cdef int LZ4HC_CLEVEL_MAX
     # cdef int LZ4_compressHC(char* source, char* dest, int inputSize) nogil
     cdef int LZ4_compress_HC(char* src, char* dst, int srcSize, int dstCapacity, int compressionLevel) nogil
-
-#cdef extern from "string.h":
-#    cdef void *memset(void *str, int c, size_t n)
 
 
 cimport cython
@@ -50,13 +24,11 @@ cimport cpython
 cimport libc.stdio
 cimport openmp
 
-
 from libc.stdlib cimport malloc, free, realloc
 ctypedef unsigned char  uint8_t
 ctypedef unsigned int   uint32_t
 
 from libc.stdio cimport printf
-from libc.string cimport memset
 from cython.view cimport array as cvarray
 from cython.parallel import prange
 from cython.parallel import threadid
@@ -149,18 +121,21 @@ def compressFrame(pString):
     cdef bytes pyResult   # python wrapped result
 
     # Build the preferences
-    cdef LZ4F_preferences_t preferences
-    memset (&preferences, 0, sizeof(preferences))
+    #cdef LZ4F_preferences_t preferences
+    #memset (&preferences, 0, sizeof(preferences))
+
+    compressed_size = LZ4F_compressFrame_default(result, cString, original_size)
 
     # calc. estimated compresed size
-    compressed_size = LZ4_compressBound(original_size)
+    #compressed_size = LZ4_compressBound(original_size)
     # alloc memory
-    result = <char*>malloc(compressed_size + hdr_size)
+    #result = <char*>malloc(compressed_size + hdr_size)
     # store original size
-    store_le32(result, original_size);
+    #store_le32(result, original_size);
     # compress & update size
     # compressed_size = Fnptr_LZ4_compress(cString, result + hdr_size, original_size)
     #compressed_size = LZ4_compress_HC(cString, result + hdr_size, original_size, compressed_size, LZ4HC_CLEVEL_MAX)
+
     # cast back into a python sstring
     pyResult = result[:compressed_size + hdr_size]
 
