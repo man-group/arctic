@@ -242,3 +242,31 @@ def test_no_min_max_date(arctic):
         tstore.min_date('unknown-symbol')
     with pytest.raises(NoDataFoundException):
         tstore.max_date('unknown-symbol')
+
+
+def test_get_libraries_no_data_raises_exception(toplevel_tickstore, arctic):
+    date_range = DateRange(start=dt(2009, 1, 1), end=dt(2010, 12, 31, 23, 59, 59, 999000))
+    with pytest.raises(NoDataFoundException):
+        toplevel_tickstore._get_libraries(date_range)
+
+
+def test_get_libraries_no_data_raises_exception_tzinfo_given(toplevel_tickstore, arctic):
+    tzinfo = mktz('Asia/Chongqing')
+    date_range = DateRange(start=dt(2009, 1, 1, tzinfo=tzinfo),
+                           end=dt(2010, 12, 31, 23, 59, 59, 999000, tzinfo=tzinfo))
+    with pytest.raises(NoDataFoundException):
+        toplevel_tickstore._get_libraries(date_range)
+
+
+def test_get_library_metadata(arctic):
+    arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+    arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
+    arctic.initialize_library('FEED.LEVEL1', toplevel.TICK_STORE_TYPE)
+    toplevel_tickstore = arctic['FEED.LEVEL1']
+
+    symbol = "USD"
+    tzinfo=mktz('Asia/Chongqing')
+    with pytest.raises(NoDataFoundException):
+        toplevel_tickstore.read(symbol, DateRange(start=dt(2010, 1, 1, tzinfo=tzinfo),
+                                                  end=dt(2011, 1, 2, tzinfo=tzinfo)),
+                                columns=None)
