@@ -59,6 +59,12 @@ if platform.system().lower() == 'darwin':
 elif platform.system().lower() == 'windows':
     compile_args = ['/openmp']
     link_args = []
+else:
+    os.environ["CFLAGS"] = os.environ.get("CFLAGS", "") +  " -O3"
+
+print("---------")
+print(os.environ.get("CFLAGS"))
+print("---------")
 
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672
