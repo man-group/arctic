@@ -2,4 +2,4 @@
 
 //void initialize_prefs(LZ4F_preferences_t* preferencesPtr);
 
-size_t LZ4F_compressFrame_default(void* dstBuffer, const void* srcBuffer, size_t srcSize);
+char* LZ4F_compressFrame_default(size_t, const char*, size_t, size_t*);

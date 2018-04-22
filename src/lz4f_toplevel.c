@@ -4,7 +4,7 @@
 
 //#define BUF_SIZE (16*1024)
 //#define LZ4_HEADER_SIZE 19
-//#define LZ4_FOOTER_SIZE 4
+#define LZ4_FOOTER_SIZE 4
 //
 
 //static const LZ4F_frameInfo_t lz4_frameInfo = {
@@ -56,9 +56,8 @@
 //    };
 //}
 
-size_t LZ4F_compressFrame_default(void* dstBuffer, const void* srcBuffer, size_t srcSize){
+char* LZ4F_compressFrame_default(size_t pyHeaderLen, const char* srcBuffer, size_t srcSize, size_t* compressed_size){
     size_t destination_size;
-    size_t compressed_size;
 
     LZ4F_frameInfo_t frameInfo = {
         LZ4F_default,           // blockSizeID
@@ -77,7 +76,7 @@ size_t LZ4F_compressFrame_default(void* dstBuffer, const void* srcBuffer, size_t
         LZ4F_frame,             // frameType
                                 // Values: LZ4F_frame, LZ4F_skippableFrame
 
-        0,                      // contentSize (0 for unknown)
+        srcSize,                      // contentSize (0 for unknown)
         0,                      // dictID (0 == no dictID provided)
 
         LZ4F_noBlockChecksum   // blockChecksumFlag
@@ -93,26 +92,28 @@ size_t LZ4F_compressFrame_default(void* dstBuffer, const void* srcBuffer, size_t
     };
 
     if(!srcSize){
-        return 0;
+        *compressed_size = 0;
+        return NULL;
     }
 
     //initialize_prefs(&prefs, &frameInfo);
 
-    destination_size = LZ4F_compressFrameBound (srcSize, &prefs);
-    dstBuffer = (void *)malloc(destination_size);
+    destination_size = LZ4F_compressFrameBound (srcSize, &prefs) + LZ4F_HEADER_SIZE_MAX + LZ4_FOOTER_SIZE;
+    char* dstBuffer = (char *)malloc(destination_size + pyHeaderLen);
     if (!dstBuffer) {
 		printf("Not enough memory");
-		return 0;
+		return NULL;
 	}
 
-	compressed_size = LZ4F_compressFrame (dstBuffer, destination_size, srcBuffer, srcSize, &prefs);
-    if (LZ4F_isError (compressed_size))
+	*compressed_size = LZ4F_compressFrame (dstBuffer + pyHeaderLen, destination_size, srcBuffer, srcSize, &prefs);
+    if (LZ4F_isError (*compressed_size))
     {
         free(dstBuffer);
-        printf("LZ4F_compressFrame failed with code: %s", LZ4F_getErrorName (compressed_size));
-        return 0;
+        printf("LZ4F_compressFrame failed with code: %s", LZ4F_getErrorName (*compressed_size));
+        *compressed_size = 0;
+        return NULL;
     }
 
-    return compressed_size;
+    return dstBuffer;
 }
 

@@ -37,6 +37,71 @@ def test_performance_sequential(n, length):
     print("    LZ4 %s s" % lz4_time)
 
 
+@pytest.mark.parametrize("n, length", [(300, 5e4),  # micro TS
+                                       (16, 2e6)])  # Futures TS
+def test_bench_compression_comparison(n, length):
+    _str = random_string(length)
+    _strarr = [_str for _ in range(n)]
+
+    now = dt.now()
+    [c.compress(x) for x in _strarr]
+    arctic_old_lz4_time = (dt.now() - now).total_seconds()
+
+    now = dt.now()
+    c.compressarr(_strarr)
+    arctic_old_lz4Arr_time = (dt.now() - now).total_seconds()
+
+    now = dt.now()
+    [c.compressHC(x) for x in _strarr]
+    arctic_old_lz4HC_time = (dt.now() - now).total_seconds()
+
+    now = dt.now()
+    c.compressarrHC(_strarr)
+    arctic_old_lz4HCArr_time = (dt.now() - now).total_seconds()
+
+    now = dt.now()
+    [lz4_compress(x) for x in _strarr]
+    lz4_frame_time = (dt.now() - now).total_seconds()
+
+    now = dt.now()
+    [c.compressFrame(x) for x in _strarr]
+    arctic_lz4Frame_time = (dt.now() - now).total_seconds()
+
+    now = dt.now()
+    c.compressarrFrame(_strarr)
+    arctic_lz4ArrFrame_time = (dt.now() - now).total_seconds()
+
+    print()
+    print("LZ4 Test %sx len:%s" % (n, length))
+    print("    Arctic Cython old LZ4 (single thread) %s s" % arctic_old_lz4_time)
+    print("    Arctic Cython old LZ4 (parallel) %s s" % arctic_old_lz4Arr_time)
+    print("    Arctic Cython old LZ4 High Compression (single thread) %s s" % arctic_old_lz4HC_time)
+    print("    Arctic Cython old LZ4 High Comporession (parallel)%s s" % arctic_old_lz4HCArr_time)
+    print("    New LZ4 (frame) %s s" % lz4_frame_time)
+    print("    Arctic Cython new LZ4 Frame (single thread) %s s" % arctic_lz4Frame_time)
+    print("    Arctic Cython new LZ4 Frame (parallel) %s s" % arctic_lz4ArrFrame_time)
+
+
+@pytest.mark.parametrize("n, length", [(10, 5e2),
+                                       (10, 5e3),
+                                       (10, 5e4)])
+def test_lz4frame_compression(n, length):
+    for test_str in (random_string(length) for _ in range(n)):
+        compressed = c.compressFrame(test_str)
+        assert lz4_decompress(compressed) == test_str
+
+
+@pytest.mark.parametrize("n, length", [(10, 5e2),
+                                       (10, 5e3),
+                                       (10, 5e4)])
+def test_lz4frame_parallel_compression(n, length):
+    arr_of_str = [random_string(length) for _ in range(n)]
+    compressed_arr = c.compressarrFrame(arr_of_str)
+    for i in range(n):
+        assert lz4_decompress(compressed_arr[i]) == arr_of_str[i]
+
+
+
 def random_string(N):
     _str = ''.join(random.choice(list(string.printable) + ['hello', 'world', 'hellworld', 'Hello', 'w0rld']) for _ in six.moves.xrange(int(N)))
     return _str.encode('ascii')
