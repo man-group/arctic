@@ -1,7 +1,7 @@
 from __future__ import print_function
 import random
 try:
-    from lz4 import compressHC as lz4_compress, decompress as lz4_decompress
+    from lz4 import compress as lz4_compress, compressHC as lz4_compressHC, decompress as lz4_decompress
 except ImportError as e:
     from lz4.frame import compress as lz4_compress, decompress as lz4_decompress
 
@@ -28,7 +28,7 @@ def test_performance_sequential(n, length):
     c.decompressarr(c.compressarrHC(_strarr))
     clz4_time_p = (dt.now() - now).total_seconds()
     now = dt.now()
-    [lz4_decompress(y) for y in [lz4_compress(x) for x in _strarr]]
+    [lz4_decompress(y) for y in [lz4_compressHC(x) for x in _strarr]]
     lz4_time = (dt.now() - now).total_seconds()
     print()
     print("LZ4 Test %sx len:%s" % (n, length))
@@ -138,3 +138,121 @@ def test_exceptions():
     with pytest.raises(Exception) as e:
         c.decompressarr(data)
     assert("decompressing" in str(e))
+
+@pytest.mark.parametrize("n, length", [(300, 5e4),  # micro TS
+                                       (16, 2e6)])  # Futures TS
+def test_bench_compression_comparison(n, length):
+    _str = random_string(length)
+    _strarr = [_str for _ in range(n)]
+
+    now = dt.now()
+    [c.compress(x) for x in _strarr]
+    arctic_old_lz4_time = (dt.now() - now).total_seconds()
+
+    now = dt.now()
+    c.compressarr(_strarr)
+    arctic_old_lz4Arr_time = (dt.now() - now).total_seconds()
+
+    now = dt.now()
+    [c.compressHC(x) for x in _strarr]
+    arctic_old_lz4HC_time = (dt.now() - now).total_seconds()
+
+    now = dt.now()
+    c.compressarrHC(_strarr)
+    arctic_old_lz4HCArr_time = (dt.now() - now).total_seconds()
+
+    now = dt.now()
+    [lz4_compress(x) for x in _strarr]
+    lz4_frame_time = (dt.now() - now).total_seconds()
+
+    # now = dt.now()
+    # [c.compressFrame(x) for x in _strarr]
+    # arctic_lz4Frame_time = (dt.now() - now).total_seconds()
+    #
+    # now = dt.now()
+    # c.compressarrFrame(_strarr)
+    # arctic_lz4ArrFrame_time = (dt.now() - now).total_seconds()
+
+    print()
+    print("LZ4 Test %sx len:%s" % (n, length))
+    print("    Arctic Cython old LZ4 (single thread) %s s" % arctic_old_lz4_time)
+    print("    Arctic Cython old LZ4 (parallel) %s s" % arctic_old_lz4Arr_time)
+    print("    Arctic Cython old LZ4 High Compression (single thread) %s s" % arctic_old_lz4HC_time)
+    print("    Arctic Cython old LZ4 High Compression (parallel)%s s" % arctic_old_lz4HCArr_time)
+    print("    New LZ4 (frame) %s s" % lz4_frame_time)
+    # print("    Arctic Cython new LZ4 Frame (single thread) %s s" % arctic_lz4Frame_time)
+    # print("    Arctic Cython new LZ4 Frame (parallel) %s s" % arctic_lz4ArrFrame_time)
+
+
+@pytest.mark.parametrize("n, length", [(300, 5e4),  # micro TS
+                                       (16, 2e6)])  # Futures TS
+def test_bench_decompression_comparison(n, length):
+    _str = random_string(length)
+    _strarr = [_str for _ in range(n)]
+
+    compressed = [c.compress(x) for x in _strarr]
+
+    now = dt.now()
+    [c.decompress(x) for x in compressed]
+    arctic_old_lz4_time = (dt.now() - now).total_seconds()
+
+    now = dt.now()
+    c.decompressarr(compressed)
+    arctic_old_lz4Arr_time = (dt.now() - now).total_seconds()
+
+    compressed = [lz4_compress(x) for x in _strarr]
+
+    now = dt.now()
+    [lz4_decompress(x) for x in compressed]
+    lz4_frame_time = (dt.now() - now).total_seconds()
+
+    # now = dt.now()
+    # [c.compressFrame(x) for x in _strarr]
+    # arctic_lz4Frame_time = (dt.now() - now).total_seconds()
+    #
+    # now = dt.now()
+    # c.compressarrFrame(_strarr)
+    # arctic_lz4ArrFrame_time = (dt.now() - now).total_seconds()
+
+    print()
+    print("LZ4 Test %sx len:%s" % (n, length))
+    print("    Decompress Arctic Cython old LZ4 (single thread) %s s" % arctic_old_lz4_time)
+    print("    Decompress Arctic Cython old LZ4 (parallel) %s s" % arctic_old_lz4Arr_time)
+    print("    Decompress New LZ4 (frame) %s s" % lz4_frame_time)
+
+
+@pytest.mark.parametrize("n, length", [(300, 5e4),  # micro TS
+                                       (16, 2e6)])  # Futures TS
+def test_bench_decompressionHC_comparison(n, length):
+    _str = random_string(length)
+    _strarr = [_str for _ in range(n)]
+
+    compressed = [c.compressHC(x) for x in _strarr]
+
+    now = dt.now()
+    [c.decompress(x) for x in compressed]
+    arctic_old_lz4_time = (dt.now() - now).total_seconds()
+
+    now = dt.now()
+    c.decompressarr(compressed)
+    arctic_old_lz4Arr_time = (dt.now() - now).total_seconds()
+
+    compressed = [lz4_compress(x) for x in _strarr]
+
+    now = dt.now()
+    [lz4_decompress(x) for x in compressed]
+    lz4_frame_time = (dt.now() - now).total_seconds()
+
+    # now = dt.now()
+    # [c.compressFrame(x) for x in _strarr]
+    # arctic_lz4Frame_time = (dt.now() - now).total_seconds()
+    #
+    # now = dt.now()
+    # c.compressarrFrame(_strarr)
+    # arctic_lz4ArrFrame_time = (dt.now() - now).total_seconds()
+
+    print()
+    print("LZ4 Test %sx len:%s" % (n, length))
+    print("    Decompress HC Arctic Cython old LZ4 (single thread) %s s" % arctic_old_lz4_time)
+    print("    Decompress HC Arctic Cython old LZ4 (parallel) %s s" % arctic_old_lz4Arr_time)
+    print("    Decompress HC New LZ4 (frame) %s s" % lz4_frame_time)
