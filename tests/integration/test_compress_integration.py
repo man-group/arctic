@@ -76,7 +76,7 @@ def test_bench_compression_comparison(n, length):
     print("    Arctic Cython old LZ4 (single thread) %s s" % arctic_old_lz4_time)
     print("    Arctic Cython old LZ4 (parallel) %s s" % arctic_old_lz4Arr_time)
     print("    Arctic Cython old LZ4 High Compression (single thread) %s s" % arctic_old_lz4HC_time)
-    print("    Arctic Cython old LZ4 High Comporession (parallel)%s s" % arctic_old_lz4HCArr_time)
+    print("    Arctic Cython old LZ4 High Compression (parallel)%s s" % arctic_old_lz4HCArr_time)
     print("    New LZ4 (frame) %s s" % lz4_frame_time)
     print("    Arctic Cython new LZ4 Frame (single thread) %s s" % arctic_lz4Frame_time)
     print("    Arctic Cython new LZ4 Frame (parallel) %s s" % arctic_lz4ArrFrame_time)
@@ -99,6 +99,25 @@ def test_lz4frame_parallel_compression(n, length):
     compressed_arr = c.compressarrFrame(arr_of_str)
     for i in range(n):
         assert lz4_decompress(compressed_arr[i]) == arr_of_str[i]
+
+
+def test_compatibility():
+    test_str = random_string(100)
+
+    # This fails (Exception: Error decompressing)
+    # assert c.decompress(c.compressFrame(test_str)) == test_str
+
+    # This fails with python lz4 0.7.0 (corrupt input)
+    # This is passing with lz4 1.1.0
+    # assert lz4_decompress(c.compressFrame(test_str)) == test_str
+
+    # This passes with python lz4 0.7.0
+    # This fails with python lz4 1.1.0 (Exception: Error decompressing)
+    # assert c.decompress(lz4_compress(test_str)) == test_str
+
+    # This passes with python lz4 0.7.0
+    # This fails with python lz4 1.1.0 (ERROR_frameType_unknown)
+    # assert lz4_decompress(c.compress(test_str)) == test_str
 
 
 
