@@ -9,10 +9,12 @@ from .._util import indent
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException
 from .bson_store import BSONStore
+import six
 
 logger = logging.getLogger(__name__)
 
 METADATA_STORE_TYPE = 'MetadataStore'
+
 
 class MetadataStore(BSONStore):
     """
@@ -57,8 +59,50 @@ class MetadataStore(BSONStore):
         return str(self)
 
     @mongo_retry
-    def list_symbols(self):
-        return self.distinct('symbol')
+    def list_symbols(self, regex=None, as_of=None, **kwargs):
+        """
+         Return the symbols in this library.
+
+         Parameters
+         ----------
+         as_of : `datetime.datetime`
+            filter symbols valid at given time
+         regex : `str`
+             filter symbols by the passed in regular expression
+         kwargs :
+             kwarg keys are used as fields to query for symbols with metadata matching
+             the kwargs query
+
+         Returns
+         -------
+         String list of symbols in the library
+        """
+        query = {}
+        if regex is not None:
+            query['symbol'] = {'$regex': regex}
+
+        if as_of is not None:
+            query['start_time'] = {'$lte': as_of}
+
+        if kwargs:
+            for k, v in six.iteritems(kwargs):
+                query['metadata.' + k] = v
+
+        if len(query):
+            pipeline = []
+            if query:
+                # Match based on user criteria first
+                pipeline.append({'$match': query})
+
+            pipeline.extend([
+                {'$sort': {'start_time': pymongo.DESCENDING}},
+                # Group by 'symbol'
+                {'$group': {'_id': '$symbol'}},
+                {'$project': {'_id': 0, 'symbol':  '$_id'}}])
+
+            return sorted(r['symbol'] for r in self.aggregate(pipeline))
+        else:
+            return self.distinct('symbol')
 
     @mongo_retry
     def has_symbol(self, symbol):
