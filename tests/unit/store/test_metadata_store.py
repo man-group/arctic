@@ -26,8 +26,8 @@ def test_list_symbols_regex():
     ms.aggregate.return_value = []
 
     expected_pipeline = [
-        {'$match': {'symbol': {'$regex': 'test.*'}}},
         {'$sort': {'symbol': 1, 'start_time': -1}},
+        {'$match': {'symbol': {'$regex': 'test.*'}}},
         {'$group': {'_id': '$symbol', 'metadata': {'$first': '$metadata'}}},
         {'$project': {'_id': 0, 'symbol':  '$_id'}}
     ]
@@ -41,8 +41,9 @@ def test_list_symbols_as_of():
     ms.aggregate.return_value = []
 
     expected_pipeline = [
-        {'$match': {'start_time': {'$lte': dt.datetime(2018, 5, 11)}}},
         {'$sort': {'symbol': 1, 'start_time': -1}},
+        {'$match': {'symbol': {'$regex': '^'},
+                    'start_time': {'$lte': dt.datetime(2018, 5, 11)}}},
         {'$group': {'_id': '$symbol', 'metadata': {'$first': '$metadata'}}},
         {'$project': {'_id': 0, 'symbol':  '$_id'}}
     ]
@@ -56,9 +57,9 @@ def test_list_symbols_as_of_regex():
     ms.aggregate.return_value = []
 
     expected_pipeline = [
+        {'$sort': {'symbol': 1, 'start_time': -1}},
         {'$match': {'symbol': {'$regex': 'test.*'},
                     'start_time': {'$lte': dt.datetime(2018, 5, 11)}}},
-        {'$sort': {'symbol': 1, 'start_time': -1}},
         {'$group': {'_id': '$symbol', 'metadata': {'$first': '$metadata'}}},
         {'$project': {'_id': 0, 'symbol':  '$_id'}}
     ]
@@ -89,9 +90,9 @@ def test_list_symbols_all_options():
     ms.aggregate.return_value = []
 
     expected_pipeline = [
+        {'$sort': {'symbol': 1, 'start_time': -1}},
         {'$match': {'symbol': {'$regex': 'test.*'},
                     'start_time': {'$lte': dt.datetime(2018, 5, 11)}}},
-        {'$sort': {'symbol': 1, 'start_time': -1}},
         {'$group': {'_id': '$symbol', 'metadata': {'$first': '$metadata'}}},
         {'$match': {'metadata.foo': 'bar'}},
         {'$project': {'_id': 0, 'symbol':  '$_id'}}

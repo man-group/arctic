@@ -77,30 +77,34 @@ class MetadataStore(BSONStore):
          -------
          String list of symbols in the library
         """
+
+        # Skip aggregation pipeline
+        if not (regex or as_of or kwargs):
+            return self.distinct('symbol')
+
+        # Index-based query part
         index_query = {}
-        data_query = {}
-
-        if regex is not None:
-            index_query['symbol'] = {'$regex': regex}
-
         if as_of is not None:
             index_query['start_time'] = {'$lte': as_of}
 
+        if regex or as_of:
+            # make sure that symbol is present in query even if only as_of is specified to avoid document scans
+            # see 'Pipeline Operators and Indexes' at https://docs.mongodb.com/manual/core/aggregation-pipeline/#aggregation-pipeline-operators-and-performance
+            index_query['symbol'] = {'$regex': regex or '^'}
+
+        # Document query part
+        data_query = {}
         if kwargs:
             for k, v in six.iteritems(kwargs):
                 data_query['metadata.' + k] = v
 
-        # Skip aggregation pipeline
-        if not(index_query or data_query):
-            return self.distinct('symbol')
+        # Sort using index, relying on https://docs.mongodb.com/manual/core/aggregation-pipeline-optimization/
+        pipeline = [{'$sort': {'symbol': pymongo.ASCENDING,
+                               'start_time': pymongo.DESCENDING}}]
 
-        pipeline = []
         # Index-based filter on symbol and start_time
         if index_query:
             pipeline.append({'$match': index_query})
-        # Sort using index
-        pipeline.append({'$sort': {'symbol': pymongo.ASCENDING,
-                                   'start_time': pymongo.DESCENDING}})
         # Group by 'symbol' and get the latest known data
         pipeline.append({'$group': {'_id': '$symbol',
                                     'metadata': {'$first': '$metadata'}}})
