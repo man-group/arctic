@@ -77,32 +77,40 @@ class MetadataStore(BSONStore):
          -------
          String list of symbols in the library
         """
-        query = {}
+        index_query = {}
+        data_query = {}
+
         if regex is not None:
-            query['symbol'] = {'$regex': regex}
+            index_query['symbol'] = {'$regex': regex}
 
         if as_of is not None:
-            query['start_time'] = {'$lte': as_of}
+            index_query['start_time'] = {'$lte': as_of}
 
         if kwargs:
             for k, v in six.iteritems(kwargs):
-                query['metadata.' + k] = v
+                data_query['metadata.' + k] = v
 
-        if len(query):
-            pipeline = []
-            if query:
-                # Match based on user criteria first
-                pipeline.append({'$match': query})
-
-            pipeline.extend([
-                {'$sort': {'start_time': pymongo.DESCENDING}},
-                # Group by 'symbol'
-                {'$group': {'_id': '$symbol'}},
-                {'$project': {'_id': 0, 'symbol':  '$_id'}}])
-
-            return sorted(r['symbol'] for r in self.aggregate(pipeline))
-        else:
+        # Skip aggregation pipeline
+        if not(index_query or data_query):
             return self.distinct('symbol')
+
+        pipeline = []
+        # Index-based filter on symbol and start_time
+        if index_query:
+            pipeline.append({'$match': index_query})
+        # Sort using index
+        pipeline.append({'$sort': {'symbol': pymongo.ASCENDING,
+                                   'start_time': pymongo.DESCENDING}})
+        # Group by 'symbol' and get the latest known data
+        pipeline.append({'$group': {'_id': '$symbol',
+                                    'metadata': {'$first': '$metadata'}}})
+        # Match the data fields
+        if data_query:
+            pipeline.append({'$match': data_query})
+        # Return only 'symbol' field value
+        pipeline.append({'$project': {'_id': 0, 'symbol': '$_id'}})
+
+        return sorted(r['symbol'] for r in self.aggregate(pipeline))
 
     @mongo_retry
     def has_symbol(self, symbol):
