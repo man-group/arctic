@@ -3,14 +3,26 @@ import random
 try:
     from lz4 import compressHC as lz4_compress, decompress as lz4_decompress
 except ImportError as e:
-    from lz4.frame import compress as lz4_compress, decompress as lz4_decompress
+    from lz4.block import compress as lz4_compress, decompress as lz4_decompress
 
 import string
 import pytest
 import six
 from datetime import datetime as dt
-
 import arctic._compress as c
+
+
+@pytest.mark.parametrize("compress,decompress", [
+    (c.compress, lz4_decompress),
+    (c.compressHC, lz4_decompress),
+    (lz4_compress, c.decompress)
+], ids=('arctic/lz4',
+        'arcticHC/lz4',
+        'lz4/arctic'))
+def test_roundtrip(compress, decompress):
+    _str = b"hello world"
+    cstr = compress(_str)
+    assert _str == decompress(cstr)
 
 
 @pytest.mark.parametrize("n, length", [(300, 5e4),  # micro TS
