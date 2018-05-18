@@ -1,4 +1,3 @@
-import lz4
 import pytest
 import random
 import string
@@ -6,9 +5,12 @@ import string
 import arctic._compress as c
 
 
-def test_roundtrip():
+@pytest.mark.parametrize("compress",
+                         [c.compress, c.compressHC],
+                         ids=('arctic', 'arcticHC'))
+def test_roundtrip(compress):
     _str = b"hello world"
-    cstr = c.compress(_str)
+    cstr = compress(_str)
     assert _str == c.decompress(cstr)
 
 
@@ -18,35 +20,6 @@ def test_roundtrip_multi(n):
     cstr = c.compress(_str)
     assert _str == c.decompress(cstr)
 
-
-def test_roundtripHC():
-    _str = b"hello world"
-    cstr = c.compressHC(_str)
-    assert _str == c.decompress(cstr)
-
-
-def test_roundtripLZ4():
-    _str = b"hello world"
-    cstr = lz4.compress(_str)
-    assert _str == c.decompress(cstr)
-
-
-def test_roundtripLZ4Back():
-    _str = b"hello world"
-    cstr = c.compress(_str)
-    assert _str == lz4.decompress(cstr)
-
-
-def test_roundtripLZ4HC():
-    _str = b"hello world"
-    cstr = lz4.compressHC(_str)
-    assert _str == c.decompress(cstr)
-
-
-def test_roundtripLZ4HCBack():
-    _str = b"hello world"
-    cstr = c.compressHC(_str)
-    assert _str == lz4.decompress(cstr)
 
 
 @pytest.mark.parametrize("n, length", [(1, 10), (100, 10), (1000, 10)])

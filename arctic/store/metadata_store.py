@@ -9,10 +9,12 @@ from .._util import indent
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException
 from .bson_store import BSONStore
+import six
 
 logger = logging.getLogger(__name__)
 
 METADATA_STORE_TYPE = 'MetadataStore'
+
 
 class MetadataStore(BSONStore):
     """
@@ -57,8 +59,62 @@ class MetadataStore(BSONStore):
         return str(self)
 
     @mongo_retry
-    def list_symbols(self):
-        return self.distinct('symbol')
+    def list_symbols(self, regex=None, as_of=None, **kwargs):
+        """
+         Return the symbols in this library.
+
+         Parameters
+         ----------
+         as_of : `datetime.datetime`
+            filter symbols valid at given time
+         regex : `str`
+             filter symbols by the passed in regular expression
+         kwargs :
+             kwarg keys are used as fields to query for symbols with metadata matching
+             the kwargs query
+
+         Returns
+         -------
+         String list of symbols in the library
+        """
+
+        # Skip aggregation pipeline
+        if not (regex or as_of or kwargs):
+            return self.distinct('symbol')
+
+        # Index-based query part
+        index_query = {}
+        if as_of is not None:
+            index_query['start_time'] = {'$lte': as_of}
+
+        if regex or as_of:
+            # make sure that symbol is present in query even if only as_of is specified to avoid document scans
+            # see 'Pipeline Operators and Indexes' at https://docs.mongodb.com/manual/core/aggregation-pipeline/#aggregation-pipeline-operators-and-performance
+            index_query['symbol'] = {'$regex': regex or '^'}
+
+        # Document query part
+        data_query = {}
+        if kwargs:
+            for k, v in six.iteritems(kwargs):
+                data_query['metadata.' + k] = v
+
+        # Sort using index, relying on https://docs.mongodb.com/manual/core/aggregation-pipeline-optimization/
+        pipeline = [{'$sort': {'symbol': pymongo.ASCENDING,
+                               'start_time': pymongo.DESCENDING}}]
+
+        # Index-based filter on symbol and start_time
+        if index_query:
+            pipeline.append({'$match': index_query})
+        # Group by 'symbol' and get the latest known data
+        pipeline.append({'$group': {'_id': '$symbol',
+                                    'metadata': {'$first': '$metadata'}}})
+        # Match the data fields
+        if data_query:
+            pipeline.append({'$match': data_query})
+        # Return only 'symbol' field value
+        pipeline.append({'$project': {'_id': 0, 'symbol': '$_id'}})
+
+        return sorted(r['symbol'] for r in self.aggregate(pipeline))
 
     @mongo_retry
     def has_symbol(self, symbol):

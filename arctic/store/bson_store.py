@@ -164,6 +164,13 @@ class BSONStore(object):
         return self._collection.count(filter, **kwargs)
 
     @mongo_retry
+    def aggregate(self, pipeline, **kwargs):
+        """
+        See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.aggregate
+        """
+        return self._collection.aggregate(pipeline, **kwargs)
+
+    @mongo_retry
     def distinct(self, key, **kwargs):
         """
         See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.distinct
