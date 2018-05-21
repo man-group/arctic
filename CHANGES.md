@@ -4,6 +4,7 @@
   * Bugfix: #168 Do not allow empty string as a column name
   * Bugfix: #483 Remove potential floating point error from datetime_to_ms
   * Bugfix: #271 Log when library doesnt exist on delete
+  * Feature: MetaDataStore: added list_symbols with regexp, as_of and metadata fields matching filters
 
 ### 1.65 (2018-04-16)
   * Bugfix: #534 VersionStore: overwriting a symbol with different dtype (but same data format) does not
