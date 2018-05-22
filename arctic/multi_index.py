@@ -92,7 +92,9 @@ def groupby_asof(df, as_of=None, dt_col='sample_dt', asof_col='observed_dt'):
         Name or index of the column in the MultiIndex that is the observed date
     '''
     if as_of:
-        if as_of.tzinfo is None:
+        if as_of.tzinfo is None and df.index.get_level_values(asof_col).tz is not None:
+            print(as_of.tzinfo)
+            print(df.index.get_level_values(asof_col).tz)
             as_of = as_of.replace(tzinfo=pytz.utc)
     return fancy_group_by(df,
                           grouping_level=dt_col,
