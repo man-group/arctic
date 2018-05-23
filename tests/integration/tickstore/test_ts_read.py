@@ -193,7 +193,7 @@ def test_read_all_cols_all_dtypes(tickstore_lib, chunk_size):
     index = DatetimeIndex([dt(1970, 1, 1, tzinfo=mktz('UTC')),
                          dt(1970, 1, 1, 0, 0, 1, tzinfo=mktz('UTC'))],
                         )
-    index.tz = mktz()
+    df.index = df.index.tz_convert(mktz('UTC'))
     expected = pd.DataFrame(data, index=index)
     expected = expected[df.columns]
     assert_frame_equal(expected, df, check_names=False)
