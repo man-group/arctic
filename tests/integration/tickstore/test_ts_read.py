@@ -322,8 +322,6 @@ def test_date_range_default_timezone(tickstore_lib, tz_name):
         df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130701), columns=None)
         assert len(df) == 2
         assert df.index[1] == dt(2013, 7, 1, tzinfo=mktz(tz_name))
-        assert df.index.tz == mktz(tz_name)
-
         df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130101), columns=None)
         assert len(df) == 1
 
