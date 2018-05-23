@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 from tests.util import read_str_as_pandas
 import pytest
-import pytz
 
 
 def get_bitemporal_test_data():
