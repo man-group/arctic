@@ -118,5 +118,4 @@ def test_write_metadata(library):
     library.write_metadata(symbol='symX', metadata={'key2': 'value2'})
     v = library.read('symX')
     assert v.data == blob
-    assert v.metadata == {'key2': 'val'
-                                  'ue2'}
+    assert v.metadata == {'key2': 'value2'}
