@@ -65,6 +65,23 @@ def test_read_object_2():
     assert PickleStore.read(self, arctic_lib, version, sentinel.symbol) == object
     assert coll.find.call_args_list == [call({'symbol': sentinel.symbol, 'parent': sentinel._id}, sort=[('segment', 1)])]
 
+
+def test_read_with_base_version_id():
+    self = create_autospec(PickleStore)
+    version = {'_id': sentinel._id,
+               'base_version_id': sentinel.base_version_id,
+               'blob': '__chunked__'}
+    coll = Mock()
+    arctic_lib = Mock()
+    coll.find.return_value = [{'data': Binary(compressHC(cPickle.dumps(object))),
+                               'symbol': 'sentinel.symbol'}
+                              ]
+    arctic_lib.get_top_level_collection.return_value = coll
+
+    assert PickleStore.read(self, arctic_lib, version, sentinel.symbol) == object
+    assert coll.find.call_args_list == [call({'symbol': sentinel.symbol, 'parent': sentinel.base_version_id}, sort=[('segment', 1)])]
+
+
 @pytest.mark.xfail(sys.version_info >= (3,),
                    reason="lz4 data written with python2 not compatible with python3")
 def test_read_backward_compatibility():

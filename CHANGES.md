@@ -1,6 +1,9 @@
 ## Changelog
 
-### 1.66
+### 1.67
+  * Bugfix: #561 Fix PickleStore read corruption after write_metadata
+
+### 1.66 (2018-05-21)
   * Bugfix: #168 Do not allow empty string as a column name
   * Bugfix: #483 Remove potential floating point error from datetime_to_ms
   * Bugfix: #271 Log when library doesnt exist on delete
