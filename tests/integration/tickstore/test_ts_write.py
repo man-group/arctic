@@ -107,4 +107,4 @@ def test_millisecond_roundtrip(tickstore_lib):
                            dt(2004, 1, 15, tzinfo=pytz.utc))
     reread = tickstore_lib.read('blah', data_range)
 
-    assert reread.index[0].to_datetime() == test_time
+    assert reread.index[0].to_pydatetime() == test_time

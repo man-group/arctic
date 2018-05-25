@@ -4,6 +4,7 @@ Created on 25 Aug 2015
 @author: ateng
 '''
 from datetime import datetime as dt
+import pytz
 
 from mock import patch
 from pandas.util.testing import assert_frame_equal
@@ -93,8 +94,7 @@ def test_read_ts_with_historical_update(bitemporal_library):
     bitemporal_library.update('spam', read_str_as_pandas("""         sample_dt | near
                                                          2012-10-09 17:06:11.040 | 6.6"""),
                               as_of=dt(2015, 5, 3))
-
-    assert_frame_equal(bitemporal_library.read('spam', as_of=dt(2015, 5, 2, 10)).data, read_str_as_pandas(
+    assert_frame_equal(bitemporal_library.read('spam', as_of=dt(2015, 5, 2, 10, tzinfo=pytz.timezone("Europe/London"))).data, read_str_as_pandas(
                                                                                     """sample_dt   | near
                                                                            2012-09-08 17:06:11.040 |  1.0
                                                                            2012-10-08 17:06:11.040 |  2.0
@@ -107,7 +107,7 @@ def test_read_ts_with_historical_update(bitemporal_library):
                                                                        2012-10-09 17:06:11.040 |  6.6
                                                                        2012-11-08 17:06:11.040 |  3.0"""))
 
-    assert_frame_equal(bitemporal_library.read('spam', as_of=dt(2015, 5, 1, 10)).data, ts1)
+    assert_frame_equal(bitemporal_library.read('spam', as_of=dt(2015, 5, 1, 10, tzinfo=pytz.timezone("Europe/London"))).data, ts1)
 
 
 def test_read_ts_with_historical_update_and_new_row(bitemporal_library):
