@@ -10,7 +10,6 @@ from .date import mktz
 import numpy as np
 import pandas as pd
 import six
-import pytz
 
 
 logger = logging.getLogger(__name__)
