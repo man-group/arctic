@@ -8,7 +8,7 @@ from pymongo.errors import OperationFailure, DuplicateKeyError
 
 from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException, DataIntegrityException
-from ._version_store_utils import checksum
+from ._version_store_utils import checksum, version_base_or_id
 
 from .._compression import compress_array, decompress
 from six.moves import xrange
@@ -39,20 +39,25 @@ def _promote_struct_dtypes(dtype1, dtype2):
 def _attempt_update_unchanged(symbol, unchanged_segment_ids, collection, version, previous_version):
     if not unchanged_segment_ids or not collection or not version:
         return
+
+    # Currenlty it is called only from _concat_and_rewrite, with "base_version_id" always empty
+    # Use version_base_or_id() instead, to make the method safe going forward, called form anywhere
+    parent_id = version_base_or_id(version)
+
     # Update the parent set of the unchanged/compressed segments
     result = collection.update_many({
                                         'symbol': symbol,  # hit only the right shard
                                                            # update_many is a broadcast query otherwise
                                         '_id': {'$in': [x['_id'] for x in unchanged_segment_ids]}
                                     },
-                                    {'$addToSet': {'parent': version['_id']}})
+                                    {'$addToSet': {'parent': parent_id}})
     # Fast check for success without extra query
     if result.matched_count == len(unchanged_segment_ids):
         return
     # update_many is tricky sometimes wrt matched_count across replicas when balancer runs. Check based on _id.
     unchanged_ids = set([x['_id'] for x in unchanged_segment_ids])
     spec = {'symbol': symbol,
-            'parent': version['_id'],
+            'parent': parent_id,
             'segment': {'$lte': unchanged_segment_ids[-1]['segment']}}
     matched_segments_ids = set([x['_id'] for x in collection.find(spec)])
     if unchanged_ids != matched_segments_ids:
@@ -240,7 +245,7 @@ class NdarrayStore(object):
         segment_count = None
 
         spec = {'symbol': symbol,
-                'parent': version.get('base_version_id', version['_id']),
+                'parent': version_base_or_id(version),
                 'segment': {'$lt': to_index}
                 }
         if from_index is not None:
@@ -333,7 +338,7 @@ class NdarrayStore(object):
         #_CHUNK_SIZE is probably too big if we're only appending single rows of data - perhaps something smaller,
         #or also look at number of appended segments?
         if not dirty_append and version['append_count'] < _APPEND_COUNT and version['append_size'] < _APPEND_SIZE:
-            version['base_version_id'] = previous_version.get('base_version_id', previous_version['_id'])
+            version['base_version_id'] = version_base_or_id(previous_version)
 
             if len(item) > 0:
 
@@ -375,7 +380,7 @@ class NdarrayStore(object):
 
         # Figure out which is the last 'full' chunk
         spec = {'symbol': symbol,
-                'parent': previous_version.get('base_version_id', previous_version['_id']),
+                'parent': version_base_or_id(previous_version),
                 'segment': {'$lt': previous_version['up_to']}}
 
         read_index_range = [0, None]
@@ -423,17 +428,21 @@ class NdarrayStore(object):
             self.check_written(collection, symbol, version)
 
     def check_written(self, collection, symbol, version):
+        # Currently only called from methods which guarantee 'base_version_id' is not populated.
+        # Make it nonetheless safe for the general case.
+        parent_id = version_base_or_id(version)
+
         # Check all the chunks are in place
-        seen_chunks = collection.find({'symbol': symbol, 'parent': version['_id']},
+        seen_chunks = collection.find({'symbol': symbol, 'parent': parent_id},
                                       ).count()
 
         if seen_chunks != version['segment_count']:
-            segments = [x['segment'] for x in collection.find({'symbol': symbol, 'parent': version['_id']},
+            segments = [x['segment'] for x in collection.find({'symbol': symbol, 'parent': parent_id},
                                                               projection={'segment': 1},
                                                               )]
             raise pymongo.errors.OperationFailure("Failed to write all the Chunks. Saw %s expecting %s"
                                                   "Parent: %s \n segments: %s" %
-                                                  (seen_chunks, version['segment_count'], version['_id'], segments))
+                                                  (seen_chunks, version['segment_count'], parent_id, segments))
 
     def checksum(self, item):
         sha = hashlib.sha1()
