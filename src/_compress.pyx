@@ -5,12 +5,19 @@
 #
 
 cdef extern from "lz4.h":
-    cdef int LZ4_compress(char* source, char* dest, int inputSize) nogil
+    #cdef int LZ4_compress(char* source, char* dest, int inputSize) nogil
+    cdef int LZ4_compress_default(char* source, char* dest, int inputSize, int maxOutputSize) nogil
     cdef int LZ4_compressBound(int isize) nogil
     cdef int LZ4_decompress_safe(const char* source, char* dest, int compressedSize, int maxOutputSize) nogil
 
+cdef extern from "lz4f_toplevel.h":
+    cdef char* LZ4F_compressFrame_default(size_t pyHeaderLen, const char* srcBuffer, size_t srcSize, size_t* compressed_size) nogil
+
 cdef extern from "lz4hc.h":
-    cdef int LZ4_compressHC(char* source, char* dest, int inputSize) nogil
+    cdef int LZ4HC_CLEVEL_MAX
+    # cdef int LZ4_compressHC(char* source, char* dest, int inputSize) nogil
+    cdef int LZ4_compress_HC(char* src, char* dst, int srcSize, int dstCapacity, int compressionLevel) nogil
+
 
 cimport cython
 cimport cpython
@@ -26,6 +33,7 @@ from cython.view cimport array as cvarray
 from cython.parallel import prange
 from cython.parallel import threadid
 from cython.parallel cimport parallel
+
 
 cdef void store_le32(char *c, uint32_t x) nogil:
     c[0] = x & 0xff
@@ -55,7 +63,7 @@ cdef char ** to_cstring_array(list_str):
 @cython.nonecheck(False)
 @cython.cdivision(True)
 def compress(pString):
-    return _compress(pString, LZ4_compress)
+    return _compress(pString, False)
 
 
 @cython.boundscheck(False)
@@ -63,10 +71,10 @@ def compress(pString):
 @cython.nonecheck(False)
 @cython.cdivision(True)
 def compressHC(pString):
-    return _compress(pString, LZ4_compressHC)
+    return _compress(pString, True)
 
 
-cdef _compress(pString, int (*Fnptr_LZ4_compress)(const char *, char *, int)):
+cdef _compress(pString, pIsHc):
     # sizes
     cdef uint32_t compressed_size
     cdef uint32_t original_size = len(pString)
@@ -76,14 +84,17 @@ cdef _compress(pString, int (*Fnptr_LZ4_compress)(const char *, char *, int)):
     cdef char *result     # destination buffer
     cdef bytes pyResult   # python wrapped result
 
-    # calc. estaimted compresed size
+    # calc. estimated compressed size
     compressed_size = LZ4_compressBound(original_size)
     # alloc memory
     result = <char*>malloc(compressed_size + hdr_size)
     # store original size
     store_le32(result, original_size);
     # compress & update size
-    compressed_size = Fnptr_LZ4_compress(cString, result + hdr_size, original_size)
+    if pIsHc:
+        compressed_size = LZ4_compress_HC(cString, result + hdr_size, original_size, compressed_size, LZ4HC_CLEVEL_MAX)
+    else:
+        compressed_size = LZ4_compress_default(cString, result + hdr_size, original_size, compressed_size)
     # cast back into a python sstring
     pyResult = result[:compressed_size + hdr_size]
 
@@ -131,19 +142,20 @@ def decompress(pString):
 @cython.nonecheck(False)
 @cython.cdivision(True)
 def compressarr(pStrList):
-    return _compressarr(pStrList, LZ4_compress)
+    return _compressarr(pStrList, False)
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
 def compressarrHC(pStrList):
-    return _compressarr(pStrList, LZ4_compressHC)
+    return _compressarr(pStrList, True)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef _compressarr(pStrList, int (*Fnptr_LZ4_compress)(const char *, char *, int) nogil):
+cdef _compressarr(pStrList, pIsHc):
     
     if len(pStrList) == 0:
         return []
@@ -168,6 +180,12 @@ cdef _compressarr(pStrList, int (*Fnptr_LZ4_compress)(const char *, char *, int)
     for i in range(n):
         orilengths[i] = len(pStrList[i])
 
+    cdef int pIsHc_int
+    if pIsHc:
+        pIsHc_int = 1
+    else:
+        pIsHc_int = 0
+
     with nogil, parallel():
         for i in prange(n, schedule='static'):
             cString = cStrList[i]
@@ -179,7 +197,10 @@ cdef _compressarr(pStrList, int (*Fnptr_LZ4_compress)(const char *, char *, int)
             # store original size
             store_le32(result, original_size)
             # compress & update size
-            compressed_size = Fnptr_LZ4_compress(cString, result + hdr_size, original_size)
+            if pIsHc_int:
+                compressed_size = LZ4_compress_HC(cString, result + hdr_size, original_size, compressed_size, LZ4HC_CLEVEL_MAX)
+            else:
+                compressed_size = LZ4_compress_default(cString, result + hdr_size, original_size, compressed_size)
             # assign to result
             lengths[i] = compressed_size + hdr_size
             cResult[i] = result
@@ -256,5 +277,87 @@ def decompressarr(pStrList):
 
     if error == -1:
         raise Exception("Error decompressing array")
+
+    return result_list
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(True)
+def compressFrame(pString):
+    # sizes
+    cdef size_t compressed_size = 0
+    cdef uint32_t original_size = len(pString)
+
+    # buffers
+    cdef char *cString =  pString
+    cdef char *result     # destination buffer
+    cdef bytes pyResult   # python wrapped result
+
+    result = LZ4F_compressFrame_default(hdr_size, cString, original_size, &compressed_size)
+
+    if result:
+        # store original size
+        store_le32(result, original_size)
+        pyResult = result[hdr_size:compressed_size+hdr_size]
+        free(result)
+        return pyResult
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(True)
+def compressarrFrame(pStrList):
+
+    if len(pStrList) == 0:
+        return []
+
+    cdef char **cStrList = to_cstring_array(pStrList)
+    cdef Py_ssize_t n = len(pStrList)
+
+    # loop parameters
+    cdef char *cString
+    cdef int original_size
+    cdef size_t compressed_size = 0
+    cdef char *result
+    cdef Py_ssize_t i
+
+    # output parameters
+    cdef char **cResult = <char **>malloc(n * sizeof(char *))
+    cdef int[:] lengths = cvarray(shape=(n,), itemsize=sizeof(int), format="i")
+    cdef int[:] orilengths = cvarray(shape=(n,), itemsize=sizeof(int), format="i")
+    cdef bytes pyResult
+
+    # store original string lengths
+    for i in range(n):
+        orilengths[i] = len(pStrList[i])
+
+    with nogil, parallel():
+        for i in prange(n, schedule='static'):
+            cString = cStrList[i]
+            original_size = orilengths[i]
+
+            # compress & update size
+            compressed_size = 0
+            result = LZ4F_compressFrame_default(hdr_size, cString, original_size, &compressed_size)
+
+            # assign to result
+            lengths[i] = compressed_size + hdr_size
+            cResult[i] = result
+
+    # cast back to python
+    result_list = []
+    for i in range(n):
+        if cResult[i]:
+            # store original size
+            store_le32(cResult[i], original_size)
+            pyResult = cResult[i][hdr_size:lengths[i]]
+            free(cResult[i])
+            result_list.append(pyResult)
+
+    free(cResult)
+    free(cStrList)
 
     return result_list

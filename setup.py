@@ -59,6 +59,12 @@ if platform.system().lower() == 'darwin':
 elif platform.system().lower() == 'windows':
     compile_args = ['/openmp']
     link_args = []
+else:
+    os.environ["CFLAGS"] = os.environ.get("CFLAGS", "") +  " -O3"
+
+print("---------")
+print(os.environ.get("CFLAGS"))
+print("---------")
 
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672
@@ -123,7 +129,8 @@ class defer_cythonize(list):
 def extensions():
     from Cython.Build import cythonize
     return cythonize(Extension('arctic._compress',
-                               sources=["src/_compress.pyx", "src/lz4.c", "src/lz4hc.c"],
+                               sources=["src/_compress.pyx", "src/lz4.c", "src/lz4hc.c",
+                                        "src/lz4f_toplevel.c", "src/lz4frame.c", "src/xxhash.c"],
                                extra_compile_args=compile_args,
                                extra_link_args=link_args))
 
