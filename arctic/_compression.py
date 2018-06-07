@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 # switch to parallel LZ4 compress (and potentially other parallel stuff), Default True
 ENABLE_PARALLEL = not os.environ.get('DISABLE_PARALLEL')
 LZ4_N_PARALLEL = os.environ.get('LZ4_N_PARALLEL', 50)  # No. of elements to use parallel compression in LZ4 mode
-LZ4_WORKERS = os.environ.get('COMPRESSION_WORKERS', 4)
+LZ4_WORKERS = os.environ.get('LZ4_WORKERS', 4)
 
 _compress_thread_pool = None
 
