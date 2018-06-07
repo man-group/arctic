@@ -1,15 +1,12 @@
 from __future__ import print_function
 import random
-try:
-    from lz4 import compressHC as lz4_compress, decompress as lz4_decompress
-except ImportError as e:
-    from lz4.block import compress as lz4_compress, decompress as lz4_decompress
 
 import string
 import pytest
 import six
 from datetime import datetime as dt
-import arctic._compress as c
+import arctic._compression as c
+from lz4.block import compress as lz4_compress, decompress as lz4_decompress
 
 
 @pytest.mark.parametrize("compress,decompress", [
@@ -37,7 +34,7 @@ def test_performance_sequential(n, length):
     [c.decompress(y) for y in [c.compressHC(x) for x in _strarr]]
     clz4_time = (dt.now() - now).total_seconds()
     now = dt.now()
-    c.decompressarr(c.compressarrHC(_strarr))
+    c.decompress_array(c.compressHC_array(_strarr))
     clz4_time_p = (dt.now() - now).total_seconds()
     now = dt.now()
     [lz4_decompress(y) for y in [lz4_compress(x) for x in _strarr]]
@@ -59,10 +56,10 @@ def test_exceptions():
     data = data[0:16]
     with pytest.raises(Exception) as e:
         c.decompress(data)
-    assert("decompressing" in str(e))
+    assert("Decompressor wrote" in str(e))
 
     data = c.compress(b'1010101010100000000000000000000000000000000000000000000000000000000011111111111111111111111111111')
     data = [data[0:16] for x in (1, 2, 3)]
     with pytest.raises(Exception) as e:
-        c.decompressarr(data)
-    assert("decompressing" in str(e))
+        c.decompress_array(data)
+    assert("Decompressor wrote" in str(e))

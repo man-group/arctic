@@ -8,7 +8,7 @@ def test_compress():
 
 def test_compress_LZ4():
     cfn = Mock()
-    with patch('arctic._compression.clz4.compress', cfn):
+    with patch('arctic._compression.lz4_compress', cfn):
         compress(b"foo")
         assert cfn.call_count == 1
 
@@ -20,14 +20,14 @@ def test_compressarr():
 
 def test_compress_array_usesLZ4():
     cfn = Mock()
-    with patch('arctic._compression.clz4.compressarr', cfn):
+    with patch('arctic._compression.lz4_compress', cfn):
         compress_array([b"foo"] * 100)
-        assert cfn.call_count == 1
+        assert cfn.call_count == 100
 
 
 def test_compress_array_LZ4_sequential():
     cfn = Mock()
-    with patch('arctic._compression.clz4.compress', cfn):
+    with patch('arctic._compression.lz4_compress', cfn):
         compress_array([b"foo"] * 49)
         assert cfn.call_count == 49
 
