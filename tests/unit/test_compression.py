@@ -22,14 +22,14 @@ def test_compress_array_usesLZ4():
     cfn = Mock()
     with patch('arctic._compression.lz4_compress', cfn):
         compress_array([b"foo"] * 100)
-        assert cfn.call_count == 100
+        assert len(cfn.call_args_list) == 100  # call_count is not thread safe
 
 
 def test_compress_array_LZ4_sequential():
     cfn = Mock()
     with patch('arctic._compression.lz4_compress', cfn):
         compress_array([b"foo"] * 49)
-        assert cfn.call_count == 49
+        assert len(cfn.call_args_list) == 49
 
 
 def test_decompress():
