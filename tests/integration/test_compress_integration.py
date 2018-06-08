@@ -6,16 +6,23 @@ import pytest
 import six
 from datetime import datetime as dt
 import arctic._compression as c
-from lz4.block import compress as lz4_compress, decompress as lz4_decompress
+
+try:
+    from lz4.block import compress as lz4_compress, decompress as lz4_decompress
+    lz4_compressHC = lambda _str: lz4_compress(_str, mode='high_compression')
+except ImportError as e:
+    from lz4 import compress as lz4_compress, compressHC as lz4_compressHC, decompress as lz4_decompress
 
 
 @pytest.mark.parametrize("compress,decompress", [
     (c.compress, lz4_decompress),
     (c.compressHC, lz4_decompress),
-    (lz4_compress, c.decompress)
+    (lz4_compress, c.decompress),
+    (lz4_compressHC, c.decompress)
 ], ids=('arctic/lz4',
         'arcticHC/lz4',
-        'lz4/arctic'))
+        'lz4/arctic',
+        'lz4HC/arctic'))
 def test_roundtrip(compress, decompress):
     _str = b"hello world"
     cstr = compress(_str)

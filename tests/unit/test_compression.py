@@ -13,7 +13,7 @@ def test_compress_LZ4():
         assert cfn.call_count == 1
 
 
-def test_compressarr():
+def test_compress_array():
     assert len(compress_array([b"foobar"*10])) > 0
     assert isinstance(compress_array([b"foobar"*10]), list)
 
