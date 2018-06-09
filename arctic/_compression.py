@@ -15,16 +15,19 @@ logger = logging.getLogger(__name__)
 ENABLE_PARALLEL = not os.environ.get('DISABLE_PARALLEL')
 LZ4_HIGH_COMPRESSION = bool(os.environ.get('LZ4_HIGH_COMPRESSION'))
 
+# For a guide on how to tune the following parameters, read:
+#     arctic/benchmarks/lz4_tuning/README.txt
+# The size of the compression thread pool
+LZ4_WORKERS = os.environ.get('LZ4_WORKERS', 4)
+# The minimum required number of chunks to use parallel compression
+LZ4_N_PARALLEL = os.environ.get('LZ4_N_PARALLEL', 16)
+# Minimum data size to use parallel compression
+LZ4_MINSZ_PARALLEL = os.environ.get('LZ4_MINSZ_PARALLEL', 0.5*1024**2)  # 0.5 MB
 
-# No. of elements to use parallel compression in LZ4 mode
-# The LZ4_N_PARALLEL must be configured against perf figures for specific hardware.
-# Use the following benchmark script to tune:
-#   arctic/benchmarks/lz4_tuning/benchmark_lz4.py
-LZ4_WORKERS = os.environ.get('LZ4_WORKERS', 2)
-LZ4_N_PARALLEL = os.environ.get('LZ4_N_PARALLEL', 30)
+# Enable this when you run the benchmark_lz4.py
+BENCHMARK_MODE = False
 
-
-_compress_thread_pool = None
+_compress_thread_pool = ThreadPool(LZ4_WORKERS)
 
 
 def enable_parallel_lz4(mode):
@@ -63,7 +66,6 @@ def set_compression_pool_size(pool_size):
     if _compress_thread_pool is not None:
         _compress_thread_pool.close()
         _compress_thread_pool.join()
-
     _compress_thread_pool = ThreadPool(pool_size)
 
 
@@ -85,17 +87,16 @@ def compress_array(str_list, withHC=LZ4_HIGH_COMPRESSION):
     """
     if not str_list:
         return str_list
-    
+
     do_compress = lz4_compressHC if withHC else lz4_compress
 
-    if not ENABLE_PARALLEL or len(str_list) < LZ4_N_PARALLEL:
-        return [do_compress(s) for s in str_list]
+    use_parallel = ENABLE_PARALLEL and withHC or \
+                   len(str_list) > LZ4_N_PARALLEL and len(str_list[0]) > LZ4_MINSZ_PARALLEL
 
-    global _compress_thread_pool
-    if not _compress_thread_pool:
-        _compress_thread_pool = ThreadPool(LZ4_WORKERS)
+    if BENCHMARK_MODE or use_parallel:
+        return _compress_thread_pool.map(do_compress, str_list)
 
-    return _compress_thread_pool.map(do_compress, str_list)
+    return [do_compress(s) for s in str_list]
     
 
 def compress(_str):

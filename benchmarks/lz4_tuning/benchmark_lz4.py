@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import random
-import sys
 from datetime import datetime as dt
 from multiprocessing.pool import ThreadPool
 
@@ -13,7 +12,7 @@ from arctic.serialization.numpy_records import DataFrameSerializer
 
 
 c.enable_parallel_lz4(True)
-c.LZ4_N_PARALLEL = 0
+c.BENCHMARK_MODE = True
 
 
 def get_random_df(nrows, ncols):
@@ -32,39 +31,37 @@ def construct_test_data(df_length, append_mul):
     tmp_df = get_random_df(df_length, 10)
     recs = serializer.serialize(tmp_df)[0]
     _str = recs.tostring()
-    _str = "".join([_str] * append_mul)
+    if append_mul > 1:
+        _str = "".join([_str] * append_mul)
     return _str
 
 
-def bench_compression_comparison(max_chunks, chunks_step, df_length, append_mul, pool_size, pool_step, repeats,
+def bench_compression_comparison(n_chunks, df_length, append_mul, pool_size, pool_step, repeats,
                                  use_raw_lz4, use_HC):
     _str = construct_test_data(df_length, append_mul)
-    chunk_size = sys.getsizeof(_str) / (1024 ** 2.0)
+    chunk_size = len(_str) / 1024 ** 2.0
+    _strarr = [_str] * n_chunks
 
-    for input_items in range(0, max_chunks, chunks_step):
-        input_items = input_items if input_items > 0 else 1
-        _strarr = [_str] * input_items
+    # Single threaded
+    # ---------------
+    measurements = bench_single(repeats, _strarr, use_HC)
+    print_results(1, chunk_size, n_chunks, chunk_size*n_chunks, measurements)
+    single_mean = np.mean(measurements)
 
-        # Single threaded
-        # ---------------
-        measurements = bench_single(repeats, _strarr, use_HC)
-        print_results(1, chunk_size, input_items, chunk_size*input_items, measurements)
-        single_mean = np.mean(measurements)
-
-        # Multi-threaded
-        # --------------
-        for sz in range(2, pool_size + 1, pool_step):
-            if use_raw_lz4:
-                pool = ThreadPool(sz)
-                pool.close()
-                pool.join()
-            else:
-                c.set_compression_pool_size(sz)
-                pool = None
-            measurements = bench_multi(repeats, _strarr, use_HC, pool=pool)
-            print_results(sz, chunk_size, input_items, chunk_size * input_items, measurements, compare=single_mean)
-
-        print("")
+    # Multi-threaded
+    # --------------
+    for sz in range(2, pool_size + 1, pool_step):
+        if use_raw_lz4:
+            pool = ThreadPool(sz)
+        else:
+            pool = None
+            c.set_compression_pool_size(sz)
+        measurements = bench_multi(repeats, _strarr, use_HC, pool=pool)
+        print_results(sz, chunk_size, n_chunks, chunk_size * n_chunks, measurements, compare=single_mean)
+        if pool:
+            pool.close()
+            pool.join()
+    print("")
 
 
 def bench_single(repeats, _strarr, use_HC):
@@ -73,10 +70,11 @@ def bench_single(repeats, _strarr, use_HC):
     for i in range(repeats):
         now = dt.now()
         if use_HC:
-            [c.compressHC(x) for x in _strarr]
+            res = [c.compressHC(x) for x in _strarr]
         else:
-            [c.compress(x) for x in _strarr]
+            res = [c.compress(x) for x in _strarr]
         sample = (dt.now() - now).total_seconds()
+        assert all(res)
         measurements.append(sample)
     return measurements
 
@@ -88,40 +86,45 @@ def bench_multi(repeats, _strarr, use_HC, pool=None):
         if pool:
             # Raw LZ4 lib
             if use_HC:
-                pool.map(c.lz4_compress, _strarr)
+                res = pool.map(c.lz4_compressHC, _strarr)
             else:
-                pool.map(c.lz4_compress, _strarr)
+                res = pool.map(c.lz4_compress, _strarr)
         else:
             # Arctic's compression layer
             if use_HC:
-                c.compressHC_array(_strarr)
+                res = c.compressHC_array(_strarr)
             else:
-                c.compress_array(_strarr, withHC=False)
+                res = c.compress_array(_strarr, withHC=False)
         sample = (dt.now() - now).total_seconds()
+        assert len(res) == len(_strarr)
+        assert all(res)
         measurements.append(sample)
     return measurements
 
 
 def print_results(n_threads, chunk_size, n_chunks, total_mb, measurements, compare=None):
     mymean = np.mean(measurements)
-    diff_pct = (-100.0*(mymean-compare)/float(compare)) if compare is not None else -1
-    measurements = n_threads, chunk_size, n_chunks, total_mb, mymean, np.min(measurements), np.max(measurements), np.std(measurements), ("{:.2f}% better than single threaded".format(diff_pct) if diff_pct > 0 else "")
-    print("(x{:<3}threads) ({:.1f} MB/chunk, x{:<4} chunks, total {:.1f} MB) \t mean={:.6f} min={:.6f} max={:.6f} std={:.8f} {}".format(*measurements))
+    xfaster = (compare/float(mymean)) if compare is not None else 0
+    measurements = n_threads, chunk_size, n_chunks, total_mb, \
+                   mymean, np.min(measurements), np.max(measurements), np.std(measurements), \
+                   ("{:.2f}x faster than single threaded".format(xfaster) if xfaster > 1 else "")
+    print("(x{:<3}threads) ({:.1f} MB/chunk, x{:<4} chunks, total {:.1f} MB) \t "
+          "mean={:.6f} min={:.6f} max={:.6f} std={:.8f} {}".format(*measurements))
 
 
 def main():
-    for user_raw_lz4 in (False, True):
-        for use_HC in (False, True):
-            print("\n\n----------- High compression: {}, RAW LZ4: {} ------------".format(use_HC, user_raw_lz4))
+    use_HC = False
+    for df_length in (1000, 3000, 10000, 30000):
+        for n_chunks in (1, 2, 4, 8, 16, 32, 64, 128):
+            print("\n\n----------- High compression: {}, Chunks: {}, DataFrame size: {} ------------".format(use_HC, n_chunks, df_length))
             bench_compression_comparison(
-                max_chunks=128,
-                chunks_step=16,
-                df_length=3000,
-                append_mul=10,
-                pool_size=16,
+                n_chunks=n_chunks,
+                df_length=df_length,
+                append_mul=1,
+                pool_size=10,
                 pool_step=2,
-                repeats=50,
-                use_raw_lz4=user_raw_lz4,
+                repeats=30,
+                use_raw_lz4=False,
                 use_HC=use_HC)
 
 
