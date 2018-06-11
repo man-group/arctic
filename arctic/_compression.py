@@ -17,8 +17,9 @@ LZ4_HIGH_COMPRESSION = bool(os.environ.get('LZ4_HIGH_COMPRESSION'))
 
 # For a guide on how to tune the following parameters, read:
 #     arctic/benchmarks/lz4_tuning/README.txt
-# The size of the compression thread pool
-LZ4_WORKERS = os.environ.get('LZ4_WORKERS', 4)
+# The size of the compression thread pool.
+# Rule of thumb: use 2 for non HC (VersionStore/NDarrayStore/PandasStore, and 8 for HC (TickStore).
+LZ4_WORKERS = os.environ.get('LZ4_WORKERS', 2)
 # The minimum required number of chunks to use parallel compression
 LZ4_N_PARALLEL = os.environ.get('LZ4_N_PARALLEL', 16)
 # Minimum data size to use parallel compression
