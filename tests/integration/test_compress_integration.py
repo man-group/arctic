@@ -48,8 +48,8 @@ def test_performance_sequential(n, length):
     lz4_time = (dt.now() - now).total_seconds()
     print()
     print("LZ4 Test %sx len:%s" % (n, length))
-    print("    Cython LZ4 %s s" % clz4_time)
-    print("    Cython LZ4 Parallel %s s" % clz4_time_p)
+    print("    LZ4 HC %s s" % clz4_time)
+    print("    LZ4 HC Parallel %s s" % clz4_time_p)
     print("    LZ4 %s s" % lz4_time)
 
 
@@ -63,10 +63,10 @@ def test_exceptions():
     data = data[0:16]
     with pytest.raises(Exception) as e:
         c.decompress(data)
-    assert("Decompressor wrote" in str(e))
+    assert("Decompressor wrote" in str(e) or "Corrupt input at" in str(e))
 
     data = c.compress(b'1010101010100000000000000000000000000000000000000000000000000000000011111111111111111111111111111')
     data = [data[0:16] for x in (1, 2, 3)]
     with pytest.raises(Exception) as e:
         c.decompress_array(data)
-    assert("Decompressor wrote" in str(e))
+    assert ("Decompressor wrote" in str(e) or "Corrupt input at" in str(e))
