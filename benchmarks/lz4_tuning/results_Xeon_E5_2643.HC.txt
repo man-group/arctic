@@ -1,0 +1,320 @@
+
+
+----------- High compression: True, Chunks: 1, DataFrame size: 1000 ------------
+(x1  threads) (0.1 MB/chunk, x1    chunks, total 0.1 MB) 	 mean=0.002111 min=0.002050 max=0.002196 std=0.00003250 
+(x2  threads) (0.1 MB/chunk, x1    chunks, total 0.1 MB) 	 mean=0.002461 min=0.002192 max=0.003112 std=0.00017423 
+(x4  threads) (0.1 MB/chunk, x1    chunks, total 0.1 MB) 	 mean=0.002356 min=0.002101 max=0.002652 std=0.00012616 
+(x6  threads) (0.1 MB/chunk, x1    chunks, total 0.1 MB) 	 mean=0.002360 min=0.002194 max=0.002703 std=0.00013144 
+(x8  threads) (0.1 MB/chunk, x1    chunks, total 0.1 MB) 	 mean=0.002253 min=0.002107 max=0.002500 std=0.00008750 
+(x10 threads) (0.1 MB/chunk, x1    chunks, total 0.1 MB) 	 mean=0.002332 min=0.002136 max=0.002591 std=0.00012831 
+
+
+
+----------- High compression: True, Chunks: 2, DataFrame size: 1000 ------------
+(x1  threads) (0.1 MB/chunk, x2    chunks, total 0.2 MB) 	 mean=0.004091 min=0.003964 max=0.004417 std=0.00011234 
+(x2  threads) (0.1 MB/chunk, x2    chunks, total 0.2 MB) 	 mean=0.002346 min=0.002201 max=0.002637 std=0.00008982 1.74x faster than single threaded
+(x4  threads) (0.1 MB/chunk, x2    chunks, total 0.2 MB) 	 mean=0.002300 min=0.002177 max=0.002538 std=0.00006515 1.78x faster than single threaded
+(x6  threads) (0.1 MB/chunk, x2    chunks, total 0.2 MB) 	 mean=0.002381 min=0.002142 max=0.003606 std=0.00034932 1.72x faster than single threaded
+(x8  threads) (0.1 MB/chunk, x2    chunks, total 0.2 MB) 	 mean=0.002275 min=0.002170 max=0.002451 std=0.00007185 1.80x faster than single threaded
+(x10 threads) (0.1 MB/chunk, x2    chunks, total 0.2 MB) 	 mean=0.002481 min=0.002197 max=0.004039 std=0.00059117 1.65x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 4, DataFrame size: 1000 ------------
+(x1  threads) (0.1 MB/chunk, x4    chunks, total 0.3 MB) 	 mean=0.008021 min=0.007845 max=0.008349 std=0.00010543 
+(x2  threads) (0.1 MB/chunk, x4    chunks, total 0.3 MB) 	 mean=0.004468 min=0.004250 max=0.004693 std=0.00011180 1.80x faster than single threaded
+(x4  threads) (0.1 MB/chunk, x4    chunks, total 0.3 MB) 	 mean=0.003105 min=0.002259 max=0.004141 std=0.00083193 2.58x faster than single threaded
+(x6  threads) (0.1 MB/chunk, x4    chunks, total 0.3 MB) 	 mean=0.002924 min=0.002296 max=0.004482 std=0.00067980 2.74x faster than single threaded
+(x8  threads) (0.1 MB/chunk, x4    chunks, total 0.3 MB) 	 mean=0.002642 min=0.002262 max=0.004118 std=0.00061746 3.04x faster than single threaded
+(x10 threads) (0.1 MB/chunk, x4    chunks, total 0.3 MB) 	 mean=0.002621 min=0.002255 max=0.004029 std=0.00060959 3.06x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 8, DataFrame size: 1000 ------------
+(x1  threads) (0.1 MB/chunk, x8    chunks, total 0.7 MB) 	 mean=0.016540 min=0.016300 max=0.017000 std=0.00015687 
+(x2  threads) (0.1 MB/chunk, x8    chunks, total 0.7 MB) 	 mean=0.009336 min=0.008277 max=0.015524 std=0.00173044 1.77x faster than single threaded
+(x4  threads) (0.1 MB/chunk, x8    chunks, total 0.7 MB) 	 mean=0.004411 min=0.004278 max=0.005221 std=0.00016574 3.75x faster than single threaded
+(x6  threads) (0.1 MB/chunk, x8    chunks, total 0.7 MB) 	 mean=0.004340 min=0.004188 max=0.004642 std=0.00009867 3.81x faster than single threaded
+(x8  threads) (0.1 MB/chunk, x8    chunks, total 0.7 MB) 	 mean=0.004110 min=0.003404 max=0.004669 std=0.00025108 4.02x faster than single threaded
+(x10 threads) (0.1 MB/chunk, x8    chunks, total 0.7 MB) 	 mean=0.003857 min=0.002487 max=0.004237 std=0.00044898 4.29x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 16, DataFrame size: 1000 ------------
+(x1  threads) (0.1 MB/chunk, x16   chunks, total 1.3 MB) 	 mean=0.032677 min=0.032039 max=0.033361 std=0.00036023 
+(x2  threads) (0.1 MB/chunk, x16   chunks, total 1.3 MB) 	 mean=0.016856 min=0.016152 max=0.018072 std=0.00057969 1.94x faster than single threaded
+(x4  threads) (0.1 MB/chunk, x16   chunks, total 1.3 MB) 	 mean=0.008530 min=0.008279 max=0.009867 std=0.00028997 3.83x faster than single threaded
+(x6  threads) (0.1 MB/chunk, x16   chunks, total 1.3 MB) 	 mean=0.006742 min=0.006265 max=0.007892 std=0.00055440 4.85x faster than single threaded
+(x8  threads) (0.1 MB/chunk, x16   chunks, total 1.3 MB) 	 mean=0.006962 min=0.006059 max=0.008086 std=0.00076890 4.69x faster than single threaded
+(x10 threads) (0.1 MB/chunk, x16   chunks, total 1.3 MB) 	 mean=0.006683 min=0.006008 max=0.007832 std=0.00075691 4.89x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 32, DataFrame size: 1000 ------------
+(x1  threads) (0.1 MB/chunk, x32   chunks, total 2.7 MB) 	 mean=0.065434 min=0.063001 max=0.071539 std=0.00211791 
+(x2  threads) (0.1 MB/chunk, x32   chunks, total 2.7 MB) 	 mean=0.033408 min=0.032713 max=0.034300 std=0.00041051 1.96x faster than single threaded
+(x4  threads) (0.1 MB/chunk, x32   chunks, total 2.7 MB) 	 mean=0.017851 min=0.016530 max=0.023440 std=0.00147293 3.67x faster than single threaded
+(x6  threads) (0.1 MB/chunk, x32   chunks, total 2.7 MB) 	 mean=0.012537 min=0.012336 max=0.012858 std=0.00013669 5.22x faster than single threaded
+(x8  threads) (0.1 MB/chunk, x32   chunks, total 2.7 MB) 	 mean=0.008950 min=0.008653 max=0.011080 std=0.00044712 7.31x faster than single threaded
+(x10 threads) (0.1 MB/chunk, x32   chunks, total 2.7 MB) 	 mean=0.010291 min=0.008650 max=0.012354 std=0.00129649 6.36x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 64, DataFrame size: 1000 ------------
+(x1  threads) (0.1 MB/chunk, x64   chunks, total 5.4 MB) 	 mean=0.133260 min=0.129840 max=0.146575 std=0.00327334 
+(x2  threads) (0.1 MB/chunk, x64   chunks, total 5.4 MB) 	 mean=0.067945 min=0.065998 max=0.084016 std=0.00320925 1.96x faster than single threaded
+(x4  threads) (0.1 MB/chunk, x64   chunks, total 5.4 MB) 	 mean=0.034222 min=0.032898 max=0.041337 std=0.00161669 3.89x faster than single threaded
+(x6  threads) (0.1 MB/chunk, x64   chunks, total 5.4 MB) 	 mean=0.025258 min=0.024315 max=0.030924 std=0.00185198 5.28x faster than single threaded
+(x8  threads) (0.1 MB/chunk, x64   chunks, total 5.4 MB) 	 mean=0.022284 min=0.020703 max=0.023441 std=0.00098073 5.98x faster than single threaded
+(x10 threads) (0.1 MB/chunk, x64   chunks, total 5.4 MB) 	 mean=0.017290 min=0.016552 max=0.022817 std=0.00109050 7.71x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 128, DataFrame size: 1000 ------------
+(x1  threads) (0.1 MB/chunk, x128  chunks, total 10.7 MB) 	 mean=0.266062 min=0.259700 max=0.276161 std=0.00368830 
+(x2  threads) (0.1 MB/chunk, x128  chunks, total 10.7 MB) 	 mean=0.134144 min=0.130538 max=0.159489 std=0.00600871 1.98x faster than single threaded
+(x4  threads) (0.1 MB/chunk, x128  chunks, total 10.7 MB) 	 mean=0.068362 min=0.066347 max=0.081312 std=0.00289853 3.89x faster than single threaded
+(x6  threads) (0.1 MB/chunk, x128  chunks, total 10.7 MB) 	 mean=0.050490 min=0.048850 max=0.061816 std=0.00281802 5.27x faster than single threaded
+(x8  threads) (0.1 MB/chunk, x128  chunks, total 10.7 MB) 	 mean=0.036929 min=0.033298 max=0.046299 std=0.00465811 7.20x faster than single threaded
+(x10 threads) (0.1 MB/chunk, x128  chunks, total 10.7 MB) 	 mean=0.034574 min=0.032470 max=0.046217 std=0.00278714 7.70x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 1, DataFrame size: 3000 ------------
+(x1  threads) (0.3 MB/chunk, x1    chunks, total 0.3 MB) 	 mean=0.007369 min=0.007212 max=0.007982 std=0.00015719 
+(x2  threads) (0.3 MB/chunk, x1    chunks, total 0.3 MB) 	 mean=0.007741 min=0.007450 max=0.008157 std=0.00015044 
+(x4  threads) (0.3 MB/chunk, x1    chunks, total 0.3 MB) 	 mean=0.007742 min=0.007386 max=0.008433 std=0.00021586 
+(x6  threads) (0.3 MB/chunk, x1    chunks, total 0.3 MB) 	 mean=0.007740 min=0.007408 max=0.008487 std=0.00023738 
+(x8  threads) (0.3 MB/chunk, x1    chunks, total 0.3 MB) 	 mean=0.007654 min=0.007312 max=0.007998 std=0.00015246 
+(x10 threads) (0.3 MB/chunk, x1    chunks, total 0.3 MB) 	 mean=0.008129 min=0.007400 max=0.012773 std=0.00107970 
+
+
+
+----------- High compression: True, Chunks: 2, DataFrame size: 3000 ------------
+(x1  threads) (0.3 MB/chunk, x2    chunks, total 0.5 MB) 	 mean=0.014934 min=0.014563 max=0.015479 std=0.00022484 
+(x2  threads) (0.3 MB/chunk, x2    chunks, total 0.5 MB) 	 mean=0.008271 min=0.007698 max=0.010154 std=0.00060868 1.81x faster than single threaded
+(x4  threads) (0.3 MB/chunk, x2    chunks, total 0.5 MB) 	 mean=0.007750 min=0.007464 max=0.008322 std=0.00017059 1.93x faster than single threaded
+(x6  threads) (0.3 MB/chunk, x2    chunks, total 0.5 MB) 	 mean=0.007811 min=0.007440 max=0.008151 std=0.00017733 1.91x faster than single threaded
+(x8  threads) (0.3 MB/chunk, x2    chunks, total 0.5 MB) 	 mean=0.007699 min=0.007454 max=0.008258 std=0.00016812 1.94x faster than single threaded
+(x10 threads) (0.3 MB/chunk, x2    chunks, total 0.5 MB) 	 mean=0.008416 min=0.007445 max=0.014783 std=0.00135805 1.77x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 4, DataFrame size: 3000 ------------
+(x1  threads) (0.3 MB/chunk, x4    chunks, total 1.0 MB) 	 mean=0.030127 min=0.029365 max=0.031068 std=0.00034852 
+(x2  threads) (0.3 MB/chunk, x4    chunks, total 1.0 MB) 	 mean=0.015550 min=0.014759 max=0.018638 std=0.00089717 1.94x faster than single threaded
+(x4  threads) (0.3 MB/chunk, x4    chunks, total 1.0 MB) 	 mean=0.008386 min=0.007618 max=0.013933 std=0.00177954 3.59x faster than single threaded
+(x6  threads) (0.3 MB/chunk, x4    chunks, total 1.0 MB) 	 mean=0.007856 min=0.007543 max=0.009201 std=0.00030022 3.84x faster than single threaded
+(x8  threads) (0.3 MB/chunk, x4    chunks, total 1.0 MB) 	 mean=0.007951 min=0.007584 max=0.008307 std=0.00016370 3.79x faster than single threaded
+(x10 threads) (0.3 MB/chunk, x4    chunks, total 1.0 MB) 	 mean=0.009153 min=0.007630 max=0.013884 std=0.00235107 3.29x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 8, DataFrame size: 3000 ------------
+(x1  threads) (0.3 MB/chunk, x8    chunks, total 2.0 MB) 	 mean=0.059620 min=0.057310 max=0.062885 std=0.00133741 
+(x2  threads) (0.3 MB/chunk, x8    chunks, total 2.0 MB) 	 mean=0.031291 min=0.029418 max=0.049025 std=0.00351528 1.91x faster than single threaded
+(x4  threads) (0.3 MB/chunk, x8    chunks, total 2.0 MB) 	 mean=0.015370 min=0.015038 max=0.016594 std=0.00036840 3.88x faster than single threaded
+(x6  threads) (0.3 MB/chunk, x8    chunks, total 2.0 MB) 	 mean=0.014901 min=0.014679 max=0.015408 std=0.00018227 4.00x faster than single threaded
+(x8  threads) (0.3 MB/chunk, x8    chunks, total 2.0 MB) 	 mean=0.013503 min=0.011238 max=0.014999 std=0.00076278 4.42x faster than single threaded
+(x10 threads) (0.3 MB/chunk, x8    chunks, total 2.0 MB) 	 mean=0.010969 min=0.007762 max=0.013869 std=0.00254802 5.44x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 16, DataFrame size: 3000 ------------
+(x1  threads) (0.3 MB/chunk, x16   chunks, total 4.0 MB) 	 mean=0.116043 min=0.113704 max=0.119965 std=0.00151494 
+(x2  threads) (0.3 MB/chunk, x16   chunks, total 4.0 MB) 	 mean=0.059985 min=0.058626 max=0.061793 std=0.00079346 1.93x faster than single threaded
+(x4  threads) (0.3 MB/chunk, x16   chunks, total 4.0 MB) 	 mean=0.031335 min=0.029415 max=0.041215 std=0.00305446 3.70x faster than single threaded
+(x6  threads) (0.3 MB/chunk, x16   chunks, total 4.0 MB) 	 mean=0.022608 min=0.022233 max=0.025592 std=0.00057568 5.13x faster than single threaded
+(x8  threads) (0.3 MB/chunk, x16   chunks, total 4.0 MB) 	 mean=0.019502 min=0.015140 max=0.027828 std=0.00493619 5.95x faster than single threaded
+(x10 threads) (0.3 MB/chunk, x16   chunks, total 4.0 MB) 	 mean=0.019683 min=0.015058 max=0.027641 std=0.00429278 5.90x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 32, DataFrame size: 3000 ------------
+(x1  threads) (0.3 MB/chunk, x32   chunks, total 8.1 MB) 	 mean=0.236094 min=0.231126 max=0.247783 std=0.00262819 
+(x2  threads) (0.3 MB/chunk, x32   chunks, total 8.1 MB) 	 mean=0.120384 min=0.117798 max=0.125457 std=0.00171585 1.96x faster than single threaded
+(x4  threads) (0.3 MB/chunk, x32   chunks, total 8.1 MB) 	 mean=0.061322 min=0.059582 max=0.074392 std=0.00300229 3.85x faster than single threaded
+(x6  threads) (0.3 MB/chunk, x32   chunks, total 8.1 MB) 	 mean=0.045344 min=0.044110 max=0.056590 std=0.00215609 5.21x faster than single threaded
+(x8  threads) (0.3 MB/chunk, x32   chunks, total 8.1 MB) 	 mean=0.034236 min=0.030021 max=0.041073 std=0.00409689 6.90x faster than single threaded
+(x10 threads) (0.3 MB/chunk, x32   chunks, total 8.1 MB) 	 mean=0.030192 min=0.029260 max=0.040976 std=0.00214278 7.82x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 64, DataFrame size: 3000 ------------
+(x1  threads) (0.3 MB/chunk, x64   chunks, total 16.1 MB) 	 mean=0.478319 min=0.464263 max=0.488946 std=0.00828802 
+(x2  threads) (0.3 MB/chunk, x64   chunks, total 16.1 MB) 	 mean=0.240353 min=0.237990 max=0.252367 std=0.00260550 1.99x faster than single threaded
+(x4  threads) (0.3 MB/chunk, x64   chunks, total 16.1 MB) 	 mean=0.121826 min=0.119067 max=0.129490 std=0.00244117 3.93x faster than single threaded
+(x6  threads) (0.3 MB/chunk, x64   chunks, total 16.1 MB) 	 mean=0.089539 min=0.088118 max=0.095762 std=0.00152484 5.34x faster than single threaded
+(x8  threads) (0.3 MB/chunk, x64   chunks, total 16.1 MB) 	 mean=0.069698 min=0.059850 max=0.088934 std=0.00817631 6.86x faster than single threaded
+(x10 threads) (0.3 MB/chunk, x64   chunks, total 16.1 MB) 	 mean=0.062757 min=0.058582 max=0.084562 std=0.00712119 7.62x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 128, DataFrame size: 3000 ------------
+(x1  threads) (0.3 MB/chunk, x128  chunks, total 32.2 MB) 	 mean=0.955665 min=0.941443 max=1.027534 std=0.01465282 
+(x2  threads) (0.3 MB/chunk, x128  chunks, total 32.2 MB) 	 mean=0.482557 min=0.476261 max=0.496078 std=0.00504740 1.98x faster than single threaded
+(x4  threads) (0.3 MB/chunk, x128  chunks, total 32.2 MB) 	 mean=0.245794 min=0.239620 max=0.259870 std=0.00512384 3.89x faster than single threaded
+(x6  threads) (0.3 MB/chunk, x128  chunks, total 32.2 MB) 	 mean=0.178503 min=0.175202 max=0.182733 std=0.00171337 5.35x faster than single threaded
+(x8  threads) (0.3 MB/chunk, x128  chunks, total 32.2 MB) 	 mean=0.129045 min=0.119331 max=0.157505 std=0.01083785 7.41x faster than single threaded
+(x10 threads) (0.3 MB/chunk, x128  chunks, total 32.2 MB) 	 mean=0.126893 min=0.117156 max=0.149142 std=0.00922916 7.53x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 1, DataFrame size: 10000 ------------
+(x1  threads) (0.8 MB/chunk, x1    chunks, total 0.8 MB) 	 mean=0.026399 min=0.026037 max=0.027214 std=0.00027860 
+(x2  threads) (0.8 MB/chunk, x1    chunks, total 0.8 MB) 	 mean=0.026589 min=0.025552 max=0.030028 std=0.00080008 
+(x4  threads) (0.8 MB/chunk, x1    chunks, total 0.8 MB) 	 mean=0.028012 min=0.026063 max=0.033375 std=0.00194464 
+(x6  threads) (0.8 MB/chunk, x1    chunks, total 0.8 MB) 	 mean=0.028571 min=0.026253 max=0.035783 std=0.00215417 
+(x8  threads) (0.8 MB/chunk, x1    chunks, total 0.8 MB) 	 mean=0.029231 min=0.026659 max=0.046585 std=0.00378126 
+(x10 threads) (0.8 MB/chunk, x1    chunks, total 0.8 MB) 	 mean=0.027267 min=0.026405 max=0.029906 std=0.00063431 
+
+
+
+----------- High compression: True, Chunks: 2, DataFrame size: 10000 ------------
+(x1  threads) (0.8 MB/chunk, x2    chunks, total 1.7 MB) 	 mean=0.052471 min=0.051609 max=0.054012 std=0.00066008 
+(x2  threads) (0.8 MB/chunk, x2    chunks, total 1.7 MB) 	 mean=0.027047 min=0.026199 max=0.032529 std=0.00121949 1.94x faster than single threaded
+(x4  threads) (0.8 MB/chunk, x2    chunks, total 1.7 MB) 	 mean=0.027067 min=0.026038 max=0.028535 std=0.00061497 1.94x faster than single threaded
+(x6  threads) (0.8 MB/chunk, x2    chunks, total 1.7 MB) 	 mean=0.027373 min=0.026158 max=0.043521 std=0.00302915 1.92x faster than single threaded
+(x8  threads) (0.8 MB/chunk, x2    chunks, total 1.7 MB) 	 mean=0.027483 min=0.026142 max=0.030482 std=0.00091716 1.91x faster than single threaded
+(x10 threads) (0.8 MB/chunk, x2    chunks, total 1.7 MB) 	 mean=0.027735 min=0.026655 max=0.037146 std=0.00181868 1.89x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 4, DataFrame size: 10000 ------------
+(x1  threads) (0.8 MB/chunk, x4    chunks, total 3.4 MB) 	 mean=0.104601 min=0.101700 max=0.112807 std=0.00173825 
+(x2  threads) (0.8 MB/chunk, x4    chunks, total 3.4 MB) 	 mean=0.053661 min=0.052368 max=0.064846 std=0.00229985 1.95x faster than single threaded
+(x4  threads) (0.8 MB/chunk, x4    chunks, total 3.4 MB) 	 mean=0.027176 min=0.026493 max=0.028862 std=0.00046254 3.85x faster than single threaded
+(x6  threads) (0.8 MB/chunk, x4    chunks, total 3.4 MB) 	 mean=0.026801 min=0.025939 max=0.029884 std=0.00074381 3.90x faster than single threaded
+(x8  threads) (0.8 MB/chunk, x4    chunks, total 3.4 MB) 	 mean=0.027160 min=0.026124 max=0.029789 std=0.00075348 3.85x faster than single threaded
+(x10 threads) (0.8 MB/chunk, x4    chunks, total 3.4 MB) 	 mean=0.027110 min=0.026340 max=0.028463 std=0.00047682 3.86x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 8, DataFrame size: 10000 ------------
+(x1  threads) (0.8 MB/chunk, x8    chunks, total 6.7 MB) 	 mean=0.208849 min=0.205867 max=0.214139 std=0.00216866 
+(x2  threads) (0.8 MB/chunk, x8    chunks, total 6.7 MB) 	 mean=0.107452 min=0.105314 max=0.117674 std=0.00272086 1.94x faster than single threaded
+(x4  threads) (0.8 MB/chunk, x8    chunks, total 6.7 MB) 	 mean=0.054596 min=0.052345 max=0.070157 std=0.00359815 3.83x faster than single threaded
+(x6  threads) (0.8 MB/chunk, x8    chunks, total 6.7 MB) 	 mean=0.052943 min=0.052030 max=0.058145 std=0.00117157 3.94x faster than single threaded
+(x8  threads) (0.8 MB/chunk, x8    chunks, total 6.7 MB) 	 mean=0.030708 min=0.026749 max=0.048816 std=0.00638535 6.80x faster than single threaded
+(x10 threads) (0.8 MB/chunk, x8    chunks, total 6.7 MB) 	 mean=0.035190 min=0.026476 max=0.048260 std=0.00858230 5.93x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 16, DataFrame size: 10000 ------------
+(x1  threads) (0.8 MB/chunk, x16   chunks, total 13.4 MB) 	 mean=0.422973 min=0.416890 max=0.426289 std=0.00194037 
+(x2  threads) (0.8 MB/chunk, x16   chunks, total 13.4 MB) 	 mean=0.213204 min=0.207360 max=0.228313 std=0.00428270 1.98x faster than single threaded
+(x4  threads) (0.8 MB/chunk, x16   chunks, total 13.4 MB) 	 mean=0.108684 min=0.105301 max=0.122624 std=0.00379964 3.89x faster than single threaded
+(x6  threads) (0.8 MB/chunk, x16   chunks, total 13.4 MB) 	 mean=0.080033 min=0.078558 max=0.087252 std=0.00153191 5.28x faster than single threaded
+(x8  threads) (0.8 MB/chunk, x16   chunks, total 13.4 MB) 	 mean=0.062693 min=0.053322 max=0.094737 std=0.01310949 6.75x faster than single threaded
+(x10 threads) (0.8 MB/chunk, x16   chunks, total 13.4 MB) 	 mean=0.057723 min=0.053102 max=0.075968 std=0.00634331 7.33x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 32, DataFrame size: 10000 ------------
+(x1  threads) (0.8 MB/chunk, x32   chunks, total 26.9 MB) 	 mean=0.850306 min=0.835823 max=0.862647 std=0.00711108 
+(x2  threads) (0.8 MB/chunk, x32   chunks, total 26.9 MB) 	 mean=0.426609 min=0.418602 max=0.439670 std=0.00489835 1.99x faster than single threaded
+(x4  threads) (0.8 MB/chunk, x32   chunks, total 26.9 MB) 	 mean=0.218224 min=0.211459 max=0.235528 std=0.00661640 3.90x faster than single threaded
+(x6  threads) (0.8 MB/chunk, x32   chunks, total 26.9 MB) 	 mean=0.160965 min=0.155841 max=0.181030 std=0.00551388 5.28x faster than single threaded
+(x8  threads) (0.8 MB/chunk, x32   chunks, total 26.9 MB) 	 mean=0.116024 min=0.106558 max=0.147898 std=0.01110425 7.33x faster than single threaded
+(x10 threads) (0.8 MB/chunk, x32   chunks, total 26.9 MB) 	 mean=0.109088 min=0.103618 max=0.133188 std=0.00741606 7.79x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 64, DataFrame size: 10000 ------------
+(x1  threads) (0.8 MB/chunk, x64   chunks, total 53.7 MB) 	 mean=1.699572 min=1.681261 max=1.719481 std=0.01018410 
+(x2  threads) (0.8 MB/chunk, x64   chunks, total 53.7 MB) 	 mean=0.854916 min=0.846062 max=0.873516 std=0.00695369 1.99x faster than single threaded
+(x4  threads) (0.8 MB/chunk, x64   chunks, total 53.7 MB) 	 mean=0.432655 min=0.422411 max=0.453764 std=0.00703287 3.93x faster than single threaded
+(x6  threads) (0.8 MB/chunk, x64   chunks, total 53.7 MB) 	 mean=0.315943 min=0.310471 max=0.337993 std=0.00637982 5.38x faster than single threaded
+(x8  threads) (0.8 MB/chunk, x64   chunks, total 53.7 MB) 	 mean=0.224628 min=0.212845 max=0.306522 std=0.01943560 7.57x faster than single threaded
+(x10 threads) (0.8 MB/chunk, x64   chunks, total 53.7 MB) 	 mean=0.214741 min=0.207824 max=0.247034 std=0.00839850 7.91x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 128, DataFrame size: 10000 ------------
+(x1  threads) (0.8 MB/chunk, x128  chunks, total 107.4 MB) 	 mean=3.372017 min=3.314723 max=3.392619 std=0.01662643 
+(x2  threads) (0.8 MB/chunk, x128  chunks, total 107.4 MB) 	 mean=1.702873 min=1.664916 max=1.746249 std=0.01721100 1.98x faster than single threaded
+(x4  threads) (0.8 MB/chunk, x128  chunks, total 107.4 MB) 	 mean=0.859621 min=0.844853 max=0.879571 std=0.00843899 3.92x faster than single threaded
+(x6  threads) (0.8 MB/chunk, x128  chunks, total 107.4 MB) 	 mean=0.632386 min=0.623680 max=0.678892 std=0.01025446 5.33x faster than single threaded
+(x8  threads) (0.8 MB/chunk, x128  chunks, total 107.4 MB) 	 mean=0.444260 min=0.423391 max=0.493234 std=0.01816839 7.59x faster than single threaded
+(x10 threads) (0.8 MB/chunk, x128  chunks, total 107.4 MB) 	 mean=0.427089 min=0.416307 max=0.494606 std=0.01483272 7.90x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 1, DataFrame size: 30000 ------------
+(x1  threads) (2.5 MB/chunk, x1    chunks, total 2.5 MB) 	 mean=0.081269 min=0.077147 max=0.091394 std=0.00309653 
+(x2  threads) (2.5 MB/chunk, x1    chunks, total 2.5 MB) 	 mean=0.082450 min=0.076496 max=0.094458 std=0.00417286 
+(x4  threads) (2.5 MB/chunk, x1    chunks, total 2.5 MB) 	 mean=0.082948 min=0.079800 max=0.089362 std=0.00316148 
+(x6  threads) (2.5 MB/chunk, x1    chunks, total 2.5 MB) 	 mean=0.083074 min=0.079985 max=0.091319 std=0.00288668 
+(x8  threads) (2.5 MB/chunk, x1    chunks, total 2.5 MB) 	 mean=0.082191 min=0.079998 max=0.085172 std=0.00137724 
+(x10 threads) (2.5 MB/chunk, x1    chunks, total 2.5 MB) 	 mean=0.084094 min=0.081123 max=0.098827 std=0.00393754 
+
+
+
+----------- High compression: True, Chunks: 2, DataFrame size: 30000 ------------
+(x1  threads) (2.5 MB/chunk, x2    chunks, total 5.0 MB) 	 mean=0.161395 min=0.158872 max=0.168940 std=0.00234193 
+(x2  threads) (2.5 MB/chunk, x2    chunks, total 5.0 MB) 	 mean=0.083520 min=0.078694 max=0.104808 std=0.00560859 1.93x faster than single threaded
+(x4  threads) (2.5 MB/chunk, x2    chunks, total 5.0 MB) 	 mean=0.084370 min=0.079829 max=0.098574 std=0.00366517 1.91x faster than single threaded
+(x6  threads) (2.5 MB/chunk, x2    chunks, total 5.0 MB) 	 mean=0.084396 min=0.080552 max=0.091096 std=0.00302656 1.91x faster than single threaded
+(x8  threads) (2.5 MB/chunk, x2    chunks, total 5.0 MB) 	 mean=0.083913 min=0.080394 max=0.088211 std=0.00207376 1.92x faster than single threaded
+(x10 threads) (2.5 MB/chunk, x2    chunks, total 5.0 MB) 	 mean=0.084046 min=0.080413 max=0.090743 std=0.00179923 1.92x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 4, DataFrame size: 30000 ------------
+(x1  threads) (2.5 MB/chunk, x4    chunks, total 10.1 MB) 	 mean=0.323257 min=0.318551 max=0.327928 std=0.00281997 
+(x2  threads) (2.5 MB/chunk, x4    chunks, total 10.1 MB) 	 mean=0.160986 min=0.157930 max=0.181526 std=0.00425985 2.01x faster than single threaded
+(x4  threads) (2.5 MB/chunk, x4    chunks, total 10.1 MB) 	 mean=0.082546 min=0.079389 max=0.087810 std=0.00238294 3.92x faster than single threaded
+(x6  threads) (2.5 MB/chunk, x4    chunks, total 10.1 MB) 	 mean=0.086510 min=0.080614 max=0.104776 std=0.00718031 3.74x faster than single threaded
+(x8  threads) (2.5 MB/chunk, x4    chunks, total 10.1 MB) 	 mean=0.084034 min=0.079854 max=0.102890 std=0.00426073 3.85x faster than single threaded
+(x10 threads) (2.5 MB/chunk, x4    chunks, total 10.1 MB) 	 mean=0.084855 min=0.081697 max=0.098507 std=0.00371790 3.81x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 8, DataFrame size: 30000 ------------
+(x1  threads) (2.5 MB/chunk, x8    chunks, total 20.1 MB) 	 mean=0.651377 min=0.638917 max=0.687800 std=0.00947782 
+(x2  threads) (2.5 MB/chunk, x8    chunks, total 20.1 MB) 	 mean=0.327026 min=0.320325 max=0.346341 std=0.00589456 1.99x faster than single threaded
+(x4  threads) (2.5 MB/chunk, x8    chunks, total 20.1 MB) 	 mean=0.166601 min=0.161973 max=0.180631 std=0.00490880 3.91x faster than single threaded
+(x6  threads) (2.5 MB/chunk, x8    chunks, total 20.1 MB) 	 mean=0.162441 min=0.157151 max=0.169951 std=0.00377914 4.01x faster than single threaded
+(x8  threads) (2.5 MB/chunk, x8    chunks, total 20.1 MB) 	 mean=0.089657 min=0.080612 max=0.138031 std=0.01679050 7.27x faster than single threaded
+(x10 threads) (2.5 MB/chunk, x8    chunks, total 20.1 MB) 	 mean=0.091090 min=0.081429 max=0.138343 std=0.01621414 7.15x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 16, DataFrame size: 30000 ------------
+(x1  threads) (2.5 MB/chunk, x16   chunks, total 40.3 MB) 	 mean=1.293471 min=1.263912 max=1.331498 std=0.01680932 
+(x2  threads) (2.5 MB/chunk, x16   chunks, total 40.3 MB) 	 mean=0.651367 min=0.640227 max=0.679187 std=0.00946441 1.99x faster than single threaded
+(x4  threads) (2.5 MB/chunk, x16   chunks, total 40.3 MB) 	 mean=0.331985 min=0.327115 max=0.339719 std=0.00372725 3.90x faster than single threaded
+(x6  threads) (2.5 MB/chunk, x16   chunks, total 40.3 MB) 	 mean=0.244690 min=0.238693 max=0.254803 std=0.00479121 5.29x faster than single threaded
+(x8  threads) (2.5 MB/chunk, x16   chunks, total 40.3 MB) 	 mean=0.170969 min=0.161488 max=0.219616 std=0.01284776 7.57x faster than single threaded
+(x10 threads) (2.5 MB/chunk, x16   chunks, total 40.3 MB) 	 mean=0.173209 min=0.161095 max=0.226695 std=0.01555008 7.47x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 32, DataFrame size: 30000 ------------
+(x1  threads) (2.5 MB/chunk, x32   chunks, total 80.6 MB) 	 mean=2.533241 min=2.483998 max=2.580083 std=0.02799848 
+(x2  threads) (2.5 MB/chunk, x32   chunks, total 80.6 MB) 	 mean=1.306415 min=1.286211 max=1.343195 std=0.01528942 1.94x faster than single threaded
+(x4  threads) (2.5 MB/chunk, x32   chunks, total 80.6 MB) 	 mean=0.657053 min=0.642800 max=0.687595 std=0.00930481 3.86x faster than single threaded
+(x6  threads) (2.5 MB/chunk, x32   chunks, total 80.6 MB) 	 mean=0.489580 min=0.477532 max=0.513513 std=0.00673738 5.17x faster than single threaded
+(x8  threads) (2.5 MB/chunk, x32   chunks, total 80.6 MB) 	 mean=0.350764 min=0.325758 max=0.459004 std=0.02759325 7.22x faster than single threaded
+(x10 threads) (2.5 MB/chunk, x32   chunks, total 80.6 MB) 	 mean=0.330798 min=0.320980 max=0.371190 std=0.00903258 7.66x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 64, DataFrame size: 30000 ------------
+(x1  threads) (2.5 MB/chunk, x64   chunks, total 161.1 MB) 	 mean=5.146888 min=5.050058 max=5.296609 std=0.05775386 
+(x2  threads) (2.5 MB/chunk, x64   chunks, total 161.1 MB) 	 mean=2.625717 min=2.579080 max=2.676772 std=0.02346353 1.96x faster than single threaded
+(x4  threads) (2.5 MB/chunk, x64   chunks, total 161.1 MB) 	 mean=1.321699 min=1.307957 max=1.347566 std=0.01120080 3.89x faster than single threaded
+(x6  threads) (2.5 MB/chunk, x64   chunks, total 161.1 MB) 	 mean=0.974427 min=0.950345 max=1.007133 std=0.01203849 5.28x faster than single threaded
+(x8  threads) (2.5 MB/chunk, x64   chunks, total 161.1 MB) 	 mean=0.704234 min=0.661920 max=0.843298 std=0.04346374 7.31x faster than single threaded
+(x10 threads) (2.5 MB/chunk, x64   chunks, total 161.1 MB) 	 mean=0.665209 min=0.642633 max=0.816677 std=0.02991697 7.74x faster than single threaded
+
+
+
+----------- High compression: True, Chunks: 128, DataFrame size: 30000 ------------
+(x1  threads) (2.5 MB/chunk, x128  chunks, total 322.3 MB) 	 mean=10.250179 min=10.058798 max=10.389677 std=0.08831161 
+(x2  threads) (2.5 MB/chunk, x128  chunks, total 322.3 MB) 	 mean=5.217848 min=5.147235 max=5.357145 std=0.05797234 1.96x faster than single threaded
+(x4  threads) (2.5 MB/chunk, x128  chunks, total 322.3 MB) 	 mean=2.656924 min=2.606068 max=2.702920 std=0.02188660 3.86x faster than single threaded
+(x6  threads) (2.5 MB/chunk, x128  chunks, total 322.3 MB) 	 mean=1.945710 min=1.915797 max=1.999228 std=0.02087960 5.27x faster than single threaded
+(x8  threads) (2.5 MB/chunk, x128  chunks, total 322.3 MB) 	 mean=1.343465 min=1.305299 max=1.454493 std=0.03189483 7.63x faster than single threaded
+(x10 threads) (2.5 MB/chunk, x128  chunks, total 322.3 MB) 	 mean=1.309903 min=1.283644 max=1.346143 std=0.01476706 7.83x faster than single threaded
+

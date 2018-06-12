@@ -2,7 +2,7 @@ import pytest
 import random
 import string
 
-import arctic._compress as c
+import arctic._compression as c
 
 
 @pytest.mark.parametrize("compress",
@@ -25,20 +25,20 @@ def test_roundtrip_multi(n):
 @pytest.mark.parametrize("n, length", [(1, 10), (100, 10), (1000, 10)])
 def test_roundtrip_arr(n, length):
     _strarr = [random_string(length) for _ in range(n)]
-    cstr = c.compressarr(_strarr)
-    assert _strarr == c.decompressarr(cstr)
+    cstr = c.compress_array(_strarr)
+    assert _strarr == c.decompress_array(cstr)
 
 
 @pytest.mark.parametrize("n, length", [(1, 10), (100, 10), (1000, 10)])
 def test_roundtrip_arrHC(n, length):
     _strarr = [random_string(length) for _ in range(n)]
-    cstr = c.compressarrHC(_strarr)
-    assert _strarr == c.decompressarr(cstr)
+    cstr = c.compressHC_array(_strarr)
+    assert _strarr == c.decompress_array(cstr)
 
 
 def test_arr_zero():
-    assert [] == c.compressarrHC([])
-    assert [] == c.decompressarr([])
+    assert [] == c.compressHC_array([])
+    assert [] == c.decompress_array([])
 
 
 def random_string(N):
