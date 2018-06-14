@@ -1,6 +1,11 @@
 ## Changelog
 
-### 1.67
+### 1.68
+  * Feature: #553 Compatibility with both the new and old LZ4 API
+  * Feature: #571 Removed the Cython LZ4 code, use the latest python-lz4
+  * Feature: #557 Threadpool based compression. Speed imrpovement and tuning benchmarks.
+
+### 1.67 (2018-05-24)
   * Bugfix: #561 Fix PickleStore read corruption after write_metadata
 
 ### 1.66 (2018-05-21)
