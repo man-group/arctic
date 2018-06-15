@@ -94,7 +94,7 @@ setup(
                    "pytest<=3.5.1",
                    "pytest-cov",
                    "pytest-server-fixtures",
-                   "pytest-timeout",
+                   "pytest-timeout<=1.2.1",
                    "pytest-xdist",
                    "lz4"
                   ],
