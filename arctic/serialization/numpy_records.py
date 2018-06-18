@@ -18,14 +18,14 @@ log = logging.getLogger(__name__)
 DTN64_DTYPE = 'datetime64[ns]'
 
 
-def _to_primitive(arr, string_max_len=None):
+def _to_primitive(arr, string_max_len=None, forced_dtype=None):
     if arr.dtype.hasobject:
         if len(arr) > 0:
             if isinstance(arr[0], Timestamp):
                 return np.array([t.value for t in arr], dtype=DTN64_DTYPE)
         if string_max_len:
             return np.array(arr.astype('U{:d}'.format(string_max_len)))
-        return np.array(list(arr))
+        return np.array(list(arr)) if forced_dtype is None else np.array(arr, dtype=forced_dtype)
     return arr
 
 
@@ -34,7 +34,7 @@ def _multi_index_to_records(index, empty_index):
     if not empty_index:
         ix_vals = list(map(np.array, [index.get_level_values(i) for i in range(index.nlevels)]))
     else:
-        # empty multi index has no size, create empty arrays for recarry..
+        # empty multi index has no size, create empty arrays for recarry.
         ix_vals = [np.array([]) for n in index.names]
     index_names = list(index.names)
     count = 0
@@ -96,7 +96,7 @@ class PandasSerializer(object):
             rtn = MultiIndex.from_arrays(level_arrays, names=index)
         return rtn
 
-    def _to_records(self, df, string_max_len=None):
+    def _to_records(self, df, string_max_len=None, forced_dtype=None):
         """
         Similar to DataFrame.to_records()
         Differences:
@@ -120,11 +120,15 @@ class PandasSerializer(object):
         names = index_names + columns
 
         arrays = []
-        for arr in ix_vals + column_vals:
-            arrays.append(_to_primitive(arr, string_max_len))
+        for arr, name in zip(ix_vals + column_vals, index_names + columns):
+            arrays.append(_to_primitive(arr, string_max_len,
+                                        forced_dtype=forced_dtype if forced_dtype is None else forced_dtype[name]))
 
-        dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
-                         metadata=metadata)
+        dtype = forced_dtype
+        if dtype is None:
+            dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1])
+                              for x, v in zip(names, arrays)],
+                             metadata=metadata)
 
         # The argument names is ignored when dtype is passed
         rtn = np.rec.fromarrays(arrays, dtype=dtype, names=names)
@@ -136,6 +140,11 @@ class PandasSerializer(object):
 
     def can_convert_to_records_without_objects(self, df, symbol):
         # We can't easily distinguish string columns from objects
+        # TODO: it is non-useful to serialize once here and then re-serialize.
+        #       We pay double the cost of serialization, which for large dataframes is not efficient (speed and memory).
+        #       Instead do targeted scanning only for the columns which are of object type.
+        #       E.g. use for the object columns the _to_primitive() or better scan the columns following the same logic.
+        #       Take also into consideration the _multi_index_to_records() as it expands index columns.
         try:
             arr, _ = self._to_records(df)
         except Exception as e:
@@ -154,7 +163,7 @@ class PandasSerializer(object):
             else:
                 return True
 
-    def serialize(self, item):
+    def serialize(self, item, string_max_len=None, forced_dtype=None):
         raise NotImplementedError
 
     def deserialize(self, item):
@@ -176,8 +185,8 @@ class SeriesSerializer(PandasSerializer):
         name = item.dtype.names[-1]
         return Series.from_array(item[name], index=index, name=name)
 
-    def serialize(self, item, string_max_len=None):
-        return self._to_records(item, string_max_len)
+    def serialize(self, item, string_max_len=None, forced_dtype=None):
+        return self._to_records(item, string_max_len, forced_dtype)
 
 
 class DataFrameSerializer(PandasSerializer):
@@ -219,5 +228,5 @@ class DataFrameSerializer(PandasSerializer):
 
         return df
 
-    def serialize(self, item, string_max_len=None):
-        return self._to_records(item, string_max_len)
+    def serialize(self, item, string_max_len=None, forced_dtype=None):
+        return self._to_records(item, string_max_len, forced_dtype)
