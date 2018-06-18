@@ -19,6 +19,7 @@ from six.moves import xrange
 
 logger = logging.getLogger(__name__)
 
+MAX_DOCUMENT_SIZE = int(pymongo.common.MAX_BSON_SIZE * 0.75)
 _CHUNK_SIZE = 2 * 1024 * 1024 - 2048  # ~2 MB (a bit less for usePowerOf2Sizes)
 _APPEND_SIZE = 1 * 1024 * 1024  # 1MB
 _APPEND_COUNT = 60  # 1 hour of 1 min data
