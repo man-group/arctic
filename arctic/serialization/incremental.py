@@ -67,13 +67,13 @@ class IncrementalDataFrameToRecArraySerializer(LazyIncrementalSerializer):
 
         # Serialize the first row to obtain info about row size in bytes (cache first row)
         # Also raise an Exception early, if data are not serializable
-        first_chunk, dtype = self._serializer.serialize(self.original_df[0:1] if len(self) > 0 else self.original_df,
+        first_chunk, dtype = self._serializer.serialize(self.input_data[0:1] if len(self) > 0 else self.input_data,
                                                         string_max_len=self.string_max_len)
 
         # Compute the number of rows which can fit in a chunk
         rows_per_chunk = 0
         if len(self) > 0 and self.chunk_size > 1:
-            rows_per_chunk = self._calculate_rows_per_chunk(first_chunk)
+            rows_per_chunk = IncrementalDataFrameToRecArraySerializer._calculate_rows_per_chunk(self.chunk_size, first_chunk)
 
         # Initialize object's state
         self._first_chunk = first_chunk

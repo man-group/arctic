@@ -15,6 +15,13 @@ empty_ts = pd.DataFrame()
 
 df_serializer = DataFrameSerializer()
 
+TEST_DATA = {
+    'small': (small_ts, df_serializer.serialize(small_ts)),
+    'medium': (medium_ts, df_serializer.serialize(medium_ts)),
+    'large': (large_ts, df_serializer.serialize(large_ts)),
+    'empty': (empty_ts, df_serializer.serialize(empty_ts))
+}
+
 
 def test_incremental_bad_init():
     with pytest.raises(ArcticSerializationException):
@@ -29,39 +36,51 @@ def test_incremental_bad_init():
         IncrementalDataFrameToRecArraySerializer(df_serializer, small_ts, string_max_len=-1)
 
 
-@pytest.mark.parametrize("input_data",
+def test_none_df():
+    with pytest.raises(ArcticSerializationException):
+        incr_ser = IncrementalDataFrameToRecArraySerializer(df_serializer, None)
+        incr_ser.serialize()
+
+
+@pytest.mark.parametrize("input_df",
                          [
-                             None,
-                             empty_ts,
-                             small_ts,
-                             medium_ts,
-                             large_ts,
+                             'empty',
+                             'small',
+                             'medium',
+                             'large'
                          ])
-def test_serialize_pandas_to_recarray(input_data):
-    exc, ser_data, dtype = None, None, None
-    try:
-        ser_data, dtype = df_serializer.serialize(input_data)
-    except Exception as e:
-        exc = e
-
-    if exc:
-        with pytest.raises(ArcticSerializationException):
-            incr_ser = IncrementalDataFrameToRecArraySerializer(df_serializer, input_data)
-            incr_ser.serialize()
-    else:
-        incr_ser = IncrementalDataFrameToRecArraySerializer(df_serializer, input_data)
-        incr_ser_data, incr_ser_dtype = incr_ser.serialize()
-        assert ser_data.tostring() == incr_ser_data.tostring()
-        assert dtype == incr_ser_dtype
+def test_serialize_pandas_to_recarray(input_df):
+    incr_ser = IncrementalDataFrameToRecArraySerializer(df_serializer, TEST_DATA[input_df][0])
+    incr_ser_data, incr_ser_dtype = incr_ser.serialize()
+    assert TEST_DATA[input_df][1][0].tostring() == incr_ser_data.tostring()
+    assert TEST_DATA[input_df][1][1] == incr_ser_dtype
 
 
-def test_bulk_serialize_pandas_to_recarray():
-    pass
+@pytest.mark.parametrize("input_df",
+                         [
+                             'empty',
+                             'small',
+                             'medium',
+                             'large'
+                         ])
+def test_serialize_incremental_pandas_to_recarray(input_df):
+    incr_ser = IncrementalDataFrameToRecArraySerializer(df_serializer, TEST_DATA[input_df][0])
+    chunk_bytes = [chunk_b for chunk_b, _ in incr_ser.generator_bytes]
+    dtype = incr_ser.dtype
+    assert TEST_DATA[input_df][1][0].tostring() == ''.join(chunk_bytes)
+    assert TEST_DATA[input_df][1][1] == dtype
 
 
-def test_empty_serialize_pandas_to_recarray():
-    pass
-
-
-def test_incremental_serialize_pandas_to_recarray():
-    pass
+@pytest.mark.parametrize("input_df",
+                         [
+                             'empty',
+                             'small',
+                             'medium',
+                             'large'
+                         ])
+def test_serialize_incremental_chunk_size_pandas_to_recarray(input_df):
+    incr_ser = IncrementalDataFrameToRecArraySerializer(df_serializer, TEST_DATA[input_df][0], chunk_size=1024*64*8)
+    chunk_bytes = [chunk_b for chunk_b, _ in incr_ser.generator_bytes]
+    dtype = incr_ser.dtype
+    assert TEST_DATA[input_df][1][0].tostring() == ''.join(chunk_bytes)
+    assert TEST_DATA[input_df][1][1] == dtype
