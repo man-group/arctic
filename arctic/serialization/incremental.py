@@ -59,16 +59,44 @@ class IncrementalDataFrameToRecArraySerializer(LazyIncrementalSerializer):
         # The state which needs to be lazily initialized
         self._dtype = None
         self._rows_per_chunk = 0
-        self._first_chunk = None
+        self._total_chunks = 0
+        self._has_converted_object = False
+        
+    def _get_dtype(self):
+        has_object = False
+
+        # Serialize the first row to obtain info about row size in bytes (cache first row)
+        # Also raise an Exception early, if data are not serializable        
+        first_chunk, dtype = self._serializer.serialize(self.input_data[0:1] if len(self) > 0 else self.input_data,
+                                                        string_max_len=self.string_max_len)
+        
+        # This is the common case, where first row's dtype represents well the whole dataframe's dtype
+        if dtype is None or len(self.input_data) == 0 or all(self.input_data.dtypes != object):
+            return first_chunk, dtype, has_object
+        
+        # Reaching here means we have at least one column of type object
+        # To correctly serialize incrementally, we need to know the final dtype (type and fixed length), 
+        # using length-conversion information from all rows  
+        dtype_arr = []
+        for field_name in dtype.names:
+            field_dtype = dtype[field_name]
+            if dtype[field_name].type == np.string_:
+                max_str_len = len(max(self.input_data[field_name].astype('S'), key=len))
+                field_dtype = np.dtype('S{:d}'.format(max_str_len)) if max_str_len > 0 else field_dtype
+                has_object = True
+            elif dtype[field_name].type == np.unicode_:
+                max_str_len = len(max(self.input_data[field_name].astype('U'), key=len))
+                field_dtype = np.dtype('U{:d}'.format(max_str_len)) if max_str_len > 0 else field_dtype
+                has_object = True
+            dtype_arr.append((field_name, field_dtype))
+        return first_chunk, np.dtype(dtype_arr), has_object
 
     def _lazy_init(self):
         if self._initialized:
             return
-
-        # Serialize the first row to obtain info about row size in bytes (cache first row)
-        # Also raise an Exception early, if data are not serializable
-        first_chunk, dtype = self._serializer.serialize(self.input_data[0:1] if len(self) > 0 else self.input_data,
-                                                        string_max_len=self.string_max_len)
+        
+        # Get the dtype of the serialized array (takes into account object types, converted to fixed length strings)
+        first_chunk, dtype, self._has_converted_object = self._get_dtype()
 
         # Compute the number of rows which can fit in a chunk
         rows_per_chunk = 0
@@ -76,9 +104,9 @@ class IncrementalDataFrameToRecArraySerializer(LazyIncrementalSerializer):
             rows_per_chunk = IncrementalDataFrameToRecArraySerializer._calculate_rows_per_chunk(self.chunk_size, first_chunk)
 
         # Initialize object's state
-        self._first_chunk = first_chunk
         self._dtype = dtype
         self._rows_per_chunk = rows_per_chunk
+        self._total_chunks = int(np.ceil(float(len(self)) / self._rows_per_chunk)) if rows_per_chunk > 0 else 0
         self._initialized = True
 
     @staticmethod
@@ -127,17 +155,15 @@ class IncrementalDataFrameToRecArraySerializer(LazyIncrementalSerializer):
         if len(self) == 0:
             return
 
-        # Compute the total number of chunks
-        total_chunks = int(np.ceil(float(len(self)) / self._rows_per_chunk))
-
         # Perform serialization for each chunk
-        for i in xrange(total_chunks):
-            chunk, dtype = self._serializer.serialize(
+        for i in xrange(self._total_chunks):
+            chunk, _ = self._serializer.serialize(
                 self.input_data[i * self._rows_per_chunk: (i + 1) * self._rows_per_chunk],
-                string_max_len=self.string_max_len)
+                string_max_len=self.string_max_len,
+                forced_dtype=self._dtype if self._has_converted_object else None)
             # Let the gc collect the intermediate serialized chunk as early as possible
             chunk = chunk.tostring() if chunk is not None and get_bytes else chunk
-            yield chunk, dtype
+            yield chunk, self.dtype
 
     def serialize(self):
         return self._serializer.serialize(self.input_data, self.string_max_len)

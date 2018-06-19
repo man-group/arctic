@@ -96,7 +96,7 @@ class PandasSerializer(object):
             rtn = MultiIndex.from_arrays(level_arrays, names=index)
         return rtn
 
-    def _to_records(self, df, string_max_len=None):
+    def _to_records(self, df, string_max_len=None, forced_dtype=None):
         """
         Similar to DataFrame.to_records()
         Differences:
@@ -123,8 +123,11 @@ class PandasSerializer(object):
         for arr in ix_vals + column_vals:
             arrays.append(_to_primitive(arr, string_max_len))
 
-        dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
+        if forced_dtype is None:
+            dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
                          metadata=metadata)
+        else:
+            dtype = forced_dtype
 
         # The argument names is ignored when dtype is passed
         rtn = np.rec.fromarrays(arrays, dtype=dtype, names=names)
@@ -176,8 +179,8 @@ class SeriesSerializer(PandasSerializer):
         name = item.dtype.names[-1]
         return Series.from_array(item[name], index=index, name=name)
 
-    def serialize(self, item, string_max_len=None):
-        return self._to_records(item, string_max_len)
+    def serialize(self, item, string_max_len=None, forced_dtype=None):
+        return self._to_records(item, string_max_len, forced_dtype)
 
 
 class DataFrameSerializer(PandasSerializer):
@@ -219,5 +222,5 @@ class DataFrameSerializer(PandasSerializer):
 
         return df
 
-    def serialize(self, item, string_max_len=None):
-        return self._to_records(item, string_max_len)
+    def serialize(self, item, string_max_len=None, forced_dtype=None):
+        return self._to_records(item, string_max_len, forced_dtype)
