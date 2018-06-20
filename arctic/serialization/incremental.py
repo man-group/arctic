@@ -48,11 +48,11 @@ class IncrementalDataFrameToRecArraySerializer(LazyIncrementalSerializer):
         super(IncrementalDataFrameToRecArraySerializer, self).__init__(serializer, input_data, chunk_size)
 
         if not isinstance(input_data, pd.DataFrame):
-            raise ArcticSerializationException("LazyIncrementalSerializer requires a pandas DataFrame "
+            raise ArcticSerializationException("IncrementalDataFrameToRecArraySerializer requires a pandas DataFrame "
                                                "as data source input.")
         
         if string_max_len and string_max_len < 1:
-            raise ArcticSerializationException("LazyIncrementalSerializer can't be initialized "
+            raise ArcticSerializationException("IncrementalDataFrameToRecArraySerializer can't be initialized "
                                                "with string_max_len < 1 ({})".format(string_max_len))
 
         self.string_max_len = string_max_len
