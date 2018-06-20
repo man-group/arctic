@@ -155,6 +155,7 @@ setup(
                       "python-dateutil",
                       "pytz",
                       "tzlocal",
+                      "boto3"
                      ],
     tests_require=["mock",
                    "mockextras",
@@ -163,7 +164,8 @@ setup(
                    "pytest-server-fixtures",
                    "pytest-timeout",
                    "pytest-xdist",
-                   "lz4"
+                   "lz4",
+                   "moto"
                   ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',
