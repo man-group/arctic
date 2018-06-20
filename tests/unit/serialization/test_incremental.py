@@ -30,7 +30,8 @@ with_unicode_ts['ustr_col'] = u'abc'
 
 with_some_none_ts = medium_ts.copy(deep=True)
 with_some_none_ts.iloc[10:10] = None
-with_some_none_ts.iloc[-10:-10] = None
+with_some_none_ts.iloc[-10:-10] = np.nan
+with_some_none_ts = with_some_none_ts.replace({np.nan: None})
 
 df_serializer = DataFrameSerializer()
 
@@ -74,7 +75,7 @@ def test_none_df():
                              'small',
                              'medium',
                              'large',
-                             # 'with_some_objects',
+                             'with_some_objects',
                              'with_string',
                              'with_unicode',
                              'with_some_none'
@@ -94,7 +95,7 @@ def test_serialize_pandas_to_recarray(input_df):
                              'small',
                              'medium',
                              'large',
-                             # 'with_some_objects',
+                             'with_some_objects',
                              'with_string',
                              'with_unicode',
                              'with_some_none'
@@ -114,7 +115,7 @@ def test_serialize_incremental_pandas_to_recarray(input_df):
                              'small',
                              'medium',
                              'large',
-                             # 'with_some_objects',
+                             'with_some_objects',
                              'with_string',
                              'with_unicode',
                              'with_some_none'

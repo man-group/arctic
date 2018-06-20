@@ -18,14 +18,14 @@ log = logging.getLogger(__name__)
 DTN64_DTYPE = 'datetime64[ns]'
 
 
-def _to_primitive(arr, string_max_len=None):
+def _to_primitive(arr, string_max_len=None, forced_dtype=None):
     if arr.dtype.hasobject:
         if len(arr) > 0:
             if isinstance(arr[0], Timestamp):
                 return np.array([t.value for t in arr], dtype=DTN64_DTYPE)
         if string_max_len:
             return np.array(arr.astype('U{:d}'.format(string_max_len)))
-        return np.array(list(arr))
+        return np.array(list(arr)) if forced_dtype is None else np.array(arr, dtype=forced_dtype)
     return arr
 
 
@@ -120,8 +120,9 @@ class PandasSerializer(object):
         names = index_names + columns
 
         arrays = []
-        for arr in ix_vals + column_vals:
-            arrays.append(_to_primitive(arr, string_max_len))
+        for arr, name in zip(ix_vals + column_vals, index_names + columns):
+            dtype = forced_dtype if forced_dtype is None else forced_dtype[name]
+            arrays.append(_to_primitive(arr, string_max_len, forced_dtype=dtype))
 
         if forced_dtype is None:
             dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
