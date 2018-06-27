@@ -690,7 +690,7 @@ class VersionStore(object):
         return self._add_new_version_using_reference(symbol, version, previous_version, prune_previous_version)
 
     @mongo_retry
-    def restore_version(self, symbol, as_of, prune_previous_version=True, new_base_version=True):
+    def restore_version(self, symbol, as_of, prune_previous_version=True):
         """
         Restore the specified 'symbol' data and metadata to the state of a given version/snapshot/date.
         Returns a VersionedItem object only with a metadata element.

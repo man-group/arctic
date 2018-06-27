@@ -1422,7 +1422,7 @@ def n_append(library, total_appends, rows_per_append, bulk_data_ts, start_idx, d
 
 
 def test_no_corruption_restore_append_overlapping(library, library_name):
-    large_ts = create_test_data(size=5000, cols=100,
+    large_ts = create_test_data(size=3000, cols=100,
                                 index=True, multiindex=False,
                                 random_data=True, random_ids=True)
     rows_per_append = 100
@@ -1445,7 +1445,7 @@ def test_no_corruption_restore_append_overlapping(library, library_name):
 
 
 def test_no_corruption_restore_writemeta_append(library, library_name):
-    large_ts = create_test_data(size=5000, cols=100,
+    large_ts = create_test_data(size=2000, cols=100,
                                 index=True, multiindex=False,
                                 random_data=True, random_ids=True)
     rows_per_append = 100
@@ -1478,7 +1478,7 @@ def test_no_corruption_restore_writemeta_append(library, library_name):
 
 
 def test_no_corruption_restore_append_non_overlapping_tstamps(library, library_name):
-    large_ts = create_test_data(size=5000, cols=100,
+    large_ts = create_test_data(size=2000, cols=100,
                                 index=True, multiindex=False,
                                 random_data=True, random_ids=True)
     with patch('pymongo.message.query', side_effect=_query(False, library_name)), \

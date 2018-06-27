@@ -80,6 +80,23 @@ def _define_compat_pickle_load():
 
 
 def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
+    """
+    This is a utility function to produce text output with details about the versions of a given symbol.
+    It is useful for debugging corruption issues and to mark corrupted versions.
+    
+    Parameters
+    ----------
+    l : `arctic.store.version_store.VersionStore`
+        The VersionStore instance against which the analysis will be run.
+    sym : `str`
+        The symbol to analyze
+    from_ver : `int` or `None`
+        The lower bound for the version number we wish to analyze. If None then start from the earliest version.
+    to_ver : `int` or `None`
+        The upper bound for the version number we wish to analyze. If None then stop at the latest version.
+    do_reads : `bool`
+        If this flag is set to true, then the corruption check will actually try to read the symbol (slower).
+    """
     logging.info('Analyzing symbol {}. Versions range is [v{}, v{}]'.format(sym, from_ver, to_ver))
     prev_rows = 0
     prev_n = 0
@@ -153,10 +170,46 @@ def _check_corrupted(l, sym, input_v, with_read=False):
 
 
 def fast_is_corrupted(l, sym, input_v):
+    """
+    This method can be used for a fast check (not involving a read) for a corrupted version.
+    Users can't trust this as may give false negatives, but it this returns True, then symbol is certainly broken (no false positives)
+    
+    Parameters
+    ----------
+    l : `arctic.store.version_store.VersionStore`
+        The VersionStore instance against which the analysis will be run.
+    sym : `str`
+        The symbol to test if is corrupted.
+    input_v : `int` or `arctic.store.version_store.VersionedItem`
+        The specific version we wish to test if is corrupted. This argument is mandatory.
+
+    Returns
+    -------
+    `bool`
+        True if the symbol is found corrupted, False otherwise.
+    """
     return _check_corrupted(l, sym, input_v, with_read=False)
 
 
 def is_corrupted(l, sym, input_v):
+    """
+        This method can be used to check for a corrupted version.
+        Will resort to a regular read (slower) if the internally invoked fast-detection gives hint for a corruption.
+
+        Parameters
+        ----------
+        l : `arctic.store.version_store.VersionStore`
+            The VersionStore instance against which the analysis will be run.
+        sym : `str`
+            The symbol to test if is corrupted.
+        input_v : `int` or `arctic.store.version_store.VersionedItem`
+            The specific version we wish to test if is corrupted. This argument is mandatory.
+
+        Returns
+        -------
+        `bool`
+            True if the symbol is found corrupted, False otherwise.
+        """
     return _check_corrupted(l, sym, input_v, with_read=True)
 
 
