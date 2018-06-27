@@ -151,7 +151,7 @@ setup(
                       "enum34",
                       "mockextras",
                       "pandas",
-                      "pymongo",
+                      "pymongo>=3.6.0",
                       "python-dateutil",
                       "pytz",
                       "tzlocal",

@@ -1,6 +1,10 @@
 ## Changelog
 
-### 1.67
+### 1.68
+  * Bugfix: #579 Fix symbol corruption due to restore_version and append
+  * Bugfix: #584 Fix list_versions for a snapshot after deleting symbols in later versions
+
+### 1.67 (2018-05-24)
   * Bugfix: #561 Fix PickleStore read corruption after write_metadata
 
 ### 1.66 (2018-05-21)
