@@ -1477,13 +1477,6 @@ def test_no_corruption_restore_writemeta_append(library, library_name):
         library.read(symbol, as_of=v['version'])
 
 
-def _prune_all(library):
-    import time
-    time.sleep(2.0)  # prune with keep_mins=0 prunes versions with at least 1second lifetime
-    for symbol in library.list_symbols(all_symbols=True):
-        library._prune_previous_versions(symbol, keep_mins=0, keep_version=None)
-
-
 def test_no_corruption_restore_append_non_overlapping_tstamps(library, library_name):
     large_ts = create_test_data(size=5000, cols=100,
                                 index=True, multiindex=False,
