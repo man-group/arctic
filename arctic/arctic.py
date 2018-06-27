@@ -179,7 +179,7 @@ class Arctic(object):
         list of Arctic library names
         """
         libs = []
-        for db in self._conn.database_names():
+        for db in self._conn.list_database_names():
             if db.startswith(self.DB_PREFIX + '_'):
                 for coll in self._conn[db].collection_names():
                     if coll.endswith(self.METADATA_COLL):

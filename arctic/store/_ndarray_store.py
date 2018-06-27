@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 _CHUNK_SIZE = 2 * 1024 * 1024 - 2048  # ~2 MB (a bit less for usePowerOf2Sizes)
 _APPEND_SIZE = 1 * 1024 * 1024  # 1MB
 _APPEND_COUNT = 60  # 1 hour of 1 min data
+_CHECK_CORRUPTION_ON_APPEND = False
 
 
 def _promote_struct_dtypes(dtype1, dtype2):
@@ -103,6 +104,11 @@ def _resize_with_dtype(arr, dtype):
         new_arr = arr.astype(dtype)
 
     return new_arr
+
+
+def set_corruption_check_on_append(enable):
+    global _CHECK_CORRUPTION_ON_APPEND
+    _CHECK_CORRUPTION_ON_APPEND = bool(enable)
 
 
 class NdarrayStore(object):
@@ -319,6 +325,20 @@ class NdarrayStore(object):
             version['dtype_metadata'] = previous_version['dtype_metadata']
             version['type'] = self.TYPE
             self._do_append(collection, version, symbol, item, previous_version, dirty_append)
+    
+    def _is_corrupted(self, collection, symbol, version):
+        spec = {'symbol': symbol,
+                'parent': version_base_or_id(version)}
+        # Descending order by creation time, first hit is the last segment belonging to the version.
+        # Sort is trivial as we have up to 60 segments per base version.
+        # If segment counts match, then fetches the latest document, but not the data (small/fast read)
+        curs = collection.find(spec, {'segment': 1}, sort=[('_id', pymongo.DESCENDING)])
+        total_segments = curs.count()
+        if total_segments != version['segment_count']:
+            return True  # don't proceed with fetching from mongo the first hit
+        max_seg = curs.next()
+        max_seg = max_seg['segment'] + 1 if max_seg else 0
+        return max_seg != version['up_to']
 
     def _do_append(self, collection, version, symbol, item, previous_version, dirty_append):
 
@@ -334,6 +354,14 @@ class NdarrayStore(object):
             version['segment_count'] = previous_version['segment_count']
             version['append_count'] = previous_version['append_count']
             version['append_size'] = previous_version['append_size']
+
+        # A flag-controlled check for corrupted symbols.
+        # Note this costs an extra read on the segments collection. Enable it on demand.
+        if _CHECK_CORRUPTION_ON_APPEND and self._is_corrupted(collection, symbol, previous_version):
+            logging.warning(
+                "Found mismatched segments for {} (version={}). Converting append to concat and rewrite".format(
+                symbol, previous_version['version']))
+            dirty_append = True  # force a concat and re-write (use new base version id)
 
         #_CHUNK_SIZE is probably too big if we're only appending single rows of data - perhaps something smaller,
         #or also look at number of appended segments?
