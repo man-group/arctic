@@ -507,7 +507,11 @@ class VersionStore(object):
         next_ver = self._version_nums.find_one_and_update({'symbol': symbol, },
                                                           {'$inc': {'version': 1}},
                                                           upsert=False, new=True)['version']
-        if next_ver != previous_version['version'] + 1:
+
+        # Do a dirty append if previous version is the result of a restore version, or
+        # a chain of write_metadata after a restore_version.
+        # This prevents a well known issue of corrupted data.
+        if next_ver != previous_version['version'] + 1 or previous_version.get('restored_version'):
             dirty_append = True
             logger.debug('''version_nums is out of sync with previous version document.
             This probably means that either a version document write has previously failed, or the previous version has been deleted.''')
@@ -686,7 +690,7 @@ class VersionStore(object):
         return self._add_new_version_using_reference(symbol, version, previous_version, prune_previous_version)
 
     @mongo_retry
-    def restore_version(self, symbol, as_of, prune_previous_version=True):
+    def restore_version(self, symbol, as_of, prune_previous_version=True, new_base_version=True):
         """
         Restore the specified 'symbol' data and metadata to the state of a given version/snapshot/date.
         Returns a VersionedItem object only with a metadata element.
@@ -723,6 +727,7 @@ class VersionStore(object):
         version['_id'] = bson.ObjectId()
         version['version'] = new_version_num
         version['base_version_id'] = version_to_restore.get('base_version_id', version_to_restore['_id'])
+        version['restored_version'] = True
 
         return self._add_new_version_using_reference(symbol, version, version_to_restore, prune_previous_version)
 

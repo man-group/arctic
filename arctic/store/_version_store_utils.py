@@ -1,10 +1,13 @@
-from bson import Binary
-import hashlib
-import numpy as np
-import pickle
-import pandas as pd
 import functools
+import hashlib
+import logging
+import pickle
 import six
+
+import numpy as np
+import pandas as pd
+import pymongo
+from bson import Binary
 from pandas.compat import pickle_compat
 
 
@@ -74,6 +77,87 @@ def _define_compat_pickle_load():
     if pd.__version__.startswith("0.14"):
         return pickle.load
     return functools.partial(pickle_compat.load, compat=True)
+
+
+def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
+    logging.info('Analyzing symbol {}. Versions range is [v{}, v{}]'.format(sym, from_ver, to_ver))
+    prev_rows = 0
+    prev_n = 0
+    prev_v = None
+
+    for v in l._versions.find({'symbol': sym, 'version': {'$gte': from_ver, '$lte': to_ver}},
+                              sort=[('version', pymongo.ASCENDING)]):
+        n = v.get('version')
+        spec = {'symbol': sym, 'parent': v.get('base_version_id', v['_id']), 'segment': {'$lt': v['up_to']}}
+        matching = l._collection.find(spec).count()
+
+        base_id = v.get('base_version_id')
+        snaps = ['/'.join((str(x), str(x.generation_time))) for x in v.get('parent')] if v.get('parent') else None
+
+        added_rows = v['up_to'] - prev_rows
+
+        is_meta_write = False
+        if prev_v and not added_rows:
+            is_meta_write = v.get('metadata') == prev_v.get('metadata')
+
+        delta_snap_creation = (min([x.generation_time for x in v.get('parent')]) - v[
+            '_id'].generation_time).total_seconds() / 60.0 if v.get('parent') else 0.0
+
+        corrupted = is_corrupted(l, sym, v) if do_reads else fast_is_corrupted(l, sym, v)
+
+        logging.info(
+            "v{: <6} ({: <20}): expected={: <6} found={: <6} last_row={: <10} new_rows={: <10}{: <10} base={: <24}/{: <28} snap={: <30}[{:.1f} mins delayed] {: <20} {: <20}".format(
+                n,
+                str(v['_id'].generation_time),
+                v['segment_count'],
+                matching,
+                v['up_to'],
+                added_rows,
+                'meta-only' if is_meta_write else 'data',
+                str(base_id),
+                str(base_id.generation_time) if base_id else '',
+                snaps,
+                delta_snap_creation,
+                'PREV_MISSING' if prev_n < n - 1 else '',
+                'CORRUPTED VERSION' if corrupted else ''))
+        prev_rows = v['up_to']
+        prev_n = n
+        prev_v = v
+
+
+def _check_corrupted(l, sym, input_v, with_read=False):
+    if isinstance(input_v, int):
+        v = l._versions.find_one({'symbol': sym, 'version': v})
+    else:
+        v = input_v
+
+    if v is None:
+        logging.warning("Symbol {} with version {} not found, so can't be corrupted.".format(sym, input_v))
+        return False
+
+    # Do quick check, without reading
+    if v.get('segment_count') is not None:
+        spec = {'symbol': sym, 'parent': v.get('base_version_id', v['_id']), 'segment': {'$lt': v['up_to']}}
+        matching = l._collection.find(spec).count()
+        if matching != v.get('segment_count'):
+            return True
+
+    # Quick check has passed, do read to verify
+    if with_read:
+        try:
+            l.read(sym, as_of=v['version'])
+        except Exception as e:
+            return True
+
+    return False
+
+
+def fast_is_corrupted(l, sym, input_v):
+    return _check_corrupted(l, sym, input_v, with_read=False)
+
+
+def is_corrupted(l, sym, input_v):
+    return _check_corrupted(l, sym, input_v, with_read=True)
 
 
 # Initialise the pickle load function and delete the factory function.
