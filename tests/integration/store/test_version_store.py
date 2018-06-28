@@ -1359,6 +1359,17 @@ def test_restore_version_snap_delete_symbol_restore(library):
         assert item.version == 5
 
 
+def test_restore_from_version_with_deleted_symbol(library):
+    symbol = 'FTL'
+    mydf_a = _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.delete(symbol)
+
+        with pytest.raises(NoDataFoundException):
+            library.restore_version(symbol, as_of=2)
+
+
 
 def test_prune_previous_versions_retries_on_cleanup_error(library):
     original_cleanup = _version_store_utils.cleanup
