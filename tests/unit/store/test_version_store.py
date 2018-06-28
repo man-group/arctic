@@ -426,9 +426,9 @@ def test_restore_version():
         mock_objId.return_value = MOCK_OBJID
         mock_retry.side_effect = lambda f: f
         
-        ret_val = VersionStore.restore_version(vs, symbol=TEST_SYMBOL, as_of=LASTEST_VERSION['version'], prune_previous_version=True)
+        ret_item = VersionStore.restore_version(vs, symbol=TEST_SYMBOL, as_of=LASTEST_VERSION['version'], prune_previous_version=True)
 
-        assert ret_val == new_item
+        assert ret_item == new_item
         assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL, as_of=LASTEST_VERSION['version']), call(TEST_SYMBOL)]
         assert vs.read.call_args_list == [call(TEST_SYMBOL, as_of=LASTEST_VERSION['version'])]
         assert vs.write.call_args_list == [call(TEST_SYMBOL, data=last_item.data, metadata=last_item.metadata, prune_previous_version=True)]
@@ -457,10 +457,11 @@ def test_restore_last_version():
         mock_objId.return_value = MOCK_OBJID
         mock_retry.side_effect = lambda f: f
 
-        ret_val = VersionStore.restore_version(vs, symbol=TEST_SYMBOL, as_of=TPL_VERSION['version'],
+        ret_item = VersionStore.restore_version(vs, symbol=TEST_SYMBOL, as_of=TPL_VERSION['version'],
                                                prune_previous_version=True)
 
-        assert ret_val == TPL_VERSION
+        assert ret_item.version == TPL_VERSION['version']
+        assert ret_item.metadata == TPL_VERSION.get('metadata')
         assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL, as_of=TPL_VERSION['version']),
                                                     call(TEST_SYMBOL)]
         assert not vs.read.called

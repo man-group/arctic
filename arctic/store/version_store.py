@@ -508,10 +508,7 @@ class VersionStore(object):
                                                           {'$inc': {'version': 1}},
                                                           upsert=False, new=True)['version']
 
-        # Do a dirty append if previous version is the result of a restore version, or
-        # a chain of write_metadata after a restore_version.
-        # This prevents a well known issue of corrupted data.
-        if next_ver != previous_version['version'] + 1 or previous_version.get('restored_version'):
+        if next_ver != previous_version['version'] + 1:
             dirty_append = True
             logger.debug('''version_nums is out of sync with previous version document.
             This probably means that either a version document write has previously failed, or the previous version has been deleted.''')
@@ -724,7 +721,9 @@ class VersionStore(object):
         try:
             latest_version = self._read_metadata(symbol)
             if version_to_restore['version'] == latest_version['version']:
-                return latest_version
+                return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(),
+                                     version=version_to_restore['version'],
+                                     metadata=version_to_restore.pop('metadata', None), data=None)
         except NoDataFoundException as e:
             pass
 
