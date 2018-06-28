@@ -351,7 +351,7 @@ def test_write_metadata_with_previous_data():
                                      metadata=META_TO_WRITE,
                                      data=None)
 
-    with patch('arctic.store.version_store.bson.ObjectId') as mock_objId, \
+    with patch('arctic.store.version_store.bson.ObjectId') as mock_objId,\
             patch('arctic.store.version_store.mongo_retry') as mock_retry:
         mock_objId.return_value = MOCK_OBJID
         mock_retry.side_effect = lambda f: f
@@ -409,22 +409,27 @@ def test_write_metadata_insert_version_opfailure():
 
 def test_restore_version():
     vs = _create_mock_versionstore()
-    expected_new_version = TPL_VERSION.copy()
-    expected_new_version.update({'_id': MOCK_OBJID,
-                                 'version': TPL_VERSION['version'] + 1,
-                                 'metadata': None})
+
+    LASTEST_VERSION = dict(TPL_VERSION, version=TPL_VERSION['version']+1, metadata={'something': 'different'})
+    last_item = VersionedItem(symbol=TEST_SYMBOL, library=vs._arctic_lib.get_name(),
+                              version=LASTEST_VERSION, metadata=LASTEST_VERSION['metadata'], data="hello world")
+    new_version = dict(LASTEST_VERSION, version=LASTEST_VERSION['version'] + 1)
+    new_item = VersionedItem(symbol=TEST_SYMBOL, library=vs._arctic_lib.get_name(),
+                             version=new_version, metadata=new_version['metadata'], data=last_item.data)
+
+    vs.write.return_value = new_item
+    vs.read.return_value = last_item
+    vs._read_metadata.side_effect = [TPL_VERSION, LASTEST_VERSION]
+
     with patch('arctic.store.version_store.bson.ObjectId') as mock_objId, \
             patch('arctic.store.version_store.mongo_retry') as mock_retry:
         mock_objId.return_value = MOCK_OBJID
         mock_retry.side_effect = lambda f: f
-        ret_val = VersionStore.restore_version(vs, symbol=TEST_SYMBOL, as_of=TPL_VERSION['version'], prune_previous_version=True)
-        assert ret_val == VersionedItem(symbol=TEST_SYMBOL,
-                                        library=vs._arctic_lib.get_name(),
-                                        version=TPL_VERSION['version'] + 1,
-                                        metadata=None,
-                                        data=None)
-        assert vs._versions.insert_one.call_args_list == [call(expected_new_version)]
-        assert vs._publish_change.call_args_list == [call(TEST_SYMBOL, expected_new_version)]
+        ret_item = VersionStore.restore_version(vs, symbol=TEST_SYMBOL, as_of=LASTEST_VERSION['version'], prune_previous_version=True)
+        assert ret_item == new_item
+        assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL, as_of=LASTEST_VERSION['version']), call(TEST_SYMBOL)]
+        assert vs.read.call_args_list == [call(TEST_SYMBOL, as_of=LASTEST_VERSION['version'])]
+        assert vs.write.call_args_list == [call(TEST_SYMBOL, data=last_item.data, metadata=last_item.metadata, prune_previous_version=True)]
 
 
 def test_restore_version_data_missing_symbol():
@@ -440,26 +445,25 @@ def test_restore_version_data_missing_symbol():
     assert vs._publish_change.called is False
 
 
-def test_restore_version_insert_version_dupkeyerror():
+def test_restore_last_version():
     vs = _create_mock_versionstore()
-    vs._versions.insert_one.__name__ = 'insert_one'
-    vs._versions.insert_one.side_effect = [DuplicateKeyError('dup key error'), None]
-    VersionStore.restore_version(vs, symbol=TEST_SYMBOL,
-                                 as_of=TPL_VERSION['version'], prune_previous_version=True)
-    assert vs._version_nums.find_one_and_update.call_count == 2
-    assert vs._versions.insert_one.call_count == 2
-    assert vs._publish_change.call_count == 1
 
+    vs._read_metadata.side_effect = [TPL_VERSION, TPL_VERSION]
 
-def test_restore_version_insert_version_opfailure():
-    vs = _create_mock_versionstore()
-    vs._versions.insert_one.__name__ = 'insert_one'
-    vs._versions.insert_one.side_effect = [OperationFailure('op failure'), None]
-    VersionStore.restore_version(vs, symbol=TEST_SYMBOL,
-                                 as_of=TPL_VERSION['version'], prune_previous_version=True)
-    assert vs._version_nums.find_one_and_update.call_count == 1
-    assert vs._versions.insert_one.call_count == 2
-    assert vs._publish_change.call_count == 1
+    with patch('arctic.store.version_store.bson.ObjectId') as mock_objId, \
+            patch('arctic.store.version_store.mongo_retry') as mock_retry:
+        mock_objId.return_value = MOCK_OBJID
+        mock_retry.side_effect = lambda f: f
+
+        ret_item = VersionStore.restore_version(vs, symbol=TEST_SYMBOL, as_of=TPL_VERSION['version'],
+                                               prune_previous_version=True)
+
+        assert ret_item.version == TPL_VERSION['version']
+        assert ret_item.metadata == TPL_VERSION.get('metadata')
+        assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL, as_of=TPL_VERSION['version']),
+                                                    call(TEST_SYMBOL)]
+        assert not vs.read.called
+        assert not vs.write.called
 
 
 def test_write_error_clean_retry():
