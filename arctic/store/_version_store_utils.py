@@ -162,7 +162,7 @@ def _check_corrupted(l, sym, input_v, with_read=False):
     if with_read:
         try:
             l.read(sym, as_of=v['version'])
-        except:
+        except Exception:
             return True
 
     return False
@@ -172,7 +172,6 @@ def fast_is_corrupted(l, sym, input_v):
     """
     This method can be used for a fast check (not involving a read) for a corrupted version.
     Users can't trust this as may give false negatives, but it this returns True, then symbol is certainly broken (no false positives)
-    
     Parameters
     ----------
     l : `arctic.store.version_store.VersionStore`

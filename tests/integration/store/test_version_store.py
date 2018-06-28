@@ -1490,9 +1490,7 @@ def n_append(library, library_name, total_appends, rows_per_append, bulk_data_ts
     for i in range(total_appends):
         first_row = start_idx + i * rows_per_append
         open_last_row = start_idx + (i + 1) * rows_per_append
-
         snap = 'snap_{}'.format(first_row)
-        
         with patch('pymongo.message.query', side_effect=_query(False, library_name)), \
              patch('pymongo.server_description.ServerDescription.server_type', SERVER_TYPE.Mongos):
             library.append(symbol, bulk_data_ts[first_row:open_last_row],
