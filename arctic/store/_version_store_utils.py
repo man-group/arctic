@@ -83,7 +83,6 @@ def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
     """
     This is a utility function to produce text output with details about the versions of a given symbol.
     It is useful for debugging corruption issues and to mark corrupted versions.
-    
     Parameters
     ----------
     l : `arctic.store.version_store.VersionStore`
@@ -144,7 +143,7 @@ def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
 
 def _check_corrupted(l, sym, input_v, with_read=False):
     if isinstance(input_v, int):
-        v = l._versions.find_one({'symbol': sym, 'version': v})
+        v = l._versions.find_one({'symbol': sym, 'version': input_v})
     else:
         v = input_v
 
@@ -163,7 +162,7 @@ def _check_corrupted(l, sym, input_v, with_read=False):
     if with_read:
         try:
             l.read(sym, as_of=v['version'])
-        except Exception as e:
+        except:
             return True
 
     return False

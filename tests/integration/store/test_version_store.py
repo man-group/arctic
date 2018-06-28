@@ -17,7 +17,7 @@ import arctic
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException
 from arctic.date import DateRange
 from arctic.store import _version_store_utils
-from arctic.store._version_store_utils import analyze_symbol
+#from arctic.store._version_store_utils import analyze_symbol
 from tests.integration.chunkstore.test_utils import create_test_data
 
 from ...util import read_str_as_pandas
@@ -1485,18 +1485,21 @@ def test_empty_string_column_name(library):
         library.write('df', df)
 
 
-def n_append(library, total_appends, rows_per_append, bulk_data_ts, start_idx, do_snapshots=True, do_prune=True):
+def n_append(library, library_name, total_appends, rows_per_append, bulk_data_ts, start_idx, do_snapshots=True, do_prune=True):
     open_last_row = 0
     for i in range(total_appends):
         first_row = start_idx + i * rows_per_append
         open_last_row = start_idx + (i + 1) * rows_per_append
 
         snap = 'snap_{}'.format(first_row)
-        library.append(symbol, bulk_data_ts[first_row:open_last_row],
-                       metadata={'snap': snap},
-                       prune_previous_version=do_prune)
-        if do_snapshots:
-            library.snapshot(snap)
+        
+        with patch('pymongo.message.query', side_effect=_query(False, library_name)), \
+             patch('pymongo.server_description.ServerDescription.server_type', SERVER_TYPE.Mongos):
+            library.append(symbol, bulk_data_ts[first_row:open_last_row],
+                           metadata={'snap': snap},
+                           prune_previous_version=do_prune)
+            if do_snapshots:
+                library.snapshot(snap)
 
     return open_last_row
 
@@ -1509,7 +1512,7 @@ def test_no_corruption_restore_append_overlapping(library, library_name):
     with patch('pymongo.message.query', side_effect=_query(False, library_name)), \
          patch('pymongo.server_description.ServerDescription.server_type', SERVER_TYPE.Mongos):
 
-        n_append(library, 18, rows_per_append, large_ts, 0)
+        n_append(library, library_name, 18, rows_per_append, large_ts, 0)
 
         # Corrupts all versions between the version that row "restore_from_row" was written,
         restore_from_row = rows_per_append * 10
@@ -1532,11 +1535,11 @@ def test_no_corruption_restore_writemeta_append(library, library_name):
     with patch('pymongo.message.query', side_effect=_query(False, library_name)), \
          patch('pymongo.server_description.ServerDescription.server_type', SERVER_TYPE.Mongos):
 
-        last_row = n_append(library, 9, rows_per_append, large_ts, 0)
+        last_row = n_append(library, library_name, 9, rows_per_append, large_ts, 0)
 
         library.write_metadata(symbol, metadata={'abc': 'xyz'})
 
-        n_append(library, 9, rows_per_append, large_ts, last_row)
+        n_append(library, library_name, 9, rows_per_append, large_ts, last_row)
 
         library.write_metadata(symbol, metadata={'abc2': 'xyz2'})
 
@@ -1565,26 +1568,24 @@ def test_no_corruption_restore_append_non_overlapping_tstamps(library, library_n
          patch('pymongo.server_description.ServerDescription.server_type', SERVER_TYPE.Mongos):
 
         # Append with 50 small uncompressed segments (no new base yet)
-        last_row_b = n_append(library, 50, 25, large_ts, 0, False, True)
+        last_row_b = n_append(library, library_name, 50, 25, large_ts, 0, False, True)
 
         library.snapshot('snap_A')
 
         # Append with 20 more small segments, causes once copy-rewrite with new base, and then some small appended segments
-        last_row_c = n_append(library, 15, 25, large_ts, last_row_b, True, True)
+        n_append(library, library_name, 15, 25, large_ts, last_row_b, True, True)
 
         library.restore_version(symbol, as_of='snap_A')
 
-        last_row = n_append(library, 1, 40, large_ts, last_row_b, False, True)
+        last_row = n_append(library, library_name, 1, 40, large_ts, last_row_b, False, True)
         library.snapshot('snap_B')
 
         # Corrupts all versions
-        last_row = n_append(library, 1, 10, large_ts, last_row, False, True)
-        last_row = n_append(library, 8, 20, large_ts, last_row, False, True)
+        last_row = n_append(library, library_name, 1, 10, large_ts, last_row, False, True)
+        last_row = n_append(library, library_name, 8, 20, large_ts, last_row, False, True)
         library.snapshot('snap_C')
-
         # last_v = library._versions.find_one(sort=[('version', pymongo.DESCENDING)])
         # analyze_symbol(library, symbol, 0, last_v['version'] + 1)
-        
     # Verify no versions have been corrupted
     for v in library._versions.find(sort=[('version', pymongo.DESCENDING)]):
         library.read(symbol, as_of=v['version'])

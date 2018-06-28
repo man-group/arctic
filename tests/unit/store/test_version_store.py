@@ -425,9 +425,7 @@ def test_restore_version():
             patch('arctic.store.version_store.mongo_retry') as mock_retry:
         mock_objId.return_value = MOCK_OBJID
         mock_retry.side_effect = lambda f: f
-        
         ret_item = VersionStore.restore_version(vs, symbol=TEST_SYMBOL, as_of=LASTEST_VERSION['version'], prune_previous_version=True)
-
         assert ret_item == new_item
         assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL, as_of=LASTEST_VERSION['version']), call(TEST_SYMBOL)]
         assert vs.read.call_args_list == [call(TEST_SYMBOL, as_of=LASTEST_VERSION['version'])]

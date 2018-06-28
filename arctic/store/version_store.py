@@ -713,8 +713,7 @@ class VersionStore(object):
         """
         # TODO: This operation could be optimized further by not doing a read-write, but instead do meta only update
         #       and only do concat_rewrite on the first append operation, after the restore (i.e. using a flag).
-        #       Keep in mind the history branch induced corruption (see Issue 
-
+        #       Keep in mind the history branch induced corruption (see Issue #579)
         # Don't create a new version if we are trying to restore to the latest
         # TODO: this is not atomic, and is prone to race conditions if multiple processes touch the same symbol
         version_to_restore = self._read_metadata(symbol, as_of=as_of)
@@ -724,16 +723,15 @@ class VersionStore(object):
                 return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(),
                                      version=version_to_restore['version'],
                                      metadata=version_to_restore.pop('metadata', None), data=None)
-        except NoDataFoundException as e:
+        except NoDataFoundException:
             pass
 
         # Read the existing data from as_of
         item = self.read(symbol, as_of=as_of)
 
         # Write back, creating a new base version
-        new_item = self.write(symbol, 
+        new_item = self.write(symbol,
                               data=item.data, metadata=item.metadata, prune_previous_version=prune_previous_version)
-
         return new_item
 
     @mongo_retry
