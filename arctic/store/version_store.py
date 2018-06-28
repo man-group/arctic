@@ -714,22 +714,28 @@ class VersionStore(object):
         `VersionedItem`
             VersionedItem named tuple containing the metadata of the written symbol's version document in the store.
         """
-        # if version/snapshot/data supplied in "as_of" does not exist, will fail fast with NoDataFoundException
+        # TODO: This operation could be optimized further by not doing a read-write, but instead do meta only update
+        #       and only do concat_rewrite on the first append operation, after the restore (i.e. using a flag).
+        #       Keep in mind the history branch induced corruption (see Issue 
+
+        # Don't create a new version if we are trying to restore to the latest
+        # TODO: this is not atomic, and is prone to race conditions if multiple processes touch the same symbol
         version_to_restore = self._read_metadata(symbol, as_of=as_of)
+        try:
+            latest_version = self._read_metadata(symbol)
+            if version_to_restore['version'] == latest_version['version']:
+                return latest_version
+        except NoDataFoundException as e:
+            pass
 
-        # Reaching here means that data and/or metadata exist and we are all set to update the metadata
-        new_version_num = self._version_nums.find_one_and_update({'symbol': symbol},
-                                                             {'$inc': {'version': 1}},
-                                                             upsert=True, new=True)['version']
+        # Read the existing data from as_of
+        item = self.read(symbol, as_of=as_of)
 
-        # Create a new version entry, cloning the one supplied from the user
-        version = {k: version_to_restore[k] for k in version_to_restore.keys() if k != 'parent'}  # don't copy snapshots
-        version['_id'] = bson.ObjectId()
-        version['version'] = new_version_num
-        version['base_version_id'] = version_to_restore.get('base_version_id', version_to_restore['_id'])
-        version['restored_version'] = True
+        # Write back, creating a new base version
+        new_item = self.write(symbol, 
+                              data=item.data, metadata=item.metadata, prune_previous_version=prune_previous_version)
 
-        return self._add_new_version_using_reference(symbol, version, version_to_restore, prune_previous_version)
+        return new_item
 
     @mongo_retry
     def _find_prunable_version_ids(self, symbol, keep_mins):

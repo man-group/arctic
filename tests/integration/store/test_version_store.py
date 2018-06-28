@@ -1281,14 +1281,39 @@ def test_restore_version_snapshot(library):
     with patch('arctic.arctic.logger.info') as info:
         library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
         library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2
-        library.restore_version(symbol, as_of=2)  # creates version 3
+        library.restore_version(symbol, as_of=1)  # creates version 3
         library.snapshot('SNAP_1')
         library.write(symbol, data=mydf_b)  # creates version 3
 
         v = library.read(symbol, as_of='SNAP_1')
         assert_frame_equal(v.data, mydf_a)
-        assert v.metadata == {'field_b': 1}
+        assert v.metadata == {'field_a': 1}
         assert library._read_metadata(symbol, as_of='SNAP_1').get('version') == 3
+
+
+def test_restore_version_latest_snapshot_noop(library):
+    symbol = 'FTL'
+    mydf_a = _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2
+        library.snapshot('SNAP_1')
+
+        restore_v = library.restore_version(symbol, as_of='SNAP_1')  # does not create a new version
+
+        assert restore_v == library._read_metadata(symbol, as_of=2)
+
+
+def test_restore_version_latest_version_noop(library):
+    symbol = 'FTL'
+    mydf_a = _rnd_df(10, 5)
+    with patch('arctic.arctic.logger.info') as info:
+        library.write(symbol, data=mydf_a, metadata={'field_a': 1})  # creates version 1
+        library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 2
+
+        restore_v = library.restore_version(symbol, as_of=2)  # does not create a new version
+
+        assert restore_v == library._read_metadata(symbol, as_of=2)
 
 
 def test_prune_previous_versions_retries_on_cleanup_error(library):
