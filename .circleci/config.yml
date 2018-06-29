@@ -13,6 +13,7 @@ jobs:
 #    - image: circleci/build-image:ubuntu-14.04-XXL-upstart-1189-5614f37
 #      command: /sbin/init
     - image: circleci/python:3-stretch
+    - image: mongo:3.6-jessie
     
     steps:
 
@@ -27,15 +28,6 @@ jobs:
     - restore_cache: # restores saved dependency cache if the Branch key template or requirements.txt files have not changed since the previous run
         key: deps1-{{ .Branch }}-{{ checksum "requirements.txt" }}
 
-    - run:
-        name: Install Mongo
-        command: |
-          # MongoDB requiring SSL
-          # wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-debian81-v3.4-latest.tgz
-          # Legacy MongoDB without SSL
-          wget http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-v3.4-latest.tgz
-          tar -zxvf mongodb-linux-x86_64-*-latest.tgz
-          sudo mv mongodb-*/bin/* /usr/local/bin/
     - run: 
         name: Install arctic requirements
         command: |
