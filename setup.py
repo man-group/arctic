@@ -22,6 +22,7 @@ from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
 import sys
 
+
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672
 try:
