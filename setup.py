@@ -18,47 +18,9 @@
 
 import logging
 from setuptools import setup
-from setuptools.extension import Extension
 from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
 import sys
-import os
-import subprocess
-import platform
-
-link_args = ['-fopenmp']
-# Avoid compiling error with prange. Similar to http://stackoverflow.com/questions/36577182/unable-to-assign-value-to-array-in-prange
-compile_args = ['-fopenmp', '-fpermissive']
-
-if platform.system().lower() == 'darwin':
-    # if a recent compiler on PATH (e.g. from anaconda) then let's use that
-    gcc_out = subprocess.check_output(['gcc', '-v'], stderr=subprocess.STDOUT)
-    if b'LLVM' in gcc_out:    
-        # clang on macOS does not work with OpenMP
-        ccs = ["/usr/local/bin/g++-5",
-               "/usr/local/bin/g++-6",
-               "/usr/local/bin/g++-7",
-               "/usr/local/opt/llvm/bin/clang"]
-        cc = None
-        for compiler in ccs:
-            if os.path.isfile(compiler):
-                cc = compiler
-        if cc is None:
-            raise ValueError("You must install clang-6.0 or gcc/g++. You can install with homebrew: brew install gcc or brew install llvm")
-        if 'clang' in cc and os.path.isdir("/usr/local/opt/libomp")==False:
-            raise ValueError("You must also install libomp.  You can install with homebrew: brew install libomp")
-        os.environ["CC"] = cc if 'clang' in cc else cc.replace("g++", "gcc")
-        os.environ["CXX"] = cc
-        if 'clang' in cc:
-            link_args = ['-fopenmp=libomp']
-    
-    # not all OSX/clang compiler flags supported by GCC. For some reason
-    # these sometimes are generated and used. Cython will still add more flags.
-    os.environ["CFLAGS"] = "-fno-common -fno-strict-aliasing -DENABLE_DTRACE -DMACOSX -DNDEBUG -Wall -g -fwrapv -Os"
-
-elif platform.system().lower() == 'windows':
-    compile_args = ['/openmp']
-    link_args = []
 
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672
@@ -95,42 +57,14 @@ class PyTest(TestCommand):
                      '--cov-report', 'xml',
                      '--cov-report', 'html',
                      '--junitxml', 'junit.xml',
-                    ])
+                     ])
         errno = pytest.main(args)
         sys.exit(errno)
 
 
-class defer_cythonize(list):
-    def __init__(self, callback):
-        self._list, self.callback = None, callback
-
-    def c_list(self):
-        if self._list is None:
-            self._list = self.callback()
-        return self._list
-
-    def __iter__(self):
-        for elem in self.c_list():
-            yield elem
-
-    def __getitem__(self, ii):
-        return self.c_list()[ii]
-
-    def __len__(self):
-        return len(self.c_list())
-
-
-def extensions():
-    from Cython.Build import cythonize
-    return cythonize(Extension('arctic._compress',
-                               sources=["src/_compress.pyx", "src/lz4.c", "src/lz4hc.c"],
-                               extra_compile_args=compile_args,
-                               extra_link_args=link_args))
-
-
 setup(
     name="arctic",
-    version="1.66.0",
+    version="1.68.0",
     author="Man AHL Technology",
     author_email="ManAHLTech@ahl.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
@@ -140,14 +74,11 @@ setup(
     packages=find_packages(exclude=['tests', 'tests.*', 'benchmarks']),
     long_description='\n'.join((long_description, changelog)),
     cmdclass={'test': PyTest},
-    ext_modules=defer_cythonize(extensions),
     setup_requires=["six",
-                    "cython",
                     "numpy",
                     "setuptools-git",
                    ],
-    install_requires=["cython",
-                      "decorator",
+    install_requires=["decorator",
                       "enum34",
                       "mockextras",
                       "pandas",
@@ -155,6 +86,7 @@ setup(
                       "python-dateutil",
                       "pytz",
                       "tzlocal",
+                      "lz4"
                      ],
     tests_require=["mock",
                    "mockextras",

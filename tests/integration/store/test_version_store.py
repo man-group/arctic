@@ -14,7 +14,7 @@ import pytest
 import numpy as np
 
 import arctic
-from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException
+from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException
 from arctic.date import DateRange
 from arctic.store import _version_store_utils
 
@@ -1393,3 +1393,11 @@ def test_prune_keeps_version(library):
     library._prune_previous_versions(symbol, keep_mins=0, keep_version=old_version)
 
     assert len(library.list_versions(symbol)) == 2
+
+
+def test_empty_string_column_name(library):
+    df = pd.DataFrame(data=[0, 1, 2], index=[0, 1, 2])
+    df.columns = ['']
+
+    with pytest.raises(ArcticException):
+        library.write('df', df)

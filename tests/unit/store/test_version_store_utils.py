@@ -1,8 +1,10 @@
-import pytest
-import numpy as np
 import binascii
 
-from arctic.store._version_store_utils import _split_arrs, checksum
+import numpy as np
+import pytest
+from mock import sentinel
+
+from arctic.store._version_store_utils import _split_arrs, checksum, version_base_or_id
 
 
 def test_split_arrs_empty():
@@ -30,3 +32,12 @@ def test_checksum_handles_p3strs_and_binary():
     expected = b'4O11 ;<A@C1.0W(JRB1.?D[ZEN!8'
     assert binascii.b2a_uu(digest).strip() == expected
 
+
+def test_version_base_or_id():
+    with pytest.raises(KeyError):
+        version_base_or_id({})
+    assert version_base_or_id({'_id': sentinel._id}) == sentinel._id
+    assert version_base_or_id({
+        '_id': sentinel._id,
+        'base_version_id': sentinel.base_version_id
+    }) == sentinel.base_version_id

@@ -9,9 +9,15 @@ except ImportError:
     from pandas.lib import infer_dtype
 
 try:
-    from pandas._libs.lib import max_len_string_array
+    # pandas >= 0.23.0
+    from pandas._libs.writers import max_len_string_array
 except ImportError:
-    from pandas.lib import max_len_string_array
+    try:
+        # pandas [0.20.0, 0.22.x]
+        from pandas._libs.lib import max_len_string_array
+    except ImportError:
+        # pandas <=  0.19.x
+        from pandas.lib import max_len_string_array
 
 from bson import Binary, SON
 

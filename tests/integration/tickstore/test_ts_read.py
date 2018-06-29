@@ -193,7 +193,7 @@ def test_read_all_cols_all_dtypes(tickstore_lib, chunk_size):
     index = DatetimeIndex([dt(1970, 1, 1, tzinfo=mktz('UTC')),
                          dt(1970, 1, 1, 0, 0, 1, tzinfo=mktz('UTC'))],
                         )
-    index.tz = mktz()
+    df.index = df.index.tz_convert(mktz('UTC'))
     expected = pd.DataFrame(data, index=index)
     expected = expected[df.columns]
     assert_frame_equal(expected, df, check_names=False)
@@ -322,8 +322,6 @@ def test_date_range_default_timezone(tickstore_lib, tz_name):
         df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130701), columns=None)
         assert len(df) == 2
         assert df.index[1] == dt(2013, 7, 1, tzinfo=mktz(tz_name))
-        assert df.index.tz == mktz(tz_name)
-
         df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130101), columns=None)
         assert len(df) == 1
 

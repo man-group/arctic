@@ -152,7 +152,14 @@ overlapping libraries: {}""".format(library_name, [l.library for l in library_me
 
         rtn = [TickStoreLibrary(self._arctic_lib.arctic[library.library], library.date_range)
                for library in libraries]
-        current_start = rtn[-1].date_range.end if rtn else dt(1970, 1, 1, 0, 0)  # epoch
+
+        if rtn:
+            current_start = rtn[-1].date_range.end
+        elif date_range.end.tzinfo:
+            current_start = dt(1970, 1, 1, 0, 0, tzinfo=date_range.end.tzinfo)
+        else:
+            current_start = dt(1970, 1, 1, 0, 0)
+
         if date_range.end is None or current_start < date_range.end:
             name = self.get_name()
             db_name, tick_type = name.split('.', 1)
@@ -195,8 +202,20 @@ overlapping libraries: {}""".format(library_name, [l.library for l in library_me
         query = {'$or': [{'start': {'$lte': start}, 'end': {'$gte': start}},
                          {'start': {'$gte': start}, 'end': {'$lte': end}},
                          {'start': {'$lte': end}, 'end': {'$gte': end}}]}
-        return [TickStoreLibrary(res['library_name'], DateRange(res['start'], res['end'], CLOSED_CLOSED))
-                for res in self._collection.find(query,
-                                                 projection={'library_name': 1,
-                                                             'start': 1, 'end': 1},
-                                                 sort=[('start', pymongo.ASCENDING)])]
+
+        cursor = self._collection.find(query,
+                                       projection={'library_name': 1, 'start': 1, 'end': 1},
+                                       sort=[('start', pymongo.ASCENDING)])
+
+        results = []
+        for res in cursor:
+            start = res['start']
+            if date_range.start.tzinfo is not None and start.tzinfo is None:
+                start = start.replace(tzinfo=mktz("UTC")).astimezone(tz=date_range.start.tzinfo)
+
+            end = res['end']
+            if date_range.end.tzinfo is not None and end.tzinfo is None:
+                end = end.replace(tzinfo=mktz("UTC")).astimezone(tz=date_range.end.tzinfo)
+
+            results.append(TickStoreLibrary(res['library_name'], DateRange(start, end, CLOSED_CLOSED)))
+        return results

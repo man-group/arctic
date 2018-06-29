@@ -5,6 +5,7 @@ from datetime import datetime
 import logging
 
 from pandas import to_datetime as dt
+from .date import mktz
 
 import numpy as np
 import pandas as pd
@@ -90,6 +91,9 @@ def groupby_asof(df, as_of=None, dt_col='sample_dt', asof_col='observed_dt'):
     asof_col: ``str`` or ``int``
         Name or index of the column in the MultiIndex that is the observed date
     '''
+    if as_of:
+        if as_of.tzinfo is None and df.index.get_level_values(asof_col).tz is not None:
+            as_of = as_of.replace(tzinfo=mktz())
     return fancy_group_by(df,
                           grouping_level=dt_col,
                           aggregate_level=asof_col,

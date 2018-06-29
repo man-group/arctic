@@ -63,6 +63,10 @@ def cleanup(arctic_lib, symbol, version_ids):
     collection.delete_one({'symbol':  symbol, 'parent': []})
 
 
+def version_base_or_id(version):
+    return version.get('base_version_id', version['_id'])
+
+
 def _define_compat_pickle_load():
     """Factory function to initialise the correct Pickle load function based on
     the Pandas version.
@@ -70,6 +74,7 @@ def _define_compat_pickle_load():
     if pd.__version__.startswith("0.14"):
         return pickle.load
     return functools.partial(pickle_compat.load, compat=True)
+
 
 # Initialise the pickle load function and delete the factory function.
 pickle_compat_load = _define_compat_pickle_load()
