@@ -1,5 +1,4 @@
 # Pinned deps
-numpy==1.9.2
 pandas==0.16.2
 mock==1.0.1
 
