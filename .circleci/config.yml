@@ -12,7 +12,7 @@ jobs:
     docker:
 #    - image: circleci/build-image:ubuntu-14.04-XXL-upstart-1189-5614f37
 #      command: /sbin/init
-    - image: circleci/python:3-stretch
+    - image: circleci/python:2.7-stretch
     
     steps:
 
@@ -39,7 +39,7 @@ jobs:
     - run: 
         name: Install arctic requirements
         command: |
-          python3 -m venv venv
+          python -m venv venv
           . venv/bin/activate
           pip install -r requirements.txt
     - save_cache: # special step to save dependency cache
