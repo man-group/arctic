@@ -35,7 +35,7 @@ jobs:
          # Legacy MongoDB without SSL
          wget http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-v3.4-latest.tgz
          tar -zxvf mongodb-linux-x86_64-*-latest.tgz
-         sudo mv mongodb-*/bin/* /usr/local/bin/
+         sudo mv mongodb-*/bin/* /usr/bin/
     - run: 
         name: Install arctic requirements
         command: |
