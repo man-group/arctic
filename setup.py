@@ -164,7 +164,6 @@ setup(
                    "pytest-server-fixtures",
                    "pytest-timeout",
                    "pytest-xdist",
-                   "lz4",
                    "moto"
                   ],
     entry_points={'console_scripts': [
