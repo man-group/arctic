@@ -110,3 +110,12 @@ def test_prune_previous_doesnt_kill_other_objects(library):
     library._delete_version('BLOB', 2)
     assert library._collection.count() == 0
     assert library._collection.versions.count() == 1
+
+
+def test_write_metadata(library):
+    blob = {'foo': dt(2015, 1, 1), 'object': Arctic}
+    library.write(symbol='symX', data=blob, metadata={'key1': 'value1'})
+    library.write_metadata(symbol='symX', metadata={'key2': 'value2'})
+    v = library.read('symX')
+    assert v.data == blob
+    assert v.metadata == {'key2': 'value2'}

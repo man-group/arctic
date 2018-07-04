@@ -1,6 +1,14 @@
 ## Changelog
 
-### 1.66
+### 1.68
+  * Feature: #553 Compatibility with both the new and old LZ4 API
+  * Feature: #571 Removed the Cython LZ4 code, use the latest python-lz4
+  * Feature: #557 Threadpool based compression. Speed imrpovement and tuning benchmarks.
+
+### 1.67 (2018-05-24)
+  * Bugfix: #561 Fix PickleStore read corruption after write_metadata
+
+### 1.66 (2018-05-21)
   * Bugfix: #168 Do not allow empty string as a column name
   * Bugfix: #483 Remove potential floating point error from datetime_to_ms
   * Bugfix: #271 Log when library doesnt exist on delete

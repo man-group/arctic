@@ -7,7 +7,7 @@ import io
 from .._compression import decompress, compress_array
 import pymongo
 
-from ._version_store_utils import checksum, pickle_compat_load
+from ._version_store_utils import checksum, pickle_compat_load, version_base_or_id
 from ..exceptions import UnsupportedPickleStoreVersion
 
 
@@ -38,12 +38,12 @@ class PickleStore(object):
             if blob == _MAGIC_CHUNKEDV2:
                 collection = mongoose_lib.get_top_level_collection()
                 data = b''.join(decompress(x['data']) for x in collection.find({'symbol': symbol,
-                                                                                'parent': version['_id']},
+                                                                                'parent': version_base_or_id(version)},
                                                                                sort=[('segment', pymongo.ASCENDING)]))
             elif blob == _MAGIC_CHUNKED:
                 collection = mongoose_lib.get_top_level_collection()
                 data = b''.join(x['data'] for x in collection.find({'symbol': symbol,
-                                                                    'parent': version['_id']},
+                                                                    'parent': version_base_or_id(version)},
                                                                    sort=[('segment', pymongo.ASCENDING)]))
                 data = decompress(data)
             else:

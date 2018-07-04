@@ -1,24 +1,28 @@
 from __future__ import print_function
 import random
-try:
-    from lz4 import compressHC as lz4_compress, decompress as lz4_decompress
-except ImportError as e:
-    from lz4.block import compress as lz4_compress, decompress as lz4_decompress
 
 import string
 import pytest
 import six
 from datetime import datetime as dt
-import arctic._compress as c
+import arctic._compression as c
+
+try:
+    from lz4.block import compress as lz4_compress, decompress as lz4_decompress
+    lz4_compressHC = lambda _str: lz4_compress(_str, mode='high_compression')
+except ImportError as e:
+    from lz4 import compress as lz4_compress, compressHC as lz4_compressHC, decompress as lz4_decompress
 
 
 @pytest.mark.parametrize("compress,decompress", [
     (c.compress, lz4_decompress),
     (c.compressHC, lz4_decompress),
-    (lz4_compress, c.decompress)
+    (lz4_compress, c.decompress),
+    (lz4_compressHC, c.decompress)
 ], ids=('arctic/lz4',
         'arcticHC/lz4',
-        'lz4/arctic'))
+        'lz4/arctic',
+        'lz4HC/arctic'))
 def test_roundtrip(compress, decompress):
     _str = b"hello world"
     cstr = compress(_str)
@@ -37,15 +41,15 @@ def test_performance_sequential(n, length):
     [c.decompress(y) for y in [c.compressHC(x) for x in _strarr]]
     clz4_time = (dt.now() - now).total_seconds()
     now = dt.now()
-    c.decompressarr(c.compressarrHC(_strarr))
+    c.decompress_array(c.compressHC_array(_strarr))
     clz4_time_p = (dt.now() - now).total_seconds()
     now = dt.now()
     [lz4_decompress(y) for y in [lz4_compress(x) for x in _strarr]]
     lz4_time = (dt.now() - now).total_seconds()
     print()
     print("LZ4 Test %sx len:%s" % (n, length))
-    print("    Cython LZ4 %s s" % clz4_time)
-    print("    Cython LZ4 Parallel %s s" % clz4_time_p)
+    print("    LZ4 HC %s s" % clz4_time)
+    print("    LZ4 HC Parallel %s s" % clz4_time_p)
     print("    LZ4 %s s" % lz4_time)
 
 
@@ -59,10 +63,10 @@ def test_exceptions():
     data = data[0:16]
     with pytest.raises(Exception) as e:
         c.decompress(data)
-    assert("decompressing" in str(e))
+    assert("Decompressor wrote" in str(e) or "Corrupt input at" in str(e))
 
     data = c.compress(b'1010101010100000000000000000000000000000000000000000000000000000000011111111111111111111111111111')
     data = [data[0:16] for x in (1, 2, 3)]
     with pytest.raises(Exception) as e:
-        c.decompressarr(data)
-    assert("decompressing" in str(e))
+        c.decompress_array(data)
+    assert ("Decompressor wrote" in str(e) or "Corrupt input at" in str(e))
