@@ -5,7 +5,6 @@ from bson.errors import InvalidDocument
 from six.moves import cPickle, xrange
 import io
 from .._compression import decompress, compress_array
-import pymongo
 
 from arctic.store._version_store_utils import checksum, pickle_compat_load
 from ..exceptions import UnsupportedPickleStoreVersion

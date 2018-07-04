@@ -3,11 +3,8 @@ import hashlib
 
 from bson.binary import Binary
 import numpy as np
-import pymongo
-from pymongo.errors import OperationFailure, DuplicateKeyError
 
-from arctic.decorators import mongo_retry
-from arctic.exceptions import UnhandledDtypeException, DataIntegrityException
+from arctic.exceptions import UnhandledDtypeException, DataIntegrityException, ArcticException
 from arctic.store._version_store_utils import checksum
 
 from arctic._compression import compress_array, decompress
@@ -259,9 +256,9 @@ class KeyValueNdarrayStore(object):
             segments = [x['segment'] for x in collection.find({'symbol': symbol, 'parent': version['_id']},
                                                               projection={'segment': 1},
                                                               )]
-            raise pymongo.errors.OperationFailure("Failed to write all the Chunks. Saw %s expecting %s"
-                                                  "Parent: %s \n segments: %s" %
-                                                  (seen_chunks, version['segment_count'], version['_id'], segments))
+            raise ArcticException("Failed to write all the Chunks. Saw %s expecting %s"
+                                  "Parent: %s \n segments: %s" %
+                                  (seen_chunks, version['segment_count'], version['_id'], segments))
 
     def checksum(self, item):
         sha = hashlib.sha1()
