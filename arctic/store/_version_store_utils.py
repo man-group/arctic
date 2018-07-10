@@ -9,6 +9,7 @@ import pandas as pd
 import pymongo
 from bson import Binary
 from pandas.compat import pickle_compat
+from pymongo.errors import OperationFailure
 
 
 def _split_arrs(array_2d, slices):
@@ -162,32 +163,78 @@ def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
         ))
 
 
-
-def _check_corrupted(l, sym, input_v, with_read=False):
-    if isinstance(input_v, int):
-        v = l._versions.find_one({'symbol': sym, 'version': input_v})
-    else:
-        v = input_v
-
+def _fast_check_corruption(collection, sym, v, check_count=True, check_last_segment=True, check_append_safe=False):
     if v is None:
-        logging.warning("Symbol {} with version {} not found, so can't be corrupted.".format(sym, input_v))
+        logging.warning("Symbol {} with version {} not found, so can't be corrupted.".format(sym, v))
         return False
+    
+    if not check_count and not check_last_segment:
+        raise ValueError("_fast_check_corruption must be called with either of "
+                         "check_count and check_last_segment set to True")
 
-    # Do quick check, without reading
-    if v.get('segment_count') is not None:
+    # If version marked symbol as deleted, it will force writes/appends to start from a new base: non corrupted.
+    if isinstance(v.get('metadata'), dict) and v['metadata'].get('deleted'):
+        return False
+     
+    if check_append_safe:
+        # Check whether appending to the symbol version can potentially corrupt the data (history branch).
+        # Inspect all segments, don't limit to v['up_to']. No newer append segments after v should exist.
+        spec = {'symbol': sym, 'parent': v.get('base_version_id', v['_id'])}
+    else:
+        # Only verify segment count for current symbol version, don't check corruptability of future appends.
         spec = {'symbol': sym, 'parent': v.get('base_version_id', v['_id']), 'segment': {'$lt': v['up_to']}}
-        matching = l._collection.find(spec).count()
-        if matching != v.get('segment_count'):
-            return True
 
-    # Quick check has passed, do read to verify
-    if with_read:
-        try:
-            l.read(sym, as_of=v['version'])
-        except Exception:
-            return True
+    try:
+        # Not that commands sequence (a) is slower than (b)
+        # (a) curs = collection.find(spec, {'segment': 1}, sort=[('segment', pymongo.DESCENDING)])
+        #     curs.count()
+        #     curs.next()
+        # (b) collection.find(spec, {'segment': 1}).count()
+        #     collection.find_one(spec, {'segment': 1}, sort=[('segment', pymongo.DESCENDING)])
+
+        if check_count:
+            total_segments = collection.find(spec, {'segment': 1}).count()
+            # Quick check: compare segment count
+            if total_segments != v.get('segment_count', 0):
+                return True  # corrupted, don't proceed with fetching from mongo the first hit
+            # Quick check: Segment counts agree and size is zero
+            if total_segments == 0:
+                return False
+        
+        if check_last_segment:
+            # Quick check: compare the maximum segment's up_to number. It has to verify the version's up_to.
+            max_seg = collection.find_one(spec, {'segment': 1}, sort=[('segment', pymongo.DESCENDING)])
+            max_seg = max_seg['segment'] + 1 if max_seg else 0
+            if max_seg != v.get('up_to'):
+                return True  # corrupted, last segment and version's up_to don't agree
+    except OperationFailure as e:
+        logging.warning("Corruption checks are skipped (sym={}, version={}): {}", sym, v['version'], str(e))
 
     return False
+
+
+def is_safe_to_append(l, sym, input_v):
+    """
+    This method hints whether the symbol/version are safe for appending in two ways:
+    1. It verifies whether the symbol is already corrupted (fast, doesn't read the data)
+    2. It verififes that the symbol is safe to append, i.e. there are no subsequent appends,
+       or dangling segments from a failed append.
+    Parameters
+    ----------
+    l : `arctic.store.version_store.VersionStore`
+        The VersionStore instance against which the analysis will be run.
+    sym : `str`
+        The symbol to test if is corrupted.
+    input_v : `int` or `arctic.store.version_store.VersionedItem`
+        The specific version we wish to test if is appendable. This argument is mandatory.
+
+    Returns
+    -------
+    `bool`
+        True if the symbol is safe to append, False otherwise.
+    """
+    input_v = l._versions.find_one({'symbol': sym, 'version': input_v}) if isinstance(input_v, int) else input_v
+    return not _fast_check_corruption(l._collection, sym, input_v, check_append_safe=True)
 
 
 def fast_is_corrupted(l, sym, input_v):
@@ -208,7 +255,8 @@ def fast_is_corrupted(l, sym, input_v):
     `bool`
         True if the symbol is found corrupted, False otherwise.
     """
-    return _check_corrupted(l, sym, input_v, with_read=False)
+    input_v = l._versions.find_one({'symbol': sym, 'version': input_v}) if isinstance(input_v, int) else input_v
+    return _fast_check_corruption(l._collection, sym, input_v)
 
 
 def is_corrupted(l, sym, input_v):
@@ -230,7 +278,19 @@ def is_corrupted(l, sym, input_v):
         `bool`
             True if the symbol is found corrupted, False otherwise.
         """
-    return _check_corrupted(l, sym, input_v, with_read=True)
+    # If version is just a number, read the version document
+    input_v = l._versions.find_one({'symbol': sym, 'version': input_v}) if isinstance(input_v, int) else input_v
+    if not _fast_check_corruption(l._collection, sym, input_v):
+        try:
+            # Done with the fast checks, proceed to a full read if instructed
+            l.read(sym, as_of=input_v['version'])
+            return False
+        except Exception:
+            pass
+    return True
+
+
+
 
 
 # Initialise the pickle load function and delete the factory function.

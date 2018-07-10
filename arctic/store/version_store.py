@@ -58,9 +58,7 @@ class VersionStore(object):
 
     @mongo_retry
     def _last_version_seqnum(self, symbol):
-        last_seq = self._version_nums.find_one(
-            {'symbol': symbol},
-            sort=[('version', pymongo.DESCENDING)])
+        last_seq = self._version_nums.find_one({'symbol': symbol})
         return last_seq['version'] if last_seq else 0
 
     @mongo_retry

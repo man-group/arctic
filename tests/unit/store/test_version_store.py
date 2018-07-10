@@ -430,7 +430,7 @@ def test_restore_version():
         ret_item = VersionStore.restore_version(vs, symbol=TEST_SYMBOL, as_of=LASTEST_VERSION['version'], prune_previous_version=True)
         assert ret_item == new_item
         assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL, as_of=LASTEST_VERSION['version'])]
-        assert vs._version_nums.find_one.call_args_list == [call({'symbol': TEST_SYMBOL}, sort=[('version', pymongo.DESCENDING)])]
+        assert vs._version_nums.find_one.call_args_list == [call({'symbol': TEST_SYMBOL})]
         assert vs.read.call_args_list == [call(TEST_SYMBOL, as_of=LASTEST_VERSION['version'])]
         assert vs.write.call_args_list == [call(TEST_SYMBOL, data=last_item.data, metadata=last_item.metadata, prune_previous_version=True)]
 
@@ -465,7 +465,7 @@ def test_restore_last_version():
         assert ret_item.version == TPL_VERSION['version']
         assert ret_item.metadata == TPL_VERSION.get('metadata')
         assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL, as_of=TPL_VERSION['version'])]
-        assert vs._version_nums.find_one.call_args_list == [call({'symbol': TEST_SYMBOL}, sort=[('version', pymongo.DESCENDING)])]
+        assert vs._version_nums.find_one.call_args_list == [call({'symbol': TEST_SYMBOL})]
         assert not vs.read.called
         assert not vs.write.called
 

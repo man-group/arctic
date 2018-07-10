@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.68
+### 1.67.1
   * Bugfix: #579 Fix symbol corruption due to restore_version and append
   * Bugfix: #584 Fix list_versions for a snapshot after deleting symbols in later versions
 
