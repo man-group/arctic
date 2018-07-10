@@ -58,9 +58,7 @@ class VersionStore(object):
 
     @mongo_retry
     def _last_version_seqnum(self, symbol):
-        last_seq = self._version_nums.find_one(
-            {'symbol': symbol},
-            sort=[('version', pymongo.DESCENDING)])
+        last_seq = self._version_nums.find_one({'symbol': symbol})
         return last_seq['version'] if last_seq else 0
 
     @mongo_retry
@@ -610,8 +608,8 @@ class VersionStore(object):
                              metadata=version.pop('metadata', None), data=None)
 
     def _add_new_version_using_reference(self, symbol, new_version, reference_version, prune_previous_version):
-        # Attention: better not use this method following an append. 
-        # It is dangerous because if it deletes the version at the last_look, the segments added by the 
+        # Attention: better not use this method following an append.
+        # It is dangerous because if it deletes the version at the last_look, the segments added by the
         # append are dangling (if prune_previous_version is False) and can cause potentially corruption.
         constraints = new_version and \
                             reference_version and \
@@ -623,7 +621,6 @@ class VersionStore(object):
         # to delete the reference_version, which may happen to be the last parent entry in the data segments.
         # In this case the segments will be deleted by the other process,
         # and the new version's "base_version_id" won't be referenced by any segments.
-        
         # Do a naive check for concurrent mods
         lastv_seqn = self._last_version_seqnum(symbol)
         if lastv_seqn != new_version['version']:
