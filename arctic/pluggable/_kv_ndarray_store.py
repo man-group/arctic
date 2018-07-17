@@ -33,32 +33,6 @@ def _promote_struct_dtypes(dtype1, dtype2):
     return np.dtype([(n, _promote(dtype1.fields[n][0], dtype2.fields.get(n, (None,))[0])) for n in dtype1.names])
 
 
-def _attempt_update_unchanged(symbol, unchanged_segment_ids, collection, version, previous_version):
-    if not unchanged_segment_ids or not collection or not version:
-        return
-    # Update the parent set of the unchanged/compressed segments
-    result = collection.update_many({
-                                        'symbol': symbol,  # hit only the right shard
-                                                           # update_many is a broadcast query otherwise
-                                        '_id': {'$in': [x['_id'] for x in unchanged_segment_ids]}
-                                    },
-                                    {'$addToSet': {'parent': version['_id']}})
-    # Fast check for success without extra query
-    if result.matched_count == len(unchanged_segment_ids):
-        return
-    # update_many is tricky sometimes wrt matched_count across replicas when balancer runs. Check based on _id.
-    unchanged_ids = set([x['_id'] for x in unchanged_segment_ids])
-    spec = {'symbol': symbol,
-            'parent': version['_id'],
-            'segment': {'$lte': unchanged_segment_ids[-1]['segment']}}
-    matched_segments_ids = set([x['_id'] for x in collection.find(spec)])
-    if unchanged_ids != matched_segments_ids:
-        logger.error("Mismatched unchanged segments for {}: {} != {} (query spec={})".format(
-                        symbol, unchanged_ids, matched_segments_ids, spec))
-        raise DataIntegrityException("Symbol: {}:{} update_many updated {} segments instead of {}".format(
-            symbol, previous_version['version'], result.matched_count, len(unchanged_segment_ids)))
-
-
 def _resize_with_dtype(arr, dtype):
     """
     This function will transform arr into an array with the same type as dtype. It will do this by

@@ -13,28 +13,8 @@ import pandas as pd
 
 from arctic._compression import decompress
 from arctic.date import DateRange, mktz
-from arctic.s3._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasPanelStore
-from arctic.s3._kv_ndarray_store import KeyValueNdarrayStore
-from arctic.s3.generic_version_store import GenericVersionStore
-from arctic.s3.key_value_datastore import DictBackedKeyValueStore
-from arctic.s3.generic_version_store import register_versioned_storage
+from arctic.pluggable._pandas_ndarray_store import PandasSeriesStore
 import numpy as np
-from tests.util import read_str_as_pandas
-
-
-@pytest.fixture()
-def kv_store():
-    store = DictBackedKeyValueStore()
-    return store
-
-
-@pytest.fixture
-def generic_version_store(library_name, kv_store):
-    register_versioned_storage(KeyValueNdarrayStore)
-    register_versioned_storage(PandasPanelStore)
-    register_versioned_storage(PandasSeriesStore)
-    register_versioned_storage(PandasDataFrameStore)
-    return GenericVersionStore(library_name, backing_store=kv_store)
 
 
 def test_write_multi_column(generic_version_store):
@@ -109,7 +89,6 @@ def test_save_read_pandas_dataframe_with_unicode_index_name(generic_version_stor
     generic_version_store.write('pandas', df)
     saved_df = generic_version_store.read('pandas').data
     assert np.all(df.values == saved_df.values)
-
 
 
 def test_cant_write_pandas_series_with_tuple_values(generic_version_store):
@@ -758,10 +737,10 @@ def test_daterange_end(generic_version_store):
     df.columns = [str(c) for c in df.columns]
     generic_version_store.write('MYARR', df)
     mdecompressALL = Mock(side_effect=decompress)
-    with patch('arctic.s3._kv_ndarray_store.decompress', mdecompressALL):
+    with patch('arctic.pluggable._kv_ndarray_store.decompress', mdecompressALL):
         generic_version_store.read('MYARR').data
     mdecompressLR = Mock(side_effect=decompress)
-    with patch('arctic.s3._kv_ndarray_store.decompress', mdecompressLR):
+    with patch('arctic.pluggable._kv_ndarray_store.decompress', mdecompressLR):
         result = generic_version_store.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1])).data
     assert len(result) == 1
     assert mdecompressLR.call_count < mdecompressALL.call_count
@@ -773,10 +752,10 @@ def test_daterange_start(generic_version_store):
     df.columns = [str(c) for c in df.columns]
     generic_version_store.write('MYARR', df)
     mdecompressALL = Mock(side_effect=decompress)
-    with patch('arctic.s3._kv_ndarray_store.decompress', mdecompressALL):
+    with patch('arctic.pluggable._kv_ndarray_store.decompress', mdecompressALL):
         generic_version_store.read('MYARR').data
     mdecompressLR = Mock(side_effect=decompress)
-    with patch('arctic.s3._kv_ndarray_store.decompress', mdecompressLR):
+    with patch('arctic.pluggable._kv_ndarray_store.decompress', mdecompressLR):
         result = generic_version_store.read('MYARR', date_range=DateRange(end=df.index[0])).data
     assert len(result) == 1
     assert mdecompressLR.call_count < mdecompressALL.call_count
