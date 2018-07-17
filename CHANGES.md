@@ -5,6 +5,10 @@
   * Feature: #571 Removed the Cython LZ4 code, use the latest python-lz4
   * Feature: #557 Threadpool based compression. Speed imrpovement and tuning benchmarks.
 
+### 1.67.1 (2018-07-11)
+  * Bugfix: #579 Fix symbol corruption due to restore_version and append
+  * Bugfix: #584 Fix list_versions for a snapshot after deleting symbols in later versions
+
 ### 1.67 (2018-05-24)
   * Bugfix: #561 Fix PickleStore read corruption after write_metadata
 

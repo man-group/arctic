@@ -1,5 +1,7 @@
-import logging
 import hashlib
+import logging
+import os
+
 
 from bson.binary import Binary
 import numpy as np
@@ -8,7 +10,7 @@ from pymongo.errors import OperationFailure, DuplicateKeyError
 
 from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException, DataIntegrityException
-from ._version_store_utils import checksum, version_base_or_id
+from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
 
 from .._compression import compress_array, decompress
 from six.moves import xrange
@@ -19,6 +21,9 @@ logger = logging.getLogger(__name__)
 _CHUNK_SIZE = 2 * 1024 * 1024 - 2048  # ~2 MB (a bit less for usePowerOf2Sizes)
 _APPEND_SIZE = 1 * 1024 * 1024  # 1MB
 _APPEND_COUNT = 60  # 1 hour of 1 min data
+
+# Enabling the following has roughly a 5-7% performance hit (off by default)
+_CHECK_CORRUPTION_ON_APPEND = bool(os.environ.get('CHECK_CORRUPTION_ON_APPEND'))
 
 
 def _promote_struct_dtypes(dtype1, dtype2):
@@ -103,6 +108,11 @@ def _resize_with_dtype(arr, dtype):
         new_arr = arr.astype(dtype)
 
     return new_arr
+
+
+def set_corruption_check_on_append(enable):
+    global _CHECK_CORRUPTION_ON_APPEND
+    _CHECK_CORRUPTION_ON_APPEND = bool(enable)
 
 
 class NdarrayStore(object):
@@ -318,6 +328,15 @@ class NdarrayStore(object):
             version['dtype'] = previous_version['dtype']
             version['dtype_metadata'] = previous_version['dtype_metadata']
             version['type'] = self.TYPE
+            
+            # Verify (potential) corruption with append
+            if _CHECK_CORRUPTION_ON_APPEND and _fast_check_corruption(
+                    collection, symbol, previous_version,
+                    check_count=False, check_last_segment=True, check_append_safe=True):
+                logging.warning("Found mismatched segments for {} (version={}). "
+                                "Converting append to concat and rewrite".format(symbol, previous_version['version']))
+                dirty_append = True  # force a concat and re-write (use new base version id)
+
             self._do_append(collection, version, symbol, item, previous_version, dirty_append)
 
     def _do_append(self, collection, version, symbol, item, previous_version, dirty_append):

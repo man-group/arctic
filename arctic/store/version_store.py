@@ -57,6 +57,11 @@ class VersionStore(object):
             logger.warning("Library created, but couldn't enable sharding: %s. This is OK if you're not 'admin'" % str(e))
 
     @mongo_retry
+    def _last_version_seqnum(self, symbol):
+        last_seq = self._version_nums.find_one({'symbol': symbol})
+        return last_seq['version'] if last_seq else 0
+
+    @mongo_retry
     def _ensure_index(self):
         collection = self._collection
         collection.snapshots.create_index([('name', pymongo.ASCENDING)], unique=True,
@@ -247,7 +252,7 @@ class VersionStore(object):
         List of dictionaries describing the discovered versions in the library
         """
         if symbol is None:
-            symbols = self.list_symbols()
+            symbols = self.list_symbols(snapshot=snapshot)
         else:
             symbols = [symbol]
 
@@ -507,6 +512,8 @@ class VersionStore(object):
         next_ver = self._version_nums.find_one_and_update({'symbol': symbol, },
                                                           {'$inc': {'version': 1}},
                                                           upsert=False, new=True)['version']
+
+        # This is a very important check, do not remove/modify as it is a guard-dog preventing potential data corruption
         if next_ver != previous_version['version'] + 1:
             dirty_append = True
             logger.debug('''version_nums is out of sync with previous version document.
@@ -601,6 +608,9 @@ class VersionStore(object):
                              metadata=version.pop('metadata', None), data=None)
 
     def _add_new_version_using_reference(self, symbol, new_version, reference_version, prune_previous_version):
+        # Attention: better not use this method following an append.
+        # It is dangerous because if it deletes the version at the last_look, the segments added by the
+        # append are dangling (if prune_previous_version is False) and can cause potentially corruption.
         constraints = new_version and \
                             reference_version and \
                             new_version['symbol'] == reference_version['symbol'] and \
@@ -611,7 +621,12 @@ class VersionStore(object):
         # to delete the reference_version, which may happen to be the last parent entry in the data segments.
         # In this case the segments will be deleted by the other process,
         # and the new version's "base_version_id" won't be referenced by any segments.
-
+        # Do a naive check for concurrent mods
+        lastv_seqn = self._last_version_seqnum(symbol)
+        if lastv_seqn != new_version['version']:
+            raise OperationFailure("The symbol {} has been modified concurrently ({} != {})".format(
+                symbol, lastv_seqn, new_version['version']))
+        
         # Insert the new version into the version DB
         # (must come before the pruning, otherwise base version won't be preserved)
         self._insert_version(new_version)
@@ -710,21 +725,28 @@ class VersionStore(object):
         `VersionedItem`
             VersionedItem named tuple containing the metadata of the written symbol's version document in the store.
         """
-        # if version/snapshot/data supplied in "as_of" does not exist, will fail fast with NoDataFoundException
+        # TODO: This operation is tricky as it may create history branches and lead to corrupted symbols.
+        #       To avoid this we do concat_rewrite (see Issue #579)
+        #       Investigate how this can be optimized and maintain safety (i.e. avoid read/write with serialization
+        #       and compression costs, but instead:
+        #       clone segments (server-side?) / crate new (base) version / update segments' parent).
+
         version_to_restore = self._read_metadata(symbol, as_of=as_of)
 
-        # Reaching here means that data and/or metadata exist and we are all set to update the metadata
-        new_version_num = self._version_nums.find_one_and_update({'symbol': symbol},
-                                                             {'$inc': {'version': 1}},
-                                                             upsert=True, new=True)['version']
+        # At this point it is guaranteed that the as_of version exists and doesn't have the symbol marked as deleted.
+        # If we try to restore the last version, do nothing (No-Op) and return the associated VesionedItem.
+        if self._last_version_seqnum(symbol) == version_to_restore['version']:
+            return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(),
+                                 version=version_to_restore['version'],
+                                 metadata=version_to_restore.pop('metadata', None), data=None)
 
-        # Create a new version entry, cloning the one supplied from the user
-        version = {k: version_to_restore[k] for k in version_to_restore.keys() if k != 'parent'}  # don't copy snapshots
-        version['_id'] = bson.ObjectId()
-        version['version'] = new_version_num
-        version['base_version_id'] = version_to_restore.get('base_version_id', version_to_restore['_id'])
+        # Read the existing data from as_of
+        item = self.read(symbol, as_of=as_of)
 
-        return self._add_new_version_using_reference(symbol, version, version_to_restore, prune_previous_version)
+        # Write back, creating a new base version
+        new_item = self.write(symbol,
+                              data=item.data, metadata=item.metadata, prune_previous_version=prune_previous_version)
+        return new_item
 
     @mongo_retry
     def _find_prunable_version_ids(self, symbol, keep_mins):
