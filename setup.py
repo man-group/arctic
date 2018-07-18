@@ -89,6 +89,9 @@ setup(
                       "tzlocal",
                       "lz4"
                      ],
+    extras_require={
+                     's3': ['boto3']
+                   },
     tests_require=["mock",
                    "mockextras",
                    "pytest",
@@ -96,7 +99,7 @@ setup(
                    "pytest-server-fixtures",
                    "pytest-timeout",
                    "pytest-xdist",
-                   "lz4"
+                   "moto"
                   ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',
