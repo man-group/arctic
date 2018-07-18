@@ -25,14 +25,14 @@ def register_versioned_storage(storageClass, storage_args=tuple(), storage_kwarg
         _TYPE_HANDLERS.insert(0, store)
     return storageClass
 
+_default_bson_handler = PickleStore()
 
 class GenericVersionStore(object):
 
-    _bson_handler = PickleStore()
-
-    def __init__(self, library_name, backing_store):
+    def __init__(self, library_name, backing_store, bson_handler=_default_bson_handler):
         self.library_name = library_name
         self._backing_store = backing_store
+        self._bson_handler = bson_handler
 
     def __str__(self):
         return """<%s at %s>

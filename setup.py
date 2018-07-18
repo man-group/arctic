@@ -90,7 +90,8 @@ setup(
                       "lz4"
                      ],
     extras_require={
-                     's3': ['boto3']
+                     's3': ['boto3'],
+                     'parquet': ['fastparquet', 's3fs']
                    },
     tests_require=["mock",
                    "mockextras",
