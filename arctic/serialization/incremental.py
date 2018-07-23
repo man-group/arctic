@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from six.moves import xrange
 
+from arctic.serialization.numpy_records import PandasSerializer
 from ..exceptions import ArcticSerializationException
 from ..store._ndarray_store import MAX_DOCUMENT_SIZE, _CHUNK_SIZE
 
@@ -43,51 +44,58 @@ class LazyIncrementalSerializer(ABC):
         pass
 
 
-class IncrementalDataFrameToRecArraySerializer(LazyIncrementalSerializer):
+class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
     def __init__(self, serializer, input_data, chunk_size=_CHUNK_SIZE, string_max_len=None):
-        super(IncrementalDataFrameToRecArraySerializer, self).__init__(serializer, input_data, chunk_size)
-
-        if not isinstance(input_data, pd.DataFrame):
-            raise ArcticSerializationException("IncrementalDataFrameToRecArraySerializer requires a pandas DataFrame "
-                                               "as data source input.")
-        
+        super(IncrementalPandasToRecArraySerializer, self).__init__(serializer, input_data, chunk_size)
+        if not isinstance(serializer, PandasSerializer):
+            raise ArcticSerializationException("IncrementalPandasToRecArraySerializer requires a serializer of "
+                                               "type PandasSerializer.")
+        if not isinstance(input_data, (pd.DataFrame, pd.Series)):
+            raise ArcticSerializationException("IncrementalPandasToRecArraySerializer requires a pandas DataFrame or "
+                                               "Series as data source input.")
         if string_max_len and string_max_len < 1:
-            raise ArcticSerializationException("IncrementalDataFrameToRecArraySerializer can't be initialized "
+            raise ArcticSerializationException("IncrementalPandasToRecArraySerializer can't be initialized "
                                                "with string_max_len < 1 ({})".format(string_max_len))
-
         self.string_max_len = string_max_len
         # The state which needs to be lazily initialized
         self._dtype = None
         self._rows_per_chunk = 0
         self._total_chunks = 0
         self._has_string_object = False
-        
+
+    def _dtype_column_max_len_string(self, input_ndtype, fname):
+        if input_ndtype.type not in (np.string_, np.unicode_):
+            return input_ndtype, False
+        type_sym = 'S' if input_ndtype.type == np.string_ else 'U'
+        max_str_len = len(max(self.input_data[fname].astype(type_sym), key=len))
+        str_field_dtype = np.dtype('{}{:d}'.format(type_sym, max_str_len)) if max_str_len > 0 else input_ndtype
+        return str_field_dtype, True
+    
     def _get_dtype(self):
-        has_string_object = False
+        # Serializer is being called only if can_convert_to_records_without_objects() has passed,
+        # which means that the resulting recarray does not contain objects but (only numpy types, string, or unicode)
+        # TODO: We shouldn't fully serialize once with can_convert_to_records_without_objects() and then re-serialize.
+        #       Instead add a faster implementation for can_convert_to_records_without_objects()
+        #       to avoid double serialization when we have columns with (some) string values.
 
         # Serialize the first row to obtain info about row size in bytes (cache first row)
-        # Also raise an Exception early, if data are not serializable        
+        # Also raise an Exception early, if data are not serializable
         first_chunk, dtype = self._serializer.serialize(self.input_data[0:1] if len(self) > 0 else self.input_data,
                                                         string_max_len=self.string_max_len)
-        
         # This is the common case, where first row's dtype represents well the whole dataframe's dtype
         if dtype is None or len(self.input_data) == 0 or all(self.input_data.dtypes != object):
-            return first_chunk, dtype, has_string_object
-        
+            return first_chunk, dtype, False
+
         # Reaching here means we have at least one column of type object
-        # To correctly serialize incrementally, we need to know the final dtype (type and fixed length), 
-        # using length-conversion information from all rows  
+        # To correctly serialize incrementally, we need to know the final dtype (type and fixed length),
+        # using length-conversion information from all values of the object columns
         dtype_arr = []
-        for field_name in dtype.names:
+        has_string_object = False
+        for field_name in dtype.names:  # include all column names, along with the expanded multi-index
             field_dtype = dtype[field_name]
-            if dtype[field_name].type == np.string_:
-                max_str_len = len(max(self.input_data[field_name].astype('S'), key=len))
-                field_dtype = np.dtype('S{:d}'.format(max_str_len)) if max_str_len > 0 else field_dtype
-                has_string_object = True
-            elif dtype[field_name].type == np.unicode_:
-                max_str_len = len(max(self.input_data[field_name].astype('U'), key=len))
-                field_dtype = np.dtype('U{:d}'.format(max_str_len)) if max_str_len > 0 else field_dtype
-                has_string_object = True
+            if field_name not in self.input_data or self.input_data.dtypes[field_name].hasobject:
+                # if column is an expanded multi index or doesn't contain objects, the serialized 1st row dtype is safe
+                field_dtype, has_string_object = self._dtype_column_max_len_string(field_dtype, field_name)
             dtype_arr.append((field_name, field_dtype))
         return first_chunk, np.dtype(dtype_arr), has_string_object
 
@@ -101,7 +109,7 @@ class IncrementalDataFrameToRecArraySerializer(LazyIncrementalSerializer):
         # Compute the number of rows which can fit in a chunk
         rows_per_chunk = 0
         if len(self) > 0 and self.chunk_size > 1:
-            rows_per_chunk = IncrementalDataFrameToRecArraySerializer._calculate_rows_per_chunk(self.chunk_size, first_chunk)
+            rows_per_chunk = IncrementalPandasToRecArraySerializer._calculate_rows_per_chunk(self.chunk_size, first_chunk)
 
         # Initialize object's state
         self._dtype = dtype

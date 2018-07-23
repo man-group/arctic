@@ -34,7 +34,7 @@ def _multi_index_to_records(index, empty_index):
     if not empty_index:
         ix_vals = list(map(np.array, [index.get_level_values(i) for i in range(index.nlevels)]))
     else:
-        # empty multi index has no size, create empty arrays for recarry..
+        # empty multi index has no size, create empty arrays for recarry.
         ix_vals = [np.array([]) for n in index.names]
     index_names = list(index.names)
     count = 0
@@ -121,14 +121,14 @@ class PandasSerializer(object):
 
         arrays = []
         for arr, name in zip(ix_vals + column_vals, index_names + columns):
-            dtype = forced_dtype if forced_dtype is None else forced_dtype[name]
-            arrays.append(_to_primitive(arr, string_max_len, forced_dtype=dtype))
+            arrays.append(_to_primitive(arr, string_max_len,
+                                        forced_dtype=forced_dtype if forced_dtype is None else forced_dtype[name]))
 
-        if forced_dtype is None:
-            dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
-                         metadata=metadata)
-        else:
-            dtype = forced_dtype
+        dtype = forced_dtype
+        if dtype is None:
+            dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1])
+                              for x, v in zip(names, arrays)],
+                             metadata=metadata)
 
         # The argument names is ignored when dtype is passed
         rtn = np.rec.fromarrays(arrays, dtype=dtype, names=names)
@@ -140,6 +140,11 @@ class PandasSerializer(object):
 
     def can_convert_to_records_without_objects(self, df, symbol):
         # We can't easily distinguish string columns from objects
+        # TODO: it is non-useful to serialize once here and then re-serialize.
+        #       We pay double the cost of serialization, which for large dataframes is not efficient (speed and memory).
+        #       Instead do targeted scanning only for the columns which are of object type.
+        #       E.g. use for the object columns the _to_primitive() or better scan the columns following the same logic.
+        #       Take also into consideration the _multi_index_to_records() as it expands index columns.
         try:
             arr, _ = self._to_records(df)
         except Exception as e:
@@ -158,7 +163,7 @@ class PandasSerializer(object):
             else:
                 return True
 
-    def serialize(self, item):
+    def serialize(self, item, string_max_len=None, forced_dtype=None):
         raise NotImplementedError
 
     def deserialize(self, item):
