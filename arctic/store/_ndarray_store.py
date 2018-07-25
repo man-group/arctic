@@ -79,8 +79,8 @@ def _resize_with_dtype(arr, dtype):
     in the new dtype will be dropped.
     """
     structured_arrays = dtype.names is not None and arr.dtype.names is not None
-    old_columns = set(arr.dtype.names or [])
-    new_columns = set(dtype.names or [])
+    old_columns = arr.dtype.names or []
+    new_columns = dtype.names or []
 
     # In numpy 1.9 the ndarray.astype method used to handle changes in number of fields. The code below
     # should replicate the same behaviour the old astype used to have.
@@ -93,6 +93,9 @@ def _resize_with_dtype(arr, dtype):
     # (in benchmarks it seems to be even slightly faster than using the old astype). However, that is not
     # supported by numpy 1.9.2.
     if structured_arrays and (old_columns != new_columns):
+        old_columns = set(old_columns)
+        new_columns = set(new_columns)
+
         new_arr = np.zeros(arr.shape, dtype)
         for c in old_columns & new_columns:
             new_arr[c] = arr[c]
@@ -104,10 +107,10 @@ def _resize_with_dtype(arr, dtype):
         _is_float = lambda column: _is_float_or_void_float_type(dtype.fields[column][0])
         for new_column in filter(_is_float, new_columns - old_columns):
             new_arr[new_column] = np.nan
-    else:
-        new_arr = arr.astype(dtype)
 
-    return new_arr
+        return new_arr.astype(dtype)
+    else:
+        return arr.astype(dtype)
 
 
 def set_corruption_check_on_append(enable):
