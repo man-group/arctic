@@ -46,6 +46,7 @@ def test_read(tickstore_lib):
     assert_array_equal(df['PRICE'].values, np.array([1545, 1543.75]))
     assert_array_equal(df.index.values.astype('object'), np.array([1185076787070000000, 1185141600600000000]))
     assert tickstore_lib._collection.find_one()['c'] == 2
+    assert df.index.tzinfo == mktz()
 
 
 def test_read_data_is_modifiable(tickstore_lib):
@@ -185,6 +186,8 @@ def test_read_all_cols_all_dtypes(tickstore_lib, chunk_size):
     tickstore_lib.write('sym', data)
     df = tickstore_lib.read('sym', columns=None)
 
+    assert df.index.tzinfo == mktz()
+
     # The below is probably more trouble than it's worth, but we *should*
     # be able to roundtrip data and get the same answer...
 
@@ -323,13 +326,18 @@ def test_date_range_default_timezone(tickstore_lib, tz_name):
         tickstore_lib._chunk_size = 1
         tickstore_lib.write('SYM', DUMMY_DATA)
         df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130701), columns=None)
+
+        assert df.index.tzinfo == mktz()
+
         assert len(df) == 2
         assert df.index[1] == dt(2013, 7, 1, tzinfo=mktz(tz_name))
         df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130101), columns=None)
         assert len(df) == 1
+        assert df.index.tzinfo == mktz()
 
         df = tickstore_lib.read('SYM', date_range=DateRange(20130701, 20130701), columns=None)
         assert len(df) == 1
+        assert df.index.tzinfo == mktz()
 
 
 def test_date_range_no_bounds(tickstore_lib):

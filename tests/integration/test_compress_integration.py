@@ -70,3 +70,4 @@ def test_exceptions():
     with pytest.raises(Exception) as e:
         c.decompress_array(data)
     assert ("decompressor wrote" in str(e).lower() or "corrupt input at" in str(e).lower() or "decompression failed: corrupt input" in str(e).lower())
+
