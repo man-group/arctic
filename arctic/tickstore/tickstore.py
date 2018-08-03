@@ -12,6 +12,11 @@ from pymongo import ReadPreference
 from pymongo.errors import OperationFailure
 from six import iteritems, string_types
 
+try:
+    from pandas.api.types import infer_dtype
+except ImportError:
+    from pandas.lib import infer_dtype
+
 from ..date import DateRange, to_pandas_closed_closed, mktz, datetime_to_ms, ms_to_datetime, CLOSED_CLOSED, to_dt, utc_dt_to_local_dt
 from ..decorators import mongo_retry
 from ..exceptions import OverlappingDataException, NoDataFoundException, UnorderedDataException, UnhandledDtypeException, ArcticException
@@ -645,14 +650,17 @@ class TickStore(object):
             array = array.astype('<i8')
         elif (array.dtype.kind) == 'f':
             array = array.astype('<f8')
-        elif (array.dtype.kind) in ('U', 'S'):
-            array = array.astype(np.unicode_)
-        elif (array.dtype.kind) == 'O':
-            try:
-                array = np.array([s.encode('utf-8') for s in array])
-                array = array.astype(np.unicode_)
-            except:
+        elif (array.dtype.kind) in ('O', 'U', 'S'):
+            if (array.dtype.kind) == 'O' and infer_dtype(array) not in ['unicode', 'string', 'bytes']:
+                # `string` in python2 and `bytes` in python3
                 raise UnhandledDtypeException("Casting object column to string failed")
+            try:
+                array = array.astype(np.unicode_)
+            except (UnicodeDecodeError, SystemError):
+                # `UnicodeDecodeError` in python2 and `SystemError` in python3
+                array = np.array([s.decode('utf-8') for s in array])
+            except:
+                raise UnhandledDtypeException("Only unicode and utf8 strings are supported.")
         else:
             raise UnhandledDtypeException("Unsupported dtype '%s' - only int64, float64 and U are supported" % array.dtype)
         # Everything is little endian in tickstore
