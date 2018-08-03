@@ -4,6 +4,7 @@ import itertools
 from mock import patch, sentinel
 import pytest
 
+from arctic._util import mongo_count
 from arctic.scripts.arctic_fsck import main
 
 from ...util import run_as_main, read_str_as_pandas
@@ -35,17 +36,17 @@ def test_cleanup_orphaned_chunks(mongo_host, library, data, dry_run):
         library.write('symbol', data, prune_previous_version=False)
 
     # Number of chunks
-    chunk_count = library._collection.count()
+    chunk_count = mongo_count(library._collection)
     # Remove the version document ; should cleanup
     library._collection.versions.delete_one({'_id': _id})
 
     # No cleanup on dry-run
     if dry_run:
         run_as_main(main, '--library', 'user.library', '--host', mongo_host)
-        assert library._collection.count() == chunk_count
+        assert mongo_count(library._collection) == chunk_count
     else:
         run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
-        assert library._collection.count() == 0
+        assert mongo_count(library._collection) == 0
 
 
 @pytest.mark.parametrize(['dry_run', 'data'], [(x, y) for (x, y) in itertools.product([True, False],
@@ -60,16 +61,16 @@ def test_cleanup_noop(mongo_host, library, data, dry_run):
         library.write('symbol', data, prune_previous_version=False)
 
     # Number of chunks
-    chunk_count = library._collection.count()
+    chunk_count = mongo_count(library._collection)
 
     # No cleanup on dry-run
     if dry_run:
         run_as_main(main, '--library', 'user.library', '--host', mongo_host)
-        assert library._collection.count() == chunk_count
+        assert mongo_count(library._collection) == chunk_count
         assert repr(library.read('symbol').data) == repr(data)
     else:
         run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
-        assert library._collection.count() == chunk_count
+        assert mongo_count(library._collection) == chunk_count
         assert repr(library.read('symbol').data) == repr(data)
 
 
@@ -83,15 +84,15 @@ def test_cleanup_orphaned_chunks_ignores_recent(mongo_host, library, data, dry_r
     _id = bson.ObjectId.from_datetime(yesterday)
     with patch("bson.ObjectId", return_value=_id):
         library.write('symbol', data, prune_previous_version=False)
-    chunk_count = library._collection.count()
+    chunk_count = mongo_count(library._collection)
     library._collection.versions.delete_one({'_id': _id})
 
     if dry_run:
         run_as_main(main, '--library', 'user.library', '--host', mongo_host)
-        assert library._collection.count() == chunk_count
+        assert mongo_count(library._collection) == chunk_count
     else:
         run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
-        assert library._collection.count() == chunk_count
+        assert mongo_count(library._collection) == chunk_count
 
 
 @pytest.mark.parametrize('data', [some_object, ts])
@@ -116,7 +117,7 @@ def test_cleanup_orphaned_chunk_doesnt_break_versions(mongo_host, library, data)
     run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
     assert repr(library.read('symbol').data) == repr(data)
     library.delete('symbol')
-    assert library._collection.versions.count() == 0
+    assert mongo_count(library._collection.versions) == 0
 
 
 @pytest.mark.parametrize(['dry_run', 'data'], [(x, y) for (x, y) in itertools.product([True, False],
@@ -137,15 +138,15 @@ def test_cleanup_orphaned_snapshots(mongo_host, library, data, dry_run):
     # No cleanup on dry-run
     if dry_run:
         run_as_main(main, '--library', 'user.library', '--host', mongo_host)
-        assert library._collection.count() > 0
-        assert library._collection.versions.count()
+        assert mongo_count(library._collection) > 0
+        assert mongo_count(library._collection.versions)
         assert repr(library.read('symbol').data) == repr(data)
         # Nothing done_APPEND_COUNT
         assert len(library._collection.versions.find_one({})['parent'])
     else:
         run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
-        assert library._collection.count() > 0
-        assert library._collection.versions.count()
+        assert mongo_count(library._collection) > 0
+        assert mongo_count(library._collection.versions)
         # Data still available (write with prune_previous_version will do the cleanup)
         assert repr(library.read('symbol').data) == repr(data)
         # Snapshot cleaned up
@@ -167,15 +168,15 @@ def test_cleanup_orphaned_snapshots_nop(mongo_host, library, data, dry_run):
     # No cleanup on dry-run
     if dry_run:
         run_as_main(main, '--library', 'user.library', '--host', mongo_host)
-        assert library._collection.count() > 0
-        assert library._collection.versions.count()
+        assert mongo_count(library._collection) > 0
+        assert mongo_count(library._collection.versions)
         assert repr(library.read('symbol').data) == repr(data)
         # Nothing done
         assert len(library._collection.versions.find_one({})['parent'])
     else:
         run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
-        assert library._collection.count() > 0
-        assert library._collection.versions.count()
+        assert mongo_count(library._collection) > 0
+        assert mongo_count(library._collection.versions)
         # Data still available (write with prune_previous_version will do the cleanup)
         assert repr(library.read('symbol').data) == repr(data)
         # Nothing done
@@ -200,15 +201,15 @@ def test_dont_cleanup_recent_orphaned_snapshots(mongo_host, library, data, dry_r
     # No cleanup on dry-run
     if dry_run:
         run_as_main(main, '--library', 'user.library', '--host', mongo_host)
-        assert library._collection.count() > 0
-        assert library._collection.versions.count()
+        assert mongo_count(library._collection) > 0
+        assert mongo_count(library._collection.versions)
         assert repr(library.read('symbol').data) == repr(data)
         # Nothing done
         assert len(library._collection.versions.find_one({})['parent'])
     else:
         run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
-        assert library._collection.count() > 0
-        assert library._collection.versions.count()
+        assert mongo_count(library._collection) > 0
+        assert mongo_count(library._collection.versions)
         # Data still available (write with prune_previous_version will do the cleanup)
         assert repr(library.read('symbol').data) == repr(data)
         # Snapshot cleaned up

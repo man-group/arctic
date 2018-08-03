@@ -285,7 +285,7 @@ def test_initialize_library_too_many_ns():
     self._conn = create_autospec(MongoClient)
     lib = create_autospec(ArcticLibraryBinding)
     lib.database_name = sentinel.db_name
-    self._conn.__getitem__.return_value.collection_names.return_value = [x for x in six.moves.xrange(5001)]
+    self._conn.__getitem__.return_value.list_collection_names.return_value = [x for x in six.moves.xrange(5001)]
     lib_type = Mock()
     with pytest.raises(ArcticException) as e:
         with patch.dict('arctic.arctic.LIBRARY_TYPES', {sentinel.lib_type: lib_type}), \
@@ -303,7 +303,7 @@ def test_initialize_library():
     lib = create_autospec(ArcticLibraryBinding)
     lib.database_name = sentinel.db_name
     lib.get_quota.return_value = None
-    self._conn.__getitem__.return_value.collection_names.return_value = [x for x in six.moves.xrange(5001)]
+    self._conn.__getitem__.return_value.list_collection_names.return_value = [x for x in six.moves.xrange(5001)]
     lib_type = Mock()
     with patch.dict('arctic.arctic.LIBRARY_TYPES', {sentinel.lib_type: lib_type}), \
          patch('arctic.arctic.ArcticLibraryBinding', return_value=lib, autospec=True) as ML:

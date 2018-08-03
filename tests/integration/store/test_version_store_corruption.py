@@ -256,7 +256,7 @@ def test_fast_is_safe_to_append(library, library_name):
     def modify_segment(segment, item):
         segment['segment'] -= 2
         sha = hashlib.sha1()
-        sha.update(item)
+        sha.update(item.encode('ascii'))
         segment['sha'] = Binary(sha.digest())
         segment.pop('_id')
         

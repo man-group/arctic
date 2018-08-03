@@ -6,7 +6,7 @@ from pymongo import ReadPreference
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
-from .._util import indent, enable_sharding
+from .._util import indent, enable_sharding, mongo_count
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
@@ -41,7 +41,7 @@ class VersionStore(object):
     def initialize_library(cls, arctic_lib, hashed=True, **kwargs):
         c = arctic_lib.get_top_level_collection()
 
-        if '%s.changes' % c.name not in mongo_retry(c.database.collection_names)():
+        if '%s.changes' % c.name not in mongo_retry(c.database.list_collection_names)():
             # 32MB buffer for change notifications
             mongo_retry(c.database.create_collection)('%s.changes' % c.name, capped=True, size=32 * 1024 * 1024)
 
@@ -88,7 +88,7 @@ class VersionStore(object):
         self._snapshots = self._collection.snapshots
         self._versions = self._collection.versions
         self._version_nums = self._collection.version_nums
-        self._publish_changes = '%s.changes' % self._collection.name in self._collection.database.collection_names()
+        self._publish_changes = '%s.changes' % self._collection.name in self._collection.database.list_collection_names()
         if self._publish_changes:
             self._changes = self._collection.changes
 
@@ -1034,7 +1034,7 @@ class VersionStore(object):
             if len(leaked_versions):
                 logger.info("%s leaked %d versions" % (symbol, len(leaked_versions)))
             for x in leaked_versions:
-                chunk_count = chunks_coll.find({'symbol': symbol, 'parent': x}).count()
+                chunk_count = mongo_count(chunks_coll, filter={'symbol': symbol, 'parent': x})
                 logger.info("%s: Missing Version %s (%s) ; %s chunks ref'd" % (symbol,
                                                                                x.generation_time,
                                                                                x,
@@ -1078,7 +1078,7 @@ class VersionStore(object):
         if len(leaked_snaps):
             logger.info("leaked %d snapshots" % (len(leaked_snaps)))
         for x in leaked_snaps:
-            ver_count = versions_coll.find({'parent': x}).count()
+            ver_count = mongo_count(versions_coll, filter={'parent': x})
             logger.info("Missing Snapshot %s (%s) ; %s versions ref'd" % (x.generation_time,
                                                                           x,
                                                                           ver_count

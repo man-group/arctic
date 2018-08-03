@@ -171,6 +171,8 @@ def test_initialize_library():
     with patch('arctic.store.version_store.enable_sharding', autospec=True) as enable_sharding:
         arctic_lib.get_top_level_collection.return_value.database.create_collection.__name__ = 'some_name'
         arctic_lib.get_top_level_collection.return_value.database.collection_names.__name__ = 'some_name'
+        arctic_lib.get_top_level_collection.__name__ = 'get_top_level_collection'
+        arctic_lib.get_top_level_collection.return_value.database.list_collection_names.__name__ = 'list_collection_names'
         VersionStore.initialize_library(arctic_lib, hashed=sentinel.hashed)
     assert enable_sharding.call_args_list == [call(arctic_lib.arctic, arctic_lib.get_name(), hashed=sentinel.hashed)]
 

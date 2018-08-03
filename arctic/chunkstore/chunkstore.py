@@ -11,7 +11,7 @@ from itertools import groupby
 from pymongo.errors import OperationFailure
 
 from ..decorators import mongo_retry
-from .._util import indent
+from .._util import indent, mongo_count
 from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, METADATA, COLUMNS
 from .date_chunker import DateChunker, START, END
 from .passthrough_chunker import PassthroughChunker
@@ -87,7 +87,7 @@ class ChunkStore(object):
         # Issue 442
         # for legacy data that was incorectly marked with segment start of -1
         for symbol in self.list_symbols():
-            if self._collection.find({SYMBOL: symbol, SEGMENT: -1}).count() > 1:
+            if mongo_count(self._collection, filter={SYMBOL: symbol, SEGMENT: -1}) > 1:
                 logger.warning("Symbol %s has malformed segments. Data must be rewritten or fixed with chunkstore segment_id_repair tool" % symbol)
 
     @mongo_retry
@@ -153,7 +153,7 @@ class ChunkStore(object):
                 # update symbol metadata (rows and chunk count)
                 sym = self._get_symbol_info(symbol)
                 sym[LEN] -= row_adjust
-                sym[CHUNK_COUNT] = self._collection.count({SYMBOL: symbol})
+                sym[CHUNK_COUNT] = mongo_count(self._collection, filter={SYMBOL: symbol})
                 self._symbols.replace_one({SYMBOL: symbol}, sym)
 
         else:
@@ -458,7 +458,7 @@ class ChunkStore(object):
             meta = data[METADATA]
 
             chunk_count = int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)
-            seg_count = self._collection.count({SYMBOL: symbol, START: start, END: end})
+            seg_count = mongo_count(self._collection, filter={SYMBOL: symbol, START: start, END: end})
             # remove old segments for this chunk in case we now have less
             # segments than we did before
             if seg_count > chunk_count:

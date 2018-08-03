@@ -5,6 +5,7 @@ from pandas.util.testing import assert_frame_equal
 from pymongo.errors import OperationFailure
 import pytest
 
+from arctic._util import mongo_count
 from arctic.store.audit import ArcticTransaction
 from arctic.exceptions import ConcurrentModificationException, NoDataFoundException
 
@@ -172,9 +173,9 @@ def test_cleanup_orphaned_versions_integration(library):
     with patch('bson.ObjectId', return_value=_id):
         with ArcticTransaction(library, symbol, 'u1', 'l1') as mt:
             mt.write(symbol, ts1)
-    assert library._versions.find({'parent': {'$size': 1}}).count() == 1
+    assert mongo_count(library._versions, filter={'parent': {'$size': 1}}) == 1
     library._cleanup_orphaned_versions(False)
-    assert library._versions.find({'parent': {'$size': 1}}).count() == 1
+    assert mongo_count(library._versions, filter={'parent': {'$size': 1}}) == 1
 
 
 def test_corrupted_read_writes_new(library):

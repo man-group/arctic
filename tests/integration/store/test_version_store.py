@@ -14,6 +14,7 @@ import pytest
 import numpy as np
 
 import arctic
+from arctic._util import mongo_count
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException
 from arctic.date import DateRange
 from arctic.store import _version_store_utils
@@ -81,13 +82,13 @@ def test_store_item_new_version(library, library_name):
          patch('pymongo.server_description.ServerDescription.server_type', SERVER_TYPE.Mongos):
         library.write(symbol, ts1)
         coll = library._collection
-        count = coll.count()
-        assert coll.versions.count() == 1
+        count = mongo_count(coll)
+        assert mongo_count(coll.versions) == 1
 
         # No change to the TS
         library.write(symbol, ts1, prune_previous_version=False)
-        assert coll.count() == count
-        assert coll.versions.count() == 2
+        assert mongo_count(coll) == count
+        assert mongo_count(coll.versions) == 2
 
 
 def test_store_item_read_preference(library_secondary, library_name):
@@ -193,7 +194,7 @@ def test_store_item_and_update(library):
     original = datetime.now()
 
     # Assertions:
-    assert coll.versions.count() == 1
+    assert mongo_count(coll.versions) == 1
     assert_frame_equal(library.read(symbol).data, ts1)
 
     # Update the TimeSeries
@@ -201,7 +202,7 @@ def test_store_item_and_update(library):
     library.write(symbol, ts2, prune_previous_version=False)
     recent = datetime.now()
 
-    assert coll.versions.count() == 2
+    assert mongo_count(coll.versions) == 2
     assert_frame_equal(library.read(symbol).data, ts2)
 
     # Get the different versions of the DB
@@ -214,7 +215,7 @@ def test_store_item_and_update(library):
     time.sleep(1)
     library.write(symbol, ts1, prune_previous_version=False)
 
-    assert coll.versions.count() == 3
+    assert mongo_count(coll.versions) == 3
     assert_frame_equal(library.read(symbol).data, ts1)
 
     # Get the different versions of the DB
@@ -232,7 +233,7 @@ def test_append_update(library):
     coll = library._collection
 
     # Assertions:
-    assert coll.versions.count() == 1
+    assert mongo_count(coll.versions) == 1
     assert_frame_equal(library.read(symbol).data, ts1)
 
     # Append an item
@@ -246,7 +247,7 @@ def test_append_update(library):
     # Saving ts2 shouldn't create any new chunks.  Instead it should
     # reuse the last chunk.
     library.write(symbol, ts2, prune_previous_version=False)
-    assert coll.versions.count() == 2
+    assert mongo_count(coll.versions) == 2
     assert_frame_equal(library.read(symbol, as_of='snap').data, ts1)
     assert_frame_equal(library.read(symbol).data, ts2)
 
@@ -442,7 +443,7 @@ def test_delete_versions(library):
     assert_frame_equal(library.read(symbol).data, ts2)
 
     library._delete_version(symbol, 4)
-    assert coll.count() == 0
+    assert mongo_count(coll) == 0
 
 
 def test_delete_bson_versions(library):
@@ -454,24 +455,24 @@ def test_delete_bson_versions(library):
     library.write(symbol, c, prune_previous_version=False)
     library.write(symbol, a, prune_previous_version=False)
     library.write(symbol, c, prune_previous_version=False)
-    assert coll.versions.count() == 4
+    assert mongo_count(coll.versions) == 4
 
     library._delete_version(symbol, 1)
     assert library.read(symbol, as_of=2).data == c
     assert library.read(symbol, as_of=3).data == a
-    assert coll.versions.count() == 3
+    assert mongo_count(coll.versions) == 3
 
     library._delete_version(symbol, 2)
     assert library.read(symbol, as_of=3).data == a
     assert library.read(symbol, as_of=4).data == c
-    assert coll.versions.count() == 2
+    assert mongo_count(coll.versions) == 2
 
     library._delete_version(symbol, 3)
-    assert coll.versions.count() == 1
+    assert mongo_count(coll.versions) == 1
     assert library.read(symbol).data == c
 
     library._delete_version(symbol, 4)
-    assert coll.versions.count() == 0
+    assert mongo_count(coll.versions) == 0
 
 
 def test_read_none_does_not_exception(library):
@@ -699,11 +700,11 @@ def test_prunes_multiple_versions(library):
         library.write(symbol, a, prune_previous_version=False)
     with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119))):
         library.write(symbol, c, prune_previous_version=False)
-    assert coll.versions.count() == 4
+    assert mongo_count(coll.versions) == 4
 
     # Prunes all versions older than the most recent version that's older than 10 mins
     library.write(symbol, a, prune_previous_version=True)
-    assert coll.versions.count() == 3
+    assert mongo_count(coll.versions) == 3
     assert library.read(symbol, as_of=3).data == a
     assert library.read(symbol, as_of=4).data == c
     assert library.read(symbol, as_of=5).data == a
@@ -724,11 +725,11 @@ def test_prunes_doesnt_prune_snapshots(library):
         library.write(symbol, a, prune_previous_version=False)
     with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119))):
         library.write(symbol, c, prune_previous_version=False)
-    assert coll.versions.count() == 4
+    assert mongo_count(coll.versions) == 4
 
     # Prunes all versions older than the most recent version that's older than 10 mins
     library.write(symbol, a, prune_previous_version=True)
-    assert coll.versions.count() == 4
+    assert mongo_count(coll.versions) == 4
     assert library.read(symbol, as_of='snap').data == c
     assert library.read(symbol, as_of=3).data == a
     assert library.read(symbol, as_of=4).data == c
@@ -736,9 +737,9 @@ def test_prunes_doesnt_prune_snapshots(library):
 
     # Remove the snapshot, the version should now be pruned
     library.delete_snapshot('snap')
-    assert coll.versions.count() == 4
+    assert mongo_count(coll.versions) == 4
     library.write(symbol, c, prune_previous_version=True)
-    assert coll.versions.count() == 4
+    assert mongo_count(coll.versions) == 4
     assert library.read(symbol, as_of=4).data == c
     assert library.read(symbol, as_of=5).data == a
     assert library.read(symbol, as_of=6).data == c
@@ -759,11 +760,11 @@ def test_prunes_multiple_versions_ts(library):
         library.write(symbol, a, prune_previous_version=False)
     with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119))):
         library.write(symbol, c, prune_previous_version=False)
-    assert coll.versions.count() == 4
+    assert mongo_count(coll.versions) == 4
 
     # Prunes all versions older than the most recent version that's older than 10 mins
     library.write(symbol, a, prune_previous_version=True)
-    assert coll.versions.count() == 3
+    assert mongo_count(coll.versions) == 3
     assert_frame_equal(library.read(symbol, as_of=3).data, a)
     assert_frame_equal(library.read(symbol, as_of=4).data, c)
     assert_frame_equal(library.read(symbol, as_of=5).data, a)
@@ -784,11 +785,11 @@ def test_prunes_doesnt_prune_snapshots_ts(library):
         library.write(symbol, a, prune_previous_version=False)
     with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119))):
         library.write(symbol, c, prune_previous_version=False)
-    assert coll.versions.count() == 4
+    assert mongo_count(coll.versions) == 4
 
     # Prunes all versions older than the most recent version that's older than 10 mins
     library.write(symbol, a, prune_previous_version=True)
-    assert coll.versions.count() == 4
+    assert mongo_count(coll.versions) == 4
     assert_frame_equal(library.read(symbol, as_of='snap').data, c)
     assert_frame_equal(library.read(symbol, as_of=3).data, a)
     assert_frame_equal(library.read(symbol, as_of=4).data, c)
@@ -796,9 +797,9 @@ def test_prunes_doesnt_prune_snapshots_ts(library):
 
     # Remove the snapshot, the version should now be pruned
     library.delete_snapshot('snap')
-    assert coll.versions.count() == 4
+    assert mongo_count(coll.versions) == 4
     library.write(symbol, c, prune_previous_version=True)
-    assert coll.versions.count() == 4
+    assert mongo_count(coll.versions) == 4
     assert_frame_equal(library.read(symbol, as_of=4).data, c)
     assert_frame_equal(library.read(symbol, as_of=5).data, a)
     assert_frame_equal(library.read(symbol, as_of=6).data, c)
@@ -825,7 +826,7 @@ def test_prunes_multiple_versions_fully_different_tss(library):
         library.write(symbol, c, prune_previous_version=False)
     with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119))):
         library.write(symbol, c, prune_previous_version=False)
-    assert coll.versions.count() == 5
+    assert mongo_count(coll.versions) == 5
 
     # Prunes all versions older than the most recent version that's older than 10 mins
     library.write(symbol, c, prune_previous_version=True)
@@ -856,11 +857,11 @@ def test_prunes_doesnt_prune_snapshots_fully_different_tss(library):
         library.write(symbol, c, prune_previous_version=False)
     with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119))):
         library.write(symbol, c, prune_previous_version=False)
-    assert coll.versions.count() == 6
+    assert mongo_count(coll.versions) == 6
 
     # Prunes all versions older than the most recent version that's older than 10 mins
     library.write(symbol, c, prune_previous_version=True)
-    assert coll.versions.count() == 5
+    assert mongo_count(coll.versions) == 5
     assert_frame_equal(library.read(symbol, as_of='snap').data, c)
     assert_frame_equal(library.read(symbol, as_of=4).data, c)
     assert_frame_equal(library.read(symbol, as_of=5).data, c)
@@ -868,7 +869,7 @@ def test_prunes_doesnt_prune_snapshots_fully_different_tss(library):
     assert_frame_equal(library.read(symbol, as_of=7).data, c)
 
     library.delete_snapshot('snap')
-    assert coll.versions.count() == 5
+    assert mongo_count(coll.versions) == 5
     library.write(symbol, c, prune_previous_version=True)
     assert_frame_equal(library.read(symbol, as_of=4).data, c)
     assert_frame_equal(library.read(symbol, as_of=5).data, c)
@@ -1407,7 +1408,7 @@ def test_prune_previous_versions_retries_find_calls(library):
     with patch.object(pymongo.cursor.Cursor, "next", autospec=True, side_effect=_next):
         library._prune_previous_versions(symbol, keep_mins=0)
 
-    assert library._versions.count({'symbol': symbol}) == 1
+    assert mongo_count(library._versions, filter={'symbol': symbol}) == 1
 
 
 def test_append_does_not_duplicate_data_when_prune_fails(library):

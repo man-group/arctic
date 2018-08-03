@@ -1,7 +1,7 @@
 import logging
 from pymongo.errors import OperationFailure
 from ..decorators import mongo_retry
-from .._util import enable_sharding
+from .._util import enable_sharding, mongo_count
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +161,7 @@ class BSONStore(object):
         """
         See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.count
         """
-        return self._collection.count(filter, **kwargs)
+        return mongo_count(self._collection, filter=filter, **kwargs)
 
     @mongo_retry
     def aggregate(self, pipeline, **kwargs):

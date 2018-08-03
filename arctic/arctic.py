@@ -181,11 +181,11 @@ class Arctic(object):
         libs = []
         for db in self._conn.list_database_names():
             if db.startswith(self.DB_PREFIX + '_'):
-                for coll in self._conn[db].collection_names():
+                for coll in self._conn[db].list_collection_names():
                     if coll.endswith(self.METADATA_COLL):
                         libs.append(db[len(self.DB_PREFIX) + 1:] + "." + coll[:-1 * len(self.METADATA_COLL) - 1])
             elif db == self.DB_PREFIX:
-                for coll in self._conn[db].collection_names():
+                for coll in self._conn[db].list_collection_names():
                     if coll.endswith(self.METADATA_COLL):
                         libs.append(coll[:-1 * len(self.METADATA_COLL) - 1])
         return libs
@@ -212,9 +212,9 @@ class Arctic(object):
         # check that we don't create too many namespaces
         # can be disabled check_library_count=False
         check_library_count = kwargs.pop('check_library_count', True)
-        if len(self._conn[l.database_name].collection_names()) > 5000 and check_library_count:
+        if len(self._conn[l.database_name].list_collection_names()) > 5000 and check_library_count:
             raise ArcticException("Too many namespaces %s, not creating: %s" %
-                                  (len(self._conn[l.database_name].collection_names()), library))
+                                  (len(self._conn[l.database_name].list_collection_names()), library))
         l.set_library_type(lib_type)
         LIBRARY_TYPES[lib_type].initialize_library(l, **kwargs)
         # Add a 10G quota just in case the user is calling this with API.
@@ -233,11 +233,11 @@ class Arctic(object):
         """
         l = ArcticLibraryBinding(self, library)
         colname = l.get_top_level_collection().name
-        if not [c for c in l._db.collection_names(False) if re.match(r"^{}([\.].*)?$".format(colname), c)]:
+        if not [c for c in l._db.list_collection_names(False) if re.match(r"^{}([\.].*)?$".format(colname), c)]:
             logger.info('Nothing to delete. Arctic library %s does not exist.' % colname)
         logger.info('Dropping collection: %s' % colname)
         l._db.drop_collection(colname)
-        for coll in l._db.collection_names():
+        for coll in l._db.list_collection_names():
             if coll.startswith(colname + '.'):
                 logger.info('Dropping collection: %s' % coll)
                 l._db.drop_collection(coll)
@@ -352,7 +352,7 @@ class Arctic(object):
 
         logger.info('Renaming collection: %s' % colname)
         l._db[colname].rename(to_colname)
-        for coll in l._db.collection_names():
+        for coll in l._db.list_collection_names():
             if coll.startswith(colname + '.'):
                 l._db[coll].rename(coll.replace(colname, to_colname))
 
