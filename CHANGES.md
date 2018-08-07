@@ -5,6 +5,7 @@
   * Feature: #571 Removed the Cython LZ4 code, use the latest python-lz4
   * Feature: #557 Threadpool based compression. Speed imrpovement and tuning benchmarks.
   * Bugfix: fix tickstore unicode handling, support both unicode and utf-8 arrays
+  * Feature: #595 add host attribute to VersionedItem.
 
 ### 1.67.1 (2018-07-11)
   * Bugfix: #579 Fix symbol corruption due to restore_version and append
