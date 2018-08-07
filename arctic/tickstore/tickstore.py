@@ -350,7 +350,7 @@ class TickStore(object):
         mgr = _arrays_to_mgr(arrays, columns, index, columns, dtype=None)
         rtn = pd.DataFrame(mgr)
         # Present data in the user's default TimeZone
-        rtn.index.tz_convert(mktz())
+        rtn.index = rtn.index.tz_convert(mktz())
 
         t = (dt.now() - perf_start).total_seconds()
         ticks = len(rtn)
