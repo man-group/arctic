@@ -390,7 +390,8 @@ class VersionStore(object):
         handler = self._read_handler(version, symbol)
         data = handler.read(self._arctic_lib, version, symbol, from_version=from_version, **kwargs)
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=data)
+                             metadata=version.pop('metadata', None), data=data,
+                             host=self._arctic_lib.arctic.mongo_host)
     _do_read_retry = mongo_retry(_do_read)
 
     @mongo_retry
@@ -416,7 +417,8 @@ class VersionStore(object):
         """
         _version = self._read_metadata(symbol, as_of=as_of, read_preference=self._read_preference(allow_secondary))
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=_version['version'],
-                             metadata=_version.pop('metadata', None), data=None)
+                             metadata=_version.pop('metadata', None), data=None,
+                             host=self._arctic_lib.arctic.mongo_host)
 
     def _read_metadata(self, symbol, as_of=None, read_preference=None):
         if read_preference is None:
@@ -496,7 +498,8 @@ class VersionStore(object):
 
         if len(data) == 0 and previous_version is not None:
             return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=previous_version['version'],
-                                 metadata=version.pop('metadata', None), data=None)
+                                 metadata=version.pop('metadata', None), data=None,
+                                 host=self._arctic_lib.arctic.mongo_host)
 
         if upsert and previous_version is None:
             return self.write(symbol=symbol, data=data, prune_previous_version=prune_previous_version, metadata=metadata)
@@ -549,7 +552,8 @@ class VersionStore(object):
         self._insert_version(version)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=None)
+                             metadata=version.pop('metadata', None), data=None,
+                             host=self._arctic_lib.arctic.mongo_host)
 
     def _publish_change(self, symbol, version):
         if self._publish_changes:
@@ -605,7 +609,8 @@ class VersionStore(object):
         logger.debug('Finished writing versions for %s', symbol)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=None)
+                             metadata=version.pop('metadata', None), data=None,
+                             host=self._arctic_lib.arctic.mongo_host)
 
     def _add_new_version_using_reference(self, symbol, new_version, reference_version, prune_previous_version):
         # Attention: better not use this method following an append.
@@ -650,7 +655,8 @@ class VersionStore(object):
         self._publish_change(symbol, new_version)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=new_version['version'],
-                             metadata=new_version.get('metadata'), data=None)
+                             metadata=new_version.get('metadata'), data=None,
+                             host=self._arctic_lib.arctic.mongo_host)
 
     @mongo_retry
     def write_metadata(self, symbol, metadata, prune_previous_version=True, **kwargs):
@@ -738,6 +744,7 @@ class VersionStore(object):
         if self._last_version_seqnum(symbol) == version_to_restore['version']:
             return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(),
                                  version=version_to_restore['version'],
+                                 host=self._arctic_lib.arctic.mongo_host,
                                  metadata=version_to_restore.pop('metadata', None), data=None)
 
         # Read the existing data from as_of
