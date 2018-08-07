@@ -11,7 +11,7 @@ from itertools import groupby
 from pymongo.errors import OperationFailure
 
 from ..decorators import mongo_retry
-from .._util import indent, mongo_count
+from .._util import indent, mongo_count, enable_sharding
 from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, METADATA, COLUMNS
 from .date_chunker import DateChunker, START, END
 from .passthrough_chunker import PassthroughChunker
@@ -43,8 +43,14 @@ CHUNKER_MAP = {DateChunker.TYPE: DateChunker(),
 
 class ChunkStore(object):
     @classmethod
-    def initialize_library(cls, arctic_lib, **kwargs):
+    def initialize_library(cls, arctic_lib, hashed=True, **kwargs):
         ChunkStore(arctic_lib)._ensure_index()
+        
+        logger.info("Trying to enable sharding...")
+        try:
+            enable_sharding(arctic_lib.arctic, arctic_lib.get_name(), hashed=hashed)
+        except OperationFailure as e:
+            logger.warning("Library created, but couldn't enable sharding: %s. This is OK if you're not 'admin'" % str(e))
 
     @mongo_retry
     def _ensure_index(self):
