@@ -63,10 +63,10 @@ def test_exceptions():
     data = data[0:16]
     with pytest.raises(Exception) as e:
         c.decompress(data)
-    assert("Decompressor wrote" in str(e) or "Corrupt input at" in str(e))
+    assert("decompressor wrote" in str(e).lower() or "corrupt input at" in str(e).lower() or "decompression failed: corrupt input" in str(e).lower())
 
     data = c.compress(b'1010101010100000000000000000000000000000000000000000000000000000000011111111111111111111111111111')
     data = [data[0:16] for x in (1, 2, 3)]
     with pytest.raises(Exception) as e:
         c.decompress_array(data)
-    assert ("Decompressor wrote" in str(e) or "Corrupt input at" in str(e))
+    assert ("decompressor wrote" in str(e).lower() or "corrupt input at" in str(e).lower() or "decompression failed: corrupt input" in str(e).lower())

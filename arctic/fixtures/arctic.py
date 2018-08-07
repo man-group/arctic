@@ -324,6 +324,12 @@ def user_library(arctic, user_library_name):
 def overlay_library(arctic, overlay_library_name):
     """ Overlay library fixture, returns a pair of libs, read-write: ${name} and read-only: ${name}_RAW
     """
+    # Call _create_overlay_library to avoid:
+    #  RemovedInPytest4Warning: Fixture overlay_library called directly. Fixtures are not meant to be called directly
+    return _overlay_library(arctic, overlay_library)
+
+
+def _overlay_library(arctic, overlay_library_name):
     rw_name = overlay_library_name
     ro_name = '{}_RAW'.format(overlay_library_name)
     arctic.initialize_library(rw_name, m.VERSION_STORE, segment='year')
@@ -333,6 +339,12 @@ def overlay_library(arctic, overlay_library_name):
 
 @pytest.fixture(scope="function")
 def tickstore_lib(arctic, library_name):
+    # Call _create_overlay_library to avoid:
+    #  RemovedInPytest4Warning: Fixture overlay_library called directly. Fixtures are not meant to be called directly
+    return _tickstore_lib(arctic, library_name)
+
+
+def _tickstore_lib(arctic, library_name):
     arctic.initialize_library(library_name, TICK_STORE_TYPE)
     return arctic.get_library(library_name)
 

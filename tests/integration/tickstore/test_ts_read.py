@@ -11,6 +11,7 @@ import pytest
 import pytz
 import six
 
+from arctic._util import mongo_count
 from arctic.date import DateRange, mktz, CLOSED_CLOSED, CLOSED_OPEN, OPEN_CLOSED, OPEN_OPEN
 from arctic.exceptions import NoDataFoundException
 
@@ -241,31 +242,31 @@ def test_date_range(tickstore_lib):
     with patch('pymongo.collection.Collection.find', side_effect=tickstore_lib._collection.find) as f:
         df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130103), columns=None)
         assert_array_equal(df['b'].values, np.array([2., 3., 5.]))
-        assert tickstore_lib._collection.find(f.call_args_list[-1][0][0]).count() == 1
+        assert mongo_count(tickstore_lib._collection, filter=f.call_args_list[-1][0][0]) == 1
         df = tickstore_lib.read('SYM', date_range=DateRange(20130102, 20130103), columns=None)
         assert_array_equal(df['b'].values, np.array([3., 5.]))
-        assert tickstore_lib._collection.find(f.call_args_list[-1][0][0]).count() == 1
+        assert mongo_count(tickstore_lib._collection, filter=f.call_args_list[-1][0][0]) == 1
         df = tickstore_lib.read('SYM', date_range=DateRange(20130103, 20130103), columns=None)
         assert_array_equal(df['b'].values, np.array([5.]))
-        assert tickstore_lib._collection.find(f.call_args_list[-1][0][0]).count() == 1
+        assert mongo_count(tickstore_lib._collection, filter=f.call_args_list[-1][0][0]) == 1
 
         df = tickstore_lib.read('SYM', date_range=DateRange(20130102, 20130104), columns=None)
         assert_array_equal(df['b'].values, np.array([3., 5., 7.]))
-        assert tickstore_lib._collection.find(f.call_args_list[-1][0][0]).count() == 2
+        assert mongo_count(tickstore_lib._collection, filter=f.call_args_list[-1][0][0]) == 2
         df = tickstore_lib.read('SYM', date_range=DateRange(20130102, 20130105), columns=None)
         assert_array_equal(df['b'].values, np.array([3., 5., 7., 9.]))
-        assert tickstore_lib._collection.find(f.call_args_list[-1][0][0]).count() == 2
+        assert mongo_count(tickstore_lib._collection, filter=f.call_args_list[-1][0][0]) == 2
 
         df = tickstore_lib.read('SYM', date_range=DateRange(20130103, 20130104), columns=None)
         assert_array_equal(df['b'].values, np.array([5., 7.]))
-        assert tickstore_lib._collection.find(f.call_args_list[-1][0][0]).count() == 2
+        assert mongo_count(tickstore_lib._collection, filter=f.call_args_list[-1][0][0]) == 2
         df = tickstore_lib.read('SYM', date_range=DateRange(20130103, 20130105), columns=None)
         assert_array_equal(df['b'].values, np.array([5., 7., 9.]))
-        assert tickstore_lib._collection.find(f.call_args_list[-1][0][0]).count() == 2
+        assert mongo_count(tickstore_lib._collection, filter=f.call_args_list[-1][0][0]) == 2
 
         df = tickstore_lib.read('SYM', date_range=DateRange(20130104, 20130105), columns=None)
         assert_array_equal(df['b'].values, np.array([7., 9.]))
-        assert tickstore_lib._collection.find(f.call_args_list[-1][0][0]).count() == 1
+        assert mongo_count(tickstore_lib._collection, filter=f.call_args_list[-1][0][0]) == 1
 
         # Test the different open-closed behaviours
         df = tickstore_lib.read('SYM', date_range=DateRange(20130104, 20130105, CLOSED_CLOSED), columns=None)
@@ -295,7 +296,7 @@ def test_date_range_end_not_in_range(tickstore_lib):
     with patch.object(tickstore_lib._collection, 'find', side_effect=tickstore_lib._collection.find) as f:
         df = tickstore_lib.read('SYM', date_range=DateRange(20130101, dt(2013, 1, 2, 9, 0)), columns=None)
         assert_array_equal(df['b'].values, np.array([2.]))
-        assert tickstore_lib._collection.find(f.call_args_list[-1][0][0]).count() == 1
+        assert mongo_count(tickstore_lib._collection, filter=f.call_args_list[-1][0][0]) == 1
 
 
 @pytest.mark.parametrize('tz_name', ['UTC',

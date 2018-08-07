@@ -8,6 +8,7 @@ import numpy as np
 import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
+from arctic._util import mongo_count
 from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException, DataIntegrityException
 from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
@@ -455,8 +456,7 @@ class NdarrayStore(object):
         parent_id = version_base_or_id(version)
 
         # Check all the chunks are in place
-        seen_chunks = collection.find({'symbol': symbol, 'parent': parent_id},
-                                      ).count()
+        seen_chunks = mongo_count(collection, filter={'symbol': symbol, 'parent': parent_id})
 
         if seen_chunks != version['segment_count']:
             segments = [x['segment'] for x in collection.find({'symbol': symbol, 'parent': parent_id},

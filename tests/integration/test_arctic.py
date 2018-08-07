@@ -132,20 +132,20 @@ def test_delete_library(arctic, library, library_name):
     # create a library2 library too - ensure that this isn't deleted
     arctic.initialize_library('user.library2', VERSION_STORE, segment='month')
     library.write('asdf', get_large_ts(1))
-    assert 'TEST' in mongo.arctic_test.collection_names()
-    assert 'TEST.versions' in mongo.arctic_test.collection_names()
-    assert 'library2' in mongo.arctic_user.collection_names()
-    assert 'library2.versions' in mongo.arctic_user.collection_names()
+    assert 'TEST' in mongo.arctic_test.list_collection_names()
+    assert 'TEST.versions' in mongo.arctic_test.list_collection_names()
+    assert 'library2' in mongo.arctic_user.list_collection_names()
+    assert 'library2.versions' in mongo.arctic_user.list_collection_names()
 
     arctic.delete_library(library_name)
-    assert 'TEST' not in mongo.arctic_user.collection_names()
-    assert 'TEST.versions' not in mongo.arctic_user.collection_names()
+    assert 'TEST' not in mongo.arctic_user.list_collection_names()
+    assert 'TEST.versions' not in mongo.arctic_user.list_collection_names()
     with pytest.raises(LibraryNotFoundException):
         arctic[library_name]
     with pytest.raises(LibraryNotFoundException):
         arctic['arctic_{}'.format(library_name)]
-    assert 'library2' in mongo.arctic_user.collection_names()
-    assert 'library2.versions' in mongo.arctic_user.collection_names()
+    assert 'library2' in mongo.arctic_user.list_collection_names()
+    assert 'library2.versions' in mongo.arctic_user.list_collection_names()
 
 
 def test_quota(arctic, library, library_name):

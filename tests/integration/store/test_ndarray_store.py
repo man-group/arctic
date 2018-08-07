@@ -6,6 +6,7 @@ from numpy.testing import assert_equal
 from pymongo.server_type import SERVER_TYPE
 import pytest
 
+from arctic._util import mongo_count
 from arctic.store._ndarray_store import NdarrayStore, _APPEND_COUNT
 from arctic.store.version_store import register_versioned_storage
 
@@ -57,7 +58,7 @@ def test_save_and_resave_reuses_chunks(library):
         library.write('MYARR', ndarr)
         saved_arr = library.read('MYARR').data
         assert np.all(ndarr == saved_arr)
-        orig_chunks = library._collection.count()
+        orig_chunks = mongo_count(library._collection)
         assert orig_chunks == 9
 
         # Concatenate more values
@@ -70,11 +71,11 @@ def test_save_and_resave_reuses_chunks(library):
 
         # Should contain the original chunks, but not double the number
         # of chunks
-        new_chunks = library._collection.count()
+        new_chunks = mongo_count(library._collection)
         assert new_chunks == 11
 
         # We hit the update (rather than upsert) code path
-        assert library._collection.find({'parent': {'$size': 2}}).count() == 7
+        assert mongo_count(library._collection, filter={'parent': {'$size': 2}}) == 7
 
 
 def test_save_read_big_2darray(library):

@@ -2,6 +2,8 @@ from pandas import DataFrame, MultiIndex, Index, Series
 from datetime import datetime as dt
 from datetime import timedelta
 from pandas.util.testing import assert_frame_equal, assert_series_equal
+
+from arctic._util import mongo_count
 from arctic.date import DateRange
 from arctic.exceptions import NoDataFoundException
 import pandas as pd
@@ -943,7 +945,7 @@ def test_delete_range_segment(chunkstore_lib):
     chunkstore_lib.delete('test_df', chunk_range=pd.date_range(dt(2016, 1, 1), dt(2016, 1, 1)))
     read_df = chunkstore_lib.read('test_df')
     assert(read_df.equals(dg))
-    assert(chunkstore_lib._collection.count({'sy': 'test_df'}) == 1)
+    assert(mongo_count(chunkstore_lib._collection, {'sy': 'test_df'}) == 1)
 
 
 def test_size_chunk_update(chunkstore_lib):
@@ -960,7 +962,7 @@ def test_size_chunk_update(chunkstore_lib):
     read_df = chunkstore_lib.read('test_df')
 
     assert_frame_equal(dh, read_df)
-    assert(chunkstore_lib._collection.count({'sy': 'test_df'}) == 1)
+    assert mongo_count(chunkstore_lib._collection, filter={'sy': 'test_df'}) == 1
 
 
 def test_size_chunk_multiple_update(chunkstore_lib):
@@ -976,7 +978,7 @@ def test_size_chunk_multiple_update(chunkstore_lib):
     expected = pd.concat([df_large, df_small]).reset_index(drop=True)
 
     assert_frame_equal(expected, read_df)
-    assert(chunkstore_lib._collection.count({'sy': 'test_df'}) == 3)
+    assert mongo_count(chunkstore_lib._collection, filter={'sy': 'test_df'}) == 3
 
 
 def test_get_chunk_range(chunkstore_lib):

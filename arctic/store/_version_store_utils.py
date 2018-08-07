@@ -11,6 +11,8 @@ from bson import Binary
 from pandas.compat import pickle_compat
 from pymongo.errors import OperationFailure
 
+from arctic._util import mongo_count
+
 
 def _split_arrs(array_2d, slices):
     """
@@ -113,7 +115,7 @@ def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
             matching = 0
         else:
             spec = {'symbol': sym, 'parent': v.get('base_version_id', v['_id']), 'segment': {'$lt': v.get('up_to', 0)}}
-            matching = l._collection.find(spec).count() if not is_deleted else 0
+            matching = mongo_count(l._collection, filter=spec) if not is_deleted else 0
 
         base_id = v.get('base_version_id')
         snaps = ['/'.join((str(x), str(x.generation_time))) for x in v.get('parent')] if v.get('parent') else None
@@ -129,7 +131,21 @@ def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
         corrupted = not is_deleted and (is_corrupted(l, sym, v) if do_reads else fast_is_corrupted(l, sym, v))
 
         logging.info(
-            "v{: <6} {: <6} {: <5} ({: <20}):   expected={: <6} found={: <6} last_row={: <10} new_rows={: <10} append count={: <10} append_size={: <10} type={: <14} {: <14} base={: <24}/{: <28} snap={: <30}[{:.1f} mins delayed] {: <20} {: <20}".format(
+            "v{: <6} "
+            "{: <6} "
+            "{: <5} "
+            "({: <20}):   "
+            "expected={: <6} "
+            "found={: <6} "
+            "last_row={: <10} "
+            "new_rows={: <10} "
+            "append count={: <10} "
+            "append_size={: <10} "
+            "type={: <14} {: <14} "
+            "base={: <24}/{: <28} "
+            "snap={: <30}[{:.1f} mins delayed] "
+            "{: <20} "
+            "{: <20}".format(
                 n,
                 prev_v_diff,
                 'DEL' if is_deleted else 'ALIVE',
@@ -144,7 +160,7 @@ def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
                 'meta-same' if meta_match_with_prev else 'meta-changed',
                 str(base_id),
                 str(base_id.generation_time) if base_id else '',
-                snaps,
+                str(snaps),
                 delta_snap_creation,
                 'PREV_MISSING' if prev_n < n - 1 else '',
                 'CORRUPTED VERSION' if corrupted else '')
@@ -159,7 +175,7 @@ def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
             hashlib.sha1(seg['sha']).hexdigest(),
             seg.get('segment'),
             'compressed' if seg.get('compressed', False) else 'raw',
-            [str(p) for p in seg.get('parent', [])]
+            str([str(p) for p in seg.get('parent', [])])
         ))
 
 
@@ -193,7 +209,7 @@ def _fast_check_corruption(collection, sym, v, check_count, check_last_segment, 
         #     collection.find_one(spec, {'segment': 1}, sort=[('segment', pymongo.DESCENDING)])
 
         if check_count:
-            total_segments = collection.find(spec, {'segment': 1}).count()
+            total_segments = mongo_count(collection, filter=spec)
             # Quick check: compare segment count
             if total_segments != v.get('segment_count', 0):
                 return True  # corrupted, don't proceed with fetching from mongo the first hit
