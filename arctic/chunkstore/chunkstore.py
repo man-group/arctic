@@ -48,7 +48,7 @@ class ChunkStore(object):
         
         logger.info("Trying to enable sharding...")
         try:
-            enable_sharding(arctic_lib.arctic, arctic_lib.get_name(), hashed=hashed)
+            enable_sharding(arctic_lib.arctic, arctic_lib.get_name(), hashed=hashed, key=SYMBOL)
         except OperationFailure as e:
             logger.warning("Library created, but couldn't enable sharding: %s. This is OK if you're not 'admin'" % str(e))
 
