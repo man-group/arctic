@@ -6,7 +6,8 @@
   * Feature: #557 Threadpool based compression. Speed imrpovement and tuning benchmarks.
   * Bugfix: fix tickstore unicode handling, support both unicode and utf-8 arrays
   * Bugfix: #591 Fix tickstore reads not returning index with localized timezone
-  * Feature: #595 add host attribute to VersionedItem.
+  * Feature: #595 add host attribute to VersionedItem.'
+  * Bugfix: #594 Enable sharding on chunkstore
 
 ### 1.67.1 (2018-07-11)
   * Bugfix: #579 Fix symbol corruption due to restore_version and append
