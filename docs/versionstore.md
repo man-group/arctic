@@ -36,6 +36,8 @@ At this point you have an empty VersionStore library. You do not need to specify
                                                  (dt(2016, 1, 3), 1)],
                                                 names=['date', 'id']))
 >>> lib.write('test', df)
+VersionedItem(symbol=test,library=arctic.vstore,data=<class 'NoneType'>,version=1,metadata=None,host=127.0.0.1)
+
 >>> lib.read('test').data
                data
 date       id      
@@ -51,6 +53,8 @@ date       id
                                                names=['date', 'id']))
 
 >>> lib.write('test', df)
+VersionedItem(symbol=test,library=arctic.vstore,data=<class 'NoneType'>,version=2,metadata=None,host=127.0.0.1)
+
 >>> lib.read('test').data
                data
 date       id      
@@ -64,7 +68,7 @@ date       id
 
 * symbol
 * library
-* version
-* metadata
-* data
+* version - version number of the data written
+* metadata - metadata if exists, or None
+* data (for writes this is None, for reads it contains the data read from the database).
 * host
