@@ -2,7 +2,7 @@
 
 (note: current doc is based on arctic-1.31.0)
 
-Chunkstore serializes and store Pandas Dataframes and Series into user defined chunks in MongoDB. Retrieving specific chunks, or ranges of chunks, is very fast and efficient. Chunkstore is optimized more for reading than for writing, and is ideal for use cases when very large datasets need to be accessed by 'chunk'.
+Chunkstore serializes and stores Pandas Dataframes and Series into user defined chunks in MongoDB. Retrieving specific chunks, or ranges of chunks, is very fast and efficient. Chunkstore is optimized more for reading than for writing, and is ideal for use cases when very large datasets need to be accessed by 'chunk'.
 
 Chunkstore supports pluggable serializers. A Serializer is used to convert the Pandas datatype into something that can be efficiently stored by Mongo. Chunkstore's default serializer is the [FrameConverter](https://github.com/manahl/arctic/blob/master/arctic/serialization/numpy_arrays.py#L22) which works by converting each column in the dataframe to a compressed Numpy array. Columns can be retrieved individually this way, without deserializing the other columns in the dataframe. 
 
