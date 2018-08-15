@@ -60,7 +60,7 @@ l.write('thing', object())
 ### tzlocal issue with pytz == 1.5.1
 
 ```
-  ```File "<frozen importlib._bootstrap>", line 441, in spec_from_loader
+  File "<frozen importlib._bootstrap>", line 441, in spec_from_loader
   File "<frozen importlib._bootstrap_external>", line 544, in spec_from_file_location
   File "/Users/james/miniconda3/envs/201804/lib/python3.6/site-packages/tzlocal-1.5.1-py3.6.egg/tzlocal/unix.py", line 77
 SyntaxError: invalid escape sequence \s
