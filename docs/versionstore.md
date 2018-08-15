@@ -1,6 +1,5 @@
 # VersionStore
 
-# Chunkstore Overview
 
 (note: current doc is based on arctic-1.68.0)
 
