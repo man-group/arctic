@@ -9,7 +9,7 @@ Chunkstore supports pluggable serializers. A Serializer is used to convert the P
 Chunkstore also supports pluggable chunkers. A chunker takes the dataframe and converts it into chunks. Chunks are stored individually in Mongo for easy retrieval by chunk. Chunkstore currently has two chunkers: [DateRange Chunker](https://github.com/manahl/arctic/blob/master/arctic/chunkstore/date_chunker.py) and [PassThrough Chunker](https://github.com/manahl/arctic/blob/master/arctic/chunkstore/passthrough_chunker.py). The DateRange chunker chunks a dataframe by a datetime index or column. Currently it must be called 'date'. It chunks by a period, Daily, Monthly, or Yearly. The data can be retrieved from Mongo for any date range, so for DateRange chunked data, its important that the chunking period (or size) be selected appropriately. If data will frequently be read in daily increments, choosing a Year chunk size doesn't really make sense and will be slower than data access of daily chunked data. The PassThrough chunker simply takes the dataframe and writes it to mongo. It does not chunk the data.
 
 
-# Reading and Writing Data Chunkstore
+# Reading and Writing Data with Chunkstore
 
 ```
 from arctic import CHUNK_STORE, Arctic
