@@ -51,7 +51,7 @@ date       id
                                                names=['date', 'id']))
 
 >>> lib.write('test', df)
->>> lib.read('test')
+>>> lib.read('test').data
                data
 date       id      
 2016-01-01 1    100
