@@ -140,7 +140,7 @@ VersionedItem(symbol=new,library=arctic.vstore,data=<class 'NoneType'>,version=1
 
 ```
 
-Other Methods
+# Utility Methods
 
 A number of other utility methods are available:
 
@@ -150,9 +150,7 @@ A number of other utility methods are available:
 * read_metadata
 * write_metadata
 * restore_version
-* snapshot
-* delete_snapshot
-* list_snapshots
+
 
 `delete` does what you might expect - it deletes a symbol from the library. It takes a single argument, `symbol`. `has_symbol` and `list_symbols` will return information about the current state of symbols in the library. Their signatures are:
 
@@ -198,7 +196,121 @@ VersionedItem(symbol=test2,library=arctic.vstore,data=<class 'NoneType'>,version
 VersionedItem(symbol=test2,library=arctic.vstore,data=<class 'NoneType'>,version=2,metadata={'meta': 'data'},host=127.0.0.1)
 
 >>> lib.read_metadata('test2').metadata
-Out[71]: {'meta': 'data'}
+{'meta': 'data'}
 
 ```
 
+`restore_version` lets you set the latest version to an older version. You can use `list_versions` to see information about the current state of the versions.
+
+```
+
+>>> lib.list_versions('test') 
+[{'symbol': 'test',
+  'version': 3,
+  'deleted': False,
+  'date': datetime.datetime(2018, 8, 16, 17, 59, 47, tzinfo=tzfile('/usr/share/zoneinfo/America/New_York')),
+  'snapshots': []},
+ {'symbol': 'test',
+  'version': 2,
+  'deleted': False,
+  'date': datetime.datetime(2018, 8, 15, 18, 0, 33, tzinfo=tzfile('/usr/share/zoneinfo/America/New_York')),
+  'snapshots': []}]
+
+
+>>> lib.restore_version('test', 2)
+VersionedItem(symbol=test,library=arctic.vstore,data=<class 'NoneType'>,version=4,metadata=None,host=127.0.0.1)
+
+>>> lib.read('test').data
+               data
+date       id      
+2016-01-01 1    100
+2016-01-02 1    200
+2016-01-03 1    300
+
+>>> lib.list_versions('test') 
+[{'symbol': 'test',
+  'version': 4,
+  'deleted': False,
+  'date': datetime.datetime(2018, 8, 16, 18, 54, 10, tzinfo=tzfile('/usr/share/zoneinfo/America/New_York')),
+  'snapshots': []},
+ {'symbol': 'test',
+  'version': 3,
+  'deleted': False,
+  'date': datetime.datetime(2018, 8, 16, 17, 59, 47, tzinfo=tzfile('/usr/share/zoneinfo/America/New_York')),
+  'snapshots': []},
+ {'symbol': 'test',
+  'version': 2,
+  'deleted': False,
+  'date': datetime.datetime(2018, 8, 15, 18, 0, 33, tzinfo=tzfile('/usr/share/zoneinfo/America/New_York')),
+  'snapshots': []}]
+
+```
+
+Using `restore_version` did not delete the latest version, it simply created a new version with the data referenced by the user supplied version. 
+
+
+
+# Snapshots
+
+VersionStore allows you to create a snapshot of data and assign it a name. Data that is part of a snapshot that is deleted is still contained in a snapshot. The snapshot methods are:
+
+* snapshot
+* delete_snapshot
+* list_snapshots
+
+`snapshot` allows you to create a snapshot. Its signature is very simple
+
+```
+snap_name, metadata=None, skip_symbols=None, versions=None
+```
+
+`snap_name` is the name of the snap shot being created. `metadata` allows you to supply user defined metadata to the snapshot. `skip_symbols` allows you to exclude symbols from the snapshot. `versions` allows you to specify specific versions to incliude in the snapshot. 
+
+`delete_snapshot` and `list_snapshot` function similarly to `delete` and `list_versions` respectively. `list_snapshots` returns a dictionary of `snapshot` names that map to the `metadata` for the snapshot.
+
+
+```
+
+>>> lib.list_symbols()
+['test', 'test2']
+
+>>> lib.snapshot('backup')
+
+>>> lib.list_snapshots()
+{'backup': None}
+
+>>> lib.list_symbols(snapshot='backup')
+['test', 'test2']
+
+>>> lib.delete('test')
+
+>>> lib.delete('test2')
+
+>>> lib.list_symbols()
+[]
+
+>>> lib.list_symbols(snapshot='backup')
+['test', 'test2']
+
+>>> lib.read('test')
+~/arctic/arctic/store/version_store.py in _read_metadata(self, symbol, as_of, read_preference)
+    455         metadata = _version.get('metadata', None)
+    456         if metadata is not None and metadata.get('deleted', False) is True:
+--> 457             raise NoDataFoundException("No data found for %s in library %s" % (symbol, self._arctic_lib.get_name()))
+    458 
+    459         return _version
+
+NoDataFoundException: No data found for test in library arctic.vstore
+
+
+>>> lib.read('test', as_of='backup')
+VersionedItem(symbol=test,library=arctic.vstore,data=<class 'pandas.core.frame.DataFrame'>,version=4,metadata=None,host=127.0.0.1)
+
+>>> lib.read('test', as_of='backup').data 
+               data
+date       id      
+2016-01-01 1    100
+2016-01-02 1    200
+2016-01-03 1    300
+
+```
