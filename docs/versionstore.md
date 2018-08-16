@@ -114,6 +114,33 @@ date       id  data
 
 DateRange's only apply to pandas DataFrames, and the dataframe must have a datetime index present. 
 
+Another way to write data is with the [`append`](https://github.com/manahl/arctic/blob/master/arctic/store/version_store.py#L473) method. `append` takes the following arguments:
+
+```
+symbol, data, metadata=None, prune_previous_version=True, upsert=True, **kwargs
+```
+
+`upsert` is the only new argument. `upsert` means that if the symbol does not exist, it will create it. If `upsert` were `False` an error would be raised as there would be no existing data to append to.
+
+```
+
+>>> lib.append('new', df, upsert=False)
+~/arctic/arctic/store/version_store.py in append(self, symbol, data, metadata, prune_previous_version, upsert, **kwargs)
+    505             return self.write(symbol=symbol, data=data, prune_previous_version=prune_previous_version, metadata=metadata)
+    506 
+--> 507         assert previous_version is not None
+    508         dirty_append = False
+    509 
+
+AssertionError: 
+
+
+>>> lib.append('new', df, upsert=True)
+VersionedItem(symbol=new,library=arctic.vstore,data=<class 'NoneType'>,version=1,metadata=None,host=127.0.0.1)
+
+```
+
+
 
 
 
