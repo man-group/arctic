@@ -140,8 +140,65 @@ VersionedItem(symbol=new,library=arctic.vstore,data=<class 'NoneType'>,version=1
 
 ```
 
+Other Methods
+
+A number of other utility methods are available:
+
+* delete
+* has_symbol
+* list_versions
+* read_metadata
+* write_metadata
+* restore_version
+* snapshot
+* delete_snapshot
+* list_snapshots
+
+`delete` does what you might expect - it deletes a symbol from the library. It takes a single argument, `symbol`. `has_symbol` and `list_symbols` will return information about the current state of symbols in the library. Their signatures are:
+
+```
+list_symbols(self, all_symbols=False, snapshot=None, regex=None, **kwargs)
+
+def has_symbol(self, symbol, as_of=None)
+```
+
+for `list_symbols`, `all_symbols` if set to `true` will return all symbols, from all snapshots, even if the symbol has been deleted in the current version (but is saved in a snapshot). `snapshot` allows you to list symbols under a specified `snapshot`. `regex` allows you to supply a regular expression to further restrict the list of symbols returned from the query. Arctic uses MongoDB's `$regex` functionality. Mongo supports PERL syntax regex; more information is available [here](https://docs.mongodb.com/manual/reference/operator/query/regex/)
+
+`has_symbol` returns `True` or `False` based on wheter the symbol exists or not. You can restrict this check to a specific `version` via `as_of`. 
 
 
+```
+
+>>> lib.delete('new')
+
+>>> lib.list_symbols()
+['test']
+
+>>> lib.has_symbol('new')
+False
+
+>>> lib.write('test2', df)
+
+>>> lib.list_symbols(regex=".*2")
+['test2']
+
+```
+
+`read_metadata` and `write_metadata` allow you to read/set the user defined metadata directly for a given symbol. 
 
 
+```
+
+>>> lib.read_metadata('test2')
+VersionedItem(symbol=test2,library=arctic.vstore,data=<class 'NoneType'>,version=1,metadata=None,host=127.0.0.1)
+
+>>> lib.read_metadata('test2').metadata
+
+>>> lib.write_metadata('test2', {'meta': 'data'})
+VersionedItem(symbol=test2,library=arctic.vstore,data=<class 'NoneType'>,version=2,metadata={'meta': 'data'},host=127.0.0.1)
+
+>>> lib.read_metadata('test2').metadata
+Out[71]: {'meta': 'data'}
+
+```
 
