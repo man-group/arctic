@@ -112,7 +112,7 @@ date       id  data
 
 ```
 
-
+DateRange's only apply to pandas DataFrames, and the dataframe must have a datetime index present. 
 
 
 
