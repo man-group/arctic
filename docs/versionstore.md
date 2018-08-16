@@ -104,6 +104,12 @@ date       id  data
 2016-01-03 1      3
 
 
+>>> from arctic.date import DateRange
+>>> lib.read('test', date_range=DateRange('2016-01-01', '2016-01-01')).data
+               
+date       id  data    
+2016-01-01 1    100
+
 ```
 
 
