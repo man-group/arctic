@@ -72,3 +72,43 @@ date       id
 * metadata - metadata if exists, or None
 * data (for writes this is None, for reads it contains the data read from the database).
 * host
+
+You should also note that VersionStore's `write` effectively overwrites already written data. In the above example, the second `write` replaced the data in symbol `test` with the new dataframe. The original data (version 1) is still available, but must be referenced by its version number in order to retrieve it. The `read` method takes the following arguments:
+
+```
+symbol, as_of=None, date_range=None, from_version=None, allow_secondary=None, **kwargs
+```
+
+`as_of` allows you to retrieve the data as it was at a specific point in time. You can define that point in time in a number of ways.
+
+* the name of a snapshot (string)
+* a version number (int)
+* a datetime (`datetime.datetime`)
+
+`date_range` lets you subset the data via an Arctic [DateRange](https://github.com/manahl/arctic/blob/master/arctic/date/_daterange.py#L15) object. `DateRange`s allows you to specify a date range ('2016-01-01', '2016-09-30') with start and end dates, as well as open ended ranges (None, '2016-09-30'). Ranges can be open at either end. `allow_secondary` lets you override the default behavior to allow or disallow reading from secondary members of the mongo cluster.
+
+
+```
+>>> lib.read('test').data
+               data
+date       id      
+2016-01-01 1    100
+2016-01-02 1    200
+2016-01-03 1    300
+
+>>> lib.read('test', as_of=1).data
+               
+date       id  data    
+2016-01-01 1      1
+2016-01-02 1      2
+2016-01-03 1      3
+
+
+```
+
+
+
+
+
+
+
