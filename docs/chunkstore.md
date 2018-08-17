@@ -2,14 +2,14 @@
 
 (note: current doc is based on arctic-1.31.0)
 
-Chunkstore serializes and store Pandas Dataframes and Series into user defined chunks in MongoDB. Retrieving specific chunks, or ranges of chunks, is very fast and efficient. Chunkstore is optimized more for reading than for writing, and is ideal for use cases when very large datasets need to be accessed by 'chunk'.
+Chunkstore serializes and stores Pandas Dataframes and Series into user defined chunks in MongoDB. Retrieving specific chunks, or ranges of chunks, is very fast and efficient. Chunkstore is optimized more for reading than for writing, and is ideal for use cases when very large datasets need to be accessed by 'chunk'.
 
 Chunkstore supports pluggable serializers. A Serializer is used to convert the Pandas datatype into something that can be efficiently stored by Mongo. Chunkstore's default serializer is the [FrameConverter](https://github.com/manahl/arctic/blob/master/arctic/serialization/numpy_arrays.py#L22) which works by converting each column in the dataframe to a compressed Numpy array. Columns can be retrieved individually this way, without deserializing the other columns in the dataframe. 
 
 Chunkstore also supports pluggable chunkers. A chunker takes the dataframe and converts it into chunks. Chunks are stored individually in Mongo for easy retrieval by chunk. Chunkstore currently has two chunkers: [DateRange Chunker](https://github.com/manahl/arctic/blob/master/arctic/chunkstore/date_chunker.py) and [PassThrough Chunker](https://github.com/manahl/arctic/blob/master/arctic/chunkstore/passthrough_chunker.py). The DateRange chunker chunks a dataframe by a datetime index or column. Currently it must be called 'date'. It chunks by a period, Daily, Monthly, or Yearly. The data can be retrieved from Mongo for any date range, so for DateRange chunked data, its important that the chunking period (or size) be selected appropriately. If data will frequently be read in daily increments, choosing a Year chunk size doesn't really make sense and will be slower than data access of daily chunked data. The PassThrough chunker simply takes the dataframe and writes it to mongo. It does not chunk the data.
 
 
-# Reading and Writing Data Chunkstore
+# Reading and Writing Data with Chunkstore
 
 ```
 from arctic import CHUNK_STORE, Arctic

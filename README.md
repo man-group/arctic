@@ -98,10 +98,12 @@ Arctic includes three storage engines:
       * Audited writes: API for saving metadata and data before and after a write.
       * a wide range of TimeSeries data frequencies: End-Of-Day to Minute bars
       * [See the HowTo](howtos/how_to_use_arctic.py)
+      * [Documentation](docs/versionstore.md)
   * [TickStore](arctic/tickstore/tickstore.py): Column oriented tick database.  Supports
     dynamic fields, chunks aren't versioned. Designed for large continuously ticking data.
   * [Chunkstore](https://github.com/manahl/arctic/wiki/Chunkstore): A storage type that allows data to be stored in customizable chunk sizes. Chunks
     aren't versioned, and can be appended to and updated in place. 
+    * [Documentation](docs/chunkstore.md)
 
 Arctic storage implementations are **pluggable**.  VersionStore is the default.
 
