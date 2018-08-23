@@ -15,24 +15,35 @@ _TYPE_HANDLERS = []
 
 
 def register_versioned_storage(storageClass, storage_args=tuple(), storage_kwargs=None):
+    add_handler(_TYPE_HANDLERS, storageClass, storage_args, storage_kwargs)
+
+
+def add_handler(type_handlers, storageClass, storage_args=tuple(), storage_kwargs=None):
     storage_kwargs = storage_kwargs or {}
-    existing_instances = [i for i, v in enumerate(_TYPE_HANDLERS) if str(v.__class__) == str(storageClass)]
+    existing_instances = [i for i, v in enumerate(type_handlers) if str(v.__class__) == str(storageClass)]
     store = storageClass(*storage_args, **storage_kwargs)
     if existing_instances:
         for i in existing_instances:
-            _TYPE_HANDLERS[i] = store
+            type_handlers[i] = store
     else:
-        _TYPE_HANDLERS.insert(0, store)
+        type_handlers.insert(0, store)
     return storageClass
 
 _default_bson_handler = PickleStore()
 
 class GenericVersionStore(object):
 
-    def __init__(self, library_name, backing_store, bson_handler=_default_bson_handler):
+    def __init__(self, library_name, backing_store, bson_handler=_default_bson_handler, type_handlers=None):
         self.library_name = library_name
         self._backing_store = backing_store
         self._bson_handler = bson_handler
+        if type_handlers:
+            self.type_handlers = []
+            for th in type_handlers:
+                add_handler(self.type_handlers, th)
+        else:
+            self.type_handlers = _TYPE_HANDLERS
+
 
     def __str__(self):
         return """<%s at %s>
@@ -120,7 +131,7 @@ class GenericVersionStore(object):
 
     def _read_handler(self, version, symbol):
         handler = None
-        for h in _TYPE_HANDLERS:
+        for h in self.type_handlers:
             if h.can_read(version, symbol):
                 handler = h
                 break
@@ -130,7 +141,7 @@ class GenericVersionStore(object):
 
     def _write_handler(self, version, symbol, data, **kwargs):
         handler = None
-        for h in _TYPE_HANDLERS:
+        for h in self.type_handlers:
             if h.can_write(version, symbol, data, **kwargs):
                 handler = h
                 break

@@ -1,5 +1,6 @@
 import logging
 import pandas as pd
+import numpy as np
 import io
 from contextlib import contextmanager
 
@@ -14,12 +15,28 @@ def _dummy_open(file_like, _):
 
 class ParquetStore(object):
 
+    TYPE = 'parquet'
+
     @classmethod
     def initialize_library(cls, *args, **kwargs):
         pass
 
+    def can_delete(self, version, symbol):
+        return self.can_read(version, symbol)
+
+    def can_read(self, version, symbol):
+        return version['type'] == self.TYPE
+
+    def can_write(self, version, symbol, data):
+        if isinstance(data, pd.DataFrame):
+            if np.any(data.dtypes.values == 'object'):
+                # TODO to a proper check to see if we can convert to parquet
+                pass
+            return True
+        return False
+
     def get_info(self, version):
-        ret = {'type': 'parquet', 'handler': self.__class__.__name__}
+        ret = {'type': self.TYPE, 'handler': self.__class__.__name__}
         return ret
 
     def read(self, backing_store, library_name, version, symbol, **kwargs):
@@ -28,8 +45,8 @@ class ParquetStore(object):
         # TODO this is S3 functionality bleeding out of the backing store.
         # Currently reading a Pandas dataframe from a parquet bytes array fails as it only takes a file path.
         # Need a PR for Pandas and/or Parquet to fix this.
-        s3_path = "s3://{bucket}/{segment_key}".format(bucket=backing_store.bucket, segment_key=segment_keys[0])
-        return pd.read_parquet(s3_path, engine='fastparquet')
+        parquet_path = backing_store._make_segment_path(library_name, symbol, version['_id'])
+        return pd.read_parquet(parquet_path, engine='fastparquet')
 
     def write(self, backing_store, library_name, version, symbol, item, previous_version):
         output = io.BytesIO()
@@ -45,8 +62,10 @@ class ParquetStore(object):
         segment_keys = []
         for segment_data in data:
             segment_key = backing_store.write_segment(library_name, symbol,
-                                                      segment_data, previous_segment_keys)
+                                                      segment_data, previous_segment_keys,
+                                                      version['_id'])
             segment_keys.append(segment_key)
         version['segment_keys'] = segment_keys
+        version['type'] = self.TYPE
 
         #TODO Check written?

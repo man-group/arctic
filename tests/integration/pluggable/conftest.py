@@ -3,7 +3,7 @@ import boto3
 
 from moto import mock_s3
 
-from arctic.pluggable.key_value_datastore import S3KeyValueStore
+from arctic.pluggable.key_value_datastore import S3KeyValueStore, FileBasedKeyValueStore
 from arctic.pluggable.generic_version_store import register_versioned_storage, GenericVersionStore
 from arctic.pluggable._kv_ndarray_store import KeyValueNdarrayStore
 from arctic.pluggable._parquet_store import ParquetStore
@@ -36,14 +36,30 @@ def s3_store(s3_bucket, s3_client):
 
 
 @pytest.fixture()
+def file_store(tmpdir):
+    return FileBasedKeyValueStore(tmpdir)
+
+@pytest.fixture()
 def generic_version_store(library_name, s3_store):
-    register_versioned_storage(KeyValueNdarrayStore)
-    register_versioned_storage(PandasPanelStore)
-    register_versioned_storage(PandasSeriesStore)
-    register_versioned_storage(PandasDataFrameStore)
-    return GenericVersionStore(library_name, backing_store=s3_store)
+    type_handlers = [KeyValueNdarrayStore, PandasPanelStore, PandasSeriesStore, PandasDataFrameStore]
+    return GenericVersionStore(library_name, backing_store=s3_store, type_handlers=type_handlers)
 
 
 @pytest.fixture()
 def parquet_version_store(library_name, s3_store):
     return GenericVersionStore(library_name, backing_store=s3_store, bson_handler=ParquetStore())
+
+
+@pytest.fixture()
+def parquet_filebacked_version_store(library_name, file_store):
+    type_handlers = [ParquetStore]
+    return GenericVersionStore(library_name, backing_store=file_store, type_handlers=type_handlers)
+
+
+@pytest.fixture(params=['parquet_filebacked_version_store', 'generic_version_store'])
+def version_store(request):
+    return request.getfixturevalue(request.param)
+
+@pytest.fixture(params=['file_store', 's3_store'])
+def kv_store(request):
+    return request.getfixturevalue(request.param)
