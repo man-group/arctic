@@ -58,12 +58,13 @@ def test_read_object_2():
     coll = Mock()
     arctic_lib = Mock()
     coll.find.return_value = [{'data': Binary(compressHC(cPickle.dumps(object))),
-                               'symbol': 'sentinel.symbol'}
+                               'symbol': 'sentinel.symbol',
+                               'segment': 1}
                               ]
     arctic_lib.get_top_level_collection.return_value = coll
 
     assert PickleStore.read(self, arctic_lib, version, sentinel.symbol) == object
-    assert coll.find.call_args_list == [call({'symbol': sentinel.symbol, 'parent': sentinel._id}, sort=[('segment', 1)])]
+    assert coll.find.call_args_list == [call({'symbol': sentinel.symbol, 'parent': sentinel._id})]
 
 
 def test_read_with_base_version_id():
@@ -74,12 +75,13 @@ def test_read_with_base_version_id():
     coll = Mock()
     arctic_lib = Mock()
     coll.find.return_value = [{'data': Binary(compressHC(cPickle.dumps(object))),
-                               'symbol': 'sentinel.symbol'}
+                               'symbol': 'sentinel.symbol',
+                               'segment': 1}
                               ]
     arctic_lib.get_top_level_collection.return_value = coll
 
     assert PickleStore.read(self, arctic_lib, version, sentinel.symbol) == object
-    assert coll.find.call_args_list == [call({'symbol': sentinel.symbol, 'parent': sentinel.base_version_id}, sort=[('segment', 1)])]
+    assert coll.find.call_args_list == [call({'symbol': sentinel.symbol, 'parent': sentinel.base_version_id})]
 
 
 @pytest.mark.xfail(sys.version_info >= (3,),
