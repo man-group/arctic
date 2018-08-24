@@ -100,12 +100,20 @@ class FileBasedKeyValueStore(object):
         raise NotImplementedError()
 
     def read_version(self, library_name, symbol, as_of=None, version_id=None, snapshot_id=None):
+        if isinstance(as_of, str):
+            # TODO remove temp bodge to handle overloading of as_of
+            version_id = as_of
+            as_of = None
         version_id = self._find_version(library_name, symbol, as_of, version_id, snapshot_id)
         if version_id is None:
             return None
         version_path = self._make_version_path(library_name, symbol, version_id)
-        with open(version_path, 'rb') as f:
-            version_doc = BSON(f.read()).decode()
+        try:
+            with open(version_path, 'rb') as f:
+                version_doc = BSON(f.read()).decode()
+        except FileNotFoundError:
+            return None
+
         version_doc['version'] = version_id
         return version_doc
 

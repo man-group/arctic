@@ -29,6 +29,16 @@ def test_save_read_dict(version_store):
     assert d == saved_d
 
 
+def test_handles_missing_symbols(version_store):
+    assert version_store.has_symbol('my_dict_sdfsdf') is False
+
+
+def test_has_symbol(version_store):
+    df = pd.DataFrame({'a': [1, 2], 'b': [3.5, 4]})
+    version_store.write('MYARR', df)
+    assert version_store.has_symbol('MYARR')
+
+
 def test_multiple_write(version_store):
     df = pd.DataFrame({'a': range(1000), 'b': range(2000, 3000)})
     df.index.name = 'index'
@@ -39,8 +49,8 @@ def test_multiple_write(version_store):
     version_store.write('MYARR', df.iloc[:950])
     v3 = version_store.read('MYARR').version
 
-    assert np.all(df == version_store.read('MYARR', version_id=v1).data)
-    assert np.all(df.iloc[:900] == version_store.read('MYARR', version_id=v2).data)
-    assert np.all(df.iloc[:950] == version_store.read('MYARR', version_id=v3).data)
-    assert np.all(df.iloc[:950] == version_store.read('MYARR').data)
+    assert_frame_equal(df, version_store.read('MYARR', version_id=v1).data)
+    assert_frame_equal(df.iloc[:900], version_store.read('MYARR', version_id=v2).data)
+    assert_frame_equal(df.iloc[:950], version_store.read('MYARR', version_id=v3).data)
+    aassert_frame_equal(df.iloc[:950], version_store.read('MYARR').data)
 
