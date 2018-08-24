@@ -3,7 +3,6 @@ import hashlib
 import logging
 import pickle
 import six
-from operator import itemgetter
 
 import numpy as np
 import pandas as pd
