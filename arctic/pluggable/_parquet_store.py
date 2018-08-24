@@ -42,9 +42,6 @@ class ParquetStore(object):
     def read(self, backing_store, library_name, version, symbol, **kwargs):
         segment_keys = version['segment_keys']
         assert len(segment_keys) == 1, "should only be one segment for parquet"
-        # TODO this is S3 functionality bleeding out of the backing store.
-        # Currently reading a Pandas dataframe from a parquet bytes array fails as it only takes a file path.
-        # Need a PR for Pandas and/or Parquet to fix this.
         parquet_path = backing_store._make_segment_path(library_name, symbol, version['_id'])
         return pd.read_parquet(parquet_path, engine='fastparquet')
 

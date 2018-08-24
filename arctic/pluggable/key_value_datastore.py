@@ -16,7 +16,7 @@ import pandas as pd
 from arctic._compression import compress_array, decompress
 
 
-_CHUNK_SIZE = 2 * 1024 * 1024 - 2048  # ~2 MB (a bit less for usePowerOf2Sizes)
+_CHUNK_SIZE = 20 * 1024 * 1024  # 20Mb
 
 
 def _check_bucket(client, bucket_name):
@@ -27,19 +27,21 @@ def _check_bucket(client, bucket_name):
         raise ValueError("Bucket {} is not setup correctly."
                          " Does it exist and is versioning enabled?".format(bucket_name))
 
+
 def mkdir_p(path):
     try:
         os.makedirs(path)
     except OSError as exc:
         if exc.errno == errno.EEXIST and os.path.isdir(path):
             pass
-        else: raise
+        else:
+            raise
+
 
 def safe_open_wb(path):
     ''' Open "path" for writing, creating any parent directories as needed.'''
     mkdir_p(os.path.dirname(path))
     return open(path, 'wb')
-
 
 
 class FileBasedKeyValueStore(object):
@@ -51,8 +53,9 @@ class FileBasedKeyValueStore(object):
     {storage_directory}/{library_name}/data/{symbol}/{version}.parquet - segment documents
     {storage_directory}/{library_name}/snapshots/{snapname}.bson - snapshot documents
     """
-    def __init__(self, storage_directory):
+    def __init__(self, storage_directory, chunk_size=_CHUNK_SIZE):
         self.storage_directory = storage_directory
+        self.chunk_size = chunk_size
 
     def write_version(self, library_name, symbol, version_doc):
         version_id = str(objectid.ObjectId())
@@ -133,7 +136,8 @@ class FileBasedKeyValueStore(object):
                 return None
 
     def write_segment(self, library_name, symbol, segment_data, previous_segment_keys=set(), version_id=None):
-        assert version_id is not None, 'Version id required for the file store'
+        if version_id is None:
+            version_id = checksum(symbol, segment_data)
         segment_path = self._make_segment_path(library_name, symbol, version_id)
 
         # optimisation so we don't rewrite identical segments
