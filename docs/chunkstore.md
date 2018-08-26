@@ -23,7 +23,7 @@ At this point you have an empty Chunkstore library. You can write data to it sev
 
 `symbol, item, chunker=DateChunker(), **kwargs`
 
-`symbol` is the name that is used to store/retrieve the data in Arctic. `item` is the dataframe/series. If you wish to change the chunker type, you can use the keyword arg `chunker` to specify a new chunker. Optional keyword args are passed on to the chunker. For the case of DateRange chunker, you can specify a `chunk_size` (D, M, or Y).
+`symbol` is the name that is used to store/retrieve the data in Arctic. `item` is the dataframe/series. If you wish to change the chunker type, you can use the keyword arg `chunker` to specify a new chunker. Optional keyword args are passed on to the chunker. For the case of DateRange chunker, you can specify a `chunk_size` (D, M, Y, or any other datetime frequency supported by Panads).
 
 `write` is designed to write and replace data. If you write symbol `test` with one dataset and write it again with another, the original data will be overwritten.
 
