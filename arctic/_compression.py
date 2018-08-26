@@ -87,6 +87,7 @@ def compress_array(str_list, withHC=LZ4_HIGH_COMPRESSION):
     The list of the compressed strings.
     """
     global _compress_thread_pool
+
     if not str_list:
         return str_list
 
@@ -138,6 +139,8 @@ def decompress_array(str_list):
     """
     Decompress a list of strings
     """
+    global _compress_thread_pool
+
     if not str_list:
         return str_list
 
