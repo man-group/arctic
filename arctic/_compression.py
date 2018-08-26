@@ -144,4 +144,6 @@ def decompress_array(str_list):
     if not ENABLE_PARALLEL or len(str_list) <= LZ4_N_PARALLEL:
         return [lz4_decompress(chunk) for chunk in str_list]
 
+    if _compress_thread_pool is None:
+        _compress_thread_pool = ThreadPool(LZ4_WORKERS)
     return _compress_thread_pool.map(lz4_decompress, str_list)
