@@ -1,6 +1,6 @@
 # Chunkstore Overview
 
-(note: current doc is based on arctic-1.31.0)
+(note: current doc is based on arctic-1.68.0)
 
 Chunkstore serializes and stores Pandas Dataframes and Series into user defined chunks in MongoDB. Retrieving specific chunks, or ranges of chunks, is very fast and efficient. Chunkstore is optimized more for reading than for writing, and is ideal for use cases when very large datasets need to be accessed by 'chunk'.
 
@@ -93,6 +93,48 @@ date       id
 2016-01-03 1    300
 
 ```
+
+Since Chunkstore is column oriented, you can read out subsets of columns:
+
+
+```
+>>> df = DataFrame(data={'data': [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                         'open': [1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9],
+                         'close': [1.2, 2.3, 3.4, 4.5, 5.6, 6.7, 7.8, 8.9, 9.0],
+                         'prev_close': [.1, .2, .3, .4, .5, .6, .7, .8, .8],
+                         'volume': [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000]
+                         },
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1),
+                                                 (dt(2016, 2, 1), 1),
+                                                 (dt(2016, 2, 2), 1),
+                                                 (dt(2016, 2, 3), 1),
+                                                 (dt(2016, 3, 1), 1),
+                                                 (dt(2016, 3, 2), 1),
+                                                 (dt(2016, 3, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+
+>>> lib.write('column_test', df, chunk_size='D')
+>>> lib.read('column_test', columns=['prev_close', 'volume'])
+
+               prev_close  volume
+date       id                    
+2016-01-01 1          0.1    1000
+2016-01-02 1          0.2    2000
+2016-01-03 1          0.3    3000
+2016-02-01 1          0.4    4000
+2016-02-02 1          0.5    5000
+2016-02-03 1          0.6    6000
+2016-03-01 1          0.7    7000
+2016-03-02 1          0.8    8000
+2016-03-03 1          0.8    9000
+
+```
+
+Because the data is stored by column, Chunkstore can read out only the specific columns needed, which is far more efficient than reading out the entire dataframe and subsetting after the read.
+
 
 There are other ways to write data. Chunkstore supports `append` and `update` as well. The main difference between the two is that update is idempotent while append is not. If you continually append the same data N times, you'll get N copies of that data in the dataframe. Append only allows you to add data, it will not modify any data already written. Update is idempotent, and does allow you to modify already written data. Whereas append simply finds a chunk, and adds new data to it, update finds a chunk and replaces data in it with the new data. Let's take a look at some examples.
 
