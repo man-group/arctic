@@ -28,7 +28,7 @@ LZ4_MINSZ_PARALLEL = os.environ.get('LZ4_MINSZ_PARALLEL', 0.5*1024**2)  # 0.5 MB
 # Enable this when you run the benchmark_lz4.py
 BENCHMARK_MODE = False
 
-_compress_thread_pool = ThreadPool(LZ4_WORKERS)
+_compress_thread_pool = None
 
 
 def enable_parallel_lz4(mode):
@@ -86,6 +86,8 @@ def compress_array(str_list, withHC=LZ4_HIGH_COMPRESSION):
     `list[str`
     The list of the compressed strings.
     """
+    global _compress_thread_pool
+
     if not str_list:
         return str_list
 
@@ -95,6 +97,8 @@ def compress_array(str_list, withHC=LZ4_HIGH_COMPRESSION):
                    len(str_list) > LZ4_N_PARALLEL and len(str_list[0]) > LZ4_MINSZ_PARALLEL
 
     if BENCHMARK_MODE or use_parallel:
+        if _compress_thread_pool is None:
+            _compress_thread_pool = ThreadPool(LZ4_WORKERS)
         return _compress_thread_pool.map(do_compress, str_list)
 
     return [do_compress(s) for s in str_list]
@@ -135,10 +139,14 @@ def decompress_array(str_list):
     """
     Decompress a list of strings
     """
+    global _compress_thread_pool
+
     if not str_list:
         return str_list
 
     if not ENABLE_PARALLEL or len(str_list) <= LZ4_N_PARALLEL:
         return [lz4_decompress(chunk) for chunk in str_list]
 
+    if _compress_thread_pool is None:
+        _compress_thread_pool = ThreadPool(LZ4_WORKERS)
     return _compress_thread_pool.map(lz4_decompress, str_list)
