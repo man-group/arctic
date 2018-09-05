@@ -209,8 +209,12 @@ class NdarrayStore(object):
     def can_read(self, version, symbol):
         return version['type'] == self.TYPE
 
+    @staticmethod
+    def can_write_type(data):
+        return isinstance(data, np.ndarray)
+
     def can_write(self, version, symbol, data):
-        return isinstance(data, np.ndarray) and not data.dtype.hasobject
+        return self.can_write_type(data) and not data.dtype.hasobject
 
     def _dtype(self, string, metadata=None):
         if metadata is None:
@@ -239,6 +243,9 @@ class NdarrayStore(object):
         ret['handler'] = self.__class__.__name__
         ret['rows'] = int(version['up_to'])
         return ret
+
+    def read_options(self):
+        return ['from_version']
 
     def read(self, arctic_lib, version, symbol, read_preference=None, **kwargs):
         index_range = self._index_range(version, symbol, **kwargs)

@@ -12,12 +12,14 @@ import inspect
 import time
 import pytest
 import numpy as np
+import os
 
 import arctic
 from arctic._util import mongo_count
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException
 from arctic.date import DateRange
 from arctic.store import _version_store_utils
+from arctic.store import version_store
 
 from ...util import read_str_as_pandas
 from arctic.date._mktz import mktz
@@ -1493,3 +1495,40 @@ def test_snapshot_list_versions_after_delete(library, library_name):
     library.delete('symC')
 
     assert {v['symbol'] for v in library.list_versions(snapshot='snapA')} == {'symA', 'symB', 'symC'}
+
+
+def test_write_non_serializable_throw_behaviour(library):
+    sv = False
+    try:
+        # Save the existing setting
+        sv = version_store.AVOID_FALLBACK_HANDLERS
+
+        # Check that falling back to a pickle from a dataframe throws
+        version_store.AVOID_FALLBACK_HANDLERS = True
+        df = pd.DataFrame({'a': [dict(a=1)]})
+
+        with pytest.raises(ArcticException):
+            library.write('ns1', df)
+
+        # Check that saving a regular dataframe succeeds with this option set
+        library.write('ns2', ts1)
+        assert_frame_equal(ts1, library.read('ns2').data)
+
+        # Check that without it we still fall back to pickling when the dataframe handler fails
+        version_store.AVOID_FALLBACK_HANDLERS = False
+        library.write('ns3', df)
+        assert_frame_equal(df, library.read('ns3').data)
+
+        # When the option is set, we should now be unable to read this item when we specify a
+        # date range, even though it was written successfully
+        version_store.AVOID_FALLBACK_HANDLERS = True
+        with pytest.raises(ArcticException):
+            library.read('ns3', date_range=DateRange(dt(2017,1,1), dt(2017,1,2)))
+
+        # But should be able to read and write regular pickled items
+        a = [{'a': 'b'}]
+        library.write('ns4', a)
+        assert(library.read('ns4').data == a)
+
+    finally:
+        version_store.AVOID_FALLBACK_HANDLERS = sv
