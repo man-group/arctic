@@ -244,7 +244,8 @@ class NdarrayStore(object):
         ret['rows'] = int(version['up_to'])
         return ret
 
-    def read_options(self):
+    @staticmethod
+    def read_options():
         return ['from_version']
 
     def read(self, arctic_lib, version, symbol, read_preference=None, **kwargs):

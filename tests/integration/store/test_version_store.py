@@ -12,7 +12,6 @@ import inspect
 import time
 import pytest
 import numpy as np
-import os
 
 import arctic
 from arctic._util import mongo_count

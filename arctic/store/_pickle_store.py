@@ -57,7 +57,8 @@ class PickleStore(object):
             return pickle_compat_load(io.BytesIO(data))
         return version['data']
 
-    def read_options(self):
+    @staticmethod
+    def read_options():
         return []
 
     def write(self, arctic_lib, version, symbol, item, previous_version):
