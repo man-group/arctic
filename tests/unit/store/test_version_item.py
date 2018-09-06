@@ -17,6 +17,23 @@ def test_versioned_item_str():
     assert repr(item) == expected
 
 
+def test_versioned_item_default_host():
+    item = VersionedItem(symbol="sym",
+                         library="ONEMINUTE",
+                         data=[1, 2, 3],
+                         version=1.0,
+                         metadata={'metadata': 'foo'})
+
+    expected_item = VersionedItem(symbol="sym",
+                                  library="ONEMINUTE",
+                                  data=[1, 2, 3],
+                                  version=1.0,
+                                  host=None,
+                                  metadata={'metadata': 'foo'})
+
+    assert item == expected_item
+
+
 def test_versioned_item_str_handles_none():
     item = VersionedItem(symbol=None,
                          library=None,
