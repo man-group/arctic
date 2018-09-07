@@ -45,7 +45,7 @@ class ChunkStore(object):
     @classmethod
     def initialize_library(cls, arctic_lib, hashed=True, **kwargs):
         ChunkStore(arctic_lib)._ensure_index()
-        
+
         logger.info("Trying to enable sharding...")
         try:
             enable_sharding(arctic_lib.arctic, arctic_lib.get_name(), hashed=hashed, key=SYMBOL)
@@ -257,7 +257,7 @@ class ChunkStore(object):
 
         Returns
         -------
-        DataFrame or Series, or in the case when multiple symbols are given, 
+        DataFrame or Series, or in the case when multiple symbols are given,
         returns a dict of symbols (symbol -> dataframe/series)
         """
         if not isinstance(symbol, list):
@@ -267,7 +267,7 @@ class ChunkStore(object):
         if not sym:
             raise NoDataFoundException('No data found for %s' % (symbol))
 
-        
+
         spec = {SYMBOL: {'$in': symbol}}
         chunker = CHUNKER_MAP[sym[0][CHUNKER]]
         deser = SER_MAP[sym[0][SERIALIZER]].deserialize
@@ -505,7 +505,7 @@ class ChunkStore(object):
                 audit['appended_rows'] = appended
             self._audit.insert_one(audit)
 
-    def append(self, symbol, item, metadata=None, audit=None):
+    def append(self, symbol, item, upsert=False, metadata=None, audit=None, **kwargs):
         """
         Appends data from item to symbol's data in the database.
 
@@ -517,14 +517,21 @@ class ChunkStore(object):
             the symbol for the given item in the DB
         item: DataFrame or Series
             the data to append
+        upsert:
+            write data if symbol does not exist
         metadata: ?
             optional per symbol metadata
         audit: dict
             optional audit information
+        kwargs:
+            passed to write if upsert is true and symbol does not exist
         """
         sym = self._get_symbol_info(symbol)
         if not sym:
-            raise NoDataFoundException("Symbol does not exist.")
+            if upsert:
+                return self.write(symbol, item, metadata=metadata, audit=audit, **kwargs)
+            else:
+                raise NoDataFoundException("Symbol does not exist.")
         if audit is not None:
             audit['symbol'] = symbol
             audit['action'] = 'append'

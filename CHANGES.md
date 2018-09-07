@@ -3,6 +3,7 @@
 ### 1.69
   * Docs: VersionStore documentation
   * Bugfix: Issue #612 ThreadPool should be created by process using it
+  * Feature: Upsert option on appends in ChunkStore
 
 ### 1.68 (2018-08-17)
   * Feature: #553 Compatibility with both the new and old LZ4 API
