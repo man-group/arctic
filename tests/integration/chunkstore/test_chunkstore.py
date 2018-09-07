@@ -62,7 +62,7 @@ def test_write_dataframe_noindex(chunkstore_lib):
 def test_overwrite_dataframe(chunkstore_lib):
     df = create_test_data(size=4)
     dg = create_test_data(size=3)
-    
+
     chunkstore_lib.write('test_df', df)
     chunkstore_lib.write('test_df', dg)
     read_df = chunkstore_lib.read('test_df')
@@ -180,7 +180,7 @@ def test_append_daily(chunkstore_lib):
     df = create_test_data(size=10, index=True, multiindex=False)
     df2 = create_test_data(size=10, index=True, multiindex=False, date_offset=10)
 
-    chunkstore_lib.write('chunkstore_test', df, chunk_size='D')    
+    chunkstore_lib.write('chunkstore_test', df, chunk_size='D')
     chunkstore_lib.append('chunkstore_test', df2)
     ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 20)))
     assert_frame_equal(ret, pd.concat([df, df2]))
@@ -585,7 +585,7 @@ def test_get_info_after_append(chunkstore_lib):
             }
 
     assert(chunkstore_lib.get_info('test_df') == info)
-    
+
 
 def test_get_info_after_update(chunkstore_lib):
     df = DataFrame(data={'data': [1.1, 2.1, 3.1]},
@@ -699,6 +699,23 @@ def test_append_no_data(chunkstore_lib):
     with pytest.raises(NoDataFoundException) as e:
         chunkstore_lib.append('some_data', DataFrame())
     assert('Symbol does not exist.' in str(e))
+
+
+def test_append_upsert(chunkstore_lib):
+    df = DataFrame(data={'data': [1, 2, 3, 4, 5, 6, 7, 8, 9]},
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1),
+                                                 (dt(2016, 2, 1), 1),
+                                                 (dt(2016, 2, 2), 1),
+                                                 (dt(2016, 2, 3), 1),
+                                                 (dt(2016, 3, 1), 1),
+                                                 (dt(2016, 3, 2), 1),
+                                                 (dt(2016, 3, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+    chunkstore_lib.append('some_data', df, upsert=True)
+    assert_frame_equal(df, chunkstore_lib.read('some_data'))
 
 
 def test_append_no_new_data(chunkstore_lib):
@@ -854,7 +871,7 @@ def test_rename(chunkstore_lib):
     with pytest.raises(Exception) as e:
         chunkstore_lib.rename('new_name', 'new_name')
     assert('already exists' in str(e))
-    
+
     with pytest.raises(NoDataFoundException) as e:
         chunkstore_lib.rename('doesnt_exist', 'temp')
     assert('No data found for doesnt_exist' in str(e))
@@ -1094,13 +1111,13 @@ def test_metadata_update(chunkstore_lib):
                    index=pd.date_range('2016-01-01', '2016-01-02'))
     df.index.name = 'date'
     chunkstore_lib.write('data', df, metadata = 'some metadata', chunk_size='M')
-   
+
     df = DataFrame(data={'data': np.random.randint(0, 100, size=1)},
                    index=pd.date_range('2016-01-02', '2016-01-02'))
     df.index.name = 'date'
     chunkstore_lib.update('data', df, metadata='different metadata')
     m = chunkstore_lib.read_metadata('data')
-    assert(m == u'different metadata') 
+    assert(m == u'different metadata')
 
 
 def test_metadata_nosymbol(chunkstore_lib):
@@ -1147,24 +1164,24 @@ def test_audit(chunkstore_lib):
     df = DataFrame(data={'data': np.random.randint(0, 100, size=10)},
                    index=pd.date_range('2016-01-01', '2016-01-10'))
     df.index.name = 'date'
-    chunkstore_lib.write('data', df, audit={'user': 'other_user'})    
-    
+    chunkstore_lib.write('data', df, audit={'user': 'other_user'})
+
     assert(len(chunkstore_lib.read_audit_log()) == 2)
     assert(len(chunkstore_lib.read_audit_log(symbol='data')) == 2)
     assert(len(chunkstore_lib.read_audit_log(symbol='none')) == 0)
-    
+
     chunkstore_lib.append('data', df, audit={'user': 'test_user'})
     assert(chunkstore_lib.read_audit_log()[-1]['appended_rows'] == 10)
 
     df = DataFrame(data={'data': np.random.randint(0, 100, size=5)},
                    index=pd.date_range('2017-01-01', '2017-01-5'))
     df.index.name = 'date'
-    chunkstore_lib.update('data', df, audit={'user': 'other_user'})    
+    chunkstore_lib.update('data', df, audit={'user': 'other_user'})
     assert(chunkstore_lib.read_audit_log()[-1]['new_chunks'] == 5)
-    
+
     chunkstore_lib.rename('data', 'data_new', audit={'user': 'temp_user'})
     assert(chunkstore_lib.read_audit_log()[-1]['action'] == 'symbol rename')
-    
+
     chunkstore_lib.delete('data_new', chunk_range=DateRange('2016-01-01', '2016-01-02'), audit={'user': 'test_user'})
     chunkstore_lib.delete('data_new', audit={'user': 'test_user'})
     assert(chunkstore_lib.read_audit_log()[-1]['action'] == 'symbol delete')
@@ -1176,7 +1193,7 @@ def test_chunkstore_misc(chunkstore_lib):
     p = pickle.dumps(chunkstore_lib)
     c = pickle.loads(p)
     assert(chunkstore_lib._arctic_lib.get_name() == c._arctic_lib.get_name())
-    
+
     assert("arctic_test.TEST" in str(chunkstore_lib))
     assert(str(chunkstore_lib) == repr(chunkstore_lib))
 
@@ -1186,15 +1203,15 @@ def test_unsorted_index(chunkstore_lib):
                        'vals': range(2)}).set_index('date')
     df2 = pd.DataFrame({'date': [dt(2016,9,2), dt(2016,9,1)],
                         'vals': range(2)}).set_index('date')
-    
+
     chunkstore_lib.write('test_symbol', df)
     assert_frame_equal(df.sort_index(), chunkstore_lib.read('test_symbol'))
     chunkstore_lib.update('test_symbol', df2)
-    assert_frame_equal(chunkstore_lib.read('test_symbol'), 
+    assert_frame_equal(chunkstore_lib.read('test_symbol'),
                        pd.DataFrame({'date': pd.date_range('2016-8-31',
                                                            '2016-9-2'),
                                      'vals': [1,1,0]}).set_index('date'))
-    
+
 def test_unsorted_date_col(chunkstore_lib):
     df = pd.DataFrame({'date': [dt(2016,9,1), dt(2016,8,31)],
                        'vals': range(2)})
@@ -1208,7 +1225,7 @@ def test_unsorted_date_col(chunkstore_lib):
         df = df.sort(columns='date')
     assert_frame_equal(df.reset_index(drop=True), chunkstore_lib.read('test_symbol'))
     chunkstore_lib.update('test_symbol', df2)
-    assert_frame_equal(chunkstore_lib.read('test_symbol'), 
+    assert_frame_equal(chunkstore_lib.read('test_symbol'),
                        pd.DataFrame({'date': pd.date_range('2016-8-31',
                                                            '2016-9-2'),
                                      'vals': [1,1,0]}))
@@ -1261,12 +1278,12 @@ def test_chunkstore_multiread_samedate(chunkstore_lib):
 
 def test_write_dataframe_with_func(chunkstore_lib):
     def f(data):
-        data['data0'] += 1.0
+        data.loc[ :, 'data0'] += 1.0
         return data
 
     df = create_test_data()
     chunkstore_lib.write('test_df', df, chunk_size='D', func=f)
     read_df = chunkstore_lib.read('test_df')
-    
-    df['data0'] += 1.0
+
+    df.loc[ :, 'data0'] += 1.0
     assert_frame_equal(df, read_df)

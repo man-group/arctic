@@ -1,6 +1,6 @@
 # Chunkstore Overview
 
-(note: current doc is based on arctic-1.68.0)
+(note: current doc is based on arctic-1.69.0)
 
 Chunkstore serializes and stores Pandas Dataframes and Series into user defined chunks in MongoDB. Retrieving specific chunks, or ranges of chunks, is very fast and efficient. Chunkstore is optimized more for reading than for writing, and is ideal for use cases when very large datasets need to be accessed by 'chunk'.
 
@@ -231,7 +231,7 @@ Let's take a look at the arguments that `append` and `update` take.
 
 `append: symbol, item`
 
-Append is quite simple - it takes a symbol name to append to, and item to append.
+Append is quite simple - it takes a symbol name to append to, and item to append. Append also supports the keyword arg `upsert` which, if set to `True`, allows the data to be written if it does not already exist.
 
 `update: symbol, item, chunk_range=None, upsert=False, **kwargs`
 
