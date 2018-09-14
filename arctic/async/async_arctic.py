@@ -1,23 +1,30 @@
 import logging
+import os
 import time
 from collections import defaultdict
+from functools import wraps
 from threading import RLock
 
-from concurrent.futures import ThreadPoolExecutor, wait, as_completed, FIRST_EXCEPTION
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
 
 from .async_utils import AsyncRequestType, AsyncRequest
 from arctic.exceptions import AsyncArcticException
 
-ARCTIC_ASYNC_NTHREADS = 4
-BATCH_SIZE = 10
+ARCTIC_ASYNC_NTHREADS = os.environ.get('ARCTIC_ASYNC_NTHREADS', 4)
 
 
 def _task_exec(request):
     request.start_time = time.time()
-    logging.info("Executing asynchronous request for library: {}".format(request.library, request.symbol))
-    result = request.fun(*request.args, **request.kwargs)
-    request.data = result
-    request.end_time = time.time()
+    logging.debug("Executing asynchronous request for library: {}".format(request.library, request.symbol))
+    result = None
+    try:
+        result = request.fun(*request.args, **request.kwargs)
+    except Exception as e:
+        request.exception = e
+        raise
+    finally:
+        request.data = result
+        request.end_time = time.time()
     return result
 
 
@@ -61,9 +68,9 @@ class AsyncArctic(object):
     def __reduce__(self):
         return "ASYNC_ARCTIC"
 
-    def reset(self, wait=True, pool_size=ARCTIC_ASYNC_NTHREADS):
+    def reset(self, block=True, pool_size=ARCTIC_ASYNC_NTHREADS):
         with AsyncArctic._POOL_INIT_LOCK:
-            self._workers_pool.shutdown(wait=wait)
+            self._workers_pool.shutdown(wait=block)
             pool_size = max(pool_size, 1)
             self._pool = None
             self._pool_size = pool_size
@@ -85,12 +92,7 @@ class AsyncArctic(object):
         kind = AsyncRequestType.MODIFIER if is_modifier else AsyncRequestType.ACCESSOR
 
         callback = kwargs.get('async_callback')
-        if 'async_callback' in kwargs:
-            kwargs.pop('async_callback')
-
         block = bool(kwargs.get('async_block'))
-        if 'async_block' in kwargs:
-            kwargs.pop('async_block')
 
         if block and callback:
             raise AsyncArcticException("Can't use both async_callback and async_block")
@@ -99,6 +101,12 @@ class AsyncArctic(object):
     
     def submit_request(self, store, fun, is_modifier, *args, **kwargs):
         library_name, symbol, kind, callback, block = AsyncArctic._verify_request(store, is_modifier, **kwargs)
+
+        if 'async_callback' in kwargs:
+            kwargs.pop('async_callback')
+
+        if 'async_block' in kwargs:
+            kwargs.pop('async_block')
 
         with AsyncArctic._TASK_SUBMIT_LOCK:
             if self._get_modifiers(library_name, symbol):
@@ -110,7 +118,7 @@ class AsyncArctic(object):
                                            "more {} tasks".format(AsyncRequestType.ACCESSOR, AsyncRequestType.MODIFIER))
 
             # Create the request object
-            request = AsyncRequest(kind, library_name, symbol, fun, *args, **kwargs)
+            request = AsyncRequest(kind, library_name, fun, *args, **kwargs)
 
             # Update the state of tracked tasks
             self.requests_per_library[library_name][symbol][kind].append(request)
@@ -118,16 +126,18 @@ class AsyncArctic(object):
             # Submit the task
             try:
                 request.future = self._workers_pool.submit(_task_exec, request)
-                if block:
-                    AsyncArctic._wait_request(request)
-                elif callback:
-                    request.future.add_done_callback(lambda the_future: self._request_finished(request, callback))
             except:
                 # clean up the state
                 self.requests_per_library[request.library][request.symbol][request.kind].remove(request)
                 raise
 
-            return request
+        # No need to hold the lock for the below
+        if block:
+            AsyncArctic._wait_request(request)
+        elif callback:
+            request.future.add_done_callback(lambda the_future: self._request_finished(request, callback))
+
+        return request
 
     def _request_finished(self, request, callback):
         request.future = None
@@ -146,4 +156,21 @@ class AsyncArctic(object):
 
 
 ASYNC_ARCTIC = AsyncArctic.get_instance()
+
 async_arctic_submit = ASYNC_ARCTIC.submit_request
+async_join_request = ASYNC_ARCTIC._wait_request
+async_reset_pool = ASYNC_ARCTIC.reset
+
+
+def async_modifier(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        return async_arctic_submit(self, func, True, *args, **kwargs)
+    return wrapper
+
+
+def async_accessor(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        return async_arctic_submit(self, func, False, *args, **kwargs)
+    return wrapper

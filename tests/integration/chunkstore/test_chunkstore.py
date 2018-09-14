@@ -24,7 +24,7 @@ def create_test_data(size=5, index=True, multiindex=True, random_data=True, rand
             data['data' + str(i)] = [random.random() * random.randint(-100, 100) for _ in range(size)]
         else:
             data['data' + str(i)] = range(size)
-    dates = [dt(2016, 1, 1) + timedelta(days=n+date_offset) for n in range(size)]
+    dates = [dt(2016, 1, 1) + timedelta(hours=n+date_offset) for n in range(size)]
     if index:
         if multiindex:
             if random_ids:

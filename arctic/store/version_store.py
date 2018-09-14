@@ -6,6 +6,7 @@ from pymongo import ReadPreference
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
+#from ..async.async_arctic import async_modifier
 from .._util import indent, enable_sharding, mongo_count
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
@@ -559,6 +560,7 @@ class VersionStore(object):
         if self._publish_changes:
             mongo_retry(self._changes.insert_one)(version)
 
+    #@async_modifier
     @mongo_retry
     def write(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
         """
