@@ -2,12 +2,12 @@ from six.moves import xrange
 
 import arctic
 from arctic.async import ASYNC_ARCTIC, async_arctic_submit, async_join_request
-from tests.integration.chunkstore.test_chunkstore import create_test_data
+from tests.integration.chunkstore.test_utils import create_test_data
 
 ASYNC_ARCTIC.reset(block=True, pool_size=8)
 
 a = arctic.Arctic('localhost:37917')
-library_name = 'dimos.test'
+library_name = 'asyncbench.test'
 
 data_to_write = create_test_data(size=1000000, index=True, multiindex=False, random_data=True, random_ids=True,
                                  date_offset=0, cols=10)

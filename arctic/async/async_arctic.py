@@ -35,6 +35,12 @@ class AsyncArctic(object):
     _TASK_SUBMIT_LOCK = RLock()
 
     @staticmethod
+    def is_initialized():
+        with AsyncArctic._POOL_INIT_LOCK:
+            is_init = AsyncArctic._instance is not None and AsyncArctic._instance._pool is not None
+        return is_init
+
+    @staticmethod
     def get_instance():
         # Lazy init
         with AsyncArctic._SINGLETON_LOCK:
@@ -49,6 +55,8 @@ class AsyncArctic(object):
             if self._pool is None:
                 self._pool = ThreadPoolExecutor(max_workers=self._pool_size,
                                                 thread_name_prefix='AsyncArcticWorker')
+            for hook in self._pool_update_hooks:
+                hook(self._pool_size)
         return self._pool
 
     def __init__(self):
@@ -64,6 +72,7 @@ class AsyncArctic(object):
             self._pool = None
             self._pool_size = ARCTIC_ASYNC_NTHREADS
             self.requests_per_library = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+            self._pool_update_hooks = []
 
     def __reduce__(self):
         return "ASYNC_ARCTIC"
