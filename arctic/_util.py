@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 _use_new_count_api = None
 
 
+MAX_DOCUMENT_SIZE = int(pymongo.common.MAX_BSON_SIZE * 0.75)
+
+
 def _detect_new_count_api():
     try:
         mongo_v = [int(v) for v in pymongo.version.split('.')]

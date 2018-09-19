@@ -92,7 +92,7 @@ def test_serialize_pandas_to_recarray(input_df):
 @pytest.mark.parametrize("input_df", _test_data().keys())
 def test_serialize_incremental_pandas_to_recarray(input_df):
     incr_ser = IncrementalPandasToRecArraySerializer(df_serializer, _test_data()[input_df][0])
-    chunk_bytes = [chunk_b for chunk_b, _ in incr_ser.generator_bytes]
+    chunk_bytes = [chunk_b for chunk_b, _ in incr_ser.generator_bytes()]
 
     matching = _test_data()[input_df][1][0].tostring() == b''.join(chunk_bytes)
     assert matching
@@ -107,7 +107,17 @@ def test_serialize_incremental_chunk_size_pandas_to_recarray(input_df):
             row_size = int(_test_data()[input_df][1][0].dtype.itemsize)
             chunk_size = NON_HOMOGENEOUS_DTYPE_PATCH_SIZE_ROWS * row_size / div
         incr_ser = IncrementalPandasToRecArraySerializer(df_serializer, _test_data()[input_df][0], chunk_size=chunk_size)
-        chunk_bytes = [chunk[0] for chunk in incr_ser.generator_bytes]
+        chunk_bytes = [chunk[0] for chunk in incr_ser.generator_bytes()]
         matching = _test_data()[input_df][1][0].tostring() == b''.join(chunk_bytes)
         assert matching
         assert _test_data()[input_df][1][1] == incr_ser.dtype
+
+
+def test_shape(input_df):
+    #TODO: Add implementation
+    pass
+
+
+def test_generator_bytes_offset(input_df):
+    # TODO: Add implementation
+    pass

@@ -1,21 +1,30 @@
 import abc
+import hashlib
 import logging
 
 import numpy as np
 import pandas as pd
+from bson import Binary
 from six.moves import xrange
 
 from arctic.serialization.numpy_records import PandasSerializer
+from .._compression import compress, compress_array
 from ..exceptions import ArcticSerializationException
-from ..store._ndarray_store import MAX_DOCUMENT_SIZE, _CHUNK_SIZE
+from .._util import MAX_DOCUMENT_SIZE
 
 
 ABC = abc.ABCMeta('ABC', (object,), {})
 log = logging.getLogger(__name__)
 
 
+def incremental_checksum(item, curr_sha=None, is_bytes=False):
+    curr_sha = hashlib.sha1() if curr_sha is None else curr_sha
+    curr_sha.update(item if is_bytes else item.tostring())
+    return curr_sha
+
+
 class LazyIncrementalSerializer(ABC):
-    def __init__(self, serializer, input_data, chunk_size=_CHUNK_SIZE):
+    def __init__(self, serializer, input_data, chunk_size):
         if chunk_size < 1:
             raise ArcticSerializationException("LazyIncrementalSerializer can't be initialized "
                                                "with chunk_size < 1 ({})".format(chunk_size))
@@ -26,6 +35,7 @@ class LazyIncrementalSerializer(ABC):
         self.chunk_size = chunk_size
         self._serializer = serializer
         self._initialized = False
+        self._checksum = None
 
     @abc.abstractmethod
     def __len__(self):
@@ -45,7 +55,7 @@ class LazyIncrementalSerializer(ABC):
 
 
 class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
-    def __init__(self, serializer, input_data, chunk_size=_CHUNK_SIZE, string_max_len=None):
+    def __init__(self, serializer, input_data, chunk_size, string_max_len=None):
         super(IncrementalPandasToRecArraySerializer, self).__init__(serializer, input_data, chunk_size)
         if not isinstance(serializer, PandasSerializer):
             raise ArcticSerializationException("IncrementalPandasToRecArraySerializer requires a serializer of "
@@ -59,6 +69,7 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
         self.string_max_len = string_max_len
         # The state which needs to be lazily initialized
         self._dtype = None
+        self._shape = None
         self._rows_per_chunk = 0
         self._total_chunks = 0
         self._has_string_object = False
@@ -113,6 +124,9 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
 
         # Initialize object's state
         self._dtype = dtype
+        shp = list(first_chunk.shape)
+        shp[0] = len(self)
+        self._shape = tuple(shp)
         self._has_string_object = has_string_object
         self._rows_per_chunk = rows_per_chunk
         self._total_chunks = int(np.ceil(float(len(self)) / self._rows_per_chunk)) if rows_per_chunk > 0 else 0
@@ -138,7 +152,8 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
 
     @property
     def shape(self):
-        return self.input_data.shape
+        self._lazy_init()
+        return self._shape
 
     @property
     def dtype(self):
@@ -150,29 +165,49 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
         self._lazy_init()
         return self._rows_per_chunk
 
-    @property
-    def generator(self):
-        return self._generator()
+    def checksum(self, from_idx, to_idx):
+        if self._checksum is None:
+            self._lazy_init()
+            total_sha = None
+            for chunk_bytes, dtype in self.generator_bytes(from_idx=from_idx, to_idx=to_idx):
+                # TODO: what about compress_array here in batches?
+                compressed_chunk = compress(chunk_bytes)
+                total_sha = incremental_checksum(compressed_chunk, curr_sha=total_sha, is_bytes=True)
+            self._checksum = Binary(total_sha.digest())
+        return self._checksum
 
-    @property
-    def generator_bytes(self):
-        return self._generator(get_bytes=True)
+    def generator(self, from_idx=None, to_idx=None):
+        return self._generator(from_idx=from_idx, to_idx=to_idx)
 
-    def _generator(self, get_bytes=False):
+    def generator_bytes(self, from_idx=None, to_idx=None):
+        return self._generator(from_idx=from_idx, to_idx=to_idx, get_bytes=True)
+
+    def _generator(self, from_idx, to_idx, get_bytes=False):
         self._lazy_init()
 
         if len(self) == 0:
             return
 
+        from_idx = 0 if from_idx is None else from_idx
+        to_idx = len(self) if to_idx is None else to_idx
+
         # Perform serialization for each chunk
         for i in xrange(self._total_chunks):
+            start_at = max(i * self._rows_per_chunk, from_idx)
+            stop_at = min(to_idx, (i + 1) * self._rows_per_chunk)
+
             chunk, _ = self._serializer.serialize(
-                self.input_data[i * self._rows_per_chunk: (i + 1) * self._rows_per_chunk],
+                self.input_data[start_at: stop_at],
                 string_max_len=self.string_max_len,
                 forced_dtype=self.dtype if self._has_string_object else None)
             # Let the gc collect the intermediate serialized chunk as early as possible
             chunk = chunk.tostring() if chunk is not None and get_bytes else chunk
             yield chunk, self.dtype
+
+    # TODO: ADD method which creates an offset mark, to be used for from_idx in subsequent generators
+
+    # def can_convert_to_records_without_objects(self):
+    #     return self._serializer.can_convert_to_records_without_objects()
 
     def serialize(self):
         return self._serializer.serialize(self.input_data, self.string_max_len)

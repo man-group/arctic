@@ -1,15 +1,17 @@
 import ast
 import logging
+import os
 
+import numpy as np
 from bson.binary import Binary
 from pandas import DataFrame, Series, Panel
-import numpy as np
 
+from arctic.serialization.incremental import IncrementalPandasToRecArraySerializer
 from arctic.serialization.numpy_records import SeriesSerializer, DataFrameSerializer
 from .._compression import compress, decompress
 from ..date._util import to_pandas_closed_closed
 from ..exceptions import ArcticException
-from ._ndarray_store import NdarrayStore
+from ._ndarray_store import NdarrayStore, _CHUNK_SIZE
 
 
 log = logging.getLogger(__name__)
@@ -18,16 +20,18 @@ DTN64_DTYPE = 'datetime64[ns]'
 
 INDEX_DTYPE = [('datetime', DTN64_DTYPE), ('index', 'i8')]
 
+USE_INCREMENTAL_SERIALIZER = bool(os.environ.get('USE_INCREMENTAL_SERIALIZER'))
+
 
 class PandasStore(NdarrayStore):
 
-    def _segment_index(self, recarr, existing_index, start, new_segments):
+    def _segment_index(self, recarr_or_df, existing_index, start, new_segments):
         """
         Generate index of datetime64 -> item offset.
 
         Parameters:
         -----------
-        new_data: new data being written (or appended)
+        recarr_or_df: new data being written (or appended). Accepts both recarray and dataframe
         existing_index: index field from the versions document of the previous version
         start: first (0-based) offset of the new data
         segments: list of offsets. Each offset is the row index of the
@@ -40,15 +44,21 @@ class PandasStore(NdarrayStore):
             Where index is the 0-based index of the datetime in the DataFrame
         """
         # find the index of the first datetime64 column
-        idx_col = self._datetime64_index(recarr)
+        idx_col = self._datetime64_index(recarr_or_df) if isinstance(recarr_or_df,
+                                                                     (np.recarray, np.ndarray)) else recarr_or_df.index
         # if one exists let's create the index on it
         if idx_col is not None:
+            # Create the indexed segments (tstamps + segment position)
             new_segments = np.array(new_segments, dtype='i8')
-            last_rows = recarr[new_segments - start]
+            if isinstance(recarr_or_df, (np.recarray, np.ndarray)):
+                last_rows = recarr_or_df[new_segments - start]
+                indexed_segments = [last_rows[idx_col]] + [new_segments]
+            else:
+                indexed_segments = [idx_col[new_segments - start]._ndarray_values] + [new_segments]
+
             # create numpy index
-            index = np.core.records.fromarrays([last_rows[idx_col]]
-                                               + [new_segments, ],
-                                               dtype=INDEX_DTYPE)
+            index = np.core.records.fromarrays(indexed_segments, dtype=INDEX_DTYPE)
+
             # append to existing index if exists
             if existing_index:
                 # existing_index_arr is read-only but it's never written to
@@ -64,8 +74,7 @@ class PandasStore(NdarrayStore):
     def _datetime64_index(self, recarr):
         """ Given a np.recarray find the first datetime64 column """
         # TODO: Handle multi-indexes
-        names = recarr.dtype.names
-        for name in names:
+        for name in recarr.dtype.names:
             if recarr[name].dtype == DTN64_DTYPE:
                 return name
         return None
@@ -118,6 +127,15 @@ class PandasStore(NdarrayStore):
         ret['dtype'] = ast.literal_eval(version['dtype'])
         return ret
 
+    @staticmethod
+    def _do_serialize(item, serializer, incremental_serializer_cls=None):
+        if USE_INCREMENTAL_SERIALIZER and incremental_serializer_cls is not None:
+            item = incremental_serializer_cls(serializer=serializer, input_data=item, chunk_size=_CHUNK_SIZE)
+            md = None  # will be triggered later, as acessing .dtype triggers the lazy_init
+        else:
+            item, md = serializer.serialize(item)
+        return item, md
+
 
 def _start_end(date_range, dts):
     """
@@ -142,6 +160,7 @@ def _assert_no_timezone(date_range):
 class PandasSeriesStore(PandasStore):
     TYPE = 'pandasseries'
     SERIALIZER = SeriesSerializer()
+    INCREMENTAL_SERIALIZER_CLS = None
 
     def can_write(self, version, symbol, data):
         if isinstance(data, Series):
@@ -151,7 +170,7 @@ class PandasSeriesStore(PandasStore):
         return False
 
     def write(self, arctic_lib, version, symbol, item, previous_version):
-        item, md = self.SERIALIZER.serialize(item)
+        item, md = self._do_serialize(item, self.SERIALIZER, self.INCREMENTAL_SERIALIZER_CLS)
         super(PandasSeriesStore, self).write(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
     def append(self, arctic_lib, version, symbol, item, previous_version, **kwargs):
@@ -166,6 +185,7 @@ class PandasSeriesStore(PandasStore):
 class PandasDataFrameStore(PandasStore):
     TYPE = 'pandasdf'
     SERIALIZER = DataFrameSerializer()
+    INCREMENTAL_SERIALIZER_CLS = IncrementalPandasToRecArraySerializer
 
     def can_write(self, version, symbol, data):
         if isinstance(data, DataFrame):
@@ -175,7 +195,7 @@ class PandasDataFrameStore(PandasStore):
         return False
 
     def write(self, arctic_lib, version, symbol, item, previous_version):
-        item, md = self.SERIALIZER.serialize(item)
+        item, md = self._do_serialize(item, self.SERIALIZER, self.INCREMENTAL_SERIALIZER_CLS)
         super(PandasDataFrameStore, self).write(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
     def append(self, arctic_lib, version, symbol, item, previous_version, **kwargs):
@@ -189,6 +209,7 @@ class PandasDataFrameStore(PandasStore):
 
 class PandasPanelStore(PandasDataFrameStore):
     TYPE = 'pandaspan'
+    INCREMENTAL_SERIALIZER_CLS = None
 
     def can_write(self, version, symbol, data):
         if isinstance(data, Panel):

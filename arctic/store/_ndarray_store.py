@@ -11,18 +11,19 @@ from pymongo.errors import OperationFailure, DuplicateKeyError
 from arctic._util import mongo_count
 from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException, DataIntegrityException
+from ..serialization.incremental import LazyIncrementalSerializer
 from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
-
-from .._compression import compress_array, decompress
+from .._compression import compress_array, compress, decompress
 from six.moves import xrange
 
 
 logger = logging.getLogger(__name__)
 
-MAX_DOCUMENT_SIZE = int(pymongo.common.MAX_BSON_SIZE * 0.75)
 _CHUNK_SIZE = 2 * 1024 * 1024 - 2048  # ~2 MB (a bit less for usePowerOf2Sizes)
 _APPEND_SIZE = 1 * 1024 * 1024  # 1MB
 _APPEND_COUNT = 60  # 1 hour of 1 min data
+
+MONGO_BATCH_SIZE = os.environ.get('MONGO_BATCH_SIZE')
 
 # Enabling the following has roughly a 5-7% performance hit (off by default)
 _CHECK_CORRUPTION_ON_APPEND = bool(os.environ.get('CHECK_CORRUPTION_ON_APPEND'))
@@ -467,10 +468,17 @@ class NdarrayStore(object):
                                                   "Parent: %s \n segments: %s" %
                                                   (seen_chunks, version['segment_count'], parent_id, segments))
 
-    def checksum(self, item):
+    @staticmethod
+    def checksum(item):
         sha = hashlib.sha1()
         sha.update(item.tostring())
         return Binary(sha.digest())
+
+    @staticmethod
+    def incremental_checksum(item, curr_sha=None, is_bytes=False):
+        curr_sha = hashlib.sha1() if curr_sha is None else curr_sha
+        curr_sha.update(item if is_bytes else item.tostring())
+        return curr_sha
 
     def write(self, arctic_lib, version, symbol, item, previous_version, dtype=None):
         collection = arctic_lib.get_top_level_collection()
@@ -484,19 +492,43 @@ class NdarrayStore(object):
         version['dtype_metadata'] = dict(dtype.metadata or {})
         version['type'] = self.TYPE
         version['up_to'] = len(item)
-        version['sha'] = self.checksum(item)
+
+        is_incremental_serializer = isinstance(item, LazyIncrementalSerializer)
 
         if previous_version:
+            if is_incremental_serializer:
+                # TODO: for now fall back to non-incremental serialization
+                #       to compute the checksum we serialize once anyway (non mem footprint-friendly though)
+                item, dtype = item.serialize()
+                version['dtype'] = str(dtype)
+                is_incremental_serializer = False
+                # overlapping_checksum = item.checksum(0, previous_version['up_to'])
+                # # TODO: pass an incremental serializer with an offset at "previous_version['up_to']:"
+                # new_rows = item.input_data[previous_version['up_to']:]
+
+            overlapping_checksum = self.checksum(item[:previous_version['up_to']])
+            new_rows = item[previous_version['up_to']:]
+
             if 'sha' in previous_version \
                     and previous_version['dtype'] == version['dtype'] \
-                    and self.checksum(item[:previous_version['up_to']]) == previous_version['sha']:
+                    and overlapping_checksum == previous_version['sha']:
                 # The first n rows are identical to the previous version, so just append.
                 # Do a 'dirty' append (i.e. concat & start from a new base version) for safety
-                self._do_append(collection, version, symbol, item[previous_version['up_to']:], previous_version, dirty_append=True)
+                # TODO: do not recompute from scratch, rather do incremental checksum
+                version['sha'] = self.checksum(item)
+                # TODO: Enable incremental serialization also for appends
+                self._do_append(collection, version, symbol, new_rows, previous_version,
+                                dirty_append=True)
                 return
 
+        if is_incremental_serializer:
+            version['sha'], version['up_to'] = self._do_write_generator(collection, version,
+                                                                        symbol, item, previous_version)
+        else:
+            # TODO: do not recompute from scratch, rather do incremental checksum
+            version['sha'] = self.checksum(item)
+            self._do_write(collection, version, symbol, item, previous_version)
         version['base_sha'] = version['sha']
-        self._do_write(collection, version, symbol, item, previous_version)
 
     def _do_write(self, collection, version, symbol, item, previous_version, segment_offset=0):
 
@@ -543,6 +575,9 @@ class NdarrayStore(object):
             else:
                 bulk.append(pymongo.UpdateOne({'symbol': symbol, 'sha': sha, 'segment': segment['segment']},
                                               {'$addToSet': {'parent': version['_id']}}))
+        # TODO: why write the whole bulk and not write in smaller batches?
+        #       This would reduce the memory footprint for large items.
+        #       Also, mongo_retry could be used here
         if i != -1:
             collection.bulk_write(bulk, ordered=False)
 
@@ -555,6 +590,74 @@ class NdarrayStore(object):
         version['append_count'] = 0
 
         self.check_written(collection, symbol, version)
+
+    def _do_write_generator(self, collection, version, symbol, items_lazy_ser, previous_version, segment_offset=0):
+        previous_shas = []
+        if previous_version:
+            previous_shas = set([Binary(x['sha']) for x in
+                                 collection.find({'symbol': symbol},
+                                                 projection={'sha': 1, '_id': 0},
+                                                 )
+                                 ])
+
+        if segment_offset > 0 and 'segment_index' in previous_version:
+            existing_index = previous_version['segment_index']
+        else:
+            existing_index = None
+
+        segment_index = []
+        i = -1
+        total_sha = None
+        bulk = []
+        orig_data = items_lazy_ser.input_data
+        length = len(items_lazy_ser)
+
+        for chunk_bytes, dtype in items_lazy_ser.generator_bytes():
+            i += 1
+            compressed_chunk = compress(chunk_bytes)
+            total_sha = self.incremental_checksum(compressed_chunk, curr_sha=total_sha, is_bytes=True)
+            segment = {'data': Binary(compressed_chunk),
+                       'compressed': True,
+                       'segment': min((i + 1) * items_lazy_ser.rows_per_chunk - 1, length - 1) + segment_offset}
+            segment_index.append(segment['segment'])
+            segment_sha = checksum(symbol, segment)
+
+            if segment_sha not in previous_shas:
+                segment['sha'] = segment_sha
+                op = pymongo.UpdateOne({'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
+                                       {'$set': segment, '$addToSet': {'parent': version['_id']}},
+                                       upsert=True)
+                bulk.append(op)
+            else:
+                op = pymongo.UpdateOne({'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
+                                       {'$addToSet': {'parent': version['_id']}})
+                bulk.append(op)
+
+            if len(bulk) >= MONGO_BATCH_SIZE:
+                collection.bulk_write(bulk, ordered=False)
+                del bulk[:]
+
+        if bulk:
+            collection.bulk_write(bulk, ordered=False)
+
+        if i != -1:
+            total_sha = Binary(total_sha.digest())
+        else:
+            # Zero sized data
+            emptyser, _ = items_lazy_ser.serialize()
+            total_sha = self.checksum(emptyser)
+
+        segment_index = self._segment_index(orig_data, existing_index=existing_index, start=segment_offset,
+                                            new_segments=segment_index)
+        if segment_index:
+            version['segment_index'] = segment_index
+        version['segment_count'] = i + 1
+        version['append_size'] = 0
+        version['append_count'] = 0
+
+        self.check_written(collection, symbol, version)
+
+        return total_sha, length
 
     def _segment_index(self, new_data, existing_index, start, new_segments):
         """
