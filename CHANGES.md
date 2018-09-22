@@ -1,6 +1,9 @@
 ## Changelog
 
-### 1.69
+### 1.70
+  * Bugfix: #629 - Column kwarg no longer modified
+
+### 1.69 (2018-09-12)
   * Docs: VersionStore documentation
   * Bugfix: Issue #612 ThreadPool should be created by process using it
   * Feature: Upsert option on appends in ChunkStore
