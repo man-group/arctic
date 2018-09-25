@@ -506,20 +506,19 @@ class NdarrayStore(object):
                 # # TODO: pass an incremental serializer with an offset at "previous_version['up_to']:"
                 # new_rows = item.input_data[previous_version['up_to']:]
 
-            overlapping_checksum = self.checksum(item[:previous_version['up_to']])
-            new_rows = item[previous_version['up_to']:]
-
             if 'sha' in previous_version \
-                    and previous_version['dtype'] == version['dtype'] \
-                    and overlapping_checksum == previous_version['sha']:
-                # The first n rows are identical to the previous version, so just append.
-                # Do a 'dirty' append (i.e. concat & start from a new base version) for safety
-                # TODO: do not recompute from scratch, rather do incremental checksum
-                version['sha'] = self.checksum(item)
-                # TODO: Enable incremental serialization also for appends
-                self._do_append(collection, version, symbol, new_rows, previous_version,
-                                dirty_append=True)
-                return
+                    and previous_version['dtype'] == version['dtype']:
+                overlapping_checksum = self.checksum(item[:previous_version['up_to']])
+                if overlapping_checksum == previous_version['sha']:
+                    # The first n rows are identical to the previous version, so just append.
+                    # Do a 'dirty' append (i.e. concat & start from a new base version) for safety
+                    # TODO: do not recompute from scratch, rather do incremental checksum
+                    version['sha'] = self.checksum(item)
+                    # TODO: Enable incremental serialization also for appends
+                    new_rows = item[previous_version['up_to']:]
+                    self._do_append(collection, version, symbol, new_rows, previous_version,
+                                    dirty_append=True)
+                    return
 
         if is_incremental_serializer:
             version['sha'], version['up_to'] = self._do_write_generator(collection, version,
