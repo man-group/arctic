@@ -1,7 +1,6 @@
 # [![arctic](logo/arctic_50.png)](https://github.com/manahl/arctic) [Arctic TimeSeries and Tick store](https://github.com/manahl/arctic)
 
 
-[![Circle CI](https://circleci.com/gh/manahl/arctic.svg?style=shield)](https://circleci.com/gh/manahl/arctic)
 [![Travis CI](https://travis-ci.org/manahl/arctic.svg?branch=master)](https://travis-ci.org/manahl/arctic)
 [![Coverage Status](https://coveralls.io/repos/github/manahl/arctic/badge.svg?branch=master)](https://coveralls.io/github/manahl/arctic?branch=master)
 [![Code Health](https://landscape.io/github/manahl/arctic/master/landscape.svg?style=flat)](https://landscape.io/github/manahl/arctic/master)
