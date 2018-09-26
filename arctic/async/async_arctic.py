@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 from collections import defaultdict
 from functools import wraps
@@ -7,10 +6,9 @@ from threading import RLock
 
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
 
-from .async_utils import AsyncRequestType, AsyncRequest
+from arctic.decorators import mongo_retry
+from .async_utils import AsyncRequestType, AsyncRequest, ARCTIC_ASYNC_NTHREADS
 from arctic.exceptions import AsyncArcticException
-
-ARCTIC_ASYNC_NTHREADS = os.environ.get('ARCTIC_ASYNC_NTHREADS', 4)
 
 
 def _task_exec(request):
@@ -18,14 +16,30 @@ def _task_exec(request):
     logging.debug("Executing asynchronous request for library: {}".format(request.library, request.symbol))
     result = None
     try:
-        result = request.fun(*request.args, **request.kwargs)
+        if request.mongo_retry:
+            result = mongo_retry(request.fun)(*request.args, **request.kwargs)
+        else:
+            result = request.fun(*request.args, **request.kwargs)
+
     except Exception as e:
         request.exception = e
-        raise
     finally:
         request.data = result
         request.end_time = time.time()
     return result
+
+
+# def _mongo_exec(request):
+#     request.start_time = time.time()
+#     if request.with_retry:
+#         result = mongo_retry(request.fun)(*request.args, **request.kwargs)
+#     else:
+#         result = request.fun(*request.args, **request.kwargs)
+#     if isinstance(result, pymongo.cursor.Cursor):
+#         request.data = list(result)
+#         result = request.data
+#     request.end_time = time.time()
+#     return result
 
 
 class AsyncArctic(object):
@@ -81,6 +95,7 @@ class AsyncArctic(object):
             self._pool = None
             self._pool_size = ARCTIC_ASYNC_NTHREADS
             self.requests_per_library = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+            self.requests_by_id = dict()
             self._pool_update_hooks = []
 
     def __reduce__(self):
@@ -111,20 +126,33 @@ class AsyncArctic(object):
 
         callback = kwargs.get('async_callback')
         block = bool(kwargs.get('async_block'))
+        mongo_retry = bool(kwargs.get('mongo_retry'))
 
         if block and callback:
             raise AsyncArcticException("Can't use both async_callback and async_block")
 
-        return library_name, symbol, kind, callback, block
+        return library_name, symbol, kind, callback, block, mongo_retry
+
+    def _add_request(self, request):
+        self.requests_per_library[request.library][request.symbol][request.kind].append(request)
+        self.requests_by_id[request.id] = request
+
+    def _remove_request(self, request):
+        self.requests_per_library[request.library][request.symbol][request.kind].remove(request)
+        if request.id in self.requests_by_id:
+            del self.requests_by_id[request.id]
     
     def submit_request(self, store, fun, is_modifier, *args, **kwargs):
-        library_name, symbol, kind, callback, block = AsyncArctic._verify_request(store, is_modifier, **kwargs)
+        library_name, symbol, kind, callback, block, mongo_retry = AsyncArctic._verify_request(store, is_modifier, **kwargs)
 
         if 'async_callback' in kwargs:
             kwargs.pop('async_callback')
 
         if 'async_block' in kwargs:
             kwargs.pop('async_block')
+
+        if 'mongo_retry' in kwargs:
+            kwargs.pop('mongo_retry')
 
         with AsyncArctic._TASK_SUBMIT_LOCK:
             if self._get_modifiers(library_name, symbol):
@@ -139,45 +167,75 @@ class AsyncArctic(object):
             request = AsyncRequest(kind, library_name, fun, *args, **kwargs)
 
             # Update the state of tracked tasks
-            self.requests_per_library[library_name][symbol][kind].append(request)
+            self._add_request(request)
 
             # Submit the task
             try:
                 request.future = self._workers_pool.submit(_task_exec, request)
             except:
                 # clean up the state
-                self.requests_per_library[request.library][request.symbol][request.kind].remove(request)
+                self._remove_request(request)
                 raise
 
-        # No need to hold the lock for the below
+        # No need to hold the lock for the below statements
         if block:
-            AsyncArctic._wait_request(request)
-        elif callback:
-            request.future.add_done_callback(lambda the_future: self._request_finished(request, callback))
+            AsyncArctic.wait_request(request)
+        request.future.add_done_callback(lambda the_future: self._request_finished(request, callback))
 
         return request
 
-    def _request_finished(self, request, callback):
+    def _request_finished(self, request, callback=None):
         request.future = None
         with AsyncArctic._TASK_SUBMIT_LOCK:
-            self.requests_per_library[request.library][request.symbol][request.kind].remove(request)
+            self._remove_request(request)
         if callback:
             callback(request)
 
     @staticmethod
-    def _wait_request(request):
-        if request is not None and request.future is not None:
+    def wait_request(request):
+        if request is not None and not request.is_completed:
             wait((request.future,), return_when=FIRST_EXCEPTION)
             # Force-raise any exceptions
-            request.future.result()
+            # request.future.result()
             request.future = None
+
+    @staticmethod
+    def wait_requests(requests):
+        if not requests:
+            return
+        for request in requests:
+            try:
+                AsyncArctic.wait_request(request)
+            except Exception as e:
+                logging.exception("Failed to wait for request {}".format(request.id))
+
+
+    def join(self):
+        with AsyncArctic._TASK_SUBMIT_LOCK:
+            for request in self.requests_by_id.values():
+                try:
+                    AsyncArctic.wait_request(request)
+                except Exception as e:
+                    logging.exception("Failed to wait for request {}".format(request.id))
+                if request.id in self.requests_by_id:
+                    self._remove_request(request)
+
+    def total_requests(self):
+        return len(self.requests_by_id)
+
+    def total_mongo_requests(self):
+        return len([1 for r in self.requests_by_id if isinstance(r, MongoAsyncRequest)])
 
 
 ASYNC_ARCTIC = AsyncArctic.get_instance()
 
 async_arctic_submit = ASYNC_ARCTIC.submit_request
-async_join_request = ASYNC_ARCTIC._wait_request
+async_wait_request = ASYNC_ARCTIC.wait_request
+async_wait_requests = ASYNC_ARCTIC.wait_requests
+async_join_all = ASYNC_ARCTIC.join
 async_reset_pool = ASYNC_ARCTIC.reset
+async_total_requests = ASYNC_ARCTIC.total_requests
+async_total_mongo_requests = ASYNC_ARCTIC.total_mongo_requests
 
 
 def async_modifier(func):

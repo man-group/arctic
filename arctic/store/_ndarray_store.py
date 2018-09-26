@@ -9,6 +9,9 @@ import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
 from arctic._util import mongo_count
+from ..async.async_arctic import async_arctic_submit, async_total_mongo_requests, async_wait_requests, \
+    async_wait_request
+from ..async.async_utils import USE_ASYNC_MONGO_WRITES
 from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException, DataIntegrityException
 from ..serialization.incremental import LazyIncrementalSerializer
@@ -23,7 +26,8 @@ _CHUNK_SIZE = 2 * 1024 * 1024 - 2048  # ~2 MB (a bit less for usePowerOf2Sizes)
 _APPEND_SIZE = 1 * 1024 * 1024  # 1MB
 _APPEND_COUNT = 60  # 1 hour of 1 min data
 
-MONGO_BATCH_SIZE = os.environ.get('MONGO_BATCH_SIZE')
+MONGO_BATCH_SIZE = os.environ.get('MONGO_BATCH_SIZE', 16)
+MONGO_CONCURRENT_BATCHES = os.environ.get('MONGO_CONCURRENT_BATCHES', 2)
 
 # Enabling the following has roughly a 5-7% performance hit (off by default)
 _CHECK_CORRUPTION_ON_APPEND = bool(os.environ.get('CHECK_CORRUPTION_ON_APPEND'))
@@ -610,6 +614,7 @@ class NdarrayStore(object):
         bulk = []
         orig_data = items_lazy_ser.input_data
         length = len(items_lazy_ser)
+        requests = []
 
         for chunk_bytes, dtype in items_lazy_ser.generator_bytes():
             i += 1
@@ -633,11 +638,29 @@ class NdarrayStore(object):
                 bulk.append(op)
 
             if len(bulk) >= MONGO_BATCH_SIZE:
-                collection.bulk_write(bulk, ordered=False)
+                if USE_ASYNC_MONGO_WRITES:
+                    requests = [r for r in requests if r.is_completed]
+                    if len(requests) >= MONGO_CONCURRENT_BATCHES:
+                        async_wait_request(requests[0])
+                    request = async_arctic_submit(self, collection.bulk_write, is_modifier=True, requests=bulk)
+                    requests.append(request)
+                else:
+                    collection.bulk_write(bulk, ordered=False)
                 del bulk[:]
 
         if bulk:
-            collection.bulk_write(bulk, ordered=False)
+            if USE_ASYNC_MONGO_WRITES:
+                requests = [r for r in requests if r.is_completed]
+                if len(requests) >= MONGO_CONCURRENT_BATCHES:
+                    async_wait_request(requests[0])
+                request = async_arctic_submit(self, collection.bulk_write, is_modifier=True, requests=bulk)
+                requests.append(request)
+            else:
+                collection.bulk_write(bulk, ordered=False)
+
+        # Wait all requests to finish
+        if USE_ASYNC_MONGO_WRITES:
+            async_wait_requests(requests)
 
         if i != -1:
             total_sha = Binary(total_sha.digest())
