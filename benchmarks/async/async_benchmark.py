@@ -7,12 +7,13 @@ from tests.integration.chunkstore.test_utils import create_test_data
 #----------------------------------------------
 #  Configure the benchmark
 #----------------------------------------------
-from arctic.async import ASYNC_ARCTIC, async_arctic_submit, async_wait_request
+from arctic.async import ASYNC_ARCTIC, INTERNAL_ASYNC, async_arctic_submit, async_wait_request
 from arctic._compression import enable_parallel_lz4, set_use_async_pool
 import arctic.store._pandas_ndarray_store as pnds
 import arctic.store._ndarray_store as nds
 import arctic.async.async_utils as asu
-ASYNC_ARCTIC.reset(block=True, pool_size=8)
+ASYNC_ARCTIC.reset(block=True, pool_size=4)
+INTERNAL_ASYNC.reset(block=True, pool_size=4)
 enable_parallel_lz4(True)
 set_use_async_pool(True)
 pnds.USE_INCREMENTAL_SERIALIZER = True
@@ -49,8 +50,8 @@ def serial_bench(num_requests):
 
 def main():
     import time
-    rounds = 1
-    num_requests = 16
+    rounds = 5
+    num_requests = 1
 
     # clean_lib()
     #
@@ -80,9 +81,19 @@ def main():
     enable_parallel_lz4(True)
     set_use_async_pool(True)
     pnds.USE_INCREMENTAL_SERIALIZER = False
+    start = time.time()
+    for _ in xrange(rounds):
+        async_bench(num_requests)  # 1 loop, best of 5: 6.54 s per loop
+    print("Async time per iteration: {}".format((time.time() - start) / rounds))
+
+    clean_lib()
+
+    enable_parallel_lz4(True)
+    set_use_async_pool(True)
+    pnds.USE_INCREMENTAL_SERIALIZER = True
     nds.MONGO_BATCH_SIZE = 8
     nds.MONGO_CONCURRENT_BATCHES = 2
-    asu.USE_ASYNC_MONGO_WRITES = True
+    asu.USE_ASYNC_MONGO_WRITES = False
     start = time.time()
     for _ in xrange(rounds):
         async_bench(num_requests)  # 1 loop, best of 5: 6.54 s per loop

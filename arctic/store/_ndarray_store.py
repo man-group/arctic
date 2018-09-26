@@ -9,8 +9,7 @@ import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
 from arctic._util import mongo_count
-from ..async.async_arctic import async_arctic_submit, async_total_mongo_requests, async_wait_requests, \
-    async_wait_request
+from ..async.async_arctic import INTERNAL_ASYNC
 from ..async.async_utils import USE_ASYNC_MONGO_WRITES
 from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException, DataIntegrityException
@@ -641,8 +640,8 @@ class NdarrayStore(object):
                 if USE_ASYNC_MONGO_WRITES:
                     requests = [r for r in requests if r.is_completed]
                     if len(requests) >= MONGO_CONCURRENT_BATCHES:
-                        async_wait_request(requests[0])
-                    request = async_arctic_submit(self, collection.bulk_write, is_modifier=True, requests=bulk)
+                        INTERNAL_ASYNC.wait_request(requests[0])
+                    request = INTERNAL_ASYNC.submit_request(self, collection.bulk_write, is_modifier=True, requests=bulk)
                     requests.append(request)
                 else:
                     collection.bulk_write(bulk, ordered=False)
@@ -652,15 +651,15 @@ class NdarrayStore(object):
             if USE_ASYNC_MONGO_WRITES:
                 requests = [r for r in requests if r.is_completed]
                 if len(requests) >= MONGO_CONCURRENT_BATCHES:
-                    async_wait_request(requests[0])
-                request = async_arctic_submit(self, collection.bulk_write, is_modifier=True, requests=bulk)
+                    INTERNAL_ASYNC.wait_request(requests[0])
+                request = INTERNAL_ASYNC.submit_request(self, collection.bulk_write, is_modifier=True, requests=bulk)
                 requests.append(request)
             else:
                 collection.bulk_write(bulk, ordered=False)
 
         # Wait all requests to finish
         if USE_ASYNC_MONGO_WRITES:
-            async_wait_requests(requests)
+            INTERNAL_ASYNC.wait_requests(requests)
 
         if i != -1:
             total_sha = Binary(total_sha.digest())

@@ -227,8 +227,11 @@ class AsyncArctic(object):
         return len([1 for r in self.requests_by_id if isinstance(r, MongoAsyncRequest)])
 
 
-ASYNC_ARCTIC = AsyncArctic.get_instance()
+class InternalAsyncArctic(AsyncArctic):
+    pass
 
+
+ASYNC_ARCTIC = AsyncArctic.get_instance()
 async_arctic_submit = ASYNC_ARCTIC.submit_request
 async_wait_request = ASYNC_ARCTIC.wait_request
 async_wait_requests = ASYNC_ARCTIC.wait_requests
@@ -236,6 +239,10 @@ async_join_all = ASYNC_ARCTIC.join
 async_reset_pool = ASYNC_ARCTIC.reset
 async_total_requests = ASYNC_ARCTIC.total_requests
 async_total_mongo_requests = ASYNC_ARCTIC.total_mongo_requests
+
+
+INTERNAL_ASYNC = InternalAsyncArctic.get_instance()
+INTERNAL_ASYNC.reset(block=True, pool_size=ARCTIC_ASYNC_NTHREADS)
 
 
 def async_modifier(func):

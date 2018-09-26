@@ -2,7 +2,7 @@ import os
 import logging
 from multiprocessing.pool import ThreadPool
 
-from .async.async_arctic import ASYNC_ARCTIC
+from .async.async_arctic import INTERNAL_ASYNC
 
 try:
     from lz4.block import compress as lz4_compress, decompress as lz4_decompress
@@ -50,7 +50,7 @@ def _init_thread_pool(use_async_pool=None, pool_size=None):
 
     if use_async_pool:
         logging.info("Using the common async pool, omitting LZ4 pool size.")
-        _compress_thread_pool = ASYNC_ARCTIC
+        _compress_thread_pool = INTERNAL_ASYNC
         LZ4_USE_ASYNC_POOL = use_async_pool
     else:
         logging.info("Using separate LZ4 thread pool with size {}".format(LZ4_WORKERS))
