@@ -54,7 +54,7 @@ class PandasStore(NdarrayStore):
                 last_rows = recarr_or_df[new_segments - start]
                 indexed_segments = [last_rows[idx_col]] + [new_segments]
             else:
-                indexed_segments = [idx_col[new_segments - start]._ndarray_values] + [new_segments]
+                indexed_segments = [idx_col[new_segments - start].values] + [new_segments]
 
             # create numpy index
             index = np.core.records.fromarrays(indexed_segments, dtype=INDEX_DTYPE)

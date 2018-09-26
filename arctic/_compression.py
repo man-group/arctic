@@ -51,11 +51,11 @@ def _init_thread_pool(use_async_pool=None, pool_size=None):
     if use_async_pool:
         logging.info("Using the common async pool, omitting LZ4 pool size.")
         _compress_thread_pool = INTERNAL_ASYNC
-        LZ4_USE_ASYNC_POOL = use_async_pool
     else:
         logging.info("Using separate LZ4 thread pool with size {}".format(LZ4_WORKERS))
         _compress_thread_pool = ThreadPool(LZ4_WORKERS)
         LZ4_WORKERS = pool_size
+    LZ4_USE_ASYNC_POOL = use_async_pool
 
 
 def _get_compression_pool():

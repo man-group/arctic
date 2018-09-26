@@ -647,6 +647,8 @@ class NdarrayStore(object):
                     collection.bulk_write(bulk, ordered=False)
                 del bulk[:]
 
+        print(i)
+
         if bulk:
             if USE_ASYNC_MONGO_WRITES:
                 requests = [r for r in requests if r.is_completed]
