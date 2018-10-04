@@ -85,12 +85,12 @@ class DateRange(GeneralSlice):
                     else self.startopen if other.start is None \
                     else other.startopen if self.start < other.start \
                     else self.startopen if self.start > other.start \
-                    else (self.startopen and other.startopen)
+                    else (self.startopen or other.startopen)
         endopen = other.endopen if self.end is None \
                    else self.endopen if other.end is None \
                    else other.endopen if self.end > other.end \
                    else self.endopen if self.end < other.end \
-                   else (self.endopen and other.endopen)
+                   else (self.endopen or other.endopen)
 
         new_start = self.start if other.start is None \
                     else other.start if self.start is None \
