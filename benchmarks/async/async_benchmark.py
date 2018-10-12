@@ -25,7 +25,7 @@ asu.USE_ASYNC_MONGO_WRITES = True
 
 
 # a = arctic.Arctic('jenkins-2el7b-9.cn.ada.res.ahl:37917')
-a = arctic.Arctic('dpediaditakis.hn.ada.res.ahl:27116')
+a = arctic.Arctic('dpediaditakis.hn.ada.res.ahl:27117')
 # a = arctic.Arctic('dlonapahls229:37917')
 library_name = 'asyncbench.test'
 
@@ -130,16 +130,16 @@ def run_scenario(result_text,
         use_incremental_serializer,
         mongo_use_async_writes, mongo_batch_size, mongo_num_batches,
         async_pool_size, internal_async_pool_size,
-        measurements))
+        get_stats(measurements)))
 
 
 def main():
     n_rounds = (10,)
-    n_num_requests = (1, 8, 16, 32, 64)
-    n_num_chunks = (2, 8, 16, 32, 64)
+    n_num_requests = (1,)  # 8, 16, 32, 64)
+    n_num_chunks = (1, 12, 16, 32, 64, 128)  # parallel lz4 kicks-in with >= 16 chunks
     n_parallel_lz4 = (True, False)
     n_lz4_use_async_pool = (True, False)
-    n_use_incremental_serializer = (True, False)
+    n_use_incremental_serializer = (False,)
     n_mongo_use_async_writes = (False,)
 
     for mongo_use_async_writes in n_mongo_use_async_writes:

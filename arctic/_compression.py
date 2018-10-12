@@ -24,7 +24,7 @@ LZ4_USE_ASYNC_POOL = bool(os.environ.get('LZ4_USE_ASYNC_POOL'))
 # Rule of thumb: use 2 for non HC (VersionStore/NDarrayStore/PandasStore, and 8 for HC (TickStore).
 LZ4_WORKERS = os.environ.get('LZ4_WORKERS', 2)
 # The minimum required number of chunks to use parallel compression
-LZ4_N_PARALLEL = os.environ.get('LZ4_N_PARALLEL', 16)
+LZ4_MIN_N_PARALLEL = os.environ.get('LZ4_MIN_N_PARALLEL', 16)
 # Minimum data size to use parallel compression
 LZ4_MINSZ_PARALLEL = os.environ.get('LZ4_MINSZ_PARALLEL', 0.5 * 1024 ** 2)  # 0.5 MB
 
@@ -149,8 +149,10 @@ def compress_array(str_list, withHC=LZ4_HIGH_COMPRESSION):
 
     do_compress = lz4_compressHC if withHC else lz4_compress
 
+    max_sz = max(len(x) for x in str_list if x)
+
     use_parallel = ENABLE_PARALLEL and withHC or \
-                   len(str_list) > LZ4_N_PARALLEL and len(str_list[0]) > LZ4_MINSZ_PARALLEL
+                   len(str_list) >= LZ4_MIN_N_PARALLEL and max_sz > LZ4_MINSZ_PARALLEL
 
     if BENCHMARK_MODE or use_parallel:
         return _get_compression_pool().map(do_compress, str_list)
@@ -198,7 +200,7 @@ def decompress_array(str_list):
     if not str_list:
         return str_list
 
-    if not ENABLE_PARALLEL or len(str_list) <= LZ4_N_PARALLEL:
+    if not ENABLE_PARALLEL or len(str_list) <= LZ4_MIN_N_PARALLEL:
         return [lz4_decompress(chunk) for chunk in str_list]
 
     return _get_compression_pool().map(lz4_decompress, str_list)

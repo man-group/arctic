@@ -593,6 +593,23 @@ class NdarrayStore(object):
 
         self.check_written(collection, symbol, version)
 
+    def _write_bulk(self, collection, bulk, requests):
+        alive_requests = []
+        if USE_ASYNC_MONGO_WRITES:
+            # # Maintain only the live requests and raise any exceptions
+            for r in requests:
+                if not r.is_completed:
+                    alive_requests.append(r)
+                elif r.exception:
+                    raise r.exception
+            if len(alive_requests) >= MONGO_CONCURRENT_BATCHES:
+                INTERNAL_ASYNC.wait_requests(alive_requests[0])
+            request = INTERNAL_ASYNC.submit_request(self, collection.bulk_write, is_modifier=True, requests=bulk)
+            alive_requests.append(request)
+        else:
+            collection.bulk_write(bulk, ordered=False)
+        return requests
+
     def _do_write_generator(self, collection, version, symbol, items_lazy_ser, previous_version, segment_offset=0):
         previous_shas = []
         if previous_version:
@@ -630,34 +647,18 @@ class NdarrayStore(object):
                 op = pymongo.UpdateOne({'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
                                        {'$set': segment, '$addToSet': {'parent': version['_id']}},
                                        upsert=True)
-                bulk.append(op)
             else:
                 op = pymongo.UpdateOne({'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
                                        {'$addToSet': {'parent': version['_id']}})
-                bulk.append(op)
+
+            bulk.append(op)
 
             if len(bulk) >= MONGO_BATCH_SIZE:
-                if USE_ASYNC_MONGO_WRITES:
-                    requests = [r for r in requests if r.is_completed]
-                    if len(requests) >= MONGO_CONCURRENT_BATCHES:
-                        INTERNAL_ASYNC.wait_request(requests[0])
-                    request = INTERNAL_ASYNC.submit_request(self, collection.bulk_write, is_modifier=True, requests=bulk)
-                    requests.append(request)
-                else:
-                    collection.bulk_write(bulk, ordered=False)
-                del bulk[:]
-
-        print(i)
+                self._write_bulk(collection, bulk, requests)
+                bulk = []
 
         if bulk:
-            if USE_ASYNC_MONGO_WRITES:
-                requests = [r for r in requests if r.is_completed]
-                if len(requests) >= MONGO_CONCURRENT_BATCHES:
-                    INTERNAL_ASYNC.wait_request(requests[0])
-                request = INTERNAL_ASYNC.submit_request(self, collection.bulk_write, is_modifier=True, requests=bulk)
-                requests.append(request)
-            else:
-                collection.bulk_write(bulk, ordered=False)
+            self._write_bulk(collection, bulk, requests)
 
         # Wait all requests to finish
         if USE_ASYNC_MONGO_WRITES:
