@@ -12,7 +12,7 @@ from arctic._util import mongo_count
 from ..async.async_arctic import INTERNAL_ASYNC
 from ..async.async_utils import USE_ASYNC_MONGO_WRITES
 from ..decorators import mongo_retry
-from ..exceptions import UnhandledDtypeException, DataIntegrityException
+from ..exceptions import UnhandledDtypeException, DataIntegrityException, AsyncArcticException
 from ..serialization.incremental import LazyIncrementalSerializer
 from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
 from .._compression import compress_array, compress, decompress
@@ -594,21 +594,18 @@ class NdarrayStore(object):
         self.check_written(collection, symbol, version)
 
     def _write_bulk(self, collection, bulk, requests):
-        alive_requests = []
         if USE_ASYNC_MONGO_WRITES:
-            # # Maintain only the live requests and raise any exceptions
-            for r in requests:
-                if not r.is_completed:
-                    alive_requests.append(r)
-                elif r.exception:
-                    raise r.exception
+            alive_requests, done_requests = INTERNAL_ASYNC.filter_finished_requests(requests)
+            # Wait until at least one requests finishes
             if len(alive_requests) >= MONGO_CONCURRENT_BATCHES:
-                INTERNAL_ASYNC.wait_requests(alive_requests[0])
+                INTERNAL_ASYNC.wait_any_request(alive_requests)
+                alive_requests, _ = INTERNAL_ASYNC.filter_finished_requests(requests)
+            # Submit the batch
             request = INTERNAL_ASYNC.submit_request(self, collection.bulk_write, is_modifier=True, requests=bulk)
             alive_requests.append(request)
+            return alive_requests
         else:
             collection.bulk_write(bulk, ordered=False)
-        return requests
 
     def _do_write_generator(self, collection, version, symbol, items_lazy_ser, previous_version, segment_offset=0):
         previous_shas = []
@@ -627,9 +624,9 @@ class NdarrayStore(object):
         segment_index = []
         i = -1
         total_sha = None
-        bulk = []
         orig_data = items_lazy_ser.input_data
         length = len(items_lazy_ser)
+        bulk = []
         requests = []
 
         for chunk_bytes, dtype in items_lazy_ser.generator_bytes():
@@ -663,6 +660,10 @@ class NdarrayStore(object):
         # Wait all requests to finish
         if USE_ASYNC_MONGO_WRITES:
             INTERNAL_ASYNC.wait_requests(requests)
+            alive_requests, _ = INTERNAL_ASYNC.filter_finished_requests(requests)
+            if len(alive_requests) == 0:
+                raise AsyncArcticException("Failed to complete all async mongo writes for {} / {}".format(
+                    symbol, version))
 
         if i != -1:
             total_sha = Binary(total_sha.digest())

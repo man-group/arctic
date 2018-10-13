@@ -2,9 +2,9 @@ import logging
 import time
 from collections import defaultdict
 from functools import wraps
-from threading import RLock
+from threading import RLock, Event
 
-from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION, ALL_COMPLETED
 
 from arctic.decorators import mongo_retry
 from .async_utils import AsyncRequestType, AsyncRequest, ARCTIC_ASYNC_NTHREADS
@@ -16,16 +16,17 @@ def _task_exec(request):
     logging.debug("Executing asynchronous request for library: {}".format(request.library, request.symbol))
     result = None
     try:
+        request.is_running = True
         if request.mongo_retry:
             result = mongo_retry(request.fun)(*request.args, **request.kwargs)
         else:
             result = request.fun(*request.args, **request.kwargs)
-
     except Exception as e:
         request.exception = e
     finally:
         request.data = result
         request.end_time = time.time()
+        request.is_running = False
     return result
 
 
@@ -92,6 +93,7 @@ class AsyncArctic(object):
             if AsyncArctic._instance is not None:
                 raise AsyncArcticException("AsyncArctic is a singleton, can't create a new instance")
             self._lock = RLock()
+            self.request_done_events = []
             self._pool = None
             self._pool_size = ARCTIC_ASYNC_NTHREADS
             self.requests_per_library = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -185,40 +187,60 @@ class AsyncArctic(object):
         return request
 
     def _request_finished(self, request, callback=None):
-        request.future = None
         with AsyncArctic._TASK_SUBMIT_LOCK:
             self._remove_request(request)
+        # request.future = None
+        request.is_completed = True
         if callback:
             callback(request)
 
     @staticmethod
-    def wait_request(request):
-        if request is not None and not request.is_completed:
-            wait((request.future,), return_when=FIRST_EXCEPTION)
-            # Force-raise any exceptions
-            # request.future.result()
-            request.future = None
+    def wait_request(request, timeout=None):
+        while request is not None and not request.is_completed:
+            wait((request.future,),
+                 timeout=timeout,
+                 return_when=FIRST_EXCEPTION)
 
     @staticmethod
-    def wait_requests(requests):
+    def wait_requests(requests, timeout=None):
         if not requests:
             return
-        for request in requests:
-            try:
-                AsyncArctic.wait_request(request)
-            except Exception as e:
-                logging.exception("Failed to wait for request {}".format(request.id))
+        while not all(r.is_completed for r in requests):
+            wait((r.future for r in requests),
+                 timeout=timeout,
+                 return_when=ALL_COMPLETED)
 
+    @staticmethod
+    def wait_any_request(requests, timeout=None):
+        if not requests:
+            return
+        while not any(r.is_completed for r in requests):
+            wait((r.future for r in requests),
+                 timeout=timeout,
+                 return_when=FIRST_EXCEPTION)
 
-    def join(self):
+    @staticmethod
+    def filter_finished_requests(requests, do_raise=True):
+        if not requests:
+            return requests, requests
+        alive_requests = [r for r in requests if not r.is_completed]
+        done_requests = [r for r in requests if r.is_completed]
+        if do_raise:
+            AsyncArctic.raise_errored(done_requests)
+        return alive_requests, done_requests
+
+    @staticmethod
+    def raise_errored(requests):
+        errored = tuple(r for r in requests if r.is_completed and r.exception is not None)
+        if errored:
+            raise errored[0].exception
+
+    def join(self, timeout=None):
         with AsyncArctic._TASK_SUBMIT_LOCK:
-            for request in self.requests_by_id.values():
-                try:
-                    AsyncArctic.wait_request(request)
-                except Exception as e:
-                    logging.exception("Failed to wait for request {}".format(request.id))
-                if request.id in self.requests_by_id:
-                    self._remove_request(request)
+            try:
+                AsyncArctic.wait_requests(self.requests_by_id.values(), timeout=timeout)
+            except Exception as e:
+                logging.exception("Failed to join all requests")
 
     def total_requests(self):
         return len(self.requests_by_id)

@@ -134,11 +134,11 @@ def run_scenario(result_text,
 
 
 def main():
-    n_rounds = (10,)
+    n_rounds = (5,)
     n_num_requests = (1,)  # 8, 16, 32, 64)
-    n_num_chunks = (1, 12, 16, 32, 64, 128)  # parallel lz4 kicks-in with >= 16 chunks
-    n_parallel_lz4 = (True, False)
-    n_lz4_use_async_pool = (True, False)
+    n_num_chunks = (2, 12, 16, 32)  #, 64, 128)  # parallel lz4 kicks-in with >= 16 chunks
+    n_parallel_lz4 = (False,)
+    n_lz4_use_async_pool = (False,)
     n_use_incremental_serializer = (False,)
     n_mongo_use_async_writes = (False,)
 

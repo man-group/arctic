@@ -30,6 +30,8 @@ class AsyncRequest(object):
         self.future = None
         self.data = None
         self.exception = None
+        self.is_running = False
+        self.is_completed = False
 
         # Timekeeping
         self.start_time = None
@@ -49,7 +51,3 @@ class AsyncRequest(object):
     @property
     def total_time(self):
         return self.end_time - self.create_time if self.end_time is not None else -1
-
-    @property
-    def is_completed(self):
-        return self.end_time is not None and self.future is None
