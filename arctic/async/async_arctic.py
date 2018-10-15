@@ -2,6 +2,7 @@ import logging
 import time
 from collections import defaultdict
 from functools import wraps
+from six import string_types
 from threading import RLock, Event
 
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION, ALL_COMPLETED
@@ -49,19 +50,19 @@ class AsyncArctic(object):
     _POOL_INIT_LOCK = RLock()
     _TASK_SUBMIT_LOCK = RLock()
 
-    @staticmethod
-    def is_initialized():
-        with AsyncArctic._POOL_INIT_LOCK:
-            is_init = AsyncArctic._instance is not None and AsyncArctic._instance._pool is not None
+    @classmethod
+    def is_initialized(cls):
+        with cls._POOL_INIT_LOCK:
+            is_init = cls._instance is not None and cls._instance._pool is not None
         return is_init
 
-    @staticmethod
-    def get_instance():
+    @classmethod
+    def get_instance(cls):
         # Lazy init
-        with AsyncArctic._SINGLETON_LOCK:
-            if AsyncArctic._instance is None:
-                AsyncArctic._instance = AsyncArctic()
-        return AsyncArctic._instance
+        with cls._SINGLETON_LOCK:
+            if cls._instance is None:
+                cls._instance = cls()
+        return cls._instance
 
     @property
     def _workers_pool(self):
@@ -70,7 +71,7 @@ class AsyncArctic(object):
 
         # lazy init the workers pool
         initialized = False
-        with AsyncArctic._POOL_INIT_LOCK:
+        with type(self)._POOL_INIT_LOCK:
             if self._pool is None:
                 self._pool = ThreadPoolExecutor(max_workers=self._pool_size,
                                                 thread_name_prefix='AsyncArcticWorker')
@@ -85,12 +86,12 @@ class AsyncArctic(object):
 
     def __init__(self):
         # Only allow creation via get_instance
-        if not AsyncArctic._SINGLETON_LOCK._is_owned():
+        if not type(self)._SINGLETON_LOCK._is_owned():
             raise AsyncArcticException("AsyncArctic is a singleton, can't create a new instance")
 
         # Enforce the singleton pattern
-        with AsyncArctic._SINGLETON_LOCK:
-            if AsyncArctic._instance is not None:
+        with type(self)._SINGLETON_LOCK:
+            if type(self)._instance is not None:
                 raise AsyncArcticException("AsyncArctic is a singleton, can't create a new instance")
             self._lock = RLock()
             self.request_done_events = []
@@ -104,7 +105,7 @@ class AsyncArctic(object):
         return "ASYNC_ARCTIC"
 
     def reset(self, block=True, pool_size=ARCTIC_ASYNC_NTHREADS):
-        with AsyncArctic._POOL_INIT_LOCK:
+        with type(self)._POOL_INIT_LOCK:
             self._workers_pool.shutdown(wait=block)
             pool_size = max(pool_size, 1)
             self._pool = None
@@ -119,10 +120,7 @@ class AsyncArctic(object):
 
     @staticmethod
     def _verify_request(store, is_modifier, **kwargs):
-        if store is None:
-            raise AsyncArcticException("Can't submit async arctic task passing an empty store")
-
-        library_name = store._arctic_lib.get_name()
+        library_name = None if store is None else store._arctic_lib.get_name()
         symbol = kwargs.get('symbol')
         kind = AsyncRequestType.MODIFIER if is_modifier else AsyncRequestType.ACCESSOR
 
@@ -156,14 +154,15 @@ class AsyncArctic(object):
         if 'mongo_retry' in kwargs:
             kwargs.pop('mongo_retry')
 
-        with AsyncArctic._TASK_SUBMIT_LOCK:
-            if self._get_modifiers(library_name, symbol):
-                raise AsyncArcticException("Can't submit async task as there are "
-                                           "being processed one or more {} tasks".format(AsyncRequestType.MODIFIER))
+        with type(self)._TASK_SUBMIT_LOCK:
+            if library_name:
+                if self._get_modifiers(library_name, symbol):
+                    raise AsyncArcticException("Can't submit async task as there are "
+                                               "being processed one or more {} tasks".format(AsyncRequestType.MODIFIER))
 
-            if is_modifier and self._get_accessors(library_name, symbol):
-                raise AsyncArcticException("Can't submit async {} task as there are being processed one or "
-                                           "more {} tasks".format(AsyncRequestType.ACCESSOR, AsyncRequestType.MODIFIER))
+                if is_modifier and self._get_accessors(library_name, symbol):
+                    raise AsyncArcticException("Can't submit async {} task as there are being processed one or "
+                                               "more {} tasks".format(AsyncRequestType.ACCESSOR, AsyncRequestType.MODIFIER))
 
             # Create the request object
             request = AsyncRequest(kind, library_name, fun, *args, **kwargs)
@@ -187,7 +186,7 @@ class AsyncArctic(object):
         return request
 
     def _request_finished(self, request, callback=None):
-        with AsyncArctic._TASK_SUBMIT_LOCK:
+        with type(self)._TASK_SUBMIT_LOCK:
             self._remove_request(request)
         # request.future = None
         request.is_completed = True
@@ -196,8 +195,9 @@ class AsyncArctic(object):
 
     @staticmethod
     def wait_request(request, timeout=None):
+        futures = tuple((request.future,))
         while request is not None and not request.is_completed:
-            wait((request.future,),
+            wait(futures,
                  timeout=timeout,
                  return_when=FIRST_EXCEPTION)
 
@@ -205,8 +205,9 @@ class AsyncArctic(object):
     def wait_requests(requests, timeout=None):
         if not requests:
             return
+        futures = tuple(r.future for r in requests)
         while not all(r.is_completed for r in requests):
-            wait((r.future for r in requests),
+            wait(futures,
                  timeout=timeout,
                  return_when=ALL_COMPLETED)
 
@@ -214,8 +215,9 @@ class AsyncArctic(object):
     def wait_any_request(requests, timeout=None):
         if not requests:
             return
+        futures = tuple(r.future for r in requests)
         while not any(r.is_completed for r in requests):
-            wait((r.future for r in requests),
+            wait(futures,
                  timeout=timeout,
                  return_when=FIRST_EXCEPTION)
 
@@ -236,7 +238,7 @@ class AsyncArctic(object):
             raise errored[0].exception
 
     def join(self, timeout=None):
-        with AsyncArctic._TASK_SUBMIT_LOCK:
+        with type(self)._TASK_SUBMIT_LOCK:
             try:
                 AsyncArctic.wait_requests(self.requests_by_id.values(), timeout=timeout)
             except Exception as e:
@@ -250,7 +252,13 @@ class AsyncArctic(object):
 
 
 class InternalAsyncArctic(AsyncArctic):
-    pass
+    _instance = None
+    _SINGLETON_LOCK = RLock()
+    _POOL_INIT_LOCK = RLock()
+    _TASK_SUBMIT_LOCK = RLock()
+
+    def submit_request(self, fun, is_modifier, *args, **kwargs):
+        return super(InternalAsyncArctic, self).submit_request(None, fun, is_modifier, *args, **kwargs)
 
 
 ASYNC_ARCTIC = AsyncArctic.get_instance()

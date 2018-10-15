@@ -601,11 +601,12 @@ class NdarrayStore(object):
                 INTERNAL_ASYNC.wait_any_request(alive_requests)
                 alive_requests, _ = INTERNAL_ASYNC.filter_finished_requests(requests)
             # Submit the batch
-            request = INTERNAL_ASYNC.submit_request(self, collection.bulk_write, is_modifier=True, requests=bulk)
+            request = INTERNAL_ASYNC.submit_request(collection.bulk_write, is_modifier=True, requests=bulk)
             alive_requests.append(request)
             return alive_requests
         else:
             collection.bulk_write(bulk, ordered=False)
+            return requests
 
     def _do_write_generator(self, collection, version, symbol, items_lazy_ser, previous_version, segment_offset=0):
         previous_shas = []
@@ -651,17 +652,17 @@ class NdarrayStore(object):
             bulk.append(op)
 
             if len(bulk) >= MONGO_BATCH_SIZE:
-                self._write_bulk(collection, bulk, requests)
+                requests = self._write_bulk(collection, bulk, requests)
                 bulk = []
 
         if bulk:
-            self._write_bulk(collection, bulk, requests)
+            requests = self._write_bulk(collection, bulk, requests)
 
         # Wait all requests to finish
         if USE_ASYNC_MONGO_WRITES:
             INTERNAL_ASYNC.wait_requests(requests)
             alive_requests, _ = INTERNAL_ASYNC.filter_finished_requests(requests)
-            if len(alive_requests) == 0:
+            if len(alive_requests) != 0:
                 raise AsyncArcticException("Failed to complete all async mongo writes for {} / {}".format(
                     symbol, version))
 

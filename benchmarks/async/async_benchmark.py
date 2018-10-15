@@ -8,11 +8,11 @@ from tests.integration.chunkstore.test_utils import create_test_data
 #----------------------------------------------
 #  Configure the benchmark
 #----------------------------------------------
-from arctic.async import ASYNC_ARCTIC, INTERNAL_ASYNC, async_arctic_submit, async_wait_request
+from arctic.async import ASYNC_ARCTIC, INTERNAL_ASYNC, async_arctic_submit, async_wait_request, async_join_all
 from arctic._compression import enable_parallel_lz4, set_use_async_pool
 import arctic.store._pandas_ndarray_store as pnds
 import arctic.store._ndarray_store as nds
-import arctic.async.async_utils as asu
+# import arctic.async.async_utils as asu
 ASYNC_ARCTIC.reset(block=True, pool_size=4)
 INTERNAL_ASYNC.reset(block=True, pool_size=4)
 enable_parallel_lz4(False)
@@ -20,12 +20,13 @@ set_use_async_pool(False)
 pnds.USE_INCREMENTAL_SERIALIZER = False
 nds.MONGO_BATCH_SIZE = 8
 nds.MONGO_CONCURRENT_BATCHES = 2
-asu.USE_ASYNC_MONGO_WRITES = True
+# asu.USE_ASYNC_MONGO_WRITES = True
 #----------------------------------------------
 
 
 # a = arctic.Arctic('jenkins-2el7b-9.cn.ada.res.ahl:37917')
-a = arctic.Arctic('dpediaditakis.hn.ada.res.ahl:27117')
+# a = arctic.Arctic('dpediaditakis.hn.ada.res.ahl:27117')
+a = arctic.Arctic('dpediaditakis.hn.ada.res.ahl:27217')
 # a = arctic.Arctic('dlonapahls229:37917')
 library_name = 'asyncbench.test'
 
@@ -67,7 +68,7 @@ def async_bench(num_requests, num_chunks):
     data = get_cached_random_df(num_chunks)
     lib = a[library_name]
     reqs = [async_arctic_submit(lib, lib.write, False, symbol='sym_{}'.format(x), data=data) for x in xrange(num_requests)]
-    [async_wait_request(r) for r in reqs]
+    async_join_all()
     # request = async_arctic_submit(
     #     store=mylib,
     #     fun=mylib.write,
@@ -103,7 +104,7 @@ def run_scenario(result_text,
     if mongo_batch_size is not None:
         nds.MONGO_BATCH_SIZE = int(mongo_batch_size)
     if mongo_use_async_writes is not None:
-        asu.USE_ASYNC_MONGO_WRITES = bool(mongo_use_async_writes)
+        nds.USE_ASYNC_MONGO_WRITES = bool(mongo_use_async_writes)
     if mongo_num_batches is not None:
         nds.MONGO_CONCURRENT_BATCHES = int(mongo_num_batches)
     if async_pool_size is not None:
@@ -134,27 +135,48 @@ def run_scenario(result_text,
 
 
 def main():
-    n_rounds = (5,)
+    n_rounds = (10,)
     n_num_requests = (1,)  # 8, 16, 32, 64)
-    n_num_chunks = (2, 12, 16, 32)  #, 64, 128)  # parallel lz4 kicks-in with >= 16 chunks
-    n_parallel_lz4 = (False,)
-    n_lz4_use_async_pool = (False,)
-    n_use_incremental_serializer = (False,)
-    n_mongo_use_async_writes = (False,)
+    n_num_chunks = (64,)  #, 128, 256)  #, 64, 128)  # parallel lz4 kicks-in with >= 16 chunks
 
-    for mongo_use_async_writes in n_mongo_use_async_writes:
-        for use_incremental_serializer in n_use_incremental_serializer:
-            for lz4_use_async_pool in n_lz4_use_async_pool:
+    n_parallel_lz4 = (True,)
+    n_lz4_use_async_pool = (False,)
+
+    n_use_incremental_serializer = (False, True)  #True, False)
+
+    n_mongo_use_async_writes = (False, True)
+    n_mongo_batch_size = (8,)
+    n_mongo_num_batches = (2, 4)
+    n_internal_async_pool_size = (2, 4)
+
+    n_async_pool_size = (4,)
+
+    for use_incremental_serializer in n_use_incremental_serializer:
+        for mongo_use_async_writes in (n_mongo_use_async_writes if use_incremental_serializer else (False,)):
+            for lz4_use_async_pool in (n_lz4_use_async_pool ):
                 for parallel_lz4 in n_parallel_lz4:
                     for num_chunks in n_num_chunks:
                         for num_requests in n_num_requests:
-                            for rounds in n_rounds:
-                                run_scenario(result_text="Experiment results",
-                                             use_async=False,
-                                             rounds=rounds, num_requests=num_requests, num_chunks=num_chunks,
-                                             parallel_lz4=parallel_lz4, lz4_use_async_pool=lz4_use_async_pool,
-                                             use_incremental_serializer=use_incremental_serializer,
-                                             mongo_use_async_writes=mongo_use_async_writes)
+                            for mongo_batch_size in (n_mongo_batch_size if use_incremental_serializer and mongo_use_async_writes else (8,)):
+                                for mongo_num_batches in (n_mongo_num_batches if use_incremental_serializer and mongo_use_async_writes else (2,)):
+                                    for internal_async_pool_size in (n_internal_async_pool_size if use_incremental_serializer and mongo_use_async_writes else (4,)):
+                                        for async_pool_size in n_async_pool_size:
+                                            for rounds in n_rounds:
+                                                run_scenario(result_text="Experiment results",
+                                                             use_async=False,
+                                                             rounds=rounds, num_requests=num_requests,
+                                                             num_chunks=num_chunks,
+                                                             parallel_lz4=parallel_lz4,
+                                                             lz4_use_async_pool=lz4_use_async_pool,
+                                                             use_incremental_serializer=use_incremental_serializer,
+
+                                                             mongo_use_async_writes=mongo_use_async_writes,
+                                                             mongo_batch_size=mongo_batch_size,
+                                                             mongo_num_batches=mongo_num_batches,
+                                                             internal_async_pool_size=internal_async_pool_size,
+
+                                                             async_pool_size=async_pool_size
+                                                             )
 
 
 
