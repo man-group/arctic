@@ -97,7 +97,6 @@ def run_scenario(result_text,
                  use_incremental_serializer,
                  mongo_use_async_writes=None, mongo_batch_size=None, mongo_num_batches=None,
                  async_pool_size=None, internal_async_pool_size=None):
-    clean_lib()
     enable_parallel_lz4(parallel_lz4)
     set_use_async_pool(lz4_use_async_pool)
     pnds.USE_INCREMENTAL_SERIALIZER = use_incremental_serializer
@@ -112,7 +111,9 @@ def run_scenario(result_text,
     if internal_async_pool_size is not None:
         INTERNAL_ASYNC.reset(block=True, pool_size=int(internal_async_pool_size))
     measurements = []
-    for _ in xrange(rounds):
+    for round in xrange(rounds):
+        # print("Running round {}".format(round))
+        clean_lib()
         start = time.time()
         if use_async:
             async_bench(num_requests, num_chunks)
@@ -131,23 +132,23 @@ def run_scenario(result_text,
         use_incremental_serializer,
         mongo_use_async_writes, mongo_batch_size, mongo_num_batches,
         async_pool_size, internal_async_pool_size,
-        get_stats(measurements)))
+        ["{:.3f}".format(x) for x in get_stats(measurements)]))
 
 
 def main():
-    n_rounds = (10,)
+    n_rounds = (24,)
     n_num_requests = (1,)  # 8, 16, 32, 64)
-    n_num_chunks = (64,)  #, 128, 256)  #, 64, 128)  # parallel lz4 kicks-in with >= 16 chunks
+    n_num_chunks = (32, 64, 256)  #, 128, 256)  #, 64, 128)  # parallel lz4 kicks-in with >= 16 chunks
 
-    n_parallel_lz4 = (True,)
+    n_parallel_lz4 = (True, False)
     n_lz4_use_async_pool = (False,)
 
-    n_use_incremental_serializer = (False, True)  #True, False)
+    n_use_incremental_serializer = (True, False)  #True, False)
 
-    n_mongo_use_async_writes = (False, True)
-    n_mongo_batch_size = (8,)
-    n_mongo_num_batches = (2, 4)
-    n_internal_async_pool_size = (2, 4)
+    n_mongo_use_async_writes = (True,)
+    n_mongo_batch_size = (4,)
+    n_mongo_num_batches = (4,)
+    n_internal_async_pool_size = (4,)
 
     n_async_pool_size = (4,)
 

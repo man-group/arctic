@@ -593,15 +593,19 @@ class NdarrayStore(object):
 
         self.check_written(collection, symbol, version)
 
+    @staticmethod
+    def _request_record_time(request):
+        print("{:.3f} \t {:.3f} \t {:.3f} \t {:.3f}".format(request.create_time, request.execution_duration, request.schedule_delay, request.total_time))
+
     def _write_bulk(self, collection, bulk, requests):
         if USE_ASYNC_MONGO_WRITES:
             alive_requests, done_requests = INTERNAL_ASYNC.filter_finished_requests(requests)
             # Wait until at least one requests finishes
             if len(alive_requests) >= MONGO_CONCURRENT_BATCHES:
                 INTERNAL_ASYNC.wait_any_request(alive_requests)
-                alive_requests, _ = INTERNAL_ASYNC.filter_finished_requests(requests)
+                alive_requests, done_requests = INTERNAL_ASYNC.filter_finished_requests(requests)
             # Submit the batch
-            request = INTERNAL_ASYNC.submit_request(collection.bulk_write, is_modifier=True, requests=bulk)
+            request = INTERNAL_ASYNC.submit_request(collection.bulk_write, is_modifier=True, requests=bulk) #, async_callback=NdarrayStore._request_record_time)
             alive_requests.append(request)
             return alive_requests
         else:
