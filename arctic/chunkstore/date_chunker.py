@@ -42,7 +42,7 @@ class DateChunker(Chunker):
         else:
             raise Exception("Data must be datetime indexed or have a column named 'date'")
 
-        period_obj = dates.to_period(chunk_size)
+        period_obj = pd.PeriodIndex(start=dates[0], end=dates[-1], freq=chunk_size)
         period_obj_reduced = period_obj.drop_duplicates()
         count = 0
         for _, g in df.groupby(period_obj._data):
