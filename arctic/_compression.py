@@ -53,7 +53,7 @@ def _init_thread_pool(use_async_pool=None, pool_size=None):
         _compress_thread_pool = INTERNAL_ASYNC
     else:
         logging.info("Using separate LZ4 thread pool with size {}".format(LZ4_WORKERS))
-        _compress_thread_pool = ThreadPool(LZ4_WORKERS)
+        _compress_thread_pool = ThreadPool(pool_size)
         LZ4_WORKERS = pool_size
     LZ4_USE_ASYNC_POOL = use_async_pool
 
@@ -151,13 +151,14 @@ def compress_array(str_list, withHC=LZ4_HIGH_COMPRESSION):
 
     max_sz = max(len(x) for x in str_list if x)
 
-    use_parallel = ENABLE_PARALLEL and withHC or \
-                   len(str_list) >= LZ4_MIN_N_PARALLEL and max_sz > LZ4_MINSZ_PARALLEL
+    use_parallel = ENABLE_PARALLEL and (withHC or (len(str_list) >= LZ4_MIN_N_PARALLEL and max_sz > LZ4_MINSZ_PARALLEL))
 
     if BENCHMARK_MODE or use_parallel:
-        return _get_compression_pool().map(do_compress, str_list)
-
-    return [do_compress(s) for s in str_list]
+        lpool = _get_compression_pool()
+        res = lpool.map(do_compress, str_list)
+    else:
+        res = [do_compress(s) for s in str_list]
+    return res
 
 
 def compress(_str):

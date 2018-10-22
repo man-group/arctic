@@ -5,6 +5,10 @@ from enum import Enum
 
 
 ARCTIC_ASYNC_NTHREADS = os.environ.get('ARCTIC_ASYNC_NTHREADS', 4)
+
+ARCTIC_SERIALIZER_NTHREADS = os.environ.get('ARCTIC_SERIALIZER_NTHREADS', 8)
+ARCTIC_MONGO_NTHREADS = os.environ.get('ARCTIC_MONGO_NTHREADS', 8)
+
 USE_ASYNC_MONGO_WRITES = bool(os.environ.get('USE_ASYNC_MONGO_WRITES'))
 
 class AsyncRequestType(Enum):

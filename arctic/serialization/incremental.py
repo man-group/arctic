@@ -1,6 +1,7 @@
 import abc
 import hashlib
 import logging
+from threading import RLock
 
 import numpy as np
 import pandas as pd
@@ -73,6 +74,7 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
         self._rows_per_chunk = 0
         self._total_chunks = 0
         self._has_string_object = False
+        self._lock = RLock()
 
     def _dtype_column_max_len_string(self, input_ndtype, fname):
         if input_ndtype.type not in (np.string_, np.unicode_):
@@ -113,24 +115,27 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
     def _lazy_init(self):
         if self._initialized:
             return
-        
-        # Get the dtype of the serialized array (takes into account object types, converted to fixed length strings)
-        first_chunk, dtype, has_string_object = self._get_dtype()
 
-        # Compute the number of rows which can fit in a chunk
-        rows_per_chunk = 0
-        if len(self) > 0 and self.chunk_size > 1:
-            rows_per_chunk = IncrementalPandasToRecArraySerializer._calculate_rows_per_chunk(self.chunk_size, first_chunk)
+        with self._lock:
+            if self._initialized:  # intentional double check here
+                return
+            # Get the dtype of the serialized array (takes into account object types, converted to fixed length strings)
+            first_chunk, dtype, has_string_object = self._get_dtype()
 
-        # Initialize object's state
-        self._dtype = dtype
-        shp = list(first_chunk.shape)
-        shp[0] = len(self)
-        self._shape = tuple(shp)
-        self._has_string_object = has_string_object
-        self._rows_per_chunk = rows_per_chunk
-        self._total_chunks = int(np.ceil(float(len(self)) / self._rows_per_chunk)) if rows_per_chunk > 0 else 0
-        self._initialized = True
+            # Compute the number of rows which can fit in a chunk
+            rows_per_chunk = 0
+            if len(self) > 0 and self.chunk_size > 1:
+                rows_per_chunk = IncrementalPandasToRecArraySerializer._calculate_rows_per_chunk(self.chunk_size, first_chunk)
+
+            # Initialize object's state
+            self._dtype = dtype
+            shp = list(first_chunk.shape)
+            shp[0] = len(self)
+            self._shape = tuple(shp)
+            self._has_string_object = has_string_object
+            self._rows_per_chunk = rows_per_chunk
+            self._total_chunks = int(np.ceil(float(len(self)) / self._rows_per_chunk)) if rows_per_chunk > 0 else 0
+            self._initialized = True
 
     @staticmethod
     def _calculate_rows_per_chunk(max_chunk_size, chunk):
@@ -183,26 +188,33 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
         return self._generator(from_idx=from_idx, to_idx=to_idx, get_bytes=True)
 
     def _generator(self, from_idx, to_idx, get_bytes=False):
+        # Note that the range is: [from_idx, to_idx)
         self._lazy_init()
 
-        if len(self) == 0:
-            return
+        my_lenth = len(self)
 
         from_idx = 0 if from_idx is None else from_idx
-        to_idx = len(self) if to_idx is None else to_idx
+        to_idx = my_lenth if to_idx is None else min(to_idx, my_lenth)
+
+        if my_lenth == 0 or from_idx >= my_lenth or from_idx >= to_idx:
+            return
 
         # Perform serialization for each chunk
-        for i in xrange(self._total_chunks):
-            start_at = max(i * self._rows_per_chunk, from_idx)
-            stop_at = min(to_idx, (i + 1) * self._rows_per_chunk)
+        while from_idx < to_idx:
+            curr_stop = min(from_idx+self._rows_per_chunk, to_idx)
 
             chunk, _ = self._serializer.serialize(
-                self.input_data[start_at: stop_at],
+                self.input_data[from_idx: curr_stop],
                 string_max_len=self.string_max_len,
                 forced_dtype=self.dtype if self._has_string_object else None)
+
+            # print('{} -> {} .. {} [{} == {}][{}]'.format(from_idx, curr_stop, to_idx, curr_stop - from_idx, len(chunk), my_lenth))
+
             # Let the gc collect the intermediate serialized chunk as early as possible
             chunk = chunk.tostring() if chunk is not None and get_bytes else chunk
-            yield chunk, self.dtype
+
+            yield chunk, self.dtype, from_idx, curr_stop
+            from_idx = curr_stop
 
     # TODO: ADD method which creates an offset mark, to be used for from_idx in subsequent generators
 

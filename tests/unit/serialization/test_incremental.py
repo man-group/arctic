@@ -9,6 +9,7 @@ from tests.integration.chunkstore.test_utils import create_test_data
 
 from tests.util import get_large_ts
 
+_CHUNK_SIZE = 2 * 1024 * 1024 - 2048
 NON_HOMOGENEOUS_DTYPE_PATCH_SIZE_ROWS = 50
 _TEST_DATA = None
 
@@ -62,27 +63,27 @@ def _test_data():
 
 def test_incremental_bad_init():
     with pytest.raises(ArcticSerializationException):
-        IncrementalPandasToRecArraySerializer(df_serializer, 'hello world')
+        IncrementalPandasToRecArraySerializer(df_serializer, 'hello world', chunk_size=_CHUNK_SIZE)
     with pytest.raises(ArcticSerializationException):
-        IncrementalPandasToRecArraySerializer(df_serializer, 1234)
+        IncrementalPandasToRecArraySerializer(df_serializer, 1234, chunk_size=_CHUNK_SIZE)
     with pytest.raises(ArcticSerializationException):
         IncrementalPandasToRecArraySerializer(df_serializer, _test_data()['small'][0], chunk_size=0)
     with pytest.raises(ArcticSerializationException):
         IncrementalPandasToRecArraySerializer(df_serializer, _test_data()['small'][0], chunk_size=-1)
     with pytest.raises(ArcticSerializationException):
-        IncrementalPandasToRecArraySerializer(df_serializer, _test_data()['small'][0], string_max_len=-1)
+        IncrementalPandasToRecArraySerializer(df_serializer, _test_data()['small'][0], chunk_size=_CHUNK_SIZE, string_max_len=-1)
 
 
 def test_none_df():
     with pytest.raises(ArcticSerializationException):
-        incr_ser = IncrementalPandasToRecArraySerializer(df_serializer, None)
+        incr_ser = IncrementalPandasToRecArraySerializer(df_serializer, None, chunk_size=_CHUNK_SIZE)
         incr_ser.serialize()
 
 
 @pytest.mark.parametrize("input_df", _test_data().keys())
 def test_serialize_pandas_to_recarray(input_df):
 
-    incr_ser = IncrementalPandasToRecArraySerializer(df_serializer, _test_data()[input_df][0])
+    incr_ser = IncrementalPandasToRecArraySerializer(df_serializer, _test_data()[input_df][0], chunk_size=_CHUNK_SIZE)
     incr_ser_data, incr_ser_dtype = incr_ser.serialize()
     matching = _test_data()[input_df][1][0].tostring() == incr_ser_data.tostring()
     assert matching
@@ -91,7 +92,7 @@ def test_serialize_pandas_to_recarray(input_df):
 
 @pytest.mark.parametrize("input_df", _test_data().keys())
 def test_serialize_incremental_pandas_to_recarray(input_df):
-    incr_ser = IncrementalPandasToRecArraySerializer(df_serializer, _test_data()[input_df][0])
+    incr_ser = IncrementalPandasToRecArraySerializer(df_serializer, _test_data()[input_df][0], chunk_size=_CHUNK_SIZE)
     chunk_bytes = [chunk_b for chunk_b, _ in incr_ser.generator_bytes()]
 
     matching = _test_data()[input_df][1][0].tostring() == b''.join(chunk_bytes)
@@ -113,11 +114,12 @@ def test_serialize_incremental_chunk_size_pandas_to_recarray(input_df):
         assert _test_data()[input_df][1][1] == incr_ser.dtype
 
 
+@pytest.skip()
 def test_shape(input_df):
     #TODO: Add implementation
     pass
 
-
+@pytest.skip()
 def test_generator_bytes_offset(input_df):
     # TODO: Add implementation
     pass

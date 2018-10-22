@@ -9,17 +9,17 @@ from tests.integration.chunkstore.test_utils import create_test_data
 #  Configure the benchmark
 #----------------------------------------------
 from arctic.async import ASYNC_ARCTIC, INTERNAL_ASYNC, async_arctic_submit, async_wait_request, async_join_all
-from arctic._compression import enable_parallel_lz4, set_use_async_pool
+import arctic._compression as aclz4
 import arctic.store._pandas_ndarray_store as pnds
 import arctic.store._ndarray_store as nds
 # import arctic.async.async_utils as asu
 ASYNC_ARCTIC.reset(block=True, pool_size=4)
 INTERNAL_ASYNC.reset(block=True, pool_size=4)
-enable_parallel_lz4(False)
-set_use_async_pool(False)
-pnds.USE_INCREMENTAL_SERIALIZER = False
-nds.MONGO_BATCH_SIZE = 8
-nds.MONGO_CONCURRENT_BATCHES = 2
+# aclz4.enable_parallel_lz4(False)
+# aclz4.set_use_async_pool(False)
+# pnds.USE_INCREMENTAL_SERIALIZER = False
+# nds.MONGO_BATCH_SIZE = 8
+# nds.MONGO_CONCURRENT_BATCHES = 2
 # asu.USE_ASYNC_MONGO_WRITES = True
 #----------------------------------------------
 
@@ -93,12 +93,14 @@ def serial_bench(num_requests, num_chunks):
 def run_scenario(result_text,
                  rounds, num_requests, num_chunks,
                  use_async,
-                 parallel_lz4, lz4_use_async_pool,
+                 parallel_lz4, parallel_lz4_nthreads, lz4_use_async_pool, min_n_parallel,
                  use_incremental_serializer,
                  mongo_use_async_writes=None, mongo_batch_size=None, mongo_num_batches=None,
                  async_pool_size=None, internal_async_pool_size=None):
-    enable_parallel_lz4(parallel_lz4)
-    set_use_async_pool(lz4_use_async_pool)
+    aclz4.enable_parallel_lz4(parallel_lz4)
+    aclz4.set_use_async_pool(lz4_use_async_pool)
+    aclz4.LZ4_MIN_N_PARALLEL = int(min_n_parallel)
+    aclz4.set_compression_pool_size(int(parallel_lz4_nthreads))
     pnds.USE_INCREMENTAL_SERIALIZER = use_incremental_serializer
     if mongo_batch_size is not None:
         nds.MONGO_BATCH_SIZE = int(mongo_batch_size)
@@ -132,52 +134,68 @@ def run_scenario(result_text,
         use_incremental_serializer,
         mongo_use_async_writes, mongo_batch_size, mongo_num_batches,
         async_pool_size, internal_async_pool_size,
-        ["{:.3f}".format(x) for x in get_stats(measurements)]))
+        ["{:.3f}".format(x) for x in get_stats(measurements[1:] if len(measurements) > 1 else measurements)]))
+
 
 
 def main():
-    n_rounds = (24,)
-    n_num_requests = (1,)  # 8, 16, 32, 64)
-    n_num_chunks = (32, 64, 256)  #, 128, 256)  #, 64, 128)  # parallel lz4 kicks-in with >= 16 chunks
+    n_use_async = (False,)
 
-    n_parallel_lz4 = (True, False)
+    n_rounds = (1,)
+    n_num_requests = (1,)  # 8, 16, 32, 64)
+    n_num_chunks = (512,)  #(8, 32, 64, 128, 256, 512, 1024)  #8, 32, 512, 1024)  #(16, 32, 64, 256, 512)  #, 128, 256)  #, 64, 128)  # parallel lz4 kicks-in with >= 16 chunks
+
+    n_parallel_lz4 = (False,)
+    n_parallel_lz4_nthreads = (4,)
     n_lz4_use_async_pool = (False,)
 
-    n_use_incremental_serializer = (True, False)  #True, False)
+    n_use_incremental_serializer = (True,)
 
     n_mongo_use_async_writes = (True,)
-    n_mongo_batch_size = (4,)
-    n_mongo_num_batches = (4,)
-    n_internal_async_pool_size = (4,)
+    n_mongo_batch_size = (8,)
+    n_mongo_num_batches = (16,)
+    n_internal_async_pool_size = (4, )
+    # n_mongo_batch_size = (8,)
+    # n_mongo_num_batches = (2,)
+    # n_internal_async_pool_size = (2,)
 
-    n_async_pool_size = (4,)
+    n_async_pool_size = (2,)
 
-    for use_incremental_serializer in n_use_incremental_serializer:
-        for mongo_use_async_writes in (n_mongo_use_async_writes if use_incremental_serializer else (False,)):
-            for lz4_use_async_pool in (n_lz4_use_async_pool ):
-                for parallel_lz4 in n_parallel_lz4:
-                    for num_chunks in n_num_chunks:
-                        for num_requests in n_num_requests:
-                            for mongo_batch_size in (n_mongo_batch_size if use_incremental_serializer and mongo_use_async_writes else (8,)):
-                                for mongo_num_batches in (n_mongo_num_batches if use_incremental_serializer and mongo_use_async_writes else (2,)):
-                                    for internal_async_pool_size in (n_internal_async_pool_size if use_incremental_serializer and mongo_use_async_writes else (4,)):
-                                        for async_pool_size in n_async_pool_size:
-                                            for rounds in n_rounds:
-                                                run_scenario(result_text="Experiment results",
-                                                             use_async=False,
-                                                             rounds=rounds, num_requests=num_requests,
-                                                             num_chunks=num_chunks,
-                                                             parallel_lz4=parallel_lz4,
-                                                             lz4_use_async_pool=lz4_use_async_pool,
-                                                             use_incremental_serializer=use_incremental_serializer,
+    for use_async in n_use_async:
+        for use_incremental_serializer in n_use_incremental_serializer:
+            for mongo_use_async_writes in (n_mongo_use_async_writes if use_incremental_serializer else (False,)):
+                for lz4_use_async_pool in (n_lz4_use_async_pool ):
+                    for parallel_lz4 in n_parallel_lz4:
+                        for parallel_lz4_nthreads in n_parallel_lz4_nthreads:
+                            for num_chunks in n_num_chunks:
+                                for num_requests in n_num_requests:
+                                    for mongo_batch_size in (n_mongo_batch_size if use_incremental_serializer and mongo_use_async_writes else (4,)):
+                                        for mongo_num_batches in (n_mongo_num_batches if use_incremental_serializer and mongo_use_async_writes else (2,)):
+                                            for internal_async_pool_size in (n_internal_async_pool_size if use_incremental_serializer and mongo_use_async_writes else (4,)):
+                                                for async_pool_size in n_async_pool_size:
+                                                    for rounds in n_rounds:
+                                                        # if mongo_num_batches < internal_async_pool_size:
+                                                        #     continue
 
-                                                             mongo_use_async_writes=mongo_use_async_writes,
-                                                             mongo_batch_size=mongo_batch_size,
-                                                             mongo_num_batches=mongo_num_batches,
-                                                             internal_async_pool_size=internal_async_pool_size,
+                                                        run_scenario(result_text="Experiment results",
+                                                                     use_async=use_async,
+                                                                     rounds=rounds, num_requests=num_requests,
+                                                                     num_chunks=num_chunks,
 
-                                                             async_pool_size=async_pool_size
-                                                             )
+                                                                     parallel_lz4=parallel_lz4,
+                                                                     parallel_lz4_nthreads=parallel_lz4_nthreads,
+                                                                     lz4_use_async_pool=lz4_use_async_pool,
+                                                                     min_n_parallel=mongo_batch_size,
+
+                                                                     use_incremental_serializer=use_incremental_serializer,
+
+                                                                     mongo_use_async_writes=mongo_use_async_writes,
+                                                                     mongo_batch_size=mongo_batch_size,
+                                                                     mongo_num_batches=mongo_num_batches,
+                                                                     internal_async_pool_size=internal_async_pool_size,
+
+                                                                     async_pool_size=async_pool_size
+                                                                     )
 
 
 

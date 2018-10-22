@@ -2,13 +2,13 @@ import logging
 import time
 from collections import defaultdict
 from functools import wraps
-from six import string_types
-from threading import RLock, Event
+from threading import RLock
 
 from concurrent.futures import ThreadPoolExecutor, wait, FIRST_EXCEPTION, ALL_COMPLETED
 
 from arctic.decorators import mongo_retry
-from .async_utils import AsyncRequestType, AsyncRequest, ARCTIC_ASYNC_NTHREADS
+from .async_utils import AsyncRequestType, AsyncRequest, ARCTIC_ASYNC_NTHREADS, ARCTIC_SERIALIZER_NTHREADS, \
+    ARCTIC_MONGO_NTHREADS
 from arctic.exceptions import AsyncArcticException
 
 
@@ -58,6 +58,9 @@ class AsyncArctic(object):
 
     @classmethod
     def get_instance(cls):
+        if cls._instance is not None:
+            return cls._instance
+
         # Lazy init
         with cls._SINGLETON_LOCK:
             if cls._instance is None:
@@ -70,15 +73,15 @@ class AsyncArctic(object):
             return self._pool
 
         # lazy init the workers pool
-        initialized = False
+        got_initialized = False
         with type(self)._POOL_INIT_LOCK:
             if self._pool is None:
                 self._pool = ThreadPoolExecutor(max_workers=self._pool_size,
                                                 thread_name_prefix='AsyncArcticWorker')
-                initialized = True
+                got_initialized = True
 
         # Call hooks outside the lock, to minimize time-under-lock
-        if initialized:
+        if got_initialized:
             for hook in self._pool_update_hooks:
                 hook(self._pool_size)
 
@@ -154,7 +157,7 @@ class AsyncArctic(object):
         if 'mongo_retry' in kwargs:
             kwargs.pop('mongo_retry')
 
-        with type(self)._TASK_SUBMIT_LOCK:
+        with type(self)._TASK_SUBMIT_LOCK:  # class level lock, since it is a Singleton
             if library_name:
                 if self._get_modifiers(library_name, symbol):
                     raise AsyncArcticException("Can't submit async task as there are "
@@ -238,7 +241,7 @@ class AsyncArctic(object):
             raise errored[0].exception
 
     def join(self, timeout=None):
-        with type(self)._TASK_SUBMIT_LOCK:
+        while len(self.requests_by_id):
             try:
                 AsyncArctic.wait_requests(self.requests_by_id.values(), timeout=timeout)
             except Exception as e:
@@ -259,6 +262,9 @@ class InternalAsyncArctic(AsyncArctic):
 
     def submit_request(self, fun, is_modifier, *args, **kwargs):
         return super(InternalAsyncArctic, self).submit_request(None, fun, is_modifier, *args, **kwargs)
+
+    def __reduce__(self):
+        return "INTERNAL_ASYNC"
 
 
 ASYNC_ARCTIC = AsyncArctic.get_instance()
@@ -287,3 +293,32 @@ def async_accessor(func):
     def wrapper(self, *args, **kwargs):
         return async_arctic_submit(self, func, False, *args, **kwargs)
     return wrapper
+
+
+class InternalSerializationPool(AsyncArctic):
+    _instance = None
+    _SINGLETON_LOCK = RLock()
+    _POOL_INIT_LOCK = RLock()
+    _TASK_SUBMIT_LOCK = RLock()
+
+    def submit_request(self, fun, is_modifier, *args, **kwargs):
+        return super(InternalSerializationPool, self).submit_request(None, fun, is_modifier, *args, **kwargs)
+
+    def __reduce__(self):
+        return "INTERNAL_SERIALIZATION_POOL"
+INTERNAL_SERIALIZATION_POOL = InternalSerializationPool.get_instance()
+INTERNAL_SERIALIZATION_POOL.reset(block=True, pool_size=ARCTIC_SERIALIZER_NTHREADS)
+
+class InternalMongoPool(AsyncArctic):
+    _instance = None
+    _SINGLETON_LOCK = RLock()
+    _POOL_INIT_LOCK = RLock()
+    _TASK_SUBMIT_LOCK = RLock()
+
+    def submit_request(self, fun, is_modifier, *args, **kwargs):
+        return super(InternalMongoPool, self).submit_request(None, fun, is_modifier, *args, **kwargs)
+
+    def __reduce__(self):
+        return "INTERNAL_MONGO_POOL"
+INTERNAL_MONGO_POOL = InternalMongoPool.get_instance()
+INTERNAL_MONGO_POOL.reset(block=True, pool_size=ARCTIC_MONGO_NTHREADS)
