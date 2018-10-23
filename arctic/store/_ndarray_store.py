@@ -620,9 +620,11 @@ class NdarrayStore(object):
         print("{:.3f} \t {:.3f} \t {:.3f} \t {:.3f}".format(request.create_time, request.execution_duration, request.schedule_delay, request.total_time))
 
     MEASUREMENTS = {
-        'execution_duration': [],
-        'schedule_delay': [],
-        'total_time': []
+        # 'execution_duration': [],
+        # 'schedule_delay': [],
+        # 'total_time': [],
+        'serialization': [],
+        'mongo_writes': []
     }
     @staticmethod
     def _register_measurements(request):
@@ -647,6 +649,9 @@ class NdarrayStore(object):
             if task_todo is None:
                 continue
             from_idx, to_idx = task_todo
+
+            start_t = time.time()
+
 
             segment_index = []
             bulk = []
@@ -682,6 +687,8 @@ class NdarrayStore(object):
                 bulk.append(op)
 
             if bulk:
+                NdarrayStore.MEASUREMENTS['serialization'].append(time.time() - start_t)
+                print("Queue size increase: {}".format(mongo_tasks_q.qsize()))
                 mongo_tasks_q.put((bulk, from_idx, to_idx), block=True, timeout=None)
                 serialize_tasks_q.task_done()
                 # print("SER: Put to mongo task: {}/{}/{} of {}".format(len(bulk), from_idx, to_idx, length))
@@ -690,9 +697,16 @@ class NdarrayStore(object):
         while True:
             try:
                 bulk, from_idx, to_idx = mongo_tasks_q.get(block=True, timeout=None)
+                print("Queue size decrease: {}".format(mongo_tasks_q.qsize()))
+
+                start_t = time.time()
+
                 # print("MONGO: Wring: {}/{}/{}".format(len(bulk), from_idx, to_idx))
                 collection.bulk_write(bulk, ordered=False)
                 # print("MONGO: Wrote: {}/{}/{}".format(len(bulk), from_idx, to_idx))
+
+                NdarrayStore.MEASUREMENTS['mongo_writes'].append(time.time() - start_t)
+
                 done_tasks_q.put((len(bulk), from_idx, to_idx))
             except Exception as e:
                 # pass
@@ -708,7 +722,7 @@ class NdarrayStore(object):
         serialization_tasks = [(i, min(i+step, total_rows)) for i in range(0, total_rows, step)]
         return serialization_tasks
 
-    def _do_write_generator(self, collection, version, symbol, items_lazy_ser, previous_version, segment_offset=0):
+    def _do_write_generator_new(self, collection, version, symbol, items_lazy_ser, previous_version, segment_offset=0):
         previous_shas = []
         if previous_version:
             previous_shas = set([Binary(x['sha']) for x in
@@ -720,7 +734,7 @@ class NdarrayStore(object):
         start_time = time.time()
 
         serialize_tasks_q = queue.Queue()
-        mongo_tasks_q = queue.Queue()
+        mongo_tasks_q = queue.Queue(maxsize=ARCTIC_MONGO_NTHREADS*2)
         done_tasks_q = queue.Queue()
 
         # Serializers
@@ -752,7 +766,7 @@ class NdarrayStore(object):
         # print("Finished adding.")
 
         serialize_tasks_q.join()
-        print(mongo_tasks_q.qsize())
+        # print(mongo_tasks_q.qsize())
 
         mongo_tasks_q.join()
 
@@ -763,6 +777,9 @@ class NdarrayStore(object):
             serialization_tasks.remove((from_row, to_row))
             total_batches += 1
             total_segments += segments_in_batch
+
+        for k, v in NdarrayStore.MEASUREMENTS.items():
+            print("{}: {}".format(k, ["{:.3f}".format(x) for x in NdarrayStore.get_stats(v)]))
 
         end_time = time.time()
 
@@ -976,7 +993,7 @@ class NdarrayStore(object):
             collection.bulk_write(bulk, ordered=False)
             return requests
 
-    def _do_write_generator_first(self, collection, version, symbol, items_lazy_ser, previous_version, segment_offset=0):
+    def _do_write_generator(self, collection, version, symbol, items_lazy_ser, previous_version, segment_offset=0):
         previous_shas = []
         if previous_version:
             previous_shas = set([Binary(x['sha']) for x in

@@ -126,7 +126,7 @@ class Arctic(object):
                 host = get_mongodb_uri(self.mongo_host)
                 logger.info("Connecting to mongo: {0} ({1})".format(self.mongo_host, host))
                 self.__conn = pymongo.MongoClient(host=host,
-                                                   maxPoolSize=self._MAX_CONNS,
+                                                   # maxPoolSize=self._MAX_CONNS,
                                                    socketTimeoutMS=self._socket_timeout,
                                                    connectTimeoutMS=self._connect_timeout,
                                                    serverSelectionTimeoutMS=self._server_selection_timeout)

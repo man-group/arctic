@@ -5,6 +5,7 @@ except ImportError:
 from mock import patch, MagicMock, sentinel, create_autospec, Mock, call
 import pytest
 from pymongo.errors import OperationFailure, ServerSelectionTimeoutError, AutoReconnect
+
 from pymongo.mongo_client import MongoClient
 
 from arctic.auth import Credential
