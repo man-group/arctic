@@ -6,6 +6,7 @@ import threading
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect
 from ._util import indent
+from .async.async_utils import ARCTIC_MONGO_NTHREADS
 from .auth import authenticate, get_auth
 from .decorators import mongo_retry
 from .exceptions import LibraryNotFoundException, ArcticException, QuotaExceededException
@@ -65,7 +66,7 @@ class Arctic(object):
     METADATA_COLL = "ARCTIC"
     METADATA_DOC_ID = "ARCTIC_META"
 
-    _MAX_CONNS = 4
+    _MAX_CONNS = ARCTIC_MONGO_NTHREADS * 2
     __conn = None
 
     def __init__(self, mongo_host, app_name=APPLICATION_NAME, allow_secondary=False,
@@ -126,7 +127,7 @@ class Arctic(object):
                 host = get_mongodb_uri(self.mongo_host)
                 logger.info("Connecting to mongo: {0} ({1})".format(self.mongo_host, host))
                 self.__conn = pymongo.MongoClient(host=host,
-                                                   # maxPoolSize=self._MAX_CONNS,
+                                                   maxPoolSize=self._MAX_CONNS,
                                                    socketTimeoutMS=self._socket_timeout,
                                                    connectTimeoutMS=self._connect_timeout,
                                                    serverSelectionTimeoutMS=self._server_selection_timeout)

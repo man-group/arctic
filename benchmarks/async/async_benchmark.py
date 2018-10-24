@@ -8,13 +8,13 @@ from tests.integration.chunkstore.test_utils import create_test_data
 #----------------------------------------------
 #  Configure the benchmark
 #----------------------------------------------
-from arctic.async import ASYNC_ARCTIC, INTERNAL_ASYNC, async_arctic_submit, async_wait_request, async_join_all
+from arctic.async import ASYNC_ARCTIC, async_arctic_submit, async_wait_request, async_join_all
 import arctic._compression as aclz4
 import arctic.store._pandas_ndarray_store as pnds
 import arctic.store._ndarray_store as nds
 # import arctic.async.async_utils as asu
 ASYNC_ARCTIC.reset(block=True, pool_size=4)
-INTERNAL_ASYNC.reset(block=True, pool_size=4)
+# INTERNAL_ASYNC.reset(block=True, pool_size=4)
 # aclz4.enable_parallel_lz4(False)
 # aclz4.set_use_async_pool(False)
 # pnds.USE_INCREMENTAL_SERIALIZER = False
@@ -111,7 +111,8 @@ def run_scenario(result_text,
     if async_pool_size is not None:
         ASYNC_ARCTIC.reset(block=True, pool_size=int(async_pool_size))
     if internal_async_pool_size is not None:
-        INTERNAL_ASYNC.reset(block=True, pool_size=int(internal_async_pool_size))
+        pass
+        # INTERNAL_ASYNC.reset(block=True, pool_size=int(internal_async_pool_size))
     measurements = []
     for round in xrange(rounds):
         # print("Running round {}".format(round))
@@ -122,19 +123,19 @@ def run_scenario(result_text,
         else:
             serial_bench(num_requests, num_chunks)
         measurements.append(time.time() - start)
-    print("{}: "
-          "async={}, chunks/write={}, writes/round={}, rounds={}, "
-          "parallel_lz4={}, lz4_async_pool={}, "
-          "incremental={}, "
-          "mongo_async={}, mongo_batch={}, mongo_batches={}, "
-          "pool_size={}, internal_pool_size={}: {}".format(
-        result_text,
-        use_async, num_chunks, num_requests, rounds,
-        parallel_lz4, lz4_use_async_pool,
-        use_incremental_serializer,
-        mongo_use_async_writes, mongo_batch_size, mongo_num_batches,
-        async_pool_size, internal_async_pool_size,
-        ["{:.3f}".format(x) for x in get_stats(measurements[1:] if len(measurements) > 1 else measurements)]))
+    # print("{}: "
+    #       "async={}, chunks/write={}, writes/round={}, rounds={}, "
+    #       "parallel_lz4={}, lz4_async_pool={}, "
+    #       "incremental={}, "
+    #       "mongo_async={}, mongo_batch={}, mongo_batches={}, "
+    #       "pool_size={}, internal_pool_size={}: {}".format(
+    #     result_text,
+    #     use_async, num_chunks, num_requests, rounds,
+    #     parallel_lz4, lz4_use_async_pool,
+    #     use_incremental_serializer,
+    #     mongo_use_async_writes, mongo_batch_size, mongo_num_batches,
+    #     async_pool_size, internal_async_pool_size,
+    #     ["{:.3f}".format(x) for x in get_stats(measurements[1:] if len(measurements) > 1 else measurements)]))
 
 
 
@@ -142,17 +143,17 @@ def main():
     n_use_async = (False,)
 
     n_rounds = (1,)
-    n_num_requests = (1,)  # 8, 16, 32, 64)
-    n_num_chunks = (512,)  #(8, 32, 64, 128, 256, 512, 1024)  #8, 32, 512, 1024)  #(16, 32, 64, 256, 512)  #, 128, 256)  #, 64, 128)  # parallel lz4 kicks-in with >= 16 chunks
+    n_num_requests = (3,)  # 8, 16, 32, 64)
+    n_num_chunks = (2, 8, 32, 128, 256, 512, 1024)  #(8, 32, 64, 128, 256, 512, 1024)  #8, 32, 512, 1024)  #(16, 32, 64, 256, 512)  #, 128, 256)  #, 64, 128)  # parallel lz4 kicks-in with >= 16 chunks
 
     n_parallel_lz4 = (False,)
     n_parallel_lz4_nthreads = (4,)
     n_lz4_use_async_pool = (False,)
 
-    n_use_incremental_serializer = (True,)
+    n_use_incremental_serializer = (False, True)
 
     n_mongo_use_async_writes = (True,)
-    n_mongo_batch_size = (8,)
+    n_mongo_batch_size = (4,)
     n_mongo_num_batches = (16,)
     n_internal_async_pool_size = (4, )
     # n_mongo_batch_size = (8,)

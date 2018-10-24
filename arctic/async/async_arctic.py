@@ -191,7 +191,6 @@ class AsyncArctic(object):
     def _request_finished(self, request, callback=None):
         with type(self)._TASK_SUBMIT_LOCK:
             self._remove_request(request)
-        # request.future = None
         request.is_completed = True
         if callback:
             callback(request)
@@ -254,19 +253,6 @@ class AsyncArctic(object):
         return len([1 for r in self.requests_by_id if isinstance(r, MongoAsyncRequest)])
 
 
-class InternalAsyncArctic(AsyncArctic):
-    _instance = None
-    _SINGLETON_LOCK = RLock()
-    _POOL_INIT_LOCK = RLock()
-    _TASK_SUBMIT_LOCK = RLock()
-
-    def submit_request(self, fun, is_modifier, *args, **kwargs):
-        return super(InternalAsyncArctic, self).submit_request(None, fun, is_modifier, *args, **kwargs)
-
-    def __reduce__(self):
-        return "INTERNAL_ASYNC"
-
-
 ASYNC_ARCTIC = AsyncArctic.get_instance()
 async_arctic_submit = ASYNC_ARCTIC.submit_request
 async_wait_request = ASYNC_ARCTIC.wait_request
@@ -275,10 +261,6 @@ async_join_all = ASYNC_ARCTIC.join
 async_reset_pool = ASYNC_ARCTIC.reset
 async_total_requests = ASYNC_ARCTIC.total_requests
 async_total_mongo_requests = ASYNC_ARCTIC.total_mongo_requests
-
-
-INTERNAL_ASYNC = InternalAsyncArctic.get_instance()
-INTERNAL_ASYNC.reset(block=True, pool_size=ARCTIC_ASYNC_NTHREADS)
 
 
 def async_modifier(func):
@@ -293,32 +275,3 @@ def async_accessor(func):
     def wrapper(self, *args, **kwargs):
         return async_arctic_submit(self, func, False, *args, **kwargs)
     return wrapper
-
-
-class InternalSerializationPool(AsyncArctic):
-    _instance = None
-    _SINGLETON_LOCK = RLock()
-    _POOL_INIT_LOCK = RLock()
-    _TASK_SUBMIT_LOCK = RLock()
-
-    def submit_request(self, fun, is_modifier, *args, **kwargs):
-        return super(InternalSerializationPool, self).submit_request(None, fun, is_modifier, *args, **kwargs)
-
-    def __reduce__(self):
-        return "INTERNAL_SERIALIZATION_POOL"
-INTERNAL_SERIALIZATION_POOL = InternalSerializationPool.get_instance()
-INTERNAL_SERIALIZATION_POOL.reset(block=True, pool_size=ARCTIC_SERIALIZER_NTHREADS)
-
-class InternalMongoPool(AsyncArctic):
-    _instance = None
-    _SINGLETON_LOCK = RLock()
-    _POOL_INIT_LOCK = RLock()
-    _TASK_SUBMIT_LOCK = RLock()
-
-    def submit_request(self, fun, is_modifier, *args, **kwargs):
-        return super(InternalMongoPool, self).submit_request(None, fun, is_modifier, *args, **kwargs)
-
-    def __reduce__(self):
-        return "INTERNAL_MONGO_POOL"
-INTERNAL_MONGO_POOL = InternalMongoPool.get_instance()
-INTERNAL_MONGO_POOL.reset(block=True, pool_size=ARCTIC_MONGO_NTHREADS)
