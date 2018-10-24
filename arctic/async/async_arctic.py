@@ -263,6 +263,16 @@ async_total_requests = ASYNC_ARCTIC.total_requests
 async_total_mongo_requests = ASYNC_ARCTIC.total_mongo_requests
 
 
+class InternalAsync(AsyncArctic):
+    _instance = None
+    _SINGLETON_LOCK = RLock()
+    _POOL_LOCK = RLock()
+
+    def __reduce__(self):
+        return "INTERNAL_ASYNC"
+INTERNAL_ASYNC = InternalAsync.get_instance()
+
+
 def async_modifier(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):

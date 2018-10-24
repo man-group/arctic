@@ -2,11 +2,11 @@ import abc
 import logging
 import uuid
 
-from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED
+from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED, FIRST_EXCEPTION
 from six import iteritems, itervalues
 from threading import RLock, Event
 
-from arctic.async.async_utils import DEFAULT_INTERNAL_POOL_NTHREADS, ARCTIC_SERIALIZER_NTHREADS, ARCTIC_MONGO_NTHREADS
+from arctic.async.async_utils import ARCTIC_DEFAULT_INTERNAL_POOL_NTHREADS, ARCTIC_SERIALIZER_NTHREADS, ARCTIC_MONGO_NTHREADS
 from arctic.exceptions import AsyncArcticException
 
 ABC = abc.ABCMeta('ABC', (object,), {})
@@ -51,7 +51,7 @@ class LazySingletonThreadPool(ABC):
         # Lazy init
         with cls._SINGLETON_LOCK:
             if cls._instance is None:
-                cls._instance = cls(DEFAULT_INTERNAL_POOL_NTHREADS if pool_size is None else pool_size)
+                cls._instance = cls(ARCTIC_DEFAULT_INTERNAL_POOL_NTHREADS if pool_size is None else pool_size)
         return cls._instance
 
     @property
@@ -93,10 +93,11 @@ class LazySingletonThreadPool(ABC):
             self._pool_update_hooks = []
             self.alive_tasks = {}
 
-    def reset(self, block=True, pool_size=DEFAULT_INTERNAL_POOL_NTHREADS):
+    def reset(self, block=True, pool_size=None, timeout=None):
+        pool_size = ARCTIC_DEFAULT_INTERNAL_POOL_NTHREADS if pool_size is None else int(pool_size)
         with type(self)._POOL_LOCK:
             self.stop_all_running_tasks()
-            self.wait_all_running_tasks()
+            self.wait_all_running_tasks(timeout=timeout)
             self._workers_pool.shutdown(wait=block)
             pool_size = max(pool_size, 1)
             self._pool = None
@@ -123,6 +124,16 @@ class LazySingletonThreadPool(ABC):
         done, _ = wait(running_futures, timeout=timeout, return_when=return_when)
         if raise_exceptions:
             [f.result() for f in done if not f.cancelled() and f.exception() is not None]  # raises the exception
+
+    @staticmethod
+    def wait_tasks_or_abort(futures, timeout=60, kill_switch_ev=None):
+        try:
+            LazySingletonThreadPool.wait_tasks(futures, return_when=FIRST_EXCEPTION, raise_exceptions=True)
+        except Exception as e:
+            kill_switch_ev.set()
+            LazySingletonThreadPool.wait_tasks(futures, return_when=ALL_COMPLETED, raise_exceptions=False,
+                                               timeout=timeout)
+            raise e
 
     def register_update_hook(self, fun):
         with type(self)._POOL_LOCK:

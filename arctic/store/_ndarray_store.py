@@ -1,29 +1,26 @@
 import hashlib
 import logging
 import os
+import time
+import threading
+from six import iterkeys, itervalues
+from six.moves import queue, xrange
 
 from bson.binary import Binary
 import numpy as np
 import pymongo
-from concurrent.futures import FIRST_EXCEPTION, ALL_COMPLETED
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
 from arctic._util import mongo_count
+from arctic.async._internal_async_workers import schedule_mongo_workers, schedule_serialization_workers, \
+    MEASUREMENTS, get_stats
 from ..async._internal_thread_pool import INTERNAL_SERIALIZATION_POOL, INTERNAL_MONGO_POOL, LazySingletonThreadPool
-from ..async.async_utils import USE_ASYNC_MONGO_WRITES, ARCTIC_SERIALIZER_NTHREADS, ARCTIC_MONGO_NTHREADS
+from ..async.async_utils import ARCTIC_MONGO_NTHREADS, ARCTIC_MEASURE_INTERNAL_ASYNC
 from ..decorators import mongo_retry
-from ..exceptions import UnhandledDtypeException, DataIntegrityException, AsyncArcticException
+from ..exceptions import UnhandledDtypeException, DataIntegrityException, AsyncArcticException, ArcticException
 from ..serialization.incremental import LazyIncrementalSerializer
 from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
-from .._compression import compress_array, compress, decompress
-from six.moves import xrange
-
-
-from six.moves import queue
-import math
-import time
-import threading
-
+from .._compression import compress_array, decompress
 
 
 logger = logging.getLogger(__name__)
@@ -31,9 +28,6 @@ logger = logging.getLogger(__name__)
 _CHUNK_SIZE = 2 * 1024 * 1024 - 2048  # ~2 MB (a bit less for usePowerOf2Sizes)
 _APPEND_SIZE = 1 * 1024 * 1024  # 1MB
 _APPEND_COUNT = 60  # 1 hour of 1 min data
-
-MONGO_BATCH_SIZE = os.environ.get('MONGO_BATCH_SIZE', 16)
-MONGO_CONCURRENT_BATCHES = os.environ.get('MONGO_CONCURRENT_BATCHES', 2)
 
 # Enabling the following has roughly a 5-7% performance hit (off by default)
 _CHECK_CORRUPTION_ON_APPEND = bool(os.environ.get('CHECK_CORRUPTION_ON_APPEND'))
@@ -491,6 +485,10 @@ class NdarrayStore(object):
         return curr_sha
 
     def write(self, arctic_lib, version, symbol, item, previous_version, dtype=None):
+        if isinstance(item, LazyIncrementalSerializer) and not previous_version:
+            self._write_incremental_serializer(arctic_lib, version, symbol, item, previous_version, dtype)
+            return
+
         collection = arctic_lib.get_top_level_collection()
         if item.dtype.hasobject:
             raise UnhandledDtypeException()
@@ -502,41 +500,43 @@ class NdarrayStore(object):
         version['dtype_metadata'] = dict(dtype.metadata or {})
         version['type'] = self.TYPE
         version['up_to'] = len(item)
-
-        is_incremental_serializer = isinstance(item, LazyIncrementalSerializer)
+        version['sha'] = self.checksum(item)
 
         if previous_version:
-            if is_incremental_serializer:
-                # TODO: for now fall back to non-incremental serialization
-                #       to compute the checksum we serialize once anyway (non mem footprint-friendly though)
-                item, dtype = item.serialize()
-                version['dtype'] = str(dtype)
-                is_incremental_serializer = False
-                # overlapping_checksum = item.checksum(0, previous_version['up_to'])
-                # # TODO: pass an incremental serializer with an offset at "previous_version['up_to']:"
-                # new_rows = item.input_data[previous_version['up_to']:]
-
             if 'sha' in previous_version \
-                    and previous_version['dtype'] == version['dtype']:
-                overlapping_checksum = self.checksum(item[:previous_version['up_to']])
-                if overlapping_checksum == previous_version['sha']:
-                    # The first n rows are identical to the previous version, so just append.
-                    # Do a 'dirty' append (i.e. concat & start from a new base version) for safety
-                    # TODO: do not recompute from scratch, rather do incremental checksum
-                    version['sha'] = self.checksum(item)
-                    # TODO: Enable incremental serialization also for appends
-                    new_rows = item[previous_version['up_to']:]
-                    self._do_append(collection, version, symbol, new_rows, previous_version,
-                                    dirty_append=True)
-                    return
+                    and previous_version['dtype'] == version['dtype'] \
+                    and self.checksum(item[:previous_version['up_to']]) == previous_version['sha']:
+                # The first n rows are identical to the previous version, so just append.
+                # Do a 'dirty' append (i.e. concat & start from a new base version) for safety
+                self._do_append(collection, version, symbol, item[previous_version['up_to']:], previous_version, dirty_append=True)
+                return
 
-        if is_incremental_serializer:
-            version['sha'], version['up_to'] = self._do_write_generator(collection, version,
-                                                                        symbol, item, previous_version)
-        else:
-            # TODO: do not recompute from scratch, rather do incremental checksum
-            version['sha'] = self.checksum(item)
-            self._do_write(collection, version, symbol, item, previous_version)
+        version['base_sha'] = version['sha']
+        self._do_write(collection, version, symbol, item, previous_version)
+
+    def _write_incremental_serializer(self, arctic_lib, version, symbol, incremental_serializer, previous_version, dtype=None):
+        collection = arctic_lib.get_top_level_collection()
+        if incremental_serializer.dtype.hasobject:
+            raise UnhandledDtypeException()
+
+        if not dtype:
+            dtype = incremental_serializer.dtype
+        version['dtype'] = str(dtype)
+        version['shape'] = (-1,) + incremental_serializer.shape[1:]
+        version['dtype_metadata'] = dict(dtype.metadata or {})
+        version['type'] = self.TYPE
+        version['up_to'] = len(incremental_serializer)
+
+        if previous_version:
+            # TODO: for now fall back to non-incremental serialization
+            #       to compute the checksum we serialize once anyway (non mem footprint-friendly though).
+            #       Pass an incremental serializer with an offset at "previous_version['up_to']:"
+            #           new_rows = item.input_data[previous_version['up_to']:]
+            #       Do not recompute from scratch, rather do incremental checksum
+            raise ArcticException("Unimplemented functionality (append with incremental serializer)")
+
+        version['sha'], version['up_to'] = self._do_write_async(collection, version,
+                                                                symbol, incremental_serializer, previous_version)
         version['base_sha'] = version['sha']
 
     def _do_write(self, collection, version, symbol, item, previous_version, segment_offset=0):
@@ -553,9 +553,6 @@ class NdarrayStore(object):
                                                  projection={'sha': 1, '_id': 0},
                                                  )
                                  ])
-
-        # TODO: Delete me
-        start_time = time.time()
 
         length = len(item)
 
@@ -587,18 +584,8 @@ class NdarrayStore(object):
             else:
                 bulk.append(pymongo.UpdateOne({'symbol': symbol, 'sha': sha, 'segment': segment['segment']},
                                               {'$addToSet': {'parent': version['_id']}}))
-        # TODO: why write the whole bulk and not write in smaller batches?
-        #       This would reduce the memory footprint for large items.
-        #       Also, mongo_retry could be used here
         if i != -1:
             collection.bulk_write(bulk, ordered=False)
-
-        # TODO: Delete me
-        end_time = time.time()
-        print('Total time: {:.4f}, '
-              'total batches {})'.format(
-            end_time - start_time,
-            len(bulk)))
 
         segment_index = self._segment_index(item, existing_index=existing_index, start=segment_offset,
                                             new_segments=segment_index)
@@ -610,629 +597,91 @@ class NdarrayStore(object):
 
         self.check_written(collection, symbol, version)
 
-    @staticmethod
-    def _request_record_time(request):
-        print("{:.3f} \t {:.3f} \t {:.3f} \t {:.3f}".format(request.create_time, request.execution_duration, request.schedule_delay, request.total_time))
-
-    MEASUREMENTS = {
-        # 'execution_duration': [],
-        # 'schedule_delay': [],
-        # 'total_time': [],
-        'serialization': [],
-        'mongo_writes': []
-    }
-    @staticmethod
-    def _register_measurements(request):
-        NdarrayStore.MEASUREMENTS['execution_duration'].append(request.execution_duration)
-        NdarrayStore.MEASUREMENTS['schedule_delay'].append(request.schedule_delay)
-        NdarrayStore.MEASUREMENTS['total_time'].append(request.total_time)
-
-    @staticmethod
-    def get_stats(measurements):
-        import numpy as np
-        mean = np.mean(measurements)
-        stdev = np.std(measurements)
-        min = np.min(measurements)
-        max = np.max(measurements)
-        return mean, stdev, min, max
-
-    def _do_generate_batch(self, symbol, version, items_lazy_ser, from_idx, to_idx, segment_offset, previous_shas):
-        # Generate the batch of mongo operations
-        segment_index = []
-        total_sha = None
-        bulk = []
-
-        start_t = time.time()
-
-        for chunk_bytes, dtype, starting_row, ending_row in items_lazy_ser.generator_bytes(from_idx, to_idx):
-            compressed_chunk = compress(chunk_bytes)
-            total_sha = self.incremental_checksum(compressed_chunk, curr_sha=total_sha, is_bytes=True)
-            segment = {'data': Binary(compressed_chunk),
-                       'compressed': True,
-                       'segment': ending_row + segment_offset - 1}
-            segment_index.append(segment['segment'])
-            segment_sha = checksum(symbol, segment)
-            if segment_sha not in previous_shas:
-                segment['sha'] = segment_sha
-                op = pymongo.UpdateOne(
-                    {'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
-                    {'$set': segment, '$addToSet': {'parent': version['_id']}},
-                    upsert=True)
-            else:
-                op = pymongo.UpdateOne(
-                    {'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
-                    {'$addToSet': {'parent': version['_id']}})
-            bulk.append(op)
-
-        NdarrayStore.MEASUREMENTS['serialization'].append(time.time() - start_t)
-        return bulk
-
-    def _serialization_worker(self, symbol, version, previous_shas, segment_offset, items_lazy_ser,
-                              serialize_tasks_q, mongo_tasks_q,
-                              kill_switch_ev, producer_finished_ev):
-        bulk, from_idx, to_idx = None, None, None
-        while not kill_switch_ev.is_set():
-            if not bulk:
-                # Pick new serialization batch task
-                try:
-                    # Produce a new bulk
-                    if not bulk:
-                        from_idx, to_idx = serialize_tasks_q.get_nowait()
-                        bulk = self._do_generate_batch(
-                            symbol, version, items_lazy_ser, from_idx, to_idx, segment_offset, previous_shas)
-
-                    # Add to mongo-write queue
-                    mongo_tasks_q.put((bulk, from_idx, to_idx), block=True, timeout=1.0)
-                    logger.debug("Queue size increase: {}".format(mongo_tasks_q.qsize()))
-                    # serialize_tasks_q.task_done()
-                    bulk = []
-                except queue.Empty:
-                    producer_finished_ev.set()
-                    return
-                except queue.Full:
-                    pass
-
-    def _mongo_worker(self, collection, mongo_tasks_q, done_tasks, kill_switch_ev, producer_finished_ev):
-        producer_finished = False
-        while not kill_switch_ev.is_set():
-            producer_finished = producer_finished or producer_finished_ev.is_set()
-            try:
-                task = mongo_tasks_q.get_nowait() if producer_finished else mongo_tasks_q.get(block=True, timeout=0.1)
-                logger.debug("Queue size decrease: {}".format(mongo_tasks_q.qsize()))
-
-                start_t = time.time()
-                # print("MONGO: Wring: {}/{}/{}".format(len(bulk), from_idx, to_idx))
-
-                bulk, from_idx, to_idx = task
-                collection.bulk_write(bulk, ordered=False)
-
-                # print("MONGO: Wrote: {}/{}/{}".format(len(bulk), from_idx, to_idx))
-                NdarrayStore.MEASUREMENTS['mongo_writes'].append(time.time() - start_t)
-
-                done_tasks.append((len(bulk), from_idx, to_idx))
-            except queue.Empty:
-                if producer_finished:
-                    return
-
-    @staticmethod
-    def _generate_serialization_tasks(items_lazy_ser):
-        rows_per_chunk = items_lazy_ser.rows_per_chunk
-        total_rows = len(items_lazy_ser)
-        step = MONGO_BATCH_SIZE*rows_per_chunk
-        return ((i, min(i+step, total_rows)) for i in range(0, total_rows, step))
-
-    def _do_write_generator(self, collection, version, symbol, items_lazy_ser, previous_version, segment_offset=0):
+    def _do_write_async(self, collection, version, symbol, items_lazy_ser, previous_version, segment_offset=0):
         previous_shas = []
         if previous_version:
-            previous_shas = set([Binary(x['sha']) for x in
-                                 collection.find({'symbol': symbol},
-                                                 projection={'sha': 1, '_id': 0},
-                                                 )
-                                 ])
+            previous_shas = set(Binary(x['sha']) for x in
+                                collection.find({'symbol': symbol}, projection={'sha': 1, '_id': 0}))
 
-        start_time = time.time()
+        # ---- Measurement code ----
+        start_t = None
+        if ARCTIC_MEASURE_INTERNAL_ASYNC:
+            for v in itervalues(MEASUREMENTS):
+                del v[:]
+            start_t = time.time()
+        # --------------------------
 
         # Multiple threads write/consume to/from the below queues
-        kill_switch_ev = threading.Event()
-        producer_finished_ev = threading.Event()
+        kill_switch_ev, producer_finished_ev = threading.Event(), threading.Event()
         serialize_tasks_q = queue.Queue()
         mongo_tasks_q = queue.Queue(maxsize=ARCTIC_MONGO_NTHREADS*2)  # multiple threads will write/consume this queue
         done_tasks = []
         all_futures = []
+        individual_shas = {}
 
         # Generate the workload
-        for task in NdarrayStore._generate_serialization_tasks(items_lazy_ser):
+        total_rows = len(items_lazy_ser)
+        step = MONGO_BATCH_SIZE * items_lazy_ser.rows_per_chunk
+        for task in ((i, min(i+step, total_rows)) for i in range(0, total_rows, step)):
             serialize_tasks_q.put(task)
         total_tasks_num = serialize_tasks_q.qsize()
 
-        # Mongo writer jobs
-        for i in range(min(INTERNAL_MONGO_POOL.actual_pool_size, total_tasks_num)):
-            _, fut = INTERNAL_MONGO_POOL.submit_task(
-                is_looping=False, fun=self._mongo_worker,
-                collection=collection,
-                mongo_tasks_q=mongo_tasks_q, done_tasks=done_tasks,
-                kill_switch_ev=kill_switch_ev, producer_finished_ev=producer_finished_ev
-            )
-            all_futures.append(fut)
+        # Schedule the mongo writer jobs
+        all_futures.extend(
+            schedule_mongo_workers(collection,
+                                   mongo_tasks_q, done_tasks, kill_switch_ev, producer_finished_ev, total_tasks_num))
 
-        # Serialization jobs
-        for i in range(min(INTERNAL_SERIALIZATION_POOL.actual_pool_size, total_tasks_num)):
-            _, fut = INTERNAL_SERIALIZATION_POOL.submit_task(
-                is_looping=False, fun=self._serialization_worker,
-                symbol=symbol, version=version, previous_shas=previous_shas,
-                segment_offset=segment_offset, items_lazy_ser=items_lazy_ser,
-                serialize_tasks_q=serialize_tasks_q, mongo_tasks_q=mongo_tasks_q,
-                kill_switch_ev=kill_switch_ev, producer_finished_ev=producer_finished_ev
-            )
-            all_futures.append(fut)
+        # Schedule the serialization jobs
+        all_futures.extend(
+            schedule_serialization_workers(symbol, version, previous_shas, segment_offset, items_lazy_ser,
+                                           serialize_tasks_q, mongo_tasks_q, individual_shas,
+                                           kill_switch_ev, producer_finished_ev, total_tasks_num))
 
         # Wait until an exception occurs or all workers finish
-        try:
-            LazySingletonThreadPool.wait_tasks(all_futures, return_when=FIRST_EXCEPTION, raise_exceptions=True)
-        except Exception as e:
-            kill_switch_ev.set()
-            LazySingletonThreadPool.wait_tasks(all_futures, return_when=ALL_COMPLETED, raise_exceptions=False)
-            raise e
-
+        LazySingletonThreadPool.wait_tasks_or_abort(all_futures, kill_switch_ev=kill_switch_ev)
         if len(done_tasks) != total_tasks_num:
-            raise Exception("Failed: {} != {}".format(len(done_tasks), total_tasks_num))
+            # Avoid thread-leaks, and clean-reset the pool
+            INTERNAL_MONGO_POOL.reset(timeout=60)
+            INTERNAL_SERIALIZATION_POOL.reset(timeout=60)
+            raise AsyncArcticException("Async write failed : {} != {}".format(len(done_tasks), total_tasks_num))
 
-        end_time = time.time()
-
-        print('Total time: {:.4f}'.format(end_time - start_time))
-        # print('Total batches: {}, Total chunks: {}'.format(len(done_tasks), sum(x[0] for x in done_tasks)))
-        # for k, v in NdarrayStore.MEASUREMENTS.items():
-        #     print("{}: {}".format(k, ["{:.3f}".format(x) for x in NdarrayStore.get_stats(v)]))
-        # NdarrayStore.MEASUREMENTS['serialization'] = []
-        # NdarrayStore.MEASUREMENTS['mongo_writes'] = []
-
-
-        return 'sadfsadf', 10
-
-
-        # serialization_workers = []
-        # for i in range(ARCTIC_SERIALIZER_NTHREADS):
-        #     req = INTERNAL_SERIALIZATION_POOL.submit_request(
-        #         self._serialization_worker,
-        #         is_modifier=False,
-        #         my_symbol=symbol, version=version, previous_shas=previous_shas, segment_offset=segment_offset, items_lazy_ser=items_lazy_ser, serialize_tasks_q=serialize_tasks_q, mongo_tasks_q=mongo_tasks_q,
-        #         # async_callback=NdarrayStore._register_measurements
-        #     )
-        #     serialization_workers.append(req)
-
-        # Mongo Writers
-        # mongo_workers = []
-        # for i in range(ARCTIC_MONGO_NTHREADS):
-        #     req = INTERNAL_MONGO_POOL_POOL.submit_request(
-        #         self._mongo_worker,
-        #         is_modifier=False,
-        #         collection=collection, mongo_tasks_q=mongo_tasks_q, done_tasks_q=done_tasks_q,
-        #         # async_callback=NdarrayStore._register_measurements
-        #     )
-        #     mongo_workers.append(req)
-        #
-        # serialization_tasks = NdarrayStore._generate_serialization_tasks(items_lazy_ser)
-        # for next_task in serialization_tasks:
-        #     serialize_tasks_q.put(next_task, block=True, timeout=None)
-        #     # print('Added {}'.format(next_task))
-        # # print("Finished adding.")
-
-        serialize_tasks_q.join()
-        # print(mongo_tasks_q.qsize())
-
-        mongo_tasks_q.join()
-
-        total_batches, total_segments = 0, 0
-        serialization_tasks = set(serialization_tasks)
-        while serialization_tasks:
-            segments_in_batch, from_row, to_row = done_tasks_q.get(block=True, timeout=None)
-            serialization_tasks.remove((from_row, to_row))
-            total_batches += 1
-            total_segments += segments_in_batch
-
-        for k, v in NdarrayStore.MEASUREMENTS.items():
-            print("{}: {}".format(k, ["{:.3f}".format(x) for x in NdarrayStore.get_stats(v)]))
-
-        end_time = time.time()
-        print('Total time: {:.4f}, '
-              'total batches {}, '
-              'total segments {}'
-              '(workers: {} {})'.format(
-            end_time - start_time,
-            total_batches,
-            total_segments,
-            INTERNAL_SERIALIZATION_POOL._workers_pool._max_workers, INTERNAL_MONGO_POOL_POOL._workers_pool._max_workers))
-
-        return 'sadfsadf', 10
-
-    def _do_write_generator_orig(self, collection, version, symbol, items_lazy_ser, previous_version, segment_offset=0):
-        previous_shas = []
-        if previous_version:
-            previous_shas = set([Binary(x['sha']) for x in
-                                 collection.find({'symbol': symbol},
-                                                 projection={'sha': 1, '_id': 0},
-                                                 )
-                                 ])
-
-        if segment_offset > 0 and 'segment_index' in previous_version:
-            existing_index = previous_version['segment_index']
-        else:
-            existing_index = None
-
-        segment_index = []
-        i = -1
-        total_sha = None
-        length = len(items_lazy_ser)
-        bulk = []
-        requests = []
-
-        for v in NdarrayStore.MEASUREMENTS.values():
-            del v[:]
-
-        import time
-        import math
-        rows_per_chunk = items_lazy_ser.rows_per_chunk
-        expected_chunks = int(math.ceil(float(length)/rows_per_chunk))
-        # start = time.time()
-        # from_row = 0
-        # while from_row < length:
-        #     until_row = from_row + MONGO_BATCH_SIZE * rows_per_chunk
-        #
-        #     req = INTERNAL_ASYNC.submit_request(
-        #         self.test_serialization,
-        #         is_modifier=False,
-        #         my_symbol=symbol, version=version, previous_shas=previous_shas, segment_offset=segment_offset,
-        #         items_lazy_ser=items_lazy_ser,
-        #         from_idx=from_row, to_idx=until_row,
-        #         # async_callback=NdarrayStore._register_measurements
-        #     )
-        #     requests.append(req)
-        #
-        #     from_row = until_row
-        #
-        #     alive, done = INTERNAL_ASYNC.filter_finished_requests(requests)
-        #     if len(alive) >= MONGO_CONCURRENT_BATCHES:
-        #         INTERNAL_ASYNC.wait_any_request(alive)
-
-        _, bulk = self.test_serialization(
-            my_symbol=symbol, version=version, previous_shas=previous_shas, segment_offset=segment_offset,
-            items_lazy_ser=items_lazy_ser,
-            from_idx=0, to_idx=MONGO_BATCH_SIZE * items_lazy_ser.rows_per_chunk)
-        start = time.time()
-        for i in range(expected_chunks/len(bulk)):
-            req = INTERNAL_MONGO_POOL.submit_request(
-                self.test_mongo,
-                is_modifier=False,
-                collection=collection, bulk=bulk,
-                async_callback=NdarrayStore._register_measurements
-            )
-            requests.append(req)
-            # alive, done = INTERNAL_ASYNC.filter_finished_requests(requests)
-            # if len(alive) >= MONGO_CONCURRENT_BATCHES:
-            #     INTERNAL_ASYNC.wait_any_request(alive)
-            # self.test_mongo(collection, bulk)
-        total_segments = expected_chunks
-
-
-        INTERNAL_MONGO_POOL.join()
-        total_time = time.time() - start
-
-
-        requests, done_requests = INTERNAL_MONGO_POOL.filter_finished_requests(requests)
-        assert not requests
-        # total_segments = 0
-        # for r in done_requests:
-        #     total_segments += len(r.data[1])
-
-        # for k, v in NdarrayStore.MEASUREMENTS.items():
-        #     print("{}: {}".format(k, ["{:.3f}".format(x) for x in NdarrayStore.get_stats(v)]))
-        pool = INTERNAL_MONGO_POOL._workers_pool
-        print('Total time: {:.4f}, total segments {} {}, {:.4f}sec/segment (workers: {} {})'.format(total_time, total_segments, expected_chunks, total_time/total_segments, pool._max_workers, len(pool._threads)))
-
-        return 'sdfsdfsdf', length
-
-        # measurements = []
-        # import time
-        # start = time.time()
-        # for chunk_bytes, dtype in items_lazy_ser.generator_bytes():
-        #     i += 1
-        #     compressed_chunk = compress(chunk_bytes)
-        #     total_sha = self.incremental_checksum(compressed_chunk, curr_sha=total_sha, is_bytes=True)
-        #     segment = {'data': Binary(compressed_chunk),
-        #                'compressed': True,
-        #                'segment': min((i + 1) * items_lazy_ser.rows_per_chunk - 1, length - 1) + segment_offset}
-        #     segment_index.append(segment['segment'])
-        #     segment_sha = checksum(symbol, segment)
-        #
-        #     if segment_sha not in previous_shas:
-        #         segment['sha'] = segment_sha
-        #         op = pymongo.UpdateOne({'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
-        #                                {'$set': segment, '$addToSet': {'parent': version['_id']}},
-        #                                upsert=True)
-        #     else:
-        #         op = pymongo.UpdateOne({'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
-        #                                {'$addToSet': {'parent': version['_id']}})
-        #
-        #     bulk.append(op)
-        #
-        #     if len(bulk) >= MONGO_BATCH_SIZE:
-        #         # requests = self._write_bulk(collection, bulk, requests)
-        #         bulk = []
-        #         measurements.append((time.time() - start)/float(MONGO_BATCH_SIZE))
-        #         start = time.time()
-        #
-        # def get_stats(measurements):
-        #     import numpy as np
-        #     mean = np.mean(measurements)
-        #     stdev = np.std(measurements)
-        #     min = np.min(measurements)
-        #     max = np.max(measurements)
-        #     return mean, stdev, min, max
-        #
-        # print("\t ".join(["{:.3f}".format(x) for x in get_stats(measurements[1:] if len(measurements) > 1 else measurements)]))
-
-        # for chunk_bytes, dtype in items_lazy_ser.generator_bytes():
-        #     i += 1
-        #     compressed_chunk = compress(chunk_bytes)
-        #     total_sha = self.incremental_checksum(compressed_chunk, curr_sha=total_sha, is_bytes=True)
-        #     segment = {'data': Binary(compressed_chunk),
-        #                'compressed': True,
-        #                'segment': min((i + 1) * items_lazy_ser.rows_per_chunk - 1, length - 1) + segment_offset}
-        #     segment_index.append(segment['segment'])
-        #     segment_sha = checksum(symbol, segment)
-        #
-        #     if segment_sha not in previous_shas:
-        #         segment['sha'] = segment_sha
-        #         op = pymongo.UpdateOne({'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
-        #                                {'$set': segment, '$addToSet': {'parent': version['_id']}},
-        #                                upsert=True)
-        #     else:
-        #         op = pymongo.UpdateOne({'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
-        #                                {'$addToSet': {'parent': version['_id']}})
-        #
-        #     bulk.append(op)
-        #
-        #     if len(bulk) >= MONGO_BATCH_SIZE:
-        #         # requests = self._write_bulk(collection, bulk, requests)
-        #         bulk = []
-        #
-        # if bulk:
-        #     requests = self._write_bulk(collection, bulk, requests)
-        #
-        # Wait all requests to finish
-        # if USE_ASYNC_MONGO_WRITES:
-        #     INTERNAL_ASYNC.wait_requests(requests)
-        #     alive_requests, _ = INTERNAL_ASYNC.filter_finished_requests(requests)
-        #     if len(alive_requests) != 0:
-        #         raise AsyncArcticException("Failed to complete all async mongo writes for {} / {}".format(
-        #             symbol, version))
-
-        if i != -1:
+        # Get the total SHA from all segments produced by the worker threads
+        sorted_segments = sorted(iterkeys(individual_shas))
+        if done_tasks != 0:
+            total_sha = None
+            for segment in sorted_segments:
+                total_sha = self.incremental_checksum(individual_shas[segment], curr_sha=total_sha, is_bytes=True)
             total_sha = Binary(total_sha.digest())
         else:
             # Zero sized data
             emptyser, _ = items_lazy_ser.serialize()
             total_sha = self.checksum(emptyser)
 
-        orig_data = items_lazy_ser.input_data
-        segment_index = self._segment_index(orig_data, existing_index=existing_index, start=segment_offset,
-                                            new_segments=segment_index)
-        if segment_index:
-            version['segment_index'] = segment_index
-        version['segment_count'] = i + 1
-        version['append_size'] = 0
-        version['append_count'] = 0
+        # ---- Measurement code ----
+        if ARCTIC_MEASURE_INTERNAL_ASYNC:
+            print('Total write time: {:.4f}'.format(time.time() - start_t))
+            for k, v in MEASUREMENTS.items():
+                print("{}: {}".format(k, ["{:.3f}".format(x) for x in get_stats(v)]))
+                del v[:]
+        # --------------------------
 
-        self.check_written(collection, symbol, version)
-
-        return total_sha, length
-
-    def _write_bulk(self, collection, bulk, requests):
-        if USE_ASYNC_MONGO_WRITES:
-            alive_requests, done_requests = INTERNAL_MONGO_POOL.filter_finished_requests(requests)
-            # Wait until at least one requests finishes
-            if len(alive_requests) >= MONGO_CONCURRENT_BATCHES:
-                INTERNAL_MONGO_POOL.wait_any_request(alive_requests)
-                alive_requests, done_requests = INTERNAL_MONGO_POOL.filter_finished_requests(requests)
-            # Submit the batch
-            request = INTERNAL_MONGO_POOL.submit_request(collection.bulk_write, is_modifier=True, requests=bulk,
-                                                    # async_callback=NdarrayStore._request_record_time
-                                                    )
-            alive_requests.append(request)
-            return alive_requests
-        else:
-            collection.bulk_write(bulk, ordered=False)
-            return requests
-
-    def _do_write_generator_xx(self, collection, version, symbol, items_lazy_ser, previous_version, segment_offset=0):
-        previous_shas = []
-        if previous_version:
-            previous_shas = set([Binary(x['sha']) for x in
-                                 collection.find({'symbol': symbol},
-                                                 projection={'sha': 1, '_id': 0},
-                                                 )
-                                 ])
-
+        # Update the version's segment index
         if segment_offset > 0 and 'segment_index' in previous_version:
             existing_index = previous_version['segment_index']
         else:
             existing_index = None
-
-        start_time = time.time()
-        total_batches = 0
-        total_segments = 0
-
-        segment_index = []
-        i = -1
-        total_sha = None
-        length = len(items_lazy_ser)
-        bulk = []
-        requests = []
-
-        for chunk_bytes, dtype, _, _ in items_lazy_ser.generator_bytes():
-            i += 1
-            compressed_chunk = compress(chunk_bytes)
-            total_sha = self.incremental_checksum(compressed_chunk, curr_sha=total_sha, is_bytes=True)
-            segment = {'data': Binary(compressed_chunk),
-                       'compressed': True,
-                       'segment': min((i + 1) * items_lazy_ser.rows_per_chunk - 1, length - 1) + segment_offset}
-            segment_index.append(segment['segment'])
-            segment_sha = checksum(symbol, segment)
-
-            if segment_sha not in previous_shas:
-                segment['sha'] = segment_sha
-                op = pymongo.UpdateOne({'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
-                                       {'$set': segment, '$addToSet': {'parent': version['_id']}},
-                                       upsert=True)
-            else:
-                op = pymongo.UpdateOne({'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
-                                       {'$addToSet': {'parent': version['_id']}})
-
-            bulk.append(op)
-
-            total_segments += 1
-
-            if len(bulk) >= MONGO_BATCH_SIZE:
-                requests = self._write_bulk(collection, bulk, requests)
-                bulk = []
-                total_batches += 1
-
-        if bulk:
-            requests = self._write_bulk(collection, bulk, requests)
-            total_batches += 1
-
-        # Wait all requests to finish
-        if USE_ASYNC_MONGO_WRITES:
-            INTERNAL_MONGO_POOL.wait_requests(requests)
-            alive_requests, _ = INTERNAL_MONGO_POOL.filter_finished_requests(requests)
-            if len(alive_requests) != 0:
-                raise AsyncArcticException("Failed to complete all async mongo writes for {} / {}".format(
-                    symbol, version))
-
-        end_time = time.time()
-        print('Total time: {:.4f}, '
-              'total batches {}, '
-              'total segments {}'
-              '(workers: {} {})'.format(
-            end_time - start_time,
-            total_batches,
-            total_segments,
-            INTERNAL_SERIALIZATION_POOL._workers_pool._max_workers, INTERNAL_MONGO_POOL_POOL._workers_pool._max_workers))
-
-        if i != -1:
-            total_sha = Binary(total_sha.digest())
-        else:
-            # Zero sized data
-            emptyser, _ = items_lazy_ser.serialize()
-            total_sha = self.checksum(emptyser)
-
-        orig_data = items_lazy_ser.input_data
-        segment_index = self._segment_index(orig_data, existing_index=existing_index, start=segment_offset,
-                                            new_segments=segment_index)
+        segment_index = self._segment_index(items_lazy_ser.input_data, existing_index=existing_index, start=segment_offset,
+                                            new_segments=sorted_segments)
         if segment_index:
             version['segment_index'] = segment_index
-        version['segment_count'] = i + 1
+
+        version['segment_count'] = len(sorted_segments)
         version['append_size'] = 0
         version['append_count'] = 0
 
         self.check_written(collection, symbol, version)
 
-        return total_sha, length
-
-    def _do_write_generator_new_new(self, collection, version, symbol, items_lazy_ser, previous_version, segment_offset=0):
-        previous_shas = []
-        if previous_version:
-            previous_shas = set([Binary(x['sha']) for x in
-                                 collection.find({'symbol': symbol},
-                                                 projection={'sha': 1, '_id': 0},
-                                                 )
-                                 ])
-
-        if segment_offset > 0 and 'segment_index' in previous_version:
-            existing_index = previous_version['segment_index']
-        else:
-            existing_index = None
-
-        start_time = time.time()
-        total_batches = 0
-        total_segments = 0
-
-        segment_index = []
-        i = -1
-        total_sha = None
-        length = len(items_lazy_ser)
-        bulk = []
-        requests = []
-
-        for chunk_bytes, dtype, _, _ in items_lazy_ser.generator_bytes():
-            i += 1
-            compressed_chunk = compress(chunk_bytes)
-            total_sha = self.incremental_checksum(compressed_chunk, curr_sha=total_sha, is_bytes=True)
-            segment = {'data': Binary(compressed_chunk),
-                       'compressed': True,
-                       'segment': min((i + 1) * items_lazy_ser.rows_per_chunk - 1, length - 1) + segment_offset}
-            segment_index.append(segment['segment'])
-            segment_sha = checksum(symbol, segment)
-
-            if segment_sha not in previous_shas:
-                segment['sha'] = segment_sha
-                op = pymongo.UpdateOne({'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
-                                       {'$set': segment, '$addToSet': {'parent': version['_id']}},
-                                       upsert=True)
-            else:
-                op = pymongo.UpdateOne({'symbol': symbol, 'sha': segment_sha, 'segment': segment['segment']},
-                                       {'$addToSet': {'parent': version['_id']}})
-
-            bulk.append(op)
-
-            total_segments += 1
-
-            if len(bulk) >= MONGO_BATCH_SIZE:
-                requests = self._write_bulk(collection, bulk, requests)
-                bulk = []
-                total_batches += 1
-
-        if bulk:
-            requests = self._write_bulk(collection, bulk, requests)
-            total_batches += 1
-
-        # Wait all requests to finish
-        if USE_ASYNC_MONGO_WRITES:
-            INTERNAL_MONGO_POOL.wait_requests(requests)
-            alive_requests, _ = INTERNAL_MONGO_POOL.filter_finished_requests(requests)
-            if len(alive_requests) != 0:
-                raise AsyncArcticException("Failed to complete all async mongo writes for {} / {}".format(
-                    symbol, version))
-
-        end_time = time.time()
-        print('Total time: {:.4f}, '
-              'total batches {}, '
-              'total segments {}'
-              '(workers: {} {})'.format(
-            end_time - start_time,
-            total_batches,
-            total_segments,
-            INTERNAL_SERIALIZATION_POOL._workers_pool._max_workers, INTERNAL_MONGO_POOL_POOL._workers_pool._max_workers))
-
-        if i != -1:
-            total_sha = Binary(total_sha.digest())
-        else:
-            # Zero sized data
-            emptyser, _ = items_lazy_ser.serialize()
-            total_sha = self.checksum(emptyser)
-
-        orig_data = items_lazy_ser.input_data
-        segment_index = self._segment_index(orig_data, existing_index=existing_index, start=segment_offset,
-                                            new_segments=segment_index)
-        if segment_index:
-            version['segment_index'] = segment_index
-        version['segment_count'] = i + 1
-        version['append_size'] = 0
-        version['append_count'] = 0
-
-        self.check_written(collection, symbol, version)
-
-        return total_sha, length
+        return total_sha, total_rows
 
     def _segment_index(self, new_data, existing_index, start, new_segments):
         """
