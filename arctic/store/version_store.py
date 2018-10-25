@@ -421,9 +421,12 @@ class VersionStore(object):
         if version.get('deleted'):
             raise NoDataFoundException("No data found for %s in library %s" % (symbol, self._arctic_lib.get_name()))
         handler = self._read_handler(version, symbol)
-        if self._with_strict_handler_match:
-            if kwargs.get('date_range') and not self.handler_supports_read_option(handler, 'date_range'):
-                raise ArcticException("Date range arguments not supported by handler in %s" % symbol)
+        # We don't push the date_range check in the handler's code, since the "_with_strict_handler_match"
+        #    value is configured on a per-library basis, and is part of the VersionStore instance.
+        if self._with_strict_handler_match and \
+                kwargs.get('date_range') and \
+                not self.handler_supports_read_option(handler, 'date_range'):
+            raise ArcticException("Date range arguments not supported by handler in %s" % symbol)
 
         data = handler.read(self._arctic_lib, version, symbol, from_version=from_version, **kwargs)
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
