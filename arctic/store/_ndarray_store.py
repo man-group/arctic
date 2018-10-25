@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import os
+from operator import itemgetter
 
 
 from bson.binary import Binary
@@ -269,7 +270,7 @@ class NdarrayStore(object):
 
         data = bytearray()
         i = -1
-        for i, x in enumerate(collection.find(spec, sort=[('segment', pymongo.ASCENDING)],)):
+        for i, x in enumerate(sorted(collection.find(spec), key=itemgetter('segment'))):
             data.extend(decompress(x['data']) if x['compressed'] else x['data'])
 
         # Check that the correct number of segments has been returned
@@ -409,11 +410,8 @@ class NdarrayStore(object):
         read_index_range = [0, None]
         # The unchanged segments are the compressed ones (apart from the last compressed)
         unchanged_segment_ids = []
-        for segment in collection.find(spec, projection={'_id':1,
-                                                         'segment':1,
-                                                         'compressed': 1
-                                                         },
-                                       sort=[('segment', pymongo.ASCENDING)]):
+        for segment in sorted(collection.find(spec, projection={'_id': 1, 'segment': 1, 'compressed': 1}),
+                              key=itemgetter('segment')):
             # We want to stop iterating when we find the first uncompressed chunks
             if not segment['compressed']:
                 # We include the last compressed chunk in the recompression
