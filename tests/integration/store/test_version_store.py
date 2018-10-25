@@ -1497,14 +1497,13 @@ def test_snapshot_list_versions_after_delete(library, library_name):
     assert {v['symbol'] for v in library.list_versions(snapshot='snapA')} == {'symA', 'symB', 'symC'}
 
 
-def test_write_non_serializable_throw_behaviour(library):
-    sv = False
-    try:
-        # Save the existing setting
-        sv = version_store.STRICT_WRITE_HANDLER_MATCH
+def test_write_non_serializable_throws(arctic):
+    lib_name = 'write_hanlder_test'
+    arctic.initialize_library(lib_name, VERSION_STORE)
+    with patch('arctic.store.version_store.STRICT_WRITE_HANDLER_MATCH', True):
+        library = arctic[lib_name]
 
         # Check that falling back to a pickle from a dataframe throws
-        version_store.STRICT_WRITE_HANDLER_MATCH = True
         df = pd.DataFrame({'a': [dict(a=1)]})
 
         with pytest.raises(ArcticException):
@@ -1514,23 +1513,32 @@ def test_write_non_serializable_throw_behaviour(library):
         library.write('ns2', ts1)
         assert_frame_equal(ts1, library.read('ns2').data)
 
-        # Check that without it we still fall back to pickling when the dataframe handler fails
-        version_store.STRICT_WRITE_HANDLER_MATCH = False
-        library.write('ns3', df)
-        assert_frame_equal(df, library.read('ns3').data)
+
+def test_write_non_serializable_pickling_default(arctic):
+    lib_name = 'write_hanlder_test'
+    arctic.initialize_library(lib_name, VERSION_STORE)
+    library = arctic[lib_name]
+    df = pd.DataFrame({'a': [dict(a=1)]})
+    library.write('ns3', df)
+    assert_frame_equal(df, library.read('ns3').data)
+
+
+def test_write_strict_no_daterange(arctic):
+    lib_name = 'write_hanlder_test'
+    arctic.initialize_library(lib_name, VERSION_STORE)
+
+    # Write with pickling
+    with patch('arctic.store.version_store.STRICT_WRITE_HANDLER_MATCH', True):
+        library = arctic[lib_name]
+        data = [dict(a=1)]
+        library.write('ns4', data)
 
         # When the option is set, we should now be unable to read this item when we specify a
         # date range, even though it was written successfully
-        version_store.STRICT_WRITE_HANDLER_MATCH = True
         with pytest.raises(ArcticException):
-            library.read('ns3', date_range=DateRange(dt(2017,1,1), dt(2017,1,2)))
+            library.read('ns4', date_range=DateRange(dt(2017, 1, 1), dt(2017, 1, 2)))
 
-        # But should be able to read and write regular pickled items
-        a = [{'a': 'b'}]
-        library.write('ns4', a)
-        assert(library.read('ns4').data == a)
-    finally:
-        version_store.STRICT_WRITE_HANDLER_MATCH = sv
+        assert data == library.read('ns4').data
 
 
 def test_handler_check_default_false(arctic):
