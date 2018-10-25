@@ -4,6 +4,8 @@
   * Bugfix: #629 - Column kwarg no longer modified
   * Bugfix: #641 - DateRange.intersection open/closed range fix
   * Feature: #493 Can pass kwargs when calling MongoClient, e.g. for ssl
+  * Feature: #604 Improved handling handling for pickling serialization decidions
+  * Bugfix: #608 Ensure Arctic performs well with MongoDB 3.6 (sorting)
 
 ### 1.69 (2018-09-12)
   * Docs: VersionStore documentation
