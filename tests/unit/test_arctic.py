@@ -26,6 +26,38 @@ def test_arctic_lazy_init():
             assert mc.called
 
 
+def test_arctic_lazy_init_ssl_true():
+    with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True) as mc, \
+            patch('arctic.arctic.mongo_retry', side_effect=lambda x: x, autospec=True), \
+            patch('arctic.arctic.get_auth', autospec=True) as ga:
+        store = Arctic('cluster', ssl=True)
+        assert not mc.called
+        # do something to trigger lazy arctic init
+        store.list_libraries()
+        assert mc.called
+        assert len(mc.mock_calls) == 1
+        assert mc.mock_calls[0] == call(connectTimeoutMS=2000,
+                                        host='cluster',
+                                        maxPoolSize=4,
+                                        serverSelectionTimeoutMS=30000,
+                                        socketTimeoutMS=600000,
+                                        ssl=True)
+
+
+def test_connection_passed_warning_raised():
+    with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True), \
+         patch('arctic.arctic.mongo_retry', side_effect=lambda x: x, autospec=True), \
+         patch('arctic.arctic.get_auth', autospec=True), \
+         patch('arctic.arctic.logger') as lg:
+        magic_mock = MagicMock(nodes={("host", "port")})
+        store = Arctic(magic_mock, ssl=True)
+        # Increment _pid to simulate forking the process
+        store._pid += 1
+        _ = store._conn
+        assert lg.mock_calls[0] == call.warn('Forking process. Arctic was passed a pymongo connection during init, '
+                                             'the new pymongo connection may have different parameters.')
+
+
 def test_arctic_auth():
     with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True), \
         patch('arctic.arctic.mongo_retry', autospec=True), \

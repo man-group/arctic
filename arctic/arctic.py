@@ -70,9 +70,12 @@ class Arctic(object):
 
     def __init__(self, mongo_host, app_name=APPLICATION_NAME, allow_secondary=False,
                  socketTimeoutMS=10 * 60 * 1000, connectTimeoutMS=2 * 1000,
-                 serverSelectionTimeoutMS=30 * 1000):
+                 serverSelectionTimeoutMS=30 * 1000, **kwargs):
         """
         Constructs a Arctic Datastore.
+
+        Note: If mongo_host is a pymongo connection and the process is later forked, the
+                new pymongo connection may have different parameters.
 
         Parameters:
         -----------
@@ -92,6 +95,8 @@ class Arctic(object):
             the pymongo driver will spend on MongoDB cluster discovery.  This parameter
             takes precedence over connectTimeoutMS: https://jira.mongodb.org/browse/DRIVERS-222
 
+        kwargs: 'dict' extra keyword arguments to pass when calling pymongo.MongoClient,
+            for example ssl parameters.
         """
         self._application_name = app_name
         self._library_cache = {}
@@ -101,10 +106,13 @@ class Arctic(object):
         self._server_selection_timeout = serverSelectionTimeoutMS
         self._lock = threading.RLock()
         self._pid = os.getpid()
+        self._pymongo_kwargs = kwargs
 
         if isinstance(mongo_host, string_types):
+            self._given_instance = False
             self.mongo_host = mongo_host
         else:
+            self._given_instance = True
             self.__conn = mongo_host
             # Workaround for: https://jira.mongodb.org/browse/PYTHON-927
             mongo_host.server_info()
@@ -119,6 +127,9 @@ class Arctic(object):
             #    http://api.mongodb.com/python/current/faq.html#using-pymongo-with-multiprocessing
             curr_pid = os.getpid()
             if curr_pid != self._pid:
+                if self._given_instance:
+                    logger.warn("Forking process. Arctic was passed a pymongo connection during init, "
+                                "the new pymongo connection may have different parameters.")
                 self._pid = curr_pid  # this line has to precede reset() otherwise we get to eternal recursion
                 self.reset()  # also triggers re-auth
 
@@ -126,10 +137,11 @@ class Arctic(object):
                 host = get_mongodb_uri(self.mongo_host)
                 logger.info("Connecting to mongo: {0} ({1})".format(self.mongo_host, host))
                 self.__conn = pymongo.MongoClient(host=host,
-                                                   maxPoolSize=self._MAX_CONNS,
-                                                   socketTimeoutMS=self._socket_timeout,
-                                                   connectTimeoutMS=self._connect_timeout,
-                                                   serverSelectionTimeoutMS=self._server_selection_timeout)
+                                                  maxPoolSize=self._MAX_CONNS,
+                                                  socketTimeoutMS=self._socket_timeout,
+                                                  connectTimeoutMS=self._connect_timeout,
+                                                  serverSelectionTimeoutMS=self._server_selection_timeout,
+                                                  **self._pymongo_kwargs)
                 self._adminDB = self.__conn.admin
 
                 # Authenticate against admin for the user
