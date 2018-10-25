@@ -61,9 +61,6 @@ class BitemporalStore(object):
                                                     asof_col=self.observe_column),
                                   metadata=item.metadata, last_updated=last_updated)
 
-    def read_options(self):
-        return self.read_options()
-
     def update(self, symbol, data, metadata=None, upsert=True, as_of=None, **kwargs):
         """ Append 'data' under the specified 'symbol' name to this library.
 

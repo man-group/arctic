@@ -3,6 +3,7 @@ import six
 import struct
 from datetime import datetime as dt, timedelta as dtd
 import pandas as pd
+from arctic import VERSION_STORE
 from pandas.util.testing import assert_frame_equal
 from pymongo.errors import OperationFailure
 from pymongo.server_type import SERVER_TYPE
@@ -1500,10 +1501,10 @@ def test_write_non_serializable_throw_behaviour(library):
     sv = False
     try:
         # Save the existing setting
-        sv = version_store.AVOID_FALLBACK_HANDLERS
+        sv = version_store.STRICT_WRITE_HANDLER_MATCH
 
         # Check that falling back to a pickle from a dataframe throws
-        version_store.AVOID_FALLBACK_HANDLERS = True
+        version_store.STRICT_WRITE_HANDLER_MATCH = True
         df = pd.DataFrame({'a': [dict(a=1)]})
 
         with pytest.raises(ArcticException):
@@ -1514,13 +1515,13 @@ def test_write_non_serializable_throw_behaviour(library):
         assert_frame_equal(ts1, library.read('ns2').data)
 
         # Check that without it we still fall back to pickling when the dataframe handler fails
-        version_store.AVOID_FALLBACK_HANDLERS = False
+        version_store.STRICT_WRITE_HANDLER_MATCH = False
         library.write('ns3', df)
         assert_frame_equal(df, library.read('ns3').data)
 
         # When the option is set, we should now be unable to read this item when we specify a
         # date range, even though it was written successfully
-        version_store.AVOID_FALLBACK_HANDLERS = True
+        version_store.STRICT_WRITE_HANDLER_MATCH = True
         with pytest.raises(ArcticException):
             library.read('ns3', date_range=DateRange(dt(2017,1,1), dt(2017,1,2)))
 
@@ -1528,6 +1529,29 @@ def test_write_non_serializable_throw_behaviour(library):
         a = [{'a': 'b'}]
         library.write('ns4', a)
         assert(library.read('ns4').data == a)
-
     finally:
-        version_store.AVOID_FALLBACK_HANDLERS = sv
+        version_store.STRICT_WRITE_HANDLER_MATCH = sv
+
+
+def test_handler_check_default_false(arctic):
+    lib_name = 'write_hanlder_test1'
+    arctic.initialize_library(lib_name, VERSION_STORE)
+    assert arctic[lib_name]._with_strict_handler_match is False
+
+
+def test_handler_check_default_osenviron(arctic):
+    with patch('arctic.store.version_store.STRICT_WRITE_HANDLER_MATCH', True):
+        lib_name = 'write_hanlder_test2'
+        arctic.initialize_library(lib_name, VERSION_STORE)
+        assert arctic[lib_name]._with_strict_handler_match is True
+
+def test_handler_check_set_false(arctic):
+    lib_name = 'write_hanlder_test3'
+    arctic.initialize_library(lib_name, VERSION_STORE, STRICT_WRITE_HANDLER_MATCH=False)
+    assert arctic[lib_name]._with_strict_handler_match is False
+
+
+def test_handler_check_set_true(arctic):
+    lib_name = 'write_hanlder_test4'
+    arctic.initialize_library(lib_name, VERSION_STORE, STRICT_WRITE_HANDLER_MATCH=True)
+    assert arctic[lib_name]._with_strict_handler_match is True
