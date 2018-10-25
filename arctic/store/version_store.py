@@ -1,5 +1,6 @@
 from datetime import datetime as dt, timedelta
 import logging
+import os
 
 import bson
 from pymongo import ReadPreference
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 VERSION_STORE_TYPE = 'VersionStore'
 _TYPE_HANDLERS = []
+STRICT_WRITE_HANDLER_MATCH = bool(os.environ.get('STRICT_WRITE_HANDLER_MATCH'))
 
 
 def register_versioned_storage(storageClass):
@@ -44,6 +46,10 @@ class VersionStore(object):
         if '%s.changes' % c.name not in mongo_retry(c.database.list_collection_names)():
             # 32MB buffer for change notifications
             mongo_retry(c.database.create_collection)('%s.changes' % c.name, capped=True, size=32 * 1024 * 1024)
+
+        if 'STRICT_WRITE_HANDLER_MATCH' in kwargs:
+            arctic_lib.set_library_metadata('STRICT_WRITE_HANDLER_MATCH',
+                                            bool(kwargs.pop('STRICT_WRITE_HANDLER_MATCH')))
 
         for th in _TYPE_HANDLERS:
             th.initialize_library(arctic_lib, **kwargs)
@@ -79,6 +85,14 @@ class VersionStore(object):
         # Do we allow reading from secondaries
         self._allow_secondary = self._arctic_lib.arctic._allow_secondary
         self._reset()
+        self._with_strict_handler = None
+
+    @property
+    def _with_strict_handler_match(self):
+        if self._with_strict_handler is None:
+            strict_meta = self._arctic_lib.get_library_metadata('STRICT_WRITE_HANDLER_MATCH')
+            self._with_strict_handler = STRICT_WRITE_HANDLER_MATCH if strict_meta is None else strict_meta
+        return self._with_strict_handler
 
     @mongo_retry
     def _reset(self):
@@ -301,12 +315,21 @@ class VersionStore(object):
             handler = self._bson_handler
         return handler
 
+    @staticmethod
+    def handler_can_write_type(handler, data):
+        type_method = getattr(handler, "can_write_type", None)
+        if callable(type_method):
+            return type_method(data)
+        return False
+
     def _write_handler(self, version, symbol, data, **kwargs):
         handler = None
         for h in _TYPE_HANDLERS:
             if h.can_write(version, symbol, data, **kwargs):
                 handler = h
                 break
+            if self._with_strict_handler_match and self.handler_can_write_type(h, data):
+                raise ArcticException("Not falling back to default handler for %s" % symbol)
         if handler is None:
             version['type'] = 'default'
             handler = self._bson_handler
@@ -384,10 +407,27 @@ class VersionStore(object):
             return handler.get_info(version)
         return {}
 
+    @staticmethod
+    def handler_supports_read_option(handler, option):
+        options_method = getattr(handler, "read_options", None)
+        if callable(options_method):
+            return option in options_method()
+
+        # If the handler doesn't support interrogation of its read options assume
+        # that it does support this option (i.e. fail-open)
+        return True
+
     def _do_read(self, symbol, version, from_version=None, **kwargs):
         if version.get('deleted'):
             raise NoDataFoundException("No data found for %s in library %s" % (symbol, self._arctic_lib.get_name()))
         handler = self._read_handler(version, symbol)
+        # We don't push the date_range check in the handler's code, since the "_with_strict_handler_match"
+        #    value is configured on a per-library basis, and is part of the VersionStore instance.
+        if self._with_strict_handler_match and \
+                kwargs.get('date_range') and \
+                not self.handler_supports_read_option(handler, 'date_range'):
+            raise ArcticException("Date range arguments not supported by handler in %s" % symbol)
+
         data = handler.read(self._arctic_lib, version, symbol, from_version=from_version, **kwargs)
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
                              metadata=version.pop('metadata', None), data=data,

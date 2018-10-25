@@ -3,6 +3,7 @@ import six
 import struct
 from datetime import datetime as dt, timedelta as dtd
 import pandas as pd
+from arctic import VERSION_STORE
 from pandas.util.testing import assert_frame_equal
 from pymongo.errors import OperationFailure
 from pymongo.server_type import SERVER_TYPE
@@ -18,6 +19,7 @@ from arctic._util import mongo_count
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException
 from arctic.date import DateRange
 from arctic.store import _version_store_utils
+from arctic.store import version_store
 
 from ...util import read_str_as_pandas
 from arctic.date._mktz import mktz
@@ -1493,3 +1495,71 @@ def test_snapshot_list_versions_after_delete(library, library_name):
     library.delete('symC')
 
     assert {v['symbol'] for v in library.list_versions(snapshot='snapA')} == {'symA', 'symB', 'symC'}
+
+
+def test_write_non_serializable_throws(arctic):
+    lib_name = 'write_hanlder_test'
+    arctic.initialize_library(lib_name, VERSION_STORE)
+    with patch('arctic.store.version_store.STRICT_WRITE_HANDLER_MATCH', True):
+        library = arctic[lib_name]
+
+        # Check that falling back to a pickle from a dataframe throws
+        df = pd.DataFrame({'a': [dict(a=1)]})
+
+        with pytest.raises(ArcticException):
+            library.write('ns1', df)
+
+        # Check that saving a regular dataframe succeeds with this option set
+        library.write('ns2', ts1)
+        assert_frame_equal(ts1, library.read('ns2').data)
+
+
+def test_write_non_serializable_pickling_default(arctic):
+    lib_name = 'write_hanlder_test'
+    arctic.initialize_library(lib_name, VERSION_STORE)
+    library = arctic[lib_name]
+    df = pd.DataFrame({'a': [dict(a=1)]})
+    library.write('ns3', df)
+    assert_frame_equal(df, library.read('ns3').data)
+
+
+def test_write_strict_no_daterange(arctic):
+    lib_name = 'write_hanlder_test'
+    arctic.initialize_library(lib_name, VERSION_STORE)
+
+    # Write with pickling
+    with patch('arctic.store.version_store.STRICT_WRITE_HANDLER_MATCH', True):
+        library = arctic[lib_name]
+        data = [dict(a=1)]
+        library.write('ns4', data)
+
+        # When the option is set, we should now be unable to read this item when we specify a
+        # date range, even though it was written successfully
+        with pytest.raises(ArcticException):
+            library.read('ns4', date_range=DateRange(dt(2017, 1, 1), dt(2017, 1, 2)))
+
+        assert data == library.read('ns4').data
+
+
+def test_handler_check_default_false(arctic):
+    lib_name = 'write_hanlder_test1'
+    arctic.initialize_library(lib_name, VERSION_STORE)
+    assert arctic[lib_name]._with_strict_handler_match is False
+
+
+def test_handler_check_default_osenviron(arctic):
+    with patch('arctic.store.version_store.STRICT_WRITE_HANDLER_MATCH', True):
+        lib_name = 'write_hanlder_test2'
+        arctic.initialize_library(lib_name, VERSION_STORE)
+        assert arctic[lib_name]._with_strict_handler_match is True
+
+def test_handler_check_set_false(arctic):
+    lib_name = 'write_hanlder_test3'
+    arctic.initialize_library(lib_name, VERSION_STORE, STRICT_WRITE_HANDLER_MATCH=False)
+    assert arctic[lib_name]._with_strict_handler_match is False
+
+
+def test_handler_check_set_true(arctic):
+    lib_name = 'write_hanlder_test4'
+    arctic.initialize_library(lib_name, VERSION_STORE, STRICT_WRITE_HANDLER_MATCH=True)
+    assert arctic[lib_name]._with_strict_handler_match is True

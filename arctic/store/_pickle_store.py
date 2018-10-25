@@ -58,6 +58,10 @@ class PickleStore(object):
             return pickle_compat_load(io.BytesIO(data))
         return version['data']
 
+    @staticmethod
+    def read_options():
+        return []
+
     def write(self, arctic_lib, version, symbol, item, previous_version):
         try:
             # If it's encodeable, then ship it

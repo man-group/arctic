@@ -17,7 +17,6 @@ log = logging.getLogger(__name__)
 
 DTN64_DTYPE = 'datetime64[ns]'
 
-
 def _to_primitive(arr, string_max_len=None):
     if arr.dtype.hasobject:
         if len(arr) > 0:
@@ -145,8 +144,8 @@ class PandasSerializer(object):
             return False
         else:
             if arr.dtype.hasobject:
-                log.info('Pandas dataframe %s contains Objects, saving as Blob' % symbol)
-                # Will fall-back to saving using Pickle
+                log.warning('Pandas dataframe %s contains Objects, saving as Blob' % symbol)
+                # Fall-back to saving using Pickle
                 return False
             elif any([len(x[0].shape) for x in arr.dtype.fields.values()]):
                 log.info('Pandas dataframe %s contains >1 dimensional arrays, saving as Blob' % symbol)

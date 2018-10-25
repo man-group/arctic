@@ -29,7 +29,7 @@ def test_can_convert_to_records_without_objects_returns_false_when_records_have_
     with patch('arctic.serialization.numpy_records.log') as mock_log:
         assert store.can_convert_to_records_without_objects(sentinel.df, 'my_symbol') is False
 
-    mock_log.info.assert_called_once_with('Pandas dataframe my_symbol contains Objects, saving as Blob')
+    mock_log.warning.assert_called_once_with('Pandas dataframe my_symbol contains Objects, saving as Blob')
     store._to_records.assert_called_once_with(sentinel.df)
 
 
