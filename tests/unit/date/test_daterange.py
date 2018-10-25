@@ -234,3 +234,14 @@ def test_intersection_preserves_boundaries():
     assert DateRange('20110101', '20110102', OPEN_OPEN) == DateRange('20110101', '20110102', CLOSED_OPEN).intersection(DateRange('20110101', '20110102', OPEN_OPEN))
     assert DateRange('20110101', '20110102', OPEN_OPEN) == DateRange('20110101', '20110102', OPEN_OPEN).intersection(DateRange('20110101', '20110102', OPEN_CLOSED))
 
+
+def test_intersection_contains():
+    # assert ((d in dr1) & (d in dr2)) == (d in (dr1 & dr2)) for any interval combination
+    start, end = dt(2018, 1, 1), dt(2018, 1, 2)
+    date_ranges = [DateRange(start, end, interval) for interval in CLOSED_CLOSED.__class__]
+
+    def equal_contains(date, dr1, dr2):
+        return ((date in dr1) and (date in dr2)) == (date in dr1.intersection(dr2))
+
+    assert all(equal_contains(start, dr1, dr2) for dr1 in date_ranges for dr2 in date_ranges)
+    assert all(equal_contains(end, dr1, dr2) for dr1 in date_ranges for dr2 in date_ranges)
