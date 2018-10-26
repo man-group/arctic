@@ -1,6 +1,7 @@
 import logging
-import numpy as np
+import os
 
+import numpy as np
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
 from ..exceptions import ArcticException
 try:  # 0.21+ Compatibility
@@ -16,6 +17,15 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 DTN64_DTYPE = 'datetime64[ns]'
+
+# TODO: Switch on by default this flag to enable the fast check once this gets thoroughly tested
+_FAST_CHECK_DF_SERIALIZABLE = bool(os.environ.get('ENABLE_FAST_CHECK_DF_SERIALIZABLE'))
+
+
+def set_fast_check_df_serializable(config):
+    global _FAST_CHECK_DF_SERIALIZABLE
+    _FAST_CHECK_DF_SERIALIZABLE = bool(config)
+
 
 def _to_primitive(arr, string_max_len=None):
     if arr.dtype.hasobject:
@@ -133,14 +143,48 @@ class PandasSerializer(object):
 
         return (rtn, dtype)
 
+    def fast_check_serializable(self, df):
+        """
+        Convert efficiently the frame's object-columns/object-index/multi-index/multi-column to
+        records, by creating a recarray only for the object fields instead for the whole dataframe.
+        If we have no object dtypes, we can safely convert only the first row to recarray to test if serializable.
+        Previously we'd serialize twice the full dataframe when it included object fields or multi-index/columns.
+
+        Parameters
+        ----------
+        df: `pandas.DataFrame` or `pandas.Series`
+
+        Returns
+        -------
+        `tuple[numpy.core.records.recarray, dict[str, numpy.dtype]`
+            If any object dtypes are detected in columns or index will return a dict with field-name -> dtype
+             mappings, and empty dict otherwise.
+        """
+        i_dtype, f_dtypes = df.index.dtype, df.dtypes
+        index_has_object = df.index.dtype.hasobject
+        fields_with_object = [f for f in df.columns if f_dtypes[f] is np.dtype('O')]
+        if df.empty or (not index_has_object and not fields_with_object):
+            arr, _ = self._to_records(df.iloc[:10])  # only first few rows for performance
+            return arr, {}
+        # If only the Index has Objects, choose a small slice (two columns if possible,
+        # to avoid switching from a DataFrame to a Series)
+        df_objects_only = df[fields_with_object if fields_with_object else df.columns[:2]]
+        # Let any exceptions bubble up from here
+        arr, dtype = self._to_records(df_objects_only)
+        return arr, {f: dtype[f] for f in dtype.names}
+
     def can_convert_to_records_without_objects(self, df, symbol):
         # We can't easily distinguish string columns from objects
         try:
-            arr, _ = self._to_records(df)
+            #TODO: we can add here instead a check based on df size and enable fast-check if sz > threshold value
+            if _FAST_CHECK_DF_SERIALIZABLE:
+                arr, _ = self.fast_check_serializable(df)
+            else:
+                arr, _ = self._to_records(df)
         except Exception as e:
             # This exception will also occur when we try to write the object so we fall-back to saving using Pickle
-            log.info('Pandas dataframe %s caused exception "%s" when attempting to convert to records. Saving as Blob.'
-                     % (symbol, repr(e)))
+            log.warning('Pandas dataframe %s caused exception "%s" when attempting to convert to records. '
+                        'Saving as Blob.' % (symbol, repr(e)))
             return False
         else:
             if arr.dtype.hasobject:
@@ -148,7 +192,7 @@ class PandasSerializer(object):
                 # Fall-back to saving using Pickle
                 return False
             elif any([len(x[0].shape) for x in arr.dtype.fields.values()]):
-                log.info('Pandas dataframe %s contains >1 dimensional arrays, saving as Blob' % symbol)
+                log.warning('Pandas dataframe %s contains >1 dimensional arrays, saving as Blob' % symbol)
                 return False
             else:
                 return True

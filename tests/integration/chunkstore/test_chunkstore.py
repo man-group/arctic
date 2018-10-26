@@ -15,28 +15,7 @@ import pickle
 
 from arctic.chunkstore.chunkstore import START, SYMBOL
 from arctic.chunkstore.passthrough_chunker import PassthroughChunker
-
-
-def create_test_data(size=5, index=True, multiindex=True, random_data=True, random_ids=True, date_offset=0, cols=1):
-    data = {}
-    for i in range(cols):
-        if random_data:
-            data['data' + str(i)] = [random.random() * random.randint(-100, 100) for _ in range(size)]
-        else:
-            data['data' + str(i)] = range(size)
-    dates = [dt(2016, 1, 1) + timedelta(days=n+date_offset) for n in range(size)]
-    if index:
-        if multiindex:
-            if random_ids:
-                idx = [(date, random.randint(1, size)) for date in dates]
-            else:
-                idx = [(date, 1) for date in dates]
-            index = MultiIndex.from_tuples(idx, names=['date', 'id'])
-            return DataFrame(data=data, index=index)
-        return DataFrame(data=data, index=Index(data=dates, name='date'))
-    data.update({'date': dates})
-    return DataFrame(data=data)
-
+from tests.integration.chunkstore.test_utils import create_test_data
 
 def test_write_dataframe(chunkstore_lib):
     df = create_test_data()
