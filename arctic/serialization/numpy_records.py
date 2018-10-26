@@ -1,6 +1,5 @@
 import logging
 import os
-from six import string_types
 
 import numpy as np
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
@@ -21,7 +20,6 @@ DTN64_DTYPE = 'datetime64[ns]'
 
 # TODO: Switch on by default this flag to enable the fast check once this gets thoroughly tested
 _FAST_CHECK_DF_SERIALIZABLE = bool(os.environ.get('ENABLE_FAST_CHECK_DF_SERIALIZABLE'))
-_vectorized_is_string = None
 
 
 def set_fast_check_df_serializable(config):
@@ -29,26 +27,17 @@ def set_fast_check_df_serializable(config):
     _FAST_CHECK_DF_SERIALIZABLE = bool(config)
 
 
-def get_vectorized_is_string():
-    global _vectorized_is_string
-    if _vectorized_is_string is None:
-        # Vectorize the function once and lazily
-        # Be careful, the lambda should only include calls that are Cythonized or implemented inside numpy
-        _vectorized_is_string = np.vectorize(lambda x: isinstance(x, string_types))
-    return _vectorized_is_string
-
-
 def _to_primitive(arr, string_max_len=None):
     if arr.dtype.hasobject:
-        if len(arr) > 0:
-            if isinstance(arr[0], Timestamp):
+        if len(arr) > 0 and isinstance(arr[0], Timestamp):
                 return np.array([t.value for t in arr], dtype=DTN64_DTYPE)
-            elif all(get_vectorized_is_string()(arr)):
-                # Only be smart with converting the whole column to strings if it is guarnateed that
-                # it contains only string values (and none of: None, np.NaN, Python objects)
-                if string_max_len:
-                    return np.array(arr.astype('U{:d}'.format(string_max_len)))
-                return np.array(list(arr))
+        if string_max_len:
+            str_array = np.array(arr.astype('U{:d}'.format(string_max_len)))
+        else:
+            str_array = np.array(list(arr))
+        # Pick any unwanted data conversions (e.g. np.NaN to 'nan')
+        if np.array_equal(arr, str_array):
+            return str_array
     return arr
 
 

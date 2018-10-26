@@ -122,6 +122,12 @@ def test_can_convert_to_records_mixed_object_column_string_nan(fast_serializable
         df = pd.DataFrame({'a': ['abc', 'cde', 'def'], 'b': [1.2, 8.0, np.NaN]})
         assert serializer.can_convert_to_records_without_objects(df, 'my_symbol')
 
+        df = pd.DataFrame({'a': [u'abc', u'cde', 'def'], 'b': [1.2, 8.0, np.NaN]})
+        assert serializer.can_convert_to_records_without_objects(df, 'my_symbol')
+
+        df = pd.DataFrame({'a': [u'abc', u'cde', 'def'], 'b': [1.2, '8.0', np.NaN]})
+        assert not serializer.can_convert_to_records_without_objects(df, 'my_symbol')
+
         # Do not serialize and force-stringify None
         df = pd.DataFrame({'a': ['abc', None, 'def'], 'b': [1.2, 8.0, np.NaN]})
         assert not serializer.can_convert_to_records_without_objects(df, 'my_symbol')
