@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 from mock import patch, Mock, sentinel
 from numpy.testing import assert_array_equal
@@ -98,5 +99,35 @@ def test_can_convert_to_records_without_objects_returns_true_otherwise(fast_seri
             store.fast_check_serializable.assert_called_once_with(sentinel.df)
         else:
             store._to_records.assert_called_once_with(sentinel.df)
+    finally:
+        anr._FAST_CHECK_DF_SERIALIZABLE = orig_config
+
+
+@pytest.mark.parametrize("fast_serializable_check", (False, True))
+def test_can_convert_to_records_mixed_object_column_string_nan(fast_serializable_check):
+    orig_config = anr._FAST_CHECK_DF_SERIALIZABLE
+    try:
+        anr.set_fast_check_df_serializable(fast_serializable_check)
+        serializer = anr.DataFrameSerializer()
+
+        df = pd.DataFrame({'a': [1, 3, 4], 'b': [1.2, 8.0, 0.2]})
+        assert serializer.can_convert_to_records_without_objects(df, 'my_symbol')
+
+        df = pd.DataFrame({'a': [1, 3, 4], 'b': [1, 8.0, 2]})
+        assert serializer.can_convert_to_records_without_objects(df, 'my_symbol')
+
+        df = pd.DataFrame({'a': [1, 3, 4], 'b': [1.2, 8.0, np.NaN]})
+        assert serializer.can_convert_to_records_without_objects(df, 'my_symbol')
+
+        df = pd.DataFrame({'a': ['abc', 'cde', 'def'], 'b': [1.2, 8.0, np.NaN]})
+        assert serializer.can_convert_to_records_without_objects(df, 'my_symbol')
+
+        # Do not serialize and force-stringify None
+        df = pd.DataFrame({'a': ['abc', None, 'def'], 'b': [1.2, 8.0, np.NaN]})
+        assert not serializer.can_convert_to_records_without_objects(df, 'my_symbol')
+
+        # Do not serialize and force-stringify np.NaN among strings, rather pickle
+        df = pd.DataFrame({'a': ['abc', np.NaN, 'def'], 'b': [1.2, 8.0, np.NaN]})
+        assert not serializer.can_convert_to_records_without_objects(df, 'my_symbol')
     finally:
         anr._FAST_CHECK_DF_SERIALIZABLE = orig_config
