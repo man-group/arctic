@@ -31,10 +31,12 @@ def _to_primitive(arr, string_max_len=None):
     if arr.dtype.hasobject:
         if len(arr) > 0 and isinstance(arr[0], Timestamp):
                 return np.array([t.value for t in arr], dtype=DTN64_DTYPE)
+
         if string_max_len:
             str_array = np.array(arr.astype('U{:d}'.format(string_max_len)))
         else:
             str_array = np.array(list(arr))
+
         # Pick any unwanted data conversions (e.g. np.NaN to 'nan')
         if np.array_equal(arr, str_array):
             return str_array

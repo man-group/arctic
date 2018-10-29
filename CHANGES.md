@@ -1,7 +1,7 @@
 ## Changelog
 
 ### 1.70
-  * Bugfix: #157 Preserve NaN and don't blindly stringify columns that don't only contain strings
+  * Bugfix: #157 Assure that serialized dataframes remain value-equivalent (e.g. avoid NaN --> 'nan' in mixed string columns)
   * Bugfix: #608 Ensure Arctic performs well with MongoDB 3.6 (sorting)
   * Bugfix: #629 Column kwarg no longer modified
   * Bugfix: #641 DateRange.intersection open/closed range fix
