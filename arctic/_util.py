@@ -6,6 +6,8 @@ import pymongo
 
 logger = logging.getLogger(__name__)
 
+MAX_DOCUMENT_SIZE = int(pymongo.common.MAX_BSON_SIZE * 0.8)
+
 # Avoid import-time extra logic
 _use_new_count_api = None
 
