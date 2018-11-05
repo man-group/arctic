@@ -76,6 +76,15 @@ def _mixed_test_data():
              },
             index=(0, 1))
 
+        # With mixed types (i.e. string / numbers) in multi-index
+        input_dict = {'POSITION': {
+            (pd.Timestamp('2013-10-07 15:45:43'), 'MYSTRT', 'SYMA', 'XX', 0): 0.0,
+            (pd.Timestamp('2013-10-07 15:45:43'), 'MYSTRT', 'SYMA', 'FFL', '201312'): -558.0,
+            (pd.Timestamp('2013-10-07 15:45:43'), 'MYSTRT', 'AG', 'FFL', '201312'): -74.0,
+            (pd.Timestamp('2013-10-07 15:45:43'), 'MYSTRT', 'AG', 'XX', 0): 0.0}
+        }
+        multi_index_with_object = pd.DataFrame.from_dict(input_dict)
+
         # Exhaust all dtypes
         mixed_dtypes_df = pd.DataFrame({
             'string': list('abc'),
@@ -92,6 +101,10 @@ def _mixed_test_data():
         })
         mixed_dtypes_df['timedeltas'] = mixed_dtypes_df.dates.diff()
 
+        # Multi-column with some objects
+        multi_column_with_some_objects = multi_column_no_multiindex.copy()
+        multi_column_with_some_objects.iloc[1:, 1:2] = 'Convert this columnt dtype to object'
+
         _TEST_DATA = {
             'onerow': (onerow_ts, df_serializer.serialize(onerow_ts)),
             'small': (small_ts, df_serializer.serialize(small_ts)),
@@ -105,6 +118,7 @@ def _mixed_test_data():
             'with_unicode': (with_unicode_ts, df_serializer.serialize(with_unicode_ts)),
             'with_some_none': (with_some_none_ts, df_serializer.serialize(with_some_none_ts)),
             'multiindex': (multiindex_ts, df_serializer.serialize(multiindex_ts)),
+            'multiindex_with_object': (multi_index_with_object, df_serializer.serialize(multi_index_with_object)),
             'empty_multiindex': (empty_multiindex_ts, df_serializer.serialize(empty_multiindex_ts)),
             'large_multi_index': (large_multi_index, df_serializer.serialize(large_multi_index)),
             'empty_multicolumn': (empty_multi_column_ts, df_serializer.serialize(empty_multi_column_ts)),
@@ -114,6 +128,8 @@ def _mixed_test_data():
             'multi_column_int_levels': (multi_column_int_levels, df_serializer.serialize(multi_column_int_levels)),
             'multi_column_and_multi_index': (multi_column_and_multi_index,
                                              df_serializer.serialize(multi_column_and_multi_index)),
+            'multi_column_with_some_objects': (multi_column_with_some_objects,
+                                               df_serializer.serialize(multi_column_with_some_objects)),
             'n_dimensional_df': (n_dimensional_df, Exception),
             'mixed_dtypes_df': (mixed_dtypes_df, df_serializer.serialize(mixed_dtypes_df))
         }

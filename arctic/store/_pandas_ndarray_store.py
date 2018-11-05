@@ -152,7 +152,8 @@ class PandasSeriesStore(PandasStore):
 
     def can_write(self, version, symbol, data):
         if self.can_write_type(data):
-            if data.dtype == np.object_ or data.index.dtype == np.object_:
+            # Series has always a single-column
+            if data.dtype.hasobject or data.index.dtype.hasobject:
                 return self.SERIALIZER.can_convert_to_records_without_objects(data, symbol)
             return True
         return False
@@ -183,7 +184,7 @@ class PandasDataFrameStore(PandasStore):
 
     def can_write(self, version, symbol, data):
         if self.can_write_type(data):
-            if np.any(data.dtypes.values == 'object'):
+            if np.any(data.dtypes.values == 'object') or data.index.dtype.hasobject:
                 return self.SERIALIZER.can_convert_to_records_without_objects(data, symbol)
             return True
         return False
@@ -214,7 +215,7 @@ class PandasPanelStore(PandasDataFrameStore):
     def can_write(self, version, symbol, data):
         if self.can_write_type(data):
             frame = data.to_frame(filter_observations=False)
-            if np.any(frame.dtypes.values == 'object'):
+            if np.any(frame.dtypes.values == 'object') or data.index.dtype.hasobject:
                 return self.SERIALIZER.can_convert_to_records_without_objects(frame, symbol)
             return True
         return False

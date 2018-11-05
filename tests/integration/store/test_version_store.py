@@ -4,7 +4,7 @@ import struct
 from datetime import datetime as dt, timedelta as dtd
 import pandas as pd
 from arctic import VERSION_STORE
-from pandas.util.testing import assert_frame_equal
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pymongo.errors import OperationFailure
 from pymongo.server_type import SERVER_TYPE
 from datetime import datetime
@@ -20,6 +20,7 @@ from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, 
 from arctic.date import DateRange
 from arctic.store import _version_store_utils
 from arctic.store import version_store
+from tests.unit.serialization.serialization_test_data import _mixed_test_data
 
 from ...util import read_str_as_pandas
 from arctic.date._mktz import mktz
@@ -1564,3 +1565,25 @@ def test_handler_check_set_true(arctic):
     lib_name = 'write_hanlder_test4'
     arctic.initialize_library(lib_name, VERSION_STORE, STRICT_WRITE_HANDLER_MATCH=True)
     assert arctic[lib_name]._with_strict_handler_match is True
+
+
+def test_write_df_with_objects_in_index(library):
+    df = _mixed_test_data()['multiindex_with_object'][0]
+    library.write(symbol='symX', data=df)
+    read_data = library.read(symbol='symX').data
+    assert_frame_equal(df, read_data)
+
+
+def test_write_series_with_objects_in_index(library):
+    myseries = _mixed_test_data()['multiindex_with_object'][0]['POSITION']
+    library.write(symbol='symX', data=myseries)
+    read_data = library.read(symbol='symX').data
+    assert_series_equal(myseries, read_data)
+
+
+@pytest.mark.parametrize('input_series', [_mixed_test_data()['with_some_objects'][0]['n1'],
+                                          _mixed_test_data()['multi_column_with_some_objects'][0]['bar']['two']])
+def test_write_series_with_some_objects(library, input_series):
+    library.write(symbol='symX', data=input_series)
+    read_data = library.read(symbol='symX').data
+    assert_series_equal(input_series, read_data)
