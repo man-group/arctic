@@ -221,8 +221,6 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
                 string_max_len=self.string_max_len,
                 forced_dtype=self.dtype if self._has_string_object else None)
 
-            # print('{} -> {} .. {} [{} == {}][{}]'.format(from_idx, curr_stop, to_idx, curr_stop - from_idx, len(chunk), my_lenth))
-
             # Let the gc collect the intermediate serialized chunk as early as possible
             chunk = chunk.tostring() if chunk is not None and get_bytes else chunk
 
