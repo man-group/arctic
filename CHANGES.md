@@ -1,6 +1,9 @@
 ## Changelog
 
-### 1.70
+### 1.71
+  * Bugfix: #645 Fix write errors for Pandas DataFrame that has mixed object/string types in multi-index column
+
+### 1.70 (2018-10-30)
   * Bugfix: #157 Assure that serialized dataframes remain value-equivalent (e.g. avoid NaN --> 'nan' in mixed string columns)
   * Bugfix: #608 Ensure Arctic performs well with MongoDB 3.6 (sorting)
   * Bugfix: #629 Column kwarg no longer modified
