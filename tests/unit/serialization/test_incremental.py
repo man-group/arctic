@@ -119,19 +119,19 @@ def test_shape(input_df_descr):
         assert incr_ser.shape == expectation[0].shape
 
 
-# @pytest.mark.parametrize("from_idx, to_idx",
-#                          [(x, y) for (x, y) in itertools.product(range(-10, len(_mixed_test_data()['large'][0])+100, 500),
-#                                                                  range(-10, len(_mixed_test_data()['large'][0])+100, 500))
-#                           if x <= y]
-#                          )
-# def test_generator_bytes_range(from_idx, to_idx):
-#     # Tests also negative indexing
-#     df = _mixed_test_data()['large'][0]
-#     expectation = _mixed_test_data()['large'][1]
-#
-#     incr_ser = IncrementalPandasToRecArraySerializer(df_serializer, df, chunk_size=_CHUNK_SIZE)
-#
-#     chunk_bytes = [chunk_b for chunk_b, _, _, _ in incr_ser.generator_bytes(from_idx=from_idx, to_idx=to_idx)]
-#     matching = expectation[0][from_idx:to_idx].tostring() == b''.join(chunk_bytes)
-#     assert matching
-#     assert expectation[1] == incr_ser.dtype
+@pytest.mark.parametrize("from_idx, to_idx",
+                         [(x, y) for (x, y) in itertools.product(range(-10, len(_mixed_test_data()['large'][0])+100, 500),
+                                                                 range(-10, len(_mixed_test_data()['large'][0])+100, 500))
+                          if x <= y]
+                         )
+def test_generator_bytes_range(from_idx, to_idx):
+    # Tests also negative indexing
+    df = _mixed_test_data()['large'][0]
+    expectation = _mixed_test_data()['large'][1]
+
+    incr_ser = IncrementalPandasToRecArraySerializer(df_serializer, df, chunk_size=_CHUNK_SIZE)
+
+    chunk_bytes = [chunk_b for chunk_b, _, _, _ in incr_ser.generator_bytes(from_idx=from_idx, to_idx=to_idx)]
+    matching = expectation[0][from_idx:to_idx].tostring() == b''.join(chunk_bytes)
+    assert matching
+    assert expectation[1] == incr_ser.dtype

@@ -27,19 +27,21 @@ def set_fast_check_df_serializable(config):
     _FAST_CHECK_DF_SERIALIZABLE = bool(config)
 
 
-def _to_primitive(arr, string_max_len=None):
+def _to_primitive(arr, string_max_len=None, forced_dtype=None):
     if arr.dtype.hasobject:
         if len(arr) > 0 and isinstance(arr[0], Timestamp):
             return np.array([t.value for t in arr], dtype=DTN64_DTYPE)
 
-        if string_max_len:
-            str_array = np.array(arr.astype('U{:d}'.format(string_max_len)))
+        if forced_dtype is not None:
+            casted_arr = arr.astype(dtype=forced_dtype, copy=False)
+        elif string_max_len is not None:
+            casted_arr = np.array(arr.astype('U{:d}'.format(string_max_len)))
         else:
-            str_array = np.array(list(arr))
+            casted_arr = np.array(list(arr))
 
         # Pick any unwanted data conversions (e.g. np.NaN to 'nan')
-        if np.array_equal(arr, str_array):
-            return str_array
+        if np.array_equal(arr, casted_arr):
+            return casted_arr
     return arr
 
 
