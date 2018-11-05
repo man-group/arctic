@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.71
+### 1.71 (2018-11-05)
   * Bugfix: #645 Fix write errors for Pandas DataFrame that has mixed object/string types in multi-index column
 
 ### 1.70 (2018-10-30)
