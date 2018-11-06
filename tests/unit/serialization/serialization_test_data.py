@@ -131,6 +131,9 @@ def _mixed_test_data():
                                df_serializer.can_convert_to_records_without_objects(with_some_none_ts, 'symA')),
             'multiindex': (multiindex_ts, df_serializer.serialize(multiindex_ts),
                            df_serializer.can_convert_to_records_without_objects(multiindex_ts, 'symA')),
+            'multiindex_with_object': (
+                multi_index_with_object, df_serializer.serialize(multi_index_with_object),
+                df_serializer.can_convert_to_records_without_objects(multi_index_with_object, 'symA')),
             'empty_multiindex': (empty_multiindex_ts, df_serializer.serialize(empty_multiindex_ts),
                                  df_serializer.can_convert_to_records_without_objects(empty_multiindex_ts, 'symA')),
             'large_multi_index': (large_multi_index, df_serializer.serialize(large_multi_index),

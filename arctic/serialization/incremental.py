@@ -9,12 +9,11 @@ import pandas as pd
 from bson import Binary
 
 from arctic.serialization.numpy_records import PandasSerializer
-from .._compression import compress, compress_array
+from .._compression import compress
 from ..exceptions import ArcticSerializationException
-from .._util import MAX_DOCUMENT_SIZE
+from .._util import MAX_DOCUMENT_SIZE, NP_OBJECT_DTYPE
 
 ARCTIC_AUTO_EXPAND_CHUNK_SIZE = bool(os.environ.get('ARCTIC_AUTO_EXPAND_CHUNK_SIZE'))
-NP_OBJECT_DTYPE = np.dtype('O')
 
 ABC = abc.ABCMeta('ABC', (object,), {})
 
