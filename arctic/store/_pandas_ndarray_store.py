@@ -1,6 +1,7 @@
 import ast
 import logging
 
+from arctic._util import NP_OBJECT_DTYPE
 from bson.binary import Binary
 from pandas import DataFrame, Series, Panel
 import numpy as np

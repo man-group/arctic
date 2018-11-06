@@ -105,6 +105,12 @@ def _mixed_test_data():
         multi_column_with_some_objects = multi_column_no_multiindex.copy()
         multi_column_with_some_objects.iloc[1:, 1:2] = 'Convert this columnt dtype to object'
 
+        # Index with timezone-aware datetime
+        index_tz_aware = pd.DataFrame(data={'colA': range(10),
+                                            'colB': pd.date_range('20130101', periods=10, tz='US/Eastern')},
+                                      index=pd.date_range('20130101', periods=10, tz='US/Eastern'))
+        index_tz_aware.index.name = 'index'
+
         _TEST_DATA = {
             'onerow': (onerow_ts, df_serializer.serialize(onerow_ts),
                        df_serializer.can_convert_to_records_without_objects(small_ts, 'symA')),
@@ -156,7 +162,9 @@ def _mixed_test_data():
                 df_serializer.can_convert_to_records_without_objects(multi_column_with_some_objects, 'symA')),
             'n_dimensional_df': (n_dimensional_df, Exception, None),
             'mixed_dtypes_df': (mixed_dtypes_df, df_serializer.serialize(mixed_dtypes_df),
-                                df_serializer.can_convert_to_records_without_objects(mixed_dtypes_df, 'symA'))
+                                df_serializer.can_convert_to_records_without_objects(mixed_dtypes_df, 'symA')),
+            'index_tz_aware': (index_tz_aware, df_serializer.serialize(index_tz_aware),
+                               df_serializer.can_convert_to_records_without_objects(index_tz_aware, 'symA'))
         }
     return _TEST_DATA
 
