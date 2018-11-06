@@ -9,7 +9,7 @@ import numpy as np
 import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
-from arctic._util import mongo_count
+from arctic._util import mongo_count, FwPointersCfg, FW_POINTERS_KEY
 from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException, DataIntegrityException
 from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
@@ -26,6 +26,13 @@ _APPEND_COUNT = 60  # 1 hour of 1 min data
 
 # Enabling the following has roughly a 5-7% performance hit (off by default)
 _CHECK_CORRUPTION_ON_APPEND = bool(os.environ.get('CHECK_CORRUPTION_ON_APPEND'))
+
+# Forward pointers configuration
+try:
+    ARCTIC_FORWARD_POINTERS = FwPointersCfg[os.environ.get('ARCTIC_FORWARD_POINTERS', FwPointersCfg.DISABLED.name)]
+except Exception:
+    logger.exception("Failed to configure forward pointers with configuration {}".format(os.environ('ARCTIC_FORWARD_POINTERS')))
+    ARCTIC_FORWARD_POINTERS = FwPointersCfg.DISABLED
 
 
 def _promote_struct_dtypes(dtype1, dtype2):
@@ -118,6 +125,21 @@ def _resize_with_dtype(arr, dtype):
 def set_corruption_check_on_append(enable):
     global _CHECK_CORRUPTION_ON_APPEND
     _CHECK_CORRUPTION_ON_APPEND = bool(enable)
+
+
+def update_fw_pointers(collection, result, symbol, version, previous_version):
+    if result is None:
+        return
+    if previous_version and FW_POINTERS_KEY not in previous_version:
+        chunk_ids = [_id for _id in collection.find({'symbol': symbol, 'parent': version_base_or_id(version)},
+                                                    {'_id': 1})]
+    else:
+        chunk_ids = previous_version[FW_POINTERS_KEY] if previous_version else []
+    upserted_ids = [result.upserted_id] \
+        if isinstance(result, pymongo.results.UpdateResult) \
+        else result.upserted_ids.values()
+    chunk_ids.extend(upserted_ids)
+    version[FW_POINTERS_KEY] = chunk_ids
 
 
 class NdarrayStore(object):
@@ -377,11 +399,20 @@ class NdarrayStore(object):
                 segment = {'data': Binary(data), 'compressed': False}
                 segment['segment'] = version['up_to'] - 1
                 try:
-                    collection.update_one({'symbol': symbol,
-                                           'sha': checksum(symbol, segment)},
-                                          {'$set': segment,
-                                           '$addToSet': {'parent': version['base_version_id']}},
-                                          upsert=True)
+                    if ARCTIC_FORWARD_POINTERS is FwPointersCfg.DISABLED:
+                        collection.update_one(
+                            {'symbol': symbol, 'sha': checksum(symbol, segment)},
+                            {'$set': segment, '$addToSet': {'parent': version['base_version_id']}},
+                            upsert=True)
+                    else:
+                        set_spec = {'$set': segment}
+                        if ARCTIC_FORWARD_POINTERS is FwPointersCfg.HYBRID:
+                            set_spec['$addToSet'] = {'parent': version['base_version_id']}
+                        update_result = collection.update_one(
+                            {'symbol': symbol, 'sha': checksum(symbol, segment)},
+                            set_spec,
+                            upsert=True)
+                        update_fw_pointers(collection, update_result, symbol, version, previous_version)
                 except DuplicateKeyError:
                     '''If we get a duplicate key error here, this segment has the same symbol/parent/segment
                        as another chunk, but a different sha. This means that we have 'forked' history.
@@ -540,16 +571,31 @@ class NdarrayStore(object):
             segment['segment'] = min((i + 1) * chunk_size - 1, length - 1) + segment_offset
             segment_index.append(segment['segment'])
             sha = checksum(symbol, segment)
-            if sha not in previous_shas:
-                segment['sha'] = sha
-                bulk.append(pymongo.UpdateOne({'symbol': symbol, 'sha': sha, 'segment': segment['segment']},
-                                              {'$set': segment, '$addToSet': {'parent': version['_id']}},
-                                              upsert=True))
+
+            if ARCTIC_FORWARD_POINTERS is FwPointersCfg.DISABLED:
+                if sha not in previous_shas:
+                    segment['sha'] = sha
+                    bulk.append(pymongo.UpdateOne({'symbol': symbol, 'sha': sha, 'segment': segment['segment']},
+                                                  {'$set': segment, '$addToSet': {'parent': version['_id']}},
+                                                  upsert=True))
+                else:
+                    bulk.append(pymongo.UpdateOne({'symbol': symbol, 'sha': sha, 'segment': segment['segment']},
+                                                  {'$addToSet': {'parent': version['_id']}}))
             else:
-                bulk.append(pymongo.UpdateOne({'symbol': symbol, 'sha': sha, 'segment': segment['segment']},
-                                              {'$addToSet': {'parent': version['_id']}}))
+                if sha not in previous_shas:
+                    segment['sha'] = sha
+                    set_spec = {'$set': segment}
+                    if ARCTIC_FORWARD_POINTERS is FwPointersCfg.HYBRID:
+                        set_spec['$addToSet'] = {'parent': version['_id']}
+                    bulk.append(pymongo.UpdateOne({'symbol': symbol, 'sha': sha, 'segment': segment['segment']},
+                                                  set_spec,
+                                                  upsert=True))
+        bulk_write_result = None
         if i != -1:
-            collection.bulk_write(bulk, ordered=False)
+            bulk_write_result = collection.bulk_write(bulk, ordered=False)
+
+        if ARCTIC_FORWARD_POINTERS is not FwPointersCfg.DISABLED:
+            update_fw_pointers(collection, bulk_write_result, symbol, version, previous_version)
 
         segment_index = self._segment_index(item, existing_index=existing_index, start=segment_offset,
                                             new_segments=segment_index)

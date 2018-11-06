@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 import pymongo
+from enum import Enum
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
@@ -10,9 +11,16 @@ logger = logging.getLogger(__name__)
 
 MAX_DOCUMENT_SIZE = int(pymongo.common.MAX_BSON_SIZE * 0.8)
 NP_OBJECT_DTYPE = np.dtype('O')
+FW_POINTERS_KEY = 'CHUNK_IDS'
 
 # Avoid import-time extra logic
 _use_new_count_api = None
+
+
+class FwPointersCfg(Enum):
+    ENABLED = 0
+    DISABLED = 1
+    HYBRID = 2
 
 
 def _detect_new_count_api():

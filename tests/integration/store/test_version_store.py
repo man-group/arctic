@@ -15,7 +15,7 @@ import pytest
 import numpy as np
 
 import arctic
-from arctic._util import mongo_count
+from arctic._util import mongo_count, FwPointersCfg
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException
 from arctic.date import DateRange
 from arctic.store import _version_store_utils
@@ -1607,3 +1607,31 @@ def test_can_write_tz_aware_data_series(library):
     read_data = read_data.dt.tz_localize('UTC').dt.tz_convert(read_data.index.tzinfo)
     assert library._versions.find_one({'symbol': 'symTzSer'})['type'] == PandasSeriesStore.TYPE
     assert_series_equal(myseries, read_data)
+
+
+class FwPointersCtx:
+    def __init__(self, value_to_test):
+        self.value_to_test = value_to_test
+
+    def __enter__(self):
+        self.orig_value = arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS
+        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS = self.value_to_test
+
+    def __exit__(self, *args):
+        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS = self.orig_value
+
+
+@pytest.mark.parametrize('fw_pointers_config', FwPointersCfg.__members__.values())
+def test_fw_regression(library, fw_pointers_config):
+    with FwPointersCtx(fw_pointers_config):
+        mydf = _mixed_test_data()['medium'][0]
+
+        to_write = mydf[:-10]
+        library.write(symbol='symFw', data=to_write)
+
+        to_append = mydf[-10:]
+        library.append(symbol='symFw', data=to_append)
+
+        read_data = library.read(symbol='symFw').data
+        assert_frame_equal(mydf, read_data)
+
