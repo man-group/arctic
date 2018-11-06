@@ -4,6 +4,7 @@ import os
 import numpy as np
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
 from ..exceptions import ArcticException
+from .._util import NP_OBJECT_DTYPE
 try:  # 0.21+ Compatibility
     from pandas._libs.tslib import Timestamp
     from pandas._libs.tslibs.timezones import get_timezone
@@ -173,8 +174,8 @@ class PandasSerializer(object):
              mappings, and empty dict otherwise.
         """
         i_dtype, f_dtypes = df.index.dtype, df.dtypes
-        index_has_object = df.index.dtype.hasobject
-        fields_with_object = [f for f in df.columns if f_dtypes[f] is np.dtype('O')]
+        index_has_object = df.index.dtype is NP_OBJECT_DTYPE
+        fields_with_object = [f for f in df.columns if f_dtypes[f] is NP_OBJECT_DTYPE]
         if df.empty or (not index_has_object and not fields_with_object):
             arr, _ = self._to_records(df.iloc[:10])  # only first few rows for performance
             return arr, {}
