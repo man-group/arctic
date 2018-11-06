@@ -3,7 +3,7 @@ import six
 import struct
 from datetime import datetime as dt, timedelta as dtd
 import pandas as pd
-from arctic import VERSION_STORE
+from arctic import VERSION_STORE, PandasDataFrameStore, PandasSeriesStore
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pymongo.errors import OperationFailure
 from pymongo.server_type import SERVER_TYPE
@@ -1587,3 +1587,23 @@ def test_write_series_with_some_objects(library, input_series):
     library.write(symbol='symX', data=input_series)
     read_data = library.read(symbol='symX').data
     assert_series_equal(input_series, read_data)
+
+
+def test_can_write_tz_aware_data_df(library):
+    mydf = _mixed_test_data()['index_tz_aware'][0]
+    library.write(symbol='symTz', data=mydf)
+    read_data = library.read(symbol='symTz').data
+    # Arctic converts by default the data to UTC, convert back
+    read_data.colB = read_data.colB.dt.tz_localize('UTC').dt.tz_convert(read_data.index.tzinfo)
+    assert library._versions.find_one({'symbol': 'symTz'})['type'] == PandasDataFrameStore.TYPE
+    assert_frame_equal(mydf, read_data)
+
+
+def test_can_write_tz_aware_data_series(library):
+    myseries = _mixed_test_data()['index_tz_aware'][0]['colB']
+    library.write(symbol='symTzSer', data=myseries)
+    read_data = library.read(symbol='symTzSer').data
+    # Arctic converts by default the data to UTC, convert back
+    read_data = read_data.dt.tz_localize('UTC').dt.tz_convert(read_data.index.tzinfo)
+    assert library._versions.find_one({'symbol': 'symTzSer'})['type'] == PandasSeriesStore.TYPE
+    assert_series_equal(myseries, read_data)

@@ -1,6 +1,7 @@
 import ast
 import logging
 
+from arctic._util import NP_OBJECT_DTYPE
 from bson.binary import Binary
 from pandas import DataFrame, Series, Panel
 import numpy as np
@@ -153,7 +154,7 @@ class PandasSeriesStore(PandasStore):
     def can_write(self, version, symbol, data):
         if self.can_write_type(data):
             # Series has always a single-column
-            if data.dtype.hasobject or data.index.dtype.hasobject:
+            if data.dtype is NP_OBJECT_DTYPE or data.index.dtype is NP_OBJECT_DTYPE:
                 return self.SERIALIZER.can_convert_to_records_without_objects(data, symbol)
             return True
         return False
@@ -184,7 +185,7 @@ class PandasDataFrameStore(PandasStore):
 
     def can_write(self, version, symbol, data):
         if self.can_write_type(data):
-            if np.any(data.dtypes.values == 'object') or data.index.dtype.hasobject:
+            if NP_OBJECT_DTYPE in data.dtypes.values or data.index.dtype is NP_OBJECT_DTYPE:
                 return self.SERIALIZER.can_convert_to_records_without_objects(data, symbol)
             return True
         return False
@@ -215,7 +216,7 @@ class PandasPanelStore(PandasDataFrameStore):
     def can_write(self, version, symbol, data):
         if self.can_write_type(data):
             frame = data.to_frame(filter_observations=False)
-            if np.any(frame.dtypes.values == 'object') or data.index.dtype.hasobject:
+            if NP_OBJECT_DTYPE in frame.dtypes.values or data.index.dtype is NP_OBJECT_DTYPE:
                 return self.SERIALIZER.can_convert_to_records_without_objects(frame, symbol)
             return True
         return False

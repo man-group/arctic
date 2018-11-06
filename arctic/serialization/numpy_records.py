@@ -4,6 +4,7 @@ import os
 import numpy as np
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
 from ..exceptions import ArcticException
+from .._util import NP_OBJECT_DTYPE
 try:  # 0.21+ Compatibility
     from pandas._libs.tslib import Timestamp
     from pandas._libs.tslibs.timezones import get_timezone
@@ -27,19 +28,21 @@ def set_fast_check_df_serializable(config):
     _FAST_CHECK_DF_SERIALIZABLE = bool(config)
 
 
-def _to_primitive(arr, string_max_len=None):
+def _to_primitive(arr, string_max_len=None, forced_dtype=None):
     if arr.dtype.hasobject:
         if len(arr) > 0 and isinstance(arr[0], Timestamp):
             return np.array([t.value for t in arr], dtype=DTN64_DTYPE)
 
-        if string_max_len:
-            str_array = np.array(arr.astype('U{:d}'.format(string_max_len)))
+        if forced_dtype is not None:
+            casted_arr = arr.astype(dtype=forced_dtype, copy=False)
+        elif string_max_len is not None:
+            casted_arr = np.array(arr.astype('U{:d}'.format(string_max_len)))
         else:
-            str_array = np.array(list(arr))
+            casted_arr = np.array(list(arr))
 
         # Pick any unwanted data conversions (e.g. np.NaN to 'nan')
-        if np.array_equal(arr, str_array):
-            return str_array
+        if np.array_equal(arr, casted_arr):
+            return casted_arr
     return arr
 
 
@@ -48,7 +51,7 @@ def _multi_index_to_records(index, empty_index):
     if not empty_index:
         ix_vals = list(map(np.array, [index.get_level_values(i) for i in range(index.nlevels)]))
     else:
-        # empty multi index has no size, create empty arrays for recarry..
+        # empty multi index has no size, create empty arrays for recarry.
         ix_vals = [np.array([]) for n in index.names]
     index_names = list(index.names)
     count = 0
@@ -110,7 +113,7 @@ class PandasSerializer(object):
             rtn = MultiIndex.from_arrays(level_arrays, names=index)
         return rtn
 
-    def _to_records(self, df, string_max_len=None):
+    def _to_records(self, df, string_max_len=None, forced_dtype=None):
         """
         Similar to DataFrame.to_records()
         Differences:
@@ -134,11 +137,16 @@ class PandasSerializer(object):
         names = index_names + columns
 
         arrays = []
-        for arr in ix_vals + column_vals:
-            arrays.append(_to_primitive(arr, string_max_len))
+        for arr, name in zip(ix_vals + column_vals, index_names + columns):
+            arrays.append(_to_primitive(arr, string_max_len,
+                                        forced_dtype=None if forced_dtype is None else forced_dtype[name]))
 
-        dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
-                         metadata=metadata)
+        if forced_dtype is None:
+            dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1])
+                              for x, v in zip(names, arrays)],
+                             metadata=metadata)
+        else:
+            dtype = forced_dtype
 
         # The argument names is ignored when dtype is passed
         rtn = np.rec.fromarrays(arrays, dtype=dtype, names=names)
@@ -166,8 +174,8 @@ class PandasSerializer(object):
              mappings, and empty dict otherwise.
         """
         i_dtype, f_dtypes = df.index.dtype, df.dtypes
-        index_has_object = df.index.dtype.hasobject
-        fields_with_object = [f for f in df.columns if f_dtypes[f] is np.dtype('O')]
+        index_has_object = df.index.dtype is NP_OBJECT_DTYPE
+        fields_with_object = [f for f in df.columns if f_dtypes[f] is NP_OBJECT_DTYPE]
         if df.empty or (not index_has_object and not fields_with_object):
             arr, _ = self._to_records(df.iloc[:10])  # only first few rows for performance
             return arr, {}
@@ -202,7 +210,7 @@ class PandasSerializer(object):
             else:
                 return True
 
-    def serialize(self, item):
+    def serialize(self, item, string_max_len=None, forced_dtype=None):
         raise NotImplementedError
 
     def deserialize(self, item):
@@ -224,8 +232,8 @@ class SeriesSerializer(PandasSerializer):
         name = item.dtype.names[-1]
         return Series.from_array(item[name], index=index, name=name)
 
-    def serialize(self, item, string_max_len=None):
-        return self._to_records(item, string_max_len)
+    def serialize(self, item, string_max_len=None, forced_dtype=None):
+        return self._to_records(item, string_max_len, forced_dtype)
 
 
 class DataFrameSerializer(PandasSerializer):
@@ -267,5 +275,5 @@ class DataFrameSerializer(PandasSerializer):
 
         return df
 
-    def serialize(self, item, string_max_len=None):
-        return self._to_records(item, string_max_len)
+    def serialize(self, item, string_max_len=None, forced_dtype=None):
+        return self._to_records(item, string_max_len, forced_dtype)

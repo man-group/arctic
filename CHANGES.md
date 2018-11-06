@@ -1,6 +1,10 @@
 ## Changelog
 
-### 1.71 (2018-11-05)
+### 1.72
+  * Feature: #577 Added implementation for incremental serializer for numpy records
+  * Bugfix: #648 Fix issue with Timezone aware Pandas types, which don't contain hasobject attribute
+
+### 1.71  (2018-11-05)
   * Bugfix: #645 Fix write errors for Pandas DataFrame that has mixed object/string types in multi-index column
 
 ### 1.70 (2018-10-30)
