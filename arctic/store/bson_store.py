@@ -178,11 +178,11 @@ class BSONStore(object):
         return self._collection.distinct(key, **kwargs)
     
     @mongo_retry
-    def create_index(self, keys, **kwargs):
+    def create_index(self, keys, background=True, **kwargs):
         """
         See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.create_index
         """
-        return self._collection.create_index(keys, **kwargs)
+        return self._collection.create_index(keys, background=background, **kwargs)
 
     @mongo_retry
     def drop_index(self, index_or_name):
