@@ -1646,8 +1646,8 @@ def test_fwpointers_mixed_scenarios(library, write_cfg, read_cfg, append_cfg, re
 
     symbol = 'sym{}{}{}{}'.format(write_cfg, read_cfg, append_cfg, reread_cfg)
     mydf = _mixed_test_data()['small'][0]
-    to_write = mydf[:len(mydf) / 2]
-    to_append = mydf[len(mydf) / 2:]
+    to_write = mydf[:len(mydf) // 2]
+    to_append = mydf[len(mydf) // 2:]
 
     # The write
     with FwPointersCtx(write_cfg):

@@ -133,15 +133,15 @@ def update_fw_pointers(collection, result, symbol, version, previous_version):
     if result is None:
         return
     if previous_version and FW_POINTERS_KEY not in previous_version:
-        chunk_ids = [_id for _id in collection.find({'symbol': symbol, 'parent': version_base_or_id(version)},
+        chunks_ids = [_id for _id in collection.find({'symbol': symbol, 'parent': version_base_or_id(version)},
                                                     {'_id': 1})]
     else:
-        chunk_ids = previous_version[FW_POINTERS_KEY] if previous_version else []
-    upserted_ids = [result.upserted_id] \
-        if isinstance(result, pymongo.results.UpdateResult) \
-        else result.upserted_ids.values()
-    chunk_ids.extend(upserted_ids)
-    version[FW_POINTERS_KEY] = chunk_ids
+        chunks_ids = previous_version[FW_POINTERS_KEY] if previous_version else []
+    if isinstance(result, pymongo.results.UpdateResult):
+        chunks_ids.append(result.upserted_id)
+    else:
+        chunks_ids.extend(result.upserted_ids.values())
+    version[FW_POINTERS_KEY] = chunks_ids
 
 
 class NdarrayStore(object):
@@ -408,6 +408,8 @@ class NdarrayStore(object):
                 segment = {'data': Binary(data), 'compressed': False}
                 segment['segment'] = version['up_to'] - 1
                 try:
+                    # TODO: We could have a common handling with conditional spec-construction for the update spec.
+                    #       For now we kept unchanged the existing code which handles backwards pointers.
                     if ARCTIC_FORWARD_POINTERS is FwPointersCfg.DISABLED:
                         collection.update_one(
                             {'symbol': symbol, 'sha': checksum(symbol, segment)},
@@ -512,10 +514,10 @@ class NdarrayStore(object):
         seen_chunks = mongo_count(collection, filter=spec)
 
         if seen_chunks != version['segment_count']:
-            segments = [x['segment'] for x in collection.find(spec, projection={'segment': 1})]
             raise pymongo.errors.OperationFailure("Failed to write all the Chunks. Saw %s expecting %s"
                                                   "Parent: %s \n segments: %s" %
-                                                  (seen_chunks, version['segment_count'], parent_id, segments))
+                                                  (seen_chunks, version['segment_count'], parent_id,
+                                                   list(collection.find(spec, projection={'_id': 1, 'segment': 1}))))
 
     def checksum(self, item):
         sha = hashlib.sha1()
