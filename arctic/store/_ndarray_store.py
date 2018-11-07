@@ -133,15 +133,15 @@ def update_fw_pointers(collection, result, symbol, version, previous_version):
     if result is None:
         return
     if previous_version and FW_POINTERS_KEY not in previous_version:
-        chunks_ids = [_id for _id in collection.find({'symbol': symbol, 'parent': version_base_or_id(version)},
-                                                    {'_id': 1})]
+        chunk_ids = [_id for _id in collection.find({'symbol': symbol, 'parent': version_base_or_id(version)},
+                                                     {'_id': 1})]
     else:
-        chunks_ids = previous_version[FW_POINTERS_KEY] if previous_version else []
+        chunk_ids = previous_version[FW_POINTERS_KEY] if previous_version else []
     if isinstance(result, pymongo.results.UpdateResult):
-        chunks_ids.append(result.upserted_id)
+        chunk_ids.append(result.upserted_id)
     else:
-        chunks_ids.extend(result.upserted_ids.values())
-    version[FW_POINTERS_KEY] = chunks_ids
+        chunk_ids.extend(result.upserted_ids.values())
+    version[FW_POINTERS_KEY] = chunk_ids
 
 
 class NdarrayStore(object):
