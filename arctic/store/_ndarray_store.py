@@ -29,9 +29,11 @@ _CHECK_CORRUPTION_ON_APPEND = bool(os.environ.get('CHECK_CORRUPTION_ON_APPEND'))
 
 # Forward pointers configuration
 try:
-    ARCTIC_FORWARD_POINTERS = FwPointersCfg[os.environ.get('ARCTIC_FORWARD_POINTERS', FwPointersCfg.DISABLED.name)]
+    ARCTIC_FORWARD_POINTERS = FwPointersCfg[(os.environ.get('ARCTIC_FORWARD_POINTERS',
+                                                            FwPointersCfg.DISABLED.name).upper())]
 except Exception:
-    logger.exception("Failed to configure forward pointers with configuration {}".format(os.environ('ARCTIC_FORWARD_POINTERS')))
+    logger.exception("Failed to configure forward pointers with configuration {}".format(
+        os.environ('ARCTIC_FORWARD_POINTERS')))
     ARCTIC_FORWARD_POINTERS = FwPointersCfg.DISABLED
 
 
@@ -290,13 +292,20 @@ class NdarrayStore(object):
         segment_count = None
 
         spec = {'symbol': symbol,
-                'parent': version_base_or_id(version),
                 'segment': {'$lt': to_index}
                 }
         if from_index is not None:
             spec['segment']['$gte'] = from_index
         else:
             segment_count = version.get('segment_count', None)
+
+        # We want to use FW pointers to read data if:
+        #  ARCTIC_FORWARD_POINTERS is currently enabled/hybrid AND last version was written with FW pointers,
+        #  otherwise fall back to original implementation
+        if ARCTIC_FORWARD_POINTERS is not FwPointersCfg.DISABLED and FW_POINTERS_KEY in version:
+            spec['_id'] = {'$in': version[FW_POINTERS_KEY]}
+        else:
+            spec['parent'] = version_base_or_id(version)
 
         data = bytearray()
         i = -1
@@ -493,12 +502,17 @@ class NdarrayStore(object):
         parent_id = version_base_or_id(version)
 
         # Check all the chunks are in place
-        seen_chunks = mongo_count(collection, filter={'symbol': symbol, 'parent': parent_id})
+        if FW_POINTERS_KEY in version:
+            # TODO: This check is not necessary, as the ObjectIDs in version[FW_POINTERS_KEY]
+            #       are themselves ACKs about successful writes. We can remove the check written check.
+            spec = {'symbol': symbol, '_id': {'$in': version[FW_POINTERS_KEY]}}
+        else:
+            spec = {'symbol': symbol, 'parent': parent_id}
+
+        seen_chunks = mongo_count(collection, filter=spec)
 
         if seen_chunks != version['segment_count']:
-            segments = [x['segment'] for x in collection.find({'symbol': symbol, 'parent': parent_id},
-                                                              projection={'segment': 1},
-                                                              )]
+            segments = [x['segment'] for x in collection.find(spec, projection={'segment': 1})]
             raise pymongo.errors.OperationFailure("Failed to write all the Chunks. Saw %s expecting %s"
                                                   "Parent: %s \n segments: %s" %
                                                   (seen_chunks, version['segment_count'], parent_id, segments))

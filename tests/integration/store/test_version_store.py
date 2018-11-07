@@ -15,7 +15,7 @@ import pytest
 import numpy as np
 
 import arctic
-from arctic._util import mongo_count, FwPointersCfg
+from arctic._util import mongo_count, FwPointersCfg, FW_POINTERS_KEY
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException
 from arctic.date import DateRange
 from arctic.store import _version_store_utils
@@ -49,6 +49,18 @@ ts1_append = read_str_as_pandas("""  times | near
 
 
 symbol = 'TS1'
+
+
+class FwPointersCtx:
+    def __init__(self, value_to_test):
+        self.value_to_test = value_to_test
+
+    def __enter__(self):
+        self.orig_value = arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS
+        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS = self.value_to_test
+
+    def __exit__(self, *args):
+        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS = self.orig_value
 
 
 from pymongo.cursor import _QUERY_OPTIONS
@@ -1609,29 +1621,48 @@ def test_can_write_tz_aware_data_series(library):
     assert_series_equal(myseries, read_data)
 
 
-class FwPointersCtx:
-    def __init__(self, value_to_test):
-        self.value_to_test = value_to_test
+@pytest.mark.parametrize('write_cfg, read_cfg, append_cfg, reread_cfg', [
+    (FwPointersCfg.DISABLED, FwPointersCfg.DISABLED, FwPointersCfg.DISABLED, FwPointersCfg.DISABLED),
+    (FwPointersCfg.ENABLED, FwPointersCfg.ENABLED, FwPointersCfg.ENABLED, FwPointersCfg.ENABLED),
+    (FwPointersCfg.HYBRID, FwPointersCfg.HYBRID, FwPointersCfg.HYBRID, FwPointersCfg.HYBRID),
 
-    def __enter__(self):
-        self.orig_value = arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS
-        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS = self.value_to_test
+    (FwPointersCfg.HYBRID, FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.DISABLED),
+    (FwPointersCfg.HYBRID, FwPointersCfg.ENABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED),
 
-    def __exit__(self, *args):
-        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS = self.orig_value
+    (FwPointersCfg.ENABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED, FwPointersCfg.HYBRID),
+    (FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.DISABLED, FwPointersCfg.HYBRID),
 
+    (FwPointersCfg.DISABLED, FwPointersCfg.ENABLED, FwPointersCfg.DISABLED, FwPointersCfg.ENABLED),
+    # This throws exception, and ENABLED --> DISABLED fw-pointers config is not allowed/supported
+    # (FwPointersCfg.ENABLED, FwPointersCfg.DISABLED, FwPointersCfg.ENABLED, FwPointersCfg.DISABLED),
+])
+def test_fwpointers_mixed_scenarios(library, write_cfg, read_cfg, append_cfg, reread_cfg):
+    def _assert_fw_ptr_meta(symbol, cfg):
+        last_v = library._versions.find_one({'symbol': symbol}, sort=[("version", pymongo.DESCENDING)])
+        if cfg is FwPointersCfg.DISABLED:
+            assert FW_POINTERS_KEY not in last_v
+        else:
+            assert FW_POINTERS_KEY in last_v
 
-@pytest.mark.parametrize('fw_pointers_config', FwPointersCfg.__members__.values())
-def test_fw_regression(library, fw_pointers_config):
-    with FwPointersCtx(fw_pointers_config):
-        mydf = _mixed_test_data()['medium'][0]
+    symbol = 'sym{}{}{}{}'.format(write_cfg, read_cfg, append_cfg, reread_cfg)
+    mydf = _mixed_test_data()['small'][0]
+    to_write = mydf[:len(mydf) / 2]
+    to_append = mydf[len(mydf) / 2:]
 
-        to_write = mydf[:-10]
-        library.write(symbol='symFw', data=to_write)
+    # The write
+    with FwPointersCtx(write_cfg):
+        library.write(symbol=symbol, data=to_write)
+        _assert_fw_ptr_meta(symbol, write_cfg)
 
-        to_append = mydf[-10:]
-        library.append(symbol='symFw', data=to_append)
+    # The read
+    with FwPointersCtx(read_cfg):
+        assert_frame_equal(to_write, library.read(symbol=symbol).data)
 
-        read_data = library.read(symbol='symFw').data
-        assert_frame_equal(mydf, read_data)
+    # The append
+    with FwPointersCtx(append_cfg):
+        library.append(symbol=symbol, data=to_append)
+        _assert_fw_ptr_meta(symbol, append_cfg)
 
+    # The final read
+    with FwPointersCtx(reread_cfg):
+        assert_frame_equal(mydf, library.read(symbol=symbol).data)
