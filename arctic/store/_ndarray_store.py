@@ -28,6 +28,7 @@ _APPEND_COUNT = 60  # 1 hour of 1 min data
 _CHECK_CORRUPTION_ON_APPEND = bool(os.environ.get('CHECK_CORRUPTION_ON_APPEND'))
 
 # Forward pointers configuration
+ARCTIC_FORWARD_POINTERS_RECONCILE = bool(os.environ.get('ARCTIC_FORWARD_POINTERS_RECONCILE'))
 try:
     ARCTIC_FORWARD_POINTERS = FwPointersCfg[(os.environ.get('ARCTIC_FORWARD_POINTERS',
                                                             FwPointersCfg.DISABLED.name).upper())]
@@ -129,19 +130,26 @@ def set_corruption_check_on_append(enable):
     _CHECK_CORRUPTION_ON_APPEND = bool(enable)
 
 
-def update_fw_pointers(collection, result, symbol, version, previous_version):
-    if result is None:
-        return
+def update_fw_pointers(collection, symbol, version, previous_version, ids_of_updated_segments=None, result=None):
+    # If this is the first use of fw-pointers, query for the full list of segment IDs,
+    # or continue by extending the IDs from the previous version
     if previous_version and FW_POINTERS_KEY not in previous_version:
-        chunk_ids = [_id for _id in collection.find({'symbol': symbol, 'parent': version_base_or_id(version)},
-                                                     {'_id': 1})]
+        segment_ids = {_id for _id in collection.find({'symbol': symbol, 'parent': version_base_or_id(version)},
+                                                      {'_id': 1})}
     else:
-        chunk_ids = previous_version[FW_POINTERS_KEY] if previous_version else []
+        segment_ids = set(previous_version[FW_POINTERS_KEY]) if previous_version else set()
+
+    # Add the IDs of the newly added segment documents
     if isinstance(result, pymongo.results.UpdateResult):
-        chunk_ids.append(result.upserted_id)
-    else:
-        chunk_ids.extend(result.upserted_ids.values())
-    version[FW_POINTERS_KEY] = chunk_ids
+        segment_ids.add(result.upserted_id)
+    elif isinstance(result, pymongo.results.BulkWriteResult):
+        segment_ids.update(result.upserted_ids.values())
+
+    # For safety across "mongo_retry" calls with partial writes, also add the ids of existing segments for the version
+    if ids_of_updated_segments:
+        segment_ids.update(ids_of_updated_segments)
+
+    version[FW_POINTERS_KEY] = list(segment_ids)
 
 
 class NdarrayStore(object):
@@ -219,6 +227,8 @@ class NdarrayStore(object):
             collection.create_index([('symbol', pymongo.HASHED)], background=True)
             collection.create_index([('symbol', pymongo.ASCENDING),
                                      ('sha', pymongo.ASCENDING)], unique=True, background=True)
+            # TODO: When/if we remove the segments->versions pointers implementation and keep only the forward pointers,
+            #       we can remove the 'parent' from the index.
             collection.create_index([('symbol', pymongo.ASCENDING),
                                      ('parent', pymongo.ASCENDING),
                                      ('segment', pymongo.ASCENDING)], unique=True, background=True)
@@ -404,7 +414,6 @@ class NdarrayStore(object):
             version['base_version_id'] = version_base_or_id(previous_version)
 
             if len(item) > 0:
-
                 segment = {'data': Binary(data), 'compressed': False}
                 segment['segment'] = version['up_to'] - 1
                 try:
@@ -419,11 +428,14 @@ class NdarrayStore(object):
                         set_spec = {'$set': segment}
                         if ARCTIC_FORWARD_POINTERS is FwPointersCfg.HYBRID:
                             set_spec['$addToSet'] = {'parent': version['base_version_id']}
-                        update_result = collection.update_one(
-                            {'symbol': symbol, 'sha': checksum(symbol, segment)},
-                            set_spec,
+                        update_result = collection.find_one_and_update(
+                            filter={'symbol': symbol, 'sha': checksum(symbol, segment)},
+                            update=set_spec,
+                            projection={'_id': 1},
+                            return_document=pymongo.ReturnDocument.AFTER,  # important to get the _id when upserting
                             upsert=True)
-                        update_fw_pointers(collection, update_result, symbol, version, previous_version)
+                        update_fw_pointers(collection, symbol, version, previous_version,
+                                           ids_of_updated_segments=(update_result['_id'],))
                 except DuplicateKeyError:
                     '''If we get a duplicate key error here, this segment has the same symbol/parent/segment
                        as another chunk, but a different sha. This means that we have 'forked' history.
@@ -498,7 +510,8 @@ class NdarrayStore(object):
             version['segment_count'] = version['segment_count'] + len(unchanged_segment_ids)
             self.check_written(collection, symbol, version)
 
-    def check_written(self, collection, symbol, version):
+    @staticmethod
+    def check_written(collection, symbol, version):
         # Currently only called from methods which guarantee 'base_version_id' is not populated.
         # Make it nonetheless safe for the general case.
         parent_id = version_base_or_id(version)
@@ -514,10 +527,21 @@ class NdarrayStore(object):
         seen_chunks = mongo_count(collection, filter=spec)
 
         if seen_chunks != version['segment_count']:
-            raise pymongo.errors.OperationFailure("Failed to write all the Chunks. Saw %s expecting %s"
-                                                  "Parent: %s \n segments: %s" %
+            raise pymongo.errors.OperationFailure("Failed to write all the chunks. Saw %s expecting %s. "
+                                                  "Parent: %s. Segments: %s" %
                                                   (seen_chunks, version['segment_count'], parent_id,
                                                    list(collection.find(spec, projection={'_id': 1, 'segment': 1}))))
+
+        if ARCTIC_FORWARD_POINTERS is FwPointersCfg.HYBRID and ARCTIC_FORWARD_POINTERS_RECONCILE:
+            seen_chunks_reverse_pointers = mongo_count(collection, filter={'symbol': symbol, 'parent': parent_id})
+            if seen_chunks != seen_chunks_reverse_pointers:
+                raise pymongo.errors.OperationFailure("Failed to reconcile forward pointer chunks. "
+                                                      "Parent {}. "
+                                                      "Reverse pointers segments: {}. "
+                                                      "Forward pointers segments: {}.".format(
+                    parent_id, seen_chunks_reverse_pointers, seen_chunks))
+
+
 
     def checksum(self, item):
         sha = hashlib.sha1()
@@ -557,13 +581,21 @@ class NdarrayStore(object):
         # chunk and store the data by (uncompressed) size
         chunk_size = int(_CHUNK_SIZE / sze)
 
+        # Used by the forward pointers implementation
+        shas_to_ids, matched_segment_ids = set(), set()
+
         previous_shas = []
-        if previous_version:
-            previous_shas = set([Binary(x['sha']) for x in
-                                 collection.find({'symbol': symbol},
-                                                 projection={'sha': 1, '_id': 0},
-                                                 )
-                                 ])
+        if ARCTIC_FORWARD_POINTERS is FwPointersCfg.DISABLED:
+            if previous_version:
+                previous_shas = set(Binary(x['sha']) for x in
+                                    collection.find({'symbol': symbol}, projection={'sha': 1, '_id': 0}))
+        else:
+            # For forward pointers we always need to run the following query (not only when previous version exists).
+            # Reason is that if only some of the segments might get written, and we re-execute write() via mongo_retry,
+            # the upserted_id(s) won't be a complete list of all segment ObjectIDs
+            shas_to_ids = {x['sha']: x['_id']
+                           for x in collection.find({'symbol': symbol}, projection={'sha': 1, '_id': 1})}
+            previous_shas = {Binary(s) for s in shas_to_ids.keys()} if previous_version else []
 
         length = len(item)
 
@@ -598,6 +630,8 @@ class NdarrayStore(object):
                     bulk.append(pymongo.UpdateOne({'symbol': symbol, 'sha': sha, 'segment': segment['segment']},
                                                   {'$addToSet': {'parent': version['_id']}}))
             else:
+                if sha in shas_to_ids:
+                    matched_segment_ids.add(shas_to_ids[sha])
                 if sha not in previous_shas:
                     segment['sha'] = sha
                     set_spec = {'$set': segment}
@@ -611,7 +645,8 @@ class NdarrayStore(object):
             bulk_write_result = collection.bulk_write(bulk, ordered=False)
 
         if ARCTIC_FORWARD_POINTERS is not FwPointersCfg.DISABLED:
-            update_fw_pointers(collection, bulk_write_result, symbol, version, previous_version)
+            update_fw_pointers(collection, symbol, version, previous_version,
+                               result=bulk_write_result, ids_of_updated_segments=matched_segment_ids)
 
         segment_index = self._segment_index(item, existing_index=existing_index, start=segment_offset,
                                             new_segments=segment_index)

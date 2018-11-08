@@ -52,15 +52,20 @@ symbol = 'TS1'
 
 
 class FwPointersCtx:
-    def __init__(self, value_to_test):
+    def __init__(self, value_to_test, do_reconcile=True):
         self.value_to_test = value_to_test
+        self.do_reconcile = do_reconcile
 
     def __enter__(self):
         self.orig_value = arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS
         arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS = self.value_to_test
 
+        self.reconcile_orig_value = arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_RECONCILE
+        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_RECONCILE = self.do_reconcile
+
     def __exit__(self, *args):
         arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS = self.orig_value
+        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_RECONCILE = self.reconcile_orig_value
 
 
 from pymongo.cursor import _QUERY_OPTIONS
@@ -1644,25 +1649,45 @@ def test_fwpointers_mixed_scenarios(library, write_cfg, read_cfg, append_cfg, re
         else:
             assert FW_POINTERS_KEY in last_v
 
-    symbol = 'sym{}{}{}{}'.format(write_cfg, read_cfg, append_cfg, reread_cfg)
+    orig_check_written = arctic.store._ndarray_store.NdarrayStore.check_written
+    outer = {'round': -1,     # unfortunately "nonlocal" keyword is not available in Python 2, this is a workaround
+             'raised': False}
+
+    def _mock_check_written(self, collection, symbol, version):
+        outer['round'] += 1
+        if outer['round'] % 2 == 0:
+            outer['raised'] = True
+            raise pymongo.errors.OperationFailure("Failed to write all the chunks. Mocked failure.")
+        orig_check_written(collection, symbol, version)
+
+    symbol = 'sym/{}/{}/{}/{}'.format(write_cfg, read_cfg, append_cfg, reread_cfg)
     mydf = _mixed_test_data()['small'][0]
     to_write = mydf[:len(mydf) // 2]
     to_append = mydf[len(mydf) // 2:]
 
-    # The write
-    with FwPointersCtx(write_cfg):
-        library.write(symbol=symbol, data=to_write)
-        _assert_fw_ptr_meta(symbol, write_cfg)
+    with patch('arctic.store._ndarray_store.NdarrayStore.check_written') as mock_check_written:
+        mock_check_written.side_effect = _mock_check_written
 
-    # The read
-    with FwPointersCtx(read_cfg):
-        assert_frame_equal(to_write, library.read(symbol=symbol).data)
+        # Patch safely the check_written static method to always fail once and trigger mongo_retry for better coverage
+        arctic.store._ndarray_store.NdarrayStore.check_written = _mock_check_written
 
-    # The append
-    with FwPointersCtx(append_cfg):
-        library.append(symbol=symbol, data=to_append)
-        _assert_fw_ptr_meta(symbol, append_cfg)
+        # The write
+        with FwPointersCtx(write_cfg):
+            library.write(symbol=symbol, data=to_write)
+            _assert_fw_ptr_meta(symbol, write_cfg)
 
-    # The final read
-    with FwPointersCtx(reread_cfg):
-        assert_frame_equal(mydf, library.read(symbol=symbol).data)
+        # The read
+        with FwPointersCtx(read_cfg):
+            assert_frame_equal(to_write, library.read(symbol=symbol).data)
+
+        # The append
+        with FwPointersCtx(append_cfg):
+            library.append(symbol=symbol, data=to_append)
+            _assert_fw_ptr_meta(symbol, append_cfg)
+
+        # The final read
+        with FwPointersCtx(reread_cfg):
+            assert_frame_equal(mydf, library.read(symbol=symbol).data)
+
+    assert outer['raised']
+
