@@ -34,7 +34,7 @@ try:
                                                             FwPointersCfg.DISABLED.name).upper())]
 except Exception:
     logger.exception("Failed to configure forward pointers with configuration {}".format(
-        os.environ('ARCTIC_FORWARD_POINTERS')))
+        os.environ.get('ARCTIC_FORWARD_POINTERS')))
     ARCTIC_FORWARD_POINTERS = FwPointersCfg.DISABLED
 
 
