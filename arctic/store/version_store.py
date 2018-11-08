@@ -7,7 +7,7 @@ from pymongo import ReadPreference
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
-from .._util import indent, enable_sharding, mongo_count
+from .._util import indent, enable_sharding, mongo_count, FW_POINTERS_KEY
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
@@ -824,9 +824,9 @@ class VersionStore(object):
                                sort=[('version', pymongo.DESCENDING)],
                                # Guarantees at least one version is kept
                                skip=1,
-                               projection=['_id'],
+                               projection={'_id': 1, FW_POINTERS_KEY: 1},
                                )
-        return [version["_id"] for version in cursor]
+        return {version['_id']: version.get(FW_POINTERS_KEY) for version in cursor}
 
     @mongo_retry
     def _find_base_version_ids(self, symbol, version_ids):
@@ -837,33 +837,35 @@ class VersionStore(object):
                                       '_id': {'$nin': version_ids},
                                       'base_version_id': {'$exists': True},
                                       },
-                                     projection=['base_version_id'],
+                                     projection={'base_version_id': 1},
                                      )
         return [version["base_version_id"] for version in cursor]
 
-    def _prune_previous_versions(self, symbol, keep_mins=120, keep_version=None):
+    def _prune_previous_versions(self, symbol, keep_mins=0.01, keep_version=None):
         """
         Prune versions, not pointed at by snapshots which are at least keep_mins old. Prune will never
         remove all versions.
         """
-        prunable_ids = self._find_prunable_version_ids(symbol, keep_mins)
-        if keep_version is not None:
-            try:
-                prunable_ids.remove(keep_version)
-            except ValueError:
-                pass
-        if not prunable_ids:
+        prunables = self._find_prunable_version_ids(symbol, keep_mins)
+        if keep_version in prunables:
+            del prunables[keep_version]
+        if not prunables:
             return
 
-        base_version_ids = self._find_base_version_ids(symbol, prunable_ids)
-        version_ids = list(set(prunable_ids) - set(base_version_ids))
-        if not version_ids:
+        for base_v_id in self._find_base_version_ids(symbol, prunables.keys()):
+            if base_v_id in prunables:
+                del prunables[base_v_id]
+        if not prunables:
             return
 
         # Delete the version documents
-        mongo_retry(self._versions.delete_many)({'_id': {'$in': version_ids}})
-        # Cleanup any chunks
-        mongo_retry(cleanup)(self._arctic_lib, symbol, version_ids)
+        mongo_retry(self._versions.delete_many)({'_id': {'$in': prunables.keys()}})
+
+        # All segments eligible for cleaning up (all FW pointers flattened)
+        prunable_fw_pointers = {id for ids in prunables.values() if ids for id in ids}
+
+        # Cleanup any segments
+        mongo_retry(cleanup)(self._arctic_lib, symbol, prunables.keys(), self._versions, prunable_fw_pointers)
 
     @mongo_retry
     def _delete_version(self, symbol, version_num, do_cleanup=True):
@@ -885,7 +887,8 @@ class VersionStore(object):
                 return
         self._versions.delete_one({'_id': version['_id']})
         if do_cleanup:
-            cleanup(self._arctic_lib, symbol, [version['_id']])
+            cleanup(self._arctic_lib, symbol, [version['_id']],
+                    self._versions, segment_ids_to_delete=version.get(FW_POINTERS_KEY, []))
 
     @mongo_retry
     def delete(self, symbol):
@@ -1092,7 +1095,7 @@ class VersionStore(object):
                                     (x, symbol))
             # Now cleanup the leaked versions
             if not dry_run:
-                cleanup(lib._arctic_lib, symbol, leaked_versions)
+                cleanup(lib._arctic_lib, symbol, leaked_versions, versions_coll)
 
     def _cleanup_orphaned_versions(self, dry_run):
         """

@@ -9,7 +9,8 @@ import numpy as np
 import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
-from arctic._util import mongo_count, FwPointersCfg, FW_POINTERS_KEY
+from arctic._util import mongo_count, FwPointersCfg, FW_POINTERS_KEY, \
+    ARCTIC_FORWARD_POINTERS, ARCTIC_FORWARD_POINTERS_RECONCILE
 from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException, DataIntegrityException
 from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
@@ -26,16 +27,6 @@ _APPEND_COUNT = 60  # 1 hour of 1 min data
 
 # Enabling the following has roughly a 5-7% performance hit (off by default)
 _CHECK_CORRUPTION_ON_APPEND = bool(os.environ.get('CHECK_CORRUPTION_ON_APPEND'))
-
-# Forward pointers configuration
-ARCTIC_FORWARD_POINTERS_RECONCILE = bool(os.environ.get('ARCTIC_FORWARD_POINTERS_RECONCILE'))
-try:
-    ARCTIC_FORWARD_POINTERS = FwPointersCfg[(os.environ.get('ARCTIC_FORWARD_POINTERS',
-                                                            FwPointersCfg.DISABLED.name).upper())]
-except Exception:
-    logger.exception("Failed to configure forward pointers with configuration {}".format(
-        os.environ.get('ARCTIC_FORWARD_POINTERS')))
-    ARCTIC_FORWARD_POINTERS = FwPointersCfg.DISABLED
 
 
 def _promote_struct_dtypes(dtype1, dtype2):

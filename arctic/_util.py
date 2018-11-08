@@ -1,4 +1,5 @@
 import logging
+import os
 
 import numpy as np
 import pymongo
@@ -11,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 MAX_DOCUMENT_SIZE = int(pymongo.common.MAX_BSON_SIZE * 0.8)
 NP_OBJECT_DTYPE = np.dtype('O')
-FW_POINTERS_KEY = 'CHUNK_IDS'
 
 # Avoid import-time extra logic
 _use_new_count_api = None
@@ -21,6 +21,18 @@ class FwPointersCfg(Enum):
     ENABLED = 0
     DISABLED = 1
     HYBRID = 2
+
+
+# Forward pointers configuration
+FW_POINTERS_KEY = 'CHUNK_IDS'
+ARCTIC_FORWARD_POINTERS_RECONCILE = bool(os.environ.get('ARCTIC_FORWARD_POINTERS_RECONCILE'))
+try:
+    ARCTIC_FORWARD_POINTERS = FwPointersCfg[(os.environ.get('ARCTIC_FORWARD_POINTERS',
+                                                            FwPointersCfg.DISABLED.name).upper())]
+except Exception:
+    logger.exception("Failed to configure forward pointers with configuration {}".format(
+        os.environ.get('ARCTIC_FORWARD_POINTERS')))
+    ARCTIC_FORWARD_POINTERS = FwPointersCfg.DISABLED
 
 
 def _detect_new_count_api():

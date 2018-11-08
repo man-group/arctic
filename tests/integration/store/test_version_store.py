@@ -1691,3 +1691,7 @@ def test_fwpointers_mixed_scenarios(library, write_cfg, read_cfg, append_cfg, re
 
     assert outer['raised']
 
+
+def test_fwpointers_pruning(library):
+    #TODO: add tests for purning with FW and BW pointers, cover regression.
+    pass
