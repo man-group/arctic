@@ -80,7 +80,7 @@ setup(
                     "setuptools-git",
                    ],
     install_requires=["decorator",
-                      "enum34",
+                      "enum-compat",
                       "mockextras",
                       "pandas",
                       "pymongo>=3.6.0",
