@@ -216,7 +216,7 @@ class PandasPanelStore(PandasDataFrameStore):
     def can_write(self, version, symbol, data):
         if self.can_write_type(data):
             frame = data.to_frame(filter_observations=False)
-            if NP_OBJECT_DTYPE in frame.dtypes.values or data.index.dtype is NP_OBJECT_DTYPE:
+            if NP_OBJECT_DTYPE in frame.dtypes.values or (hasattr(data, 'index') and data.index.dtype is NP_OBJECT_DTYPE):
                 return self.SERIALIZER.can_convert_to_records_without_objects(frame, symbol)
             return True
         return False
