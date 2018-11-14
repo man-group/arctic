@@ -211,3 +211,9 @@ def test_lib_rename_namespace(arctic):
 def test_lib_type(arctic):
     arctic.initialize_library('test')
     assert(arctic.get_library_type('test') == VERSION_STORE)
+
+
+def test_library_exists(arctic):
+    arctic.initialize_library('test')
+    assert arctic.library_exists('test')
+    assert not arctic.library_exists('nonexistentlib')

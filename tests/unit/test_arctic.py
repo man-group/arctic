@@ -329,7 +329,7 @@ def test_initialize_library_too_many_ns():
     assert 'Too many namespaces 5001, not creating: sentinel.lib_name' in str(e)
 
 
-def test_initialize_library():
+def test_initialize_library_with_list_coll_names():
     self = create_autospec(Arctic)
     self._conn = create_autospec(MongoClient)
     lib = create_autospec(ArcticLibraryBinding)
@@ -344,6 +344,18 @@ def test_initialize_library():
     assert ML.return_value.set_library_type.call_args_list == [call(sentinel.lib_type)]
     assert ML.return_value.set_quota.call_args_list == [call(10 * 1024 * 1024 * 1024)]
     assert lib_type.initialize_library.call_args_list == [call(ML.return_value, thing=sentinel.thing)]
+
+
+def test_library_exists():
+    self = create_autospec(Arctic)
+    self.get_library.return_value = 'not an exception'
+    assert Arctic.library_exists(self, 'mylib')
+
+
+def test_library_doenst_exist():
+    self = create_autospec(Arctic)
+    self.get_library.side_effect = LibraryNotFoundException('not found')
+    assert not Arctic.library_exists(self, 'mylib')
 
 
 def test_get_library():
