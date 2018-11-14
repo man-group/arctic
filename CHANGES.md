@@ -1,6 +1,10 @@
 ## Changelog
 
-### 1.72
+### 1.73 
+  * Bugfix: #658 Write/append errors for Panel objects from older pandas versions
+  * Feature: #653 Add version meta-info in arctic module
+
+### 1.72 (2018-11-06)
   * Feature: #577 Added implementation for incremental serializer for numpy records
   * Bugfix: #648 Fix issue with Timezone aware Pandas types, which don't contain hasobject attribute
 
