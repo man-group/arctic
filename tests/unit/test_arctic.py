@@ -352,7 +352,7 @@ def test_library_exists():
     assert Arctic.library_exists(self, 'mylib')
 
 
-def test_library_doenst_exist():
+def test_library_doesnt_exist():
     self = create_autospec(Arctic)
     self.get_library.side_effect = LibraryNotFoundException('not found')
     assert not Arctic.library_exists(self, 'mylib')
