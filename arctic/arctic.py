@@ -202,6 +202,34 @@ class Arctic(object):
                         libs.append(coll[:-1 * len(self.METADATA_COLL) - 1])
         return libs
 
+    def library_exists(self, library):
+        """
+        Check whether a given library exists.
+
+        Parameters
+        ----------
+        library : `str`
+            The name of the library. e.g. 'library' or 'user.library'
+
+        Returns
+        -------
+        `bool`
+            True if the library with the given name already exists, False otherwise
+        """
+        exists = False
+        try:
+            # This forces auth errors, and to fall back to the slower "list_collections"
+            ArcticLibraryBinding(self, library).get_library_type()
+            # This will obtain the library, if no exception thrown we have verified its existence
+            self.get_library(library)
+            exists = True
+        except OperationFailure:
+            exists = library in self.list_libraries()
+        except LibraryNotFoundException:
+            pass
+        return exists
+
+
     @mongo_retry
     def initialize_library(self, library, lib_type=VERSION_STORE, **kwargs):
         """

@@ -1,8 +1,9 @@
 import pytest
 import time
 from datetime import datetime as dt
-from mock import patch
+from mock import patch, MagicMock
 from pandas.util.testing import assert_frame_equal
+from pymongo.errors import OperationFailure
 
 from arctic.arctic import Arctic, VERSION_STORE
 from arctic.exceptions import LibraryNotFoundException, QuotaExceededException
@@ -211,3 +212,19 @@ def test_lib_rename_namespace(arctic):
 def test_lib_type(arctic):
     arctic.initialize_library('test')
     assert(arctic.get_library_type('test') == VERSION_STORE)
+
+
+def test_library_exists(arctic):
+    arctic.initialize_library('test')
+    assert arctic.library_exists('test')
+    assert not arctic.library_exists('nonexistentlib')
+
+
+def test_library_exists_no_auth(arctic):
+    arctic.initialize_library('test')
+    with patch('arctic.arctic.ArcticLibraryBinding') as AB:
+        AB.return_value = MagicMock(
+            get_library_type=MagicMock(side_effect=OperationFailure("not authorized on arctic to execute command")))
+        assert arctic.library_exists('test')
+        assert AB.return_value.get_library_type.called
+        assert not arctic.library_exists('nonexistentlib')
