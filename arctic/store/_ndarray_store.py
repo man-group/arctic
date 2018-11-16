@@ -156,6 +156,13 @@ def _update_fw_pointers(collection, symbol, version, previous_version, is_append
     if ids_of_updated_segments:
         segment_ids.update(ids_of_updated_segments)
 
+    # Verify here the number of seen segments vs expected ones
+    if len(segment_ids) != version['segment_count']:
+        raise pymongo.errors.OperationFailure("Mismatched number of gathered forward pointers to segments ({}). "
+                                              "Is append: {}. Previous version: {}. "
+                                              "Gathered forward pointers segments: {}.".format(
+            symbol, is_append, previous_version['_id'], segment_ids))
+
     version[FW_POINTERS_REFS_KEY] = list(segment_ids)
 
 
@@ -580,11 +587,11 @@ class NdarrayStore(object):
         if version.get(FW_POINTERS_CONFIG_KEY) == FwPointersCfg.HYBRID.name and ARCTIC_FORWARD_POINTERS_RECONCILE:
             seen_chunks_reverse_pointers = mongo_count(collection, filter={'symbol': symbol, 'parent': parent_id})
             if seen_chunks != seen_chunks_reverse_pointers:
-                raise pymongo.errors.OperationFailure("Failed to reconcile forward pointer chunks. "
+                raise pymongo.errors.OperationFailure("Failed to reconcile forward pointer chunks ({}). "
                                                       "Parent {}. "
                                                       "Reverse pointers segments: {}. "
                                                       "Forward pointers segments: {}.".format(
-                    parent_id, seen_chunks_reverse_pointers, seen_chunks))
+                    symbol, parent_id, seen_chunks_reverse_pointers, seen_chunks))
 
     def checksum(self, item):
         sha = hashlib.sha1()
@@ -691,9 +698,6 @@ class NdarrayStore(object):
         if bulk:
             bulk_write_result = collection.bulk_write(bulk, ordered=False)
 
-        _update_fw_pointers(collection, symbol, version, previous_version, is_append=False,
-                            result=bulk_write_result, ids_of_updated_segments=matched_segment_ids)
-
         segment_index = self._segment_index(item, existing_index=existing_index, start=segment_offset,
                                             new_segments=segment_index)
         if segment_index:
@@ -701,6 +705,9 @@ class NdarrayStore(object):
         version['segment_count'] = len(chunks)
         version['append_size'] = 0
         version['append_count'] = 0
+
+        _update_fw_pointers(collection, symbol, version, previous_version, is_append=False,
+                            result=bulk_write_result, ids_of_updated_segments=matched_segment_ids)
 
         self.check_written(collection, symbol, version)
 
