@@ -7,15 +7,19 @@ from .store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore
 from .store._ndarray_store import NdarrayStore
 
 try:
-    from pkg_resources import get_distribution
+    from pkg_resources import get_distribution, DistributionNotFound
     str_version = get_distribution(__name__).version.strip()
     int_parts = tuple(int(x) for x in str_version.split('.'))
+    num_version = sum([1000 ** i * v for i, v in enumerate(reversed(int_parts))])
+    register_version(str_version, num_version)
 except Exception:
     __version__ = None
     __version_parts__ = tuple()
+    __version_numerical__ = 0
 else:
-    __version__ = str_version
+    __version__ = str_version.strip()
     __version_parts__ = int_parts
+    __version_numerical__ = num_version
 
 
 register_versioned_storage(PandasDataFrameStore)

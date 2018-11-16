@@ -24,15 +24,16 @@ class FwPointersCfg(Enum):
 
 
 # Forward pointers configuration
-FW_POINTERS_KEY = 'CHUNK_IDS'
+FW_POINTERS_REFS_KEY = 'CHUNK_IDS'
+FW_POINTERS_CONFIG_KEY = 'FW_POINTERS_CONFIG'
 ARCTIC_FORWARD_POINTERS_RECONCILE = bool(os.environ.get('ARCTIC_FORWARD_POINTERS_RECONCILE'))
 try:
-    ARCTIC_FORWARD_POINTERS = FwPointersCfg[(os.environ.get('ARCTIC_FORWARD_POINTERS',
-                                                            FwPointersCfg.DISABLED.name).upper())]
+    ARCTIC_FORWARD_POINTERS_CFG = FwPointersCfg[(os.environ.get('ARCTIC_FORWARD_POINTERS_CFG',
+                                                                FwPointersCfg.DISABLED.name).upper())]
 except Exception:
     logger.exception("Failed to configure forward pointers with configuration {}".format(
-        os.environ.get('ARCTIC_FORWARD_POINTERS')))
-    ARCTIC_FORWARD_POINTERS = FwPointersCfg.DISABLED
+        os.environ.get('ARCTIC_FORWARD_POINTERS_CFG')))
+    ARCTIC_FORWARD_POINTERS_CFG = FwPointersCfg.DISABLED
 
 
 def _detect_new_count_api():

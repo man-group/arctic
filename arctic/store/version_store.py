@@ -7,7 +7,7 @@ from pymongo import ReadPreference
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
-from .._util import indent, enable_sharding, mongo_count, FW_POINTERS_KEY
+from .._util import indent, enable_sharding, mongo_count, FW_POINTERS_REFS_KEY
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
@@ -824,9 +824,9 @@ class VersionStore(object):
                                sort=[('version', pymongo.DESCENDING)],
                                # Guarantees at least one version is kept
                                skip=1,
-                               projection={'_id': 1, FW_POINTERS_KEY: 1},
+                               projection={'_id': 1, FW_POINTERS_REFS_KEY: 1},
                                )
-        return {version['_id']: version.get(FW_POINTERS_KEY) for version in cursor}
+        return {version['_id']: version.get(FW_POINTERS_REFS_KEY) for version in cursor}
 
     @mongo_retry
     def _find_base_version_ids(self, symbol, version_ids):
@@ -888,7 +888,7 @@ class VersionStore(object):
         self._versions.delete_one({'_id': version['_id']})
         if do_cleanup:
             cleanup(self._arctic_lib, symbol, [version['_id']],
-                    self._versions, segment_ids_to_delete=version.get(FW_POINTERS_KEY, []))
+                    self._versions, segment_ids_to_delete=version.get(FW_POINTERS_REFS_KEY, []))
 
     @mongo_retry
     def delete(self, symbol):

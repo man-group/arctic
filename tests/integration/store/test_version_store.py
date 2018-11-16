@@ -15,7 +15,7 @@ import pytest
 import numpy as np
 
 import arctic
-from arctic._util import mongo_count, FwPointersCfg, FW_POINTERS_KEY
+from arctic._util import mongo_count, FwPointersCfg, FW_POINTERS_REFS_KEY
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException
 from arctic.date import DateRange
 from arctic.store import _version_store_utils
@@ -57,14 +57,14 @@ class FwPointersCtx:
         self.do_reconcile = do_reconcile
 
     def __enter__(self):
-        self.orig_value = arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS
-        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS = self.value_to_test
+        self.orig_value = arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_CFG
+        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_CFG = self.value_to_test
 
         self.reconcile_orig_value = arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_RECONCILE
         arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_RECONCILE = self.do_reconcile
 
     def __exit__(self, *args):
-        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS = self.orig_value
+        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_CFG = self.orig_value
         arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_RECONCILE = self.reconcile_orig_value
 
 
@@ -1638,16 +1638,20 @@ def test_can_write_tz_aware_data_series(library):
     (FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.DISABLED, FwPointersCfg.HYBRID),
 
     (FwPointersCfg.DISABLED, FwPointersCfg.ENABLED, FwPointersCfg.DISABLED, FwPointersCfg.ENABLED),
+
     # This throws exception, and ENABLED --> DISABLED fw-pointers config is not allowed/supported
-    # (FwPointersCfg.ENABLED, FwPointersCfg.DISABLED, FwPointersCfg.ENABLED, FwPointersCfg.DISABLED),
+    (FwPointersCfg.ENABLED, FwPointersCfg.DISABLED, FwPointersCfg.ENABLED, FwPointersCfg.DISABLED),
+    (FwPointersCfg.ENABLED, FwPointersCfg.ENABLED, FwPointersCfg.DISABLED, FwPointersCfg.DISABLED),
+    (FwPointersCfg.ENABLED, FwPointersCfg.ENABLED, FwPointersCfg.HYBRID, FwPointersCfg.DISABLED),
+    (FwPointersCfg.ENABLED, FwPointersCfg.ENABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED)
 ])
 def test_fwpointers_mixed_scenarios(library, write_cfg, read_cfg, append_cfg, reread_cfg):
     def _assert_fw_ptr_meta(symbol, cfg):
         last_v = library._versions.find_one({'symbol': symbol}, sort=[("version", pymongo.DESCENDING)])
         if cfg is FwPointersCfg.DISABLED:
-            assert FW_POINTERS_KEY not in last_v
+            assert FW_POINTERS_REFS_KEY not in last_v
         else:
-            assert FW_POINTERS_KEY in last_v
+            assert FW_POINTERS_REFS_KEY in last_v
 
     orig_check_written = arctic.store._ndarray_store.NdarrayStore.check_written
     outer = {'round': -1,     # unfortunately "nonlocal" keyword is not available in Python 2, this is a workaround
