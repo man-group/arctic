@@ -17,17 +17,21 @@ NP_OBJECT_DTYPE = np.dtype('O')
 _use_new_count_api = None
 
 
+# This enum provides all the available modes of operation for Forward pointers
 class FwPointersCfg(Enum):
-    ENABLED = 0
-    DISABLED = 1
-    HYBRID = 2
+    ENABLED = 0   # use only forward pointers, don't update segment parent references
+    DISABLED = 1  # operate in legacy mode, update segment parent references, don't add forward pointers
+    HYBRID = 2    # maintain both forward pointers and parent references in segments; for reads prefer fw pointers
 
 
-# Forward pointers configuration
-FW_POINTERS_REFS_KEY = 'CHUNK_IDS'
+# The version document key used to store the ObjectIDs of segments
+FW_POINTERS_REFS_KEY = 'SEGMENT_IDS'
+# The version document key for storing the FW pointers configuration used to create this version
 FW_POINTERS_CONFIG_KEY = 'FW_POINTERS_CONFIG'
+# This variable controls has effect in Hybrid mode, and controls whether forward and regacy pointers are cross-verified
 ARCTIC_FORWARD_POINTERS_RECONCILE = bool(os.environ.get('ARCTIC_FORWARD_POINTERS_RECONCILE'))
 try:
+    # Controls the mode of operation for FW pointers, has effect on any new versions created
     ARCTIC_FORWARD_POINTERS_CFG = FwPointersCfg[(os.environ.get('ARCTIC_FORWARD_POINTERS_CFG',
                                                                 FwPointersCfg.DISABLED.name).upper())]
 except Exception:

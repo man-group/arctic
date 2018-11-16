@@ -123,6 +123,11 @@ def set_corruption_check_on_append(enable):
 
 def _update_fw_pointers(collection, symbol, version, previous_version, is_append,
                         ids_of_updated_segments=None, result=None):
+    """
+    This function will decide whether to update the version document with forward pointers to segments.
+    It detects cases where no prior writes/appends have been performed with FW pointers, and extracts the segment IDs.
+    It also sets the metadata which indicate the mode of operation at the time of the version creation.
+    """
     version[FW_POINTERS_CONFIG_KEY] = ARCTIC_FORWARD_POINTERS_CFG.name  # get the str as enum is not BSON serializable
 
     if ARCTIC_FORWARD_POINTERS_CFG is FwPointersCfg.DISABLED:
@@ -155,6 +160,10 @@ def _update_fw_pointers(collection, symbol, version, previous_version, is_append
 
 
 def _spec_fw_pointers_aware(spec, version):
+    """
+    This method updates the find query filter spec used to read the segment for a version.
+    It chooses whether to query via forward pointers or not based on the version details and current mode of operation.
+    """
     # Version was written with an older arctic, not FW-pointers aware, or written with FW pointers disabled
     if FW_POINTERS_CONFIG_KEY not in version or version[FW_POINTERS_CONFIG_KEY] == FwPointersCfg.DISABLED.name:
         spec['parent'] = version_base_or_id(version)
@@ -181,6 +190,9 @@ def _spec_fw_pointers_aware(spec, version):
 
 
 def _fw_pointers_convert_append_to_write(previous_version):
+    """
+    This method decides whether to convert an append to a full write  in order to avoid data integrity errors
+    """
     # Switching from ENABLED --> DISABLED/HYBRID when appending can cause integrity errors for subsequent reads:
     #   - Assume the last write was done with ENABLED (segments don't have parent references updated).
     #   - Subsequent appends were done in DISABLED/HYBRID (append segments have parent references).
