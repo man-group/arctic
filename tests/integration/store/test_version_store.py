@@ -1646,12 +1646,20 @@ def test_can_write_tz_aware_data_series(library):
     (FwPointersCfg.ENABLED, FwPointersCfg.ENABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED)
 ])
 def test_fwpointers_mixed_scenarios(library, write_cfg, read_cfg, append_cfg, reread_cfg):
-    def _assert_fw_ptr_meta(symbol, cfg):
+    def _assert_fw_ptr_meta(symbol, fw_cfg):
         last_v = library._versions.find_one({'symbol': symbol}, sort=[("version", pymongo.DESCENDING)])
-        if cfg is FwPointersCfg.DISABLED:
+        if fw_cfg is FwPointersCfg.DISABLED:
             assert FW_POINTERS_REFS_KEY not in last_v
         else:
             assert FW_POINTERS_REFS_KEY in last_v
+
+    def _assert_append(symbol, fw_cfg, prev_v_fw_cfg):
+        last_v = library._versions.find_one({'symbol': symbol}, sort=[("version", pymongo.DESCENDING)])
+        if fw_cfg is prev_v_fw_cfg:
+            assert last_v.get('append_count', 0)
+        else:
+            # append is converted to write
+            assert last_v.get('append_count', 0) == 0
 
     orig_check_written = arctic.store._ndarray_store.NdarrayStore.check_written
     outer = {'round': -1,     # unfortunately "nonlocal" keyword is not available in Python 2, this is a workaround
@@ -1688,6 +1696,7 @@ def test_fwpointers_mixed_scenarios(library, write_cfg, read_cfg, append_cfg, re
         with FwPointersCtx(append_cfg):
             library.append(symbol=symbol, data=to_append)
             _assert_fw_ptr_meta(symbol, append_cfg)
+            _assert_append(symbol, write_cfg, append_cfg)
 
         # The final read
         with FwPointersCtx(reread_cfg):
@@ -1696,15 +1705,71 @@ def test_fwpointers_mixed_scenarios(library, write_cfg, read_cfg, append_cfg, re
     assert outer['raised']
 
 
-def test_fwpointers_pruning(library):
-    #TODO: add tests for purning with FW and BW pointers, cover regression.
-    pass
-
-
 def test_fwpointers_writemetadata_enabled_disabled(library):
-    pass
+    symbol = 'meta_test'
+
+    mydf = _mixed_test_data()['small'][0]
+    to_write_a = mydf[:len(mydf) // 2]
+    to_write_b = mydf[len(mydf) // 2:]
+
+    with FwPointersCtx(FwPointersCfg.ENABLED):
+        library.write(symbol=symbol, data=to_write_a)
+        assert_frame_equal(to_write_a, library.read(symbol=symbol).data)
+
+    with FwPointersCtx(FwPointersCfg.DISABLED):
+        library.write_metadata(symbol=symbol, metadata={'key_a': 100})
+        assert library.read(symbol).metadata == {'key_a': 100}
+
+    with FwPointersCtx(FwPointersCfg.ENABLED):
+        vitem = library.read(symbol)
+        assert vitem.metadata == {'key_a': 100}
+        assert_frame_equal(to_write_a, vitem.data)
+
+    with FwPointersCtx(FwPointersCfg.DISABLED):
+        vitem = library.read(symbol)
+        assert vitem.metadata == {'key_a': 100}
+        assert_frame_equal(to_write_a, vitem.data)
+
+    with FwPointersCtx(FwPointersCfg.ENABLED):
+        library.append(symbol=symbol, data=to_write_b, prune_previous_version=False)
+        assert_frame_equal(mydf, library.read(symbol=symbol).data)
+
+    last_v = library._versions.find_one({'symbol': symbol}, sort=[("version", pymongo.DESCENDING)])
+    assert len(last_v.get(FW_POINTERS_REFS_KEY)) == 2
+
+    with FwPointersCtx(FwPointersCfg.ENABLED):
+        vitem = library.read(symbol, as_of=2)
+        assert vitem.metadata == {'key_a': 100}
+        assert_frame_equal(to_write_a, vitem.data)
+
+    with FwPointersCtx(FwPointersCfg.DISABLED):
+        vitem = library.read(symbol, as_of=2)
+        assert vitem.metadata == {'key_a': 100}
+        assert_frame_equal(to_write_a, vitem.data)
 
 
 def test_fwpointer_enabled_write_delete_keep_version_append(library):
-    # test if previous version is deleted
+    symbol = 'meta_test'
+
+    mydf = _mixed_test_data()['small'][0]
+    to_write_a = mydf[:len(mydf) // 2]
+    to_write_b = mydf[len(mydf) // 2:]
+
+    with FwPointersCtx(FwPointersCfg.ENABLED):
+        library.write(symbol=symbol, data=to_write_a)
+        library.append(symbol=symbol, data=to_write_b)
+        library.snapshot('snapA')
+        assert_frame_equal(mydf, library.read(symbol=symbol).data)
+
+    with FwPointersCtx(FwPointersCfg.DISABLED):
+        library.delete(symbol)
+        assert len(list(library._versions.find({'symbol': symbol}))) == 3  # maintain all versions due to snapshot
+
+    with FwPointersCtx(FwPointersCfg.ENABLED):
+        library.write(symbol=symbol, data=to_write_a)
+        assert_frame_equal(to_write_a, library.read(symbol=symbol).data)
+
+
+def test_fwpointers_pruning(library):
+    #TODO: add tests for purning with FW and BW pointers, cover regression.
     pass
