@@ -25,7 +25,7 @@ class FwPointersCfg(Enum):
 
 
 # The version document key used to store the ObjectIDs of segments
-FW_POINTERS_REFS_KEY = 'SEGMENT_IDS'
+FW_POINTERS_REFS_KEY = 'SEGMENT_SHAS'
 # The version document key for storing the FW pointers configuration used to create this version
 FW_POINTERS_CONFIG_KEY = 'FW_POINTERS_CONFIG'
 # This variable controls has effect in Hybrid mode, and controls whether forward and regacy pointers are cross-verified

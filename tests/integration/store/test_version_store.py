@@ -1703,3 +1703,8 @@ def test_fwpointers_pruning(library):
 
 def test_fwpointers_writemetadata_enabled_disabled(library):
     pass
+
+
+def test_fwpointer_enabled_write_delete_keep_version_append(library):
+    # test if previous version is deleted
+    pass
