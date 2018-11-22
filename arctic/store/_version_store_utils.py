@@ -11,7 +11,7 @@ from bson import Binary
 from pandas.compat import pickle_compat
 from pymongo.errors import OperationFailure
 
-from arctic._util import mongo_count, FW_POINTERS_REFS_KEY
+from arctic._util import mongo_count, FW_POINTERS_REFS_KEY, FW_POINTERS_CONFIG_KEY, FwPointersCfg
 
 
 def _split_arrs(array_2d, slices):
@@ -46,56 +46,73 @@ def checksum(symbol, doc):
     return Binary(sha.digest())
 
 
-def _cleanup_fw_pointers(collection, symbol, version_ids, versions_coll, segment_ids_to_delete=None):
-    if segment_ids_to_delete is None:
-        segment_ids_to_delete = versions_coll.distinct(FW_POINTERS_REFS_KEY, {'_id': {'$in': version_ids}})
+def _cleanup_fw_pointers(collection, symbol, version_ids, versions_coll, do_clean=True):
+    if not version_ids:
+        return
 
-    # Obtain all alive FW pointers to segments for the symbol, and avoid deleting any of them.
-    # Also, garbage-collect only segment IDs which have been created ONLY using FW pointers, to avoid
-    # corruption of symbols written with legacy/backwards pointers
-    # Note: we do not have an index on FW_POINTERS_KEY, so avoid querying this field
-    all_alive_fw_pointers = set(versions_coll.distinct(FW_POINTERS_REFS_KEY,
-                                                       {'symbol': symbol}))
-    segment_ids_to_delete = set(segment_ids_to_delete) - all_alive_fw_pointers
-    all_segment_ids_without_parent_key = set(collection.distinct('_id',
-                                                                 {'symbol': symbol, 'parent': {"$exists": False}}))
-    segment_ids_to_delete = all_segment_ids_without_parent_key.intersection(segment_ids_to_delete)
-    if segment_ids_to_delete:
-        collection.delete_many({
-            'symbol': symbol,  # hit the right shard
-            '_id': {'$in': list(segment_ids_to_delete)}})
+    shas_candidate_to_delete = set(versions_coll.distinct(FW_POINTERS_REFS_KEY, {'_id': {'$in': version_ids}}))
 
-    return all_alive_fw_pointers, segment_ids_to_delete
+    symbol_alive_shas = set(versions_coll.distinct(FW_POINTERS_REFS_KEY, {'symbol': symbol}))
+
+    # This is the set of shas which are not referenced by any FW pointers
+    shas_safe_to_delete = shas_candidate_to_delete - symbol_alive_shas
+
+    if do_clean:
+        collection.delete_many({'symbol': symbol,
+                                'sha': {'$in': list(shas_safe_to_delete)}})
+
+    return shas_candidate_to_delete, shas_safe_to_delete
 
 
-def cleanup(arctic_lib, symbol, version_ids, versions_coll, segment_ids_to_delete=None):
-    """
-    Helper method for cleaning up chunks from a version store
-    """
-    collection = arctic_lib.get_top_level_collection()
-
-    all_alive_fw_pointers, _ = _cleanup_fw_pointers(collection, symbol, version_ids,
-                                                    versions_coll, segment_ids_to_delete)
-
-    # The remaining code in this method is safe for FW pointers because
-    # there is no 'parent' key in segment documents written exclusively with FW pointers
-
-    # Remove any chunks which contain just the parents, at the outset
-    # We do this here, because $pullALL will make an empty array: []
-    # and the index which contains the parents field will fail the unique constraint.
+def _cleanup_parent_pointers(collection, symbol, version_ids):
     for v in version_ids:
         # Remove all documents which only contain the parent
         collection.delete_many({'symbol': symbol,
-                                'parent': [v],
-                                '_id': {'$nin': list(all_alive_fw_pointers)}  # keep those pointed by live FW pointers
-                                })
+                               'parent': [v]})
         # Pull the parent from the parents field
         collection.update_many({'symbol': symbol,
                                 'parent': v},
                                {'$pull': {'parent': v}})
 
-    # Now remove all chunks which aren't parented - this is unlikely, as they will have been removed by the above
+    # Now remove all chunks which aren't parented - this is unlikely, as they will
+    # have been removed by the above
     collection.delete_one({'symbol':  symbol, 'parent': []})
+
+
+def cleanup(arctic_lib, symbol, version_ids, versions_coll):
+    """
+    Helper method for cleaning up chunks from a version store
+    """
+    collection = arctic_lib.get_top_level_collection()
+    version_ids = list(version_ids)
+
+    # Iterate versions to check if they are created only with fw pointers, parent pointers (old), or mixed
+    all_v_pointers_cfgs = set(FwPointersCfg[v.get(FW_POINTERS_CONFIG_KEY, FwPointersCfg.DISABLED.name)]
+                              for v in versions_coll.find({'symbol': symbol}, projection={FW_POINTERS_CONFIG_KEY: 1}))
+
+    # All the versions of the symbol have been created with old arctic or with disabled forward pointers
+    # we must be backwards compatible
+    if all_v_pointers_cfgs == {FwPointersCfg.DISABLED}:
+        _cleanup_parent_pointers(collection, symbol, version_ids)
+        return
+
+    # All the versions of the symbol we wish to delete have been created with forward pointers
+    if all_v_pointers_cfgs == {FwPointersCfg.ENABLED}:
+        _cleanup_fw_pointers(collection, symbol, version_ids, versions_coll, do_clean=True)
+        return
+
+    # Reaching here means the symbol has versions with mixed forward pointers and legacy/parent pointer configurations
+
+    # Pull the deleted version IDs from the the parents field
+    collection.update_many({'symbol': symbol, 'parent': {'$in': version_ids}}, {'$pullAll': {'parent': version_ids}})
+
+    # Obtain the SHAs of the segments which are no longer been pointed-to by forward pointers (eligible for gc)
+    _, shas_safe2rm = _cleanup_fw_pointers(collection, symbol, version_ids, versions_coll, do_clean=False)
+
+    # This query unfortunately utilizes an index (symbol, sha) to find the docuemtns, but in order to further filter
+    # the documents by "parent: []" it fetches at server side, and pollutes the cache of WiredTiger
+    # TODO: add a new index for segments collection: (symbol, sha, parent)
+    collection.delete_many({'symbol': symbol, 'sha': {'$in': list(shas_safe2rm)}, 'parent': []})
 
 
 def version_base_or_id(version):

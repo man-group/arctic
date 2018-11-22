@@ -160,22 +160,27 @@ def _update_fw_pointers(collection, symbol, version, previous_version, is_append
     version[FW_POINTERS_REFS_KEY] = list(version_shas)
 
 
-def _spec_fw_pointers_aware(spec, version):
+def _spec_fw_pointers_aware(symbol, version, from_index, to_index):
     """
     This method updates the find query filter spec used to read the segment for a version.
     It chooses whether to query via forward pointers or not based on the version details and current mode of operation.
     """
+    spec = {'symbol': symbol,
+            'segment': {'$lt': to_index}}
+    if from_index is not None:
+        spec['segment']['$gte'] = from_index
+
     # Version was written with an older arctic, not FW-pointers aware, or written with FW pointers disabled
     if FW_POINTERS_CONFIG_KEY not in version or version[FW_POINTERS_CONFIG_KEY] == FwPointersCfg.DISABLED.name:
         spec['parent'] = version_base_or_id(version)
-        return
+        return spec
 
     v_fw_config = FwPointersCfg[version[FW_POINTERS_CONFIG_KEY]]
 
     # Version was created exclusively with fw pointers
     if v_fw_config is FwPointersCfg.ENABLED:
-        spec['sha'] = {'$in': version[FW_POINTERS_REFS_KEY]}
-        return
+        del spec['segment']['$lt']  # no longer needed with forward pointers
+        return {'symbol': symbol, 'sha': {'$in': version[FW_POINTERS_REFS_KEY]}}
 
     # Version was created both with fw and legacy pointers, choose based on module configuration
     if v_fw_config is FwPointersCfg.HYBRID:
@@ -183,7 +188,7 @@ def _spec_fw_pointers_aware(spec, version):
             spec['parent'] = version_base_or_id(version)
         else:
             spec['sha'] = {'$in': version[FW_POINTERS_REFS_KEY]}
-        return
+        return spec
 
     # The code below shouldn't really be reached.
     raise DataIntegrityException("Unhandled FW pointers configuration ({}: {}/{}/{})".format(
@@ -276,12 +281,17 @@ class NdarrayStore(object):
     def _ensure_index(collection):
         try:
             collection.create_index([('symbol', pymongo.HASHED)], background=True)
+            # We keep it only for its uniqueness
             collection.create_index([('symbol', pymongo.ASCENDING),
                                      ('sha', pymongo.ASCENDING)], unique=True, background=True)
             # TODO: When/if we remove the segments->versions pointers implementation and keep only the forward pointers,
             #       we can remove the 'parent' from the index.
             collection.create_index([('symbol', pymongo.ASCENDING),
                                      ('parent', pymongo.ASCENDING),
+                                     ('segment', pymongo.ASCENDING)], unique=True, background=True)
+            # Used for efficient SHA-based read queries that have index ranges
+            collection.create_index([('symbol', pymongo.ASCENDING),
+                                     ('sha', pymongo.ASCENDING),
                                      ('segment', pymongo.ASCENDING)], unique=True, background=True)
         except OperationFailure as e:
             if "can't use unique indexes" in str(e):
@@ -350,17 +360,9 @@ class NdarrayStore(object):
         to_index = version['up_to']
         if index_range and index_range[1] and index_range[1] < version['up_to']:
             to_index = index_range[1]
-        segment_count = None
+        segment_count = version.get('segment_count') if from_index is None else None
 
-        spec = {'symbol': symbol,
-                'segment': {'$lt': to_index}
-                }
-        if from_index is not None:
-            spec['segment']['$gte'] = from_index
-        else:
-            segment_count = version.get('segment_count', None)
-
-        _spec_fw_pointers_aware(spec, version)
+        spec = _spec_fw_pointers_aware(symbol, version, from_index, to_index)
 
         data = bytearray()
         i = -1

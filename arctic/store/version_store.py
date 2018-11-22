@@ -7,7 +7,7 @@ from pymongo import ReadPreference
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
-from .._util import indent, enable_sharding, mongo_count, FW_POINTERS_REFS_KEY
+from .._util import indent, enable_sharding, mongo_count
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
@@ -23,6 +23,14 @@ logger = logging.getLogger(__name__)
 VERSION_STORE_TYPE = 'VersionStore'
 _TYPE_HANDLERS = []
 STRICT_WRITE_HANDLER_MATCH = bool(os.environ.get('STRICT_WRITE_HANDLER_MATCH'))
+ARCTIC_VERSION = None
+ARCTIC_VERSION_NUMERICAL = None
+
+
+def register_version(version, numerical):
+    global ARCTIC_VERSION, ARCTIC_VERSION_NUMERICAL
+    ARCTIC_VERSION = version
+    ARCTIC_VERSION_NUMERICAL = numerical
 
 
 def register_versioned_storage(storageClass):
@@ -531,6 +539,7 @@ class VersionStore(object):
         """
         self._arctic_lib.check_quota()
         version = {'_id': bson.ObjectId()}
+        version['arctic_version'] = ARCTIC_VERSION_NUMERICAL
         version['symbol'] = symbol
         spec = {'symbol': symbol}
         previous_version = self._versions.find_one(spec,
@@ -626,6 +635,7 @@ class VersionStore(object):
         """
         self._arctic_lib.check_quota()
         version = {'_id': bson.ObjectId()}
+        version['arctic_version'] = ARCTIC_VERSION_NUMERICAL
         version['symbol'] = symbol
         version['version'] = self._version_nums.find_one_and_update({'symbol': symbol},
                                                                     {'$inc': {'version': 1}},
@@ -796,6 +806,7 @@ class VersionStore(object):
         return new_item
 
     @mongo_retry
+
     def _find_prunable_version_ids(self, symbol, keep_mins):
         """
         Find all non-snapshotted versions of a symbol that are older than a version that's at least keep_mins
@@ -824,9 +835,9 @@ class VersionStore(object):
                                sort=[('version', pymongo.DESCENDING)],
                                # Guarantees at least one version is kept
                                skip=1,
-                               projection={'_id': 1, FW_POINTERS_REFS_KEY: 1},
+                               projection={'_id': 1},
                                )
-        return {version['_id']: version.get(FW_POINTERS_REFS_KEY) for version in cursor}
+        return [version['_id'] for version in cursor]
 
     @mongo_retry
     def _find_base_version_ids(self, symbol, version_ids):
@@ -846,26 +857,25 @@ class VersionStore(object):
         Prune versions, not pointed at by snapshots which are at least keep_mins old. Prune will never
         remove all versions.
         """
-        prunables = self._find_prunable_version_ids(symbol, keep_mins)
-        if keep_version in prunables:
-            del prunables[keep_version]
-        if not prunables:
+        prunable_ids = self._find_prunable_version_ids(symbol, keep_mins)
+        if keep_version is not None:
+            try:
+                prunable_ids.remove(keep_version)
+            except ValueError:
+                pass
+        if not prunable_ids:
             return
 
-        for base_v_id in self._find_base_version_ids(symbol, prunables.keys()):
-            if base_v_id in prunables:
-                del prunables[base_v_id]
-        if not prunables:
+        base_version_ids = self._find_base_version_ids(symbol, prunable_ids)
+        version_ids = list(set(prunable_ids) - set(base_version_ids))
+        if not version_ids:
             return
 
         # Delete the version documents
-        mongo_retry(self._versions.delete_many)({'_id': {'$in': prunables.keys()}})
+        mongo_retry(self._versions.delete_many)({'_id': {'$in': version_ids}})
 
-        # All segments eligible for cleaning up (all FW pointers flattened)
-        prunable_fw_pointers = {id for ids in prunables.values() if ids for id in ids}
-
-        # Cleanup any segments
-        mongo_retry(cleanup)(self._arctic_lib, symbol, prunables.keys(), self._versions, prunable_fw_pointers)
+        # Cleanup any chunks
+        mongo_retry(cleanup)(self._arctic_lib, symbol, version_ids, self._versions)
 
     @mongo_retry
     def _delete_version(self, symbol, version_num, do_cleanup=True):
@@ -887,8 +897,7 @@ class VersionStore(object):
                 return
         self._versions.delete_one({'_id': version['_id']})
         if do_cleanup:
-            cleanup(self._arctic_lib, symbol, [version['_id']],
-                    self._versions, segment_ids_to_delete=version.get(FW_POINTERS_REFS_KEY, []))
+            cleanup(self._arctic_lib, symbol, [version['_id']], self._versions)
 
     @mongo_retry
     def delete(self, symbol):

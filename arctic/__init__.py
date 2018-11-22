@@ -2,7 +2,7 @@
 
 from .arctic import Arctic, register_library_type
 from .arctic import VERSION_STORE, TICK_STORE, CHUNK_STORE
-from .store.version_store import register_versioned_storage
+from .store.version_store import register_versioned_storage, register_version
 from .store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasPanelStore
 from .store._ndarray_store import NdarrayStore
 

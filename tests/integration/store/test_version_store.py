@@ -1768,8 +1768,3 @@ def test_fwpointer_enabled_write_delete_keep_version_append(library):
     with FwPointersCtx(FwPointersCfg.ENABLED):
         library.write(symbol=symbol, data=to_write_a)
         assert_frame_equal(to_write_a, library.read(symbol=symbol).data)
-
-
-def test_fwpointers_pruning(library):
-    #TODO: add tests for purning with FW and BW pointers, cover regression.
-    pass

@@ -208,7 +208,7 @@ def test_prune_previous_versions_0_timeout():
                                                         '_id': {'$lt': bson.ObjectId('524a10810000000000000000')}},
                                                        sort=[('version', -1)],
                                                        skip=1,
-                                                       projection={'_id': 1, FW_POINTERS_REFS_KEY: 1})]
+                                                       projection={'_id': 1})]
 
 
 def test_read_handles_operation_failure():
