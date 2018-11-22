@@ -17,7 +17,7 @@ except Exception:
     __version_parts__ = tuple()
     __version_numerical__ = 0
 else:
-    __version__ = str_version.strip()
+    __version__ = str_version
     __version_parts__ = int_parts
     __version_numerical__ = num_version
 
