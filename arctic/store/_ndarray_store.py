@@ -16,7 +16,6 @@ from ..exceptions import UnhandledDtypeException, DataIntegrityException
 from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
 
 from .._compression import compress_array, decompress
-from six import iteritems
 from six.moves import xrange
 
 
