@@ -852,7 +852,7 @@ class VersionStore(object):
                                      )
         return [version["base_version_id"] for version in cursor]
 
-    def _prune_previous_versions(self, symbol, keep_mins=0.01, keep_version=None):
+    def _prune_previous_versions(self, symbol, keep_mins=120, keep_version=None):
         """
         Prune versions, not pointed at by snapshots which are at least keep_mins old. Prune will never
         remove all versions.
