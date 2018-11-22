@@ -7,7 +7,7 @@ from .store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore
 from .store._ndarray_store import NdarrayStore
 
 try:
-    from pkg_resources import get_distribution, DistributionNotFound
+    from pkg_resources import get_distribution
     str_version = get_distribution(__name__).version.strip()
     int_parts = tuple(int(x) for x in str_version.split('.'))
     num_version = sum([1000 ** i * v for i, v in enumerate(reversed(int_parts))])
