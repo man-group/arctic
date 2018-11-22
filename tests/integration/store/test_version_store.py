@@ -1768,3 +1768,20 @@ def test_fwpointer_enabled_write_delete_keep_version_append(library):
     with FwPointersCtx(FwPointersCfg.ENABLED):
         library.write(symbol=symbol, data=to_write_a)
         assert_frame_equal(to_write_a, library.read(symbol=symbol).data)
+
+
+def test_version_arctic_version(arctic):
+    import arctic.store.version_store as vs
+    orig_val = vs.ARCTIC_VERSION_NUMERICAL
+    try:
+        lib_name = 'arctic_version_test'
+        arctic.initialize_library(lib_name, VERSION_STORE)
+        library = arctic[lib_name]
+        for i in range(3):
+            vs.ARCTIC_VERSION_NUMERICAL = i
+            library.write(symbol=symbol, data="hello world {}".format(i), prune_previous_version=False)
+        assert library.get_arctic_version(symbol) == 2
+        assert library.get_arctic_version(symbol, as_of=1) == 0
+    finally:
+        vs.ARCTIC_VERSION_NUMERICAL = orig_val
+

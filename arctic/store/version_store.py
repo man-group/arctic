@@ -425,6 +425,28 @@ class VersionStore(object):
         # that it does support this option (i.e. fail-open)
         return True
 
+    def get_arctic_version(self, symbol, as_of=None):
+        """
+        Return the numerical representation of the arctic version used to write the last (or as_of) version for
+        the given symbol.
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        as_of : `str` or int or `datetime.datetime`
+            Return the data as it was as_of the point in time.
+            `int` : specific version number
+            `str` : snapshot name which contains the version
+            `datetime.datetime` : the version of the data that existed as_of the requested point in time
+
+        Returns
+        -------
+        arctic_version : int
+            The numerical representation of Arctic version, used to create the specified symbol version
+        """
+        return self._read_metadata(symbol, as_of=as_of).get('arctic_version', 0)
+
     def _do_read(self, symbol, version, from_version=None, **kwargs):
         if version.get('deleted'):
             raise NoDataFoundException("No data found for %s in library %s" % (symbol, self._arctic_lib.get_name()))
