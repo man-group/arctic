@@ -617,7 +617,8 @@ class VersionStore(object):
 
         if prune_previous_version and previous_version:
             # Does not allow prune to remove the base of the new version
-            self._prune_previous_versions(symbol, keep_version=version.get('base_version_id'))
+            self._prune_previous_versions(symbol, keep_version=version.get('base_version_id'),
+                                          new_version_shas=version.get(FW_POINTERS_REFS_KEY))
 
         # Insert the new version into the version DB
         version['version'] = next_ver
@@ -671,10 +672,10 @@ class VersionStore(object):
         handler = self._write_handler(version, symbol, data, **kwargs)
         handler.write(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
 
-        if prune_previous_version and previous_version:
-            self._prune_previous_versions(symbol)
-
         self._publish_change(symbol, version)
+
+        if prune_previous_version and previous_version:
+            self._prune_previous_versions(symbol, new_version_shas=version.get(FW_POINTERS_REFS_KEY))
 
         # Insert the new version into the version DB
         self._insert_version(version)
@@ -719,9 +720,8 @@ class VersionStore(object):
                                    "The previous version (%s, %d) has been removed during the update" %
                                    (symbol, str(reference_version['_id']), reference_version['version']))
 
-
         if prune_previous_version and reference_version:
-            self._prune_previous_versions(symbol)
+            self._prune_previous_versions(symbol, new_version_shas=new_version.get(FW_POINTERS_REFS_KEY))
 
         logger.debug('Finished updating versions with new metadata for %s', symbol)
 
@@ -874,11 +874,12 @@ class VersionStore(object):
                                      projection={'base_version_id': 1})
         return [version["base_version_id"] for version in cursor]
 
-    def _prune_previous_versions(self, symbol, keep_mins=120, keep_version=None):
+    def _prune_previous_versions(self, symbol, keep_mins=120, keep_version=None, new_version_shas=None):
         """
         Prune versions, not pointed at by snapshots which are at least keep_mins old. Prune will never
         remove all versions.
         """
+        new_version_shas = new_version_shas if new_version_shas else []
         prunable_ids_to_shas = self._find_prunable_version_ids(symbol, keep_mins)
         prunable_ids = prunable_ids_to_shas.keys()
         if keep_version is not None:
@@ -899,9 +900,12 @@ class VersionStore(object):
 
         prunable_ids_to_shas = {k: prunable_ids_to_shas[k] for k in version_ids}
 
+        # The new version has not been written yet, so make sure that any SHAs pointed by it are preserved
+        shas_to_delete = [sha for v in prunable_ids_to_shas.values() for sha in v[0] if sha not in new_version_shas]
+
         # Cleanup any chunks
         mongo_retry(cleanup)(self._arctic_lib, symbol, version_ids, self._versions,
-                             shas_to_delete=[sha for v in prunable_ids_to_shas.values() for sha in v[0]],
+                             shas_to_delete=shas_to_delete,
                              all_v_pointers_cfgs=[v[1] for v in prunable_ids_to_shas.values()])
 
     @mongo_retry
