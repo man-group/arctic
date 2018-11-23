@@ -11,7 +11,7 @@ from bson import Binary
 from pandas.compat import pickle_compat
 from pymongo.errors import OperationFailure
 
-from arctic._util import mongo_count, FW_POINTERS_REFS_KEY, FW_POINTERS_CONFIG_KEY, FwPointersCfg
+from arctic._util import mongo_count, FW_POINTERS_REFS_KEY, FW_POINTERS_CONFIG_KEY, FwPointersCfg, get_fwptr_config
 
 
 def _split_arrs(array_2d, slices):
@@ -46,22 +46,25 @@ def checksum(symbol, doc):
     return Binary(sha.digest())
 
 
-def _cleanup_fw_pointers(collection, symbol, version_ids, versions_coll, do_clean=True):
-    if not version_ids:
-        return
+def get_symbol_alive_shas(symbol, versions_coll):
+    return set(versions_coll.distinct(FW_POINTERS_REFS_KEY, {'symbol': symbol}))
 
-    shas_candidate_to_delete = set(versions_coll.distinct(FW_POINTERS_REFS_KEY, {'_id': {'$in': version_ids}}))
 
-    symbol_alive_shas = set(versions_coll.distinct(FW_POINTERS_REFS_KEY, {'symbol': symbol}))
+def _cleanup_fw_pointers(collection, symbol, version_ids, versions_coll, shas_to_delete, do_clean=True):
+    shas_to_delete = set(shas_to_delete) if shas_to_delete else set()
+
+    if not version_ids or not shas_to_delete:
+        return shas_to_delete
+
+    symbol_alive_shas = get_symbol_alive_shas(symbol, versions_coll)
 
     # This is the set of shas which are not referenced by any FW pointers
-    shas_safe_to_delete = shas_candidate_to_delete - symbol_alive_shas
+    shas_safe_to_delete = shas_to_delete - symbol_alive_shas
 
-    if do_clean:
-        collection.delete_many({'symbol': symbol,
-                                'sha': {'$in': list(shas_safe_to_delete)}})
+    if do_clean and shas_safe_to_delete:
+        collection.delete_many({'symbol': symbol, 'sha': {'$in': list(shas_safe_to_delete)}})
 
-    return shas_candidate_to_delete, shas_safe_to_delete
+    return shas_safe_to_delete
 
 
 def _cleanup_parent_pointers(collection, symbol, version_ids):
@@ -79,40 +82,56 @@ def _cleanup_parent_pointers(collection, symbol, version_ids):
     collection.delete_one({'symbol':  symbol, 'parent': []})
 
 
-def cleanup(arctic_lib, symbol, version_ids, versions_coll):
+def _cleanup_mixed(symbol, collection, version_ids, versions_coll):
+    # Pull the deleted version IDs from the the parents field
+    collection.update_many({'symbol': symbol, 'parent': {'$in': version_ids}}, {'$pullAll': {'parent': version_ids}})
+
+    # All-inclusive set of segments which are pointed by at least one version (SHA fw pointers)
+    symbol_alive_shas = get_symbol_alive_shas(symbol, versions_coll)
+
+    spec = {'symbol': symbol, 'parent': []}
+    if symbol_alive_shas:
+        # This query unfortunately, while it hits the index (symbol, sha) to find the documents, in order to filter
+        # the documents by "parent: []" it fetches at server side, and pollutes the cache of WiredTiger
+        # TODO: add a new index for segments collection: (symbol, sha, parent)
+        spec['sha'] = {'$nin': list(symbol_alive_shas)}
+    collection.delete_many(spec)
+
+
+def _get_symbol_pointer_cfgs(symbol, versions_coll):
+    return set(get_fwptr_config(v)
+               for v in versions_coll.find({'symbol': symbol}, projection={FW_POINTERS_CONFIG_KEY: 1}))
+
+
+def cleanup(arctic_lib, symbol, version_ids, versions_coll, shas_to_delete=None, all_v_pointers_cfgs=None):
     """
     Helper method for cleaning up chunks from a version store
     """
+    all_v_pointers_cfgs = set(all_v_pointers_cfgs) if all_v_pointers_cfgs else set()
     collection = arctic_lib.get_top_level_collection()
     version_ids = list(version_ids)
 
     # Iterate versions to check if they are created only with fw pointers, parent pointers (old), or mixed
-    all_v_pointers_cfgs = set(FwPointersCfg[v.get(FW_POINTERS_CONFIG_KEY, FwPointersCfg.DISABLED.name)]
-                              for v in versions_coll.find({'symbol': symbol}, projection={FW_POINTERS_CONFIG_KEY: 1}))
+    all_symbol_pointers_cfgs = _get_symbol_pointer_cfgs(symbol, versions_coll)
+    all_symbol_pointers_cfgs.update(all_v_pointers_cfgs)
 
-    # All the versions of the symbol have been created with old arctic or with disabled forward pointers
-    # we must be backwards compatible
-    if all_v_pointers_cfgs == {FwPointersCfg.DISABLED}:
+    # All the versions of the symbol have been created with old arctic or with disabled forward pointers.
+    # Preserves backwards compatibility and regression for old pointers implementation.
+    if any((all_symbol_pointers_cfgs == {FwPointersCfg.DISABLED},
+            not all_symbol_pointers_cfgs,
+            not shas_to_delete)):
+        # Either we have only parent pointers or is called by _fsck()/_cleanup_orphaned_chunks()
         _cleanup_parent_pointers(collection, symbol, version_ids)
         return
 
     # All the versions of the symbol we wish to delete have been created with forward pointers
-    if all_v_pointers_cfgs == {FwPointersCfg.ENABLED}:
-        _cleanup_fw_pointers(collection, symbol, version_ids, versions_coll, do_clean=True)
+    if FwPointersCfg.DISABLED not in all_symbol_pointers_cfgs:
+        _cleanup_fw_pointers(collection, symbol, version_ids, versions_coll,
+                             shas_to_delete=shas_to_delete, do_clean=True)
         return
 
     # Reaching here means the symbol has versions with mixed forward pointers and legacy/parent pointer configurations
-
-    # Pull the deleted version IDs from the the parents field
-    collection.update_many({'symbol': symbol, 'parent': {'$in': version_ids}}, {'$pullAll': {'parent': version_ids}})
-
-    # Obtain the SHAs of the segments which are no longer been pointed-to by forward pointers (eligible for gc)
-    _, shas_safe2rm = _cleanup_fw_pointers(collection, symbol, version_ids, versions_coll, do_clean=False)
-
-    # This query unfortunately utilizes an index (symbol, sha) to find the docuemtns, but in order to further filter
-    # the documents by "parent: []" it fetches at server side, and pollutes the cache of WiredTiger
-    # TODO: add a new index for segments collection: (symbol, sha, parent)
-    collection.delete_many({'symbol': symbol, 'sha': {'$in': list(shas_safe2rm)}, 'parent': []})
+    _cleanup_mixed(symbol, collection, version_ids, versions_coll)
 
 
 def version_base_or_id(version):

@@ -10,7 +10,7 @@ import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
 from arctic._util import mongo_count, FwPointersCfg, FW_POINTERS_REFS_KEY, \
-    ARCTIC_FORWARD_POINTERS_CFG, ARCTIC_FORWARD_POINTERS_RECONCILE, FW_POINTERS_CONFIG_KEY
+    ARCTIC_FORWARD_POINTERS_CFG, ARCTIC_FORWARD_POINTERS_RECONCILE, FW_POINTERS_CONFIG_KEY, get_fwptr_config
 from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException, DataIntegrityException
 from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
@@ -136,7 +136,7 @@ def _update_fw_pointers(collection, symbol, version, previous_version, is_append
 
     if is_append:
         # Appends are tricky, as we extract the SHAs from the previous version (assuming it has FW pointers info)
-        prev_fw_cfg = FwPointersCfg[previous_version.get(FW_POINTERS_CONFIG_KEY, FwPointersCfg.DISABLED.name)]
+        prev_fw_cfg = get_fwptr_config(previous_version)
         if prev_fw_cfg is FwPointersCfg.DISABLED.name:
             version_shas.update(sha for sha in collection.find(
                 {'symbol': symbol,
@@ -159,13 +159,13 @@ def _update_fw_pointers(collection, symbol, version, previous_version, is_append
     version[FW_POINTERS_REFS_KEY] = list(version_shas)
 
 
-def _spec_fw_pointers_aware(symbol, version, from_index, to_index):
+def _spec_fw_pointers_aware(symbol, version, from_index=None, to_index=None):
     """
     This method updates the find query filter spec used to read the segment for a version.
     It chooses whether to query via forward pointers or not based on the version details and current mode of operation.
     """
     spec = {'symbol': symbol,
-            'segment': {'$lt': to_index}}
+            'segment': {'$lt': version['up_to'] if to_index is None else to_index}}
     if from_index is not None:
         spec['segment']['$gte'] = from_index
 
@@ -178,14 +178,18 @@ def _spec_fw_pointers_aware(symbol, version, from_index, to_index):
 
     # Version was created exclusively with fw pointers
     if v_fw_config is FwPointersCfg.ENABLED:
-        del spec['segment']['$lt']  # no longer needed with forward pointers
-        return {'symbol': symbol, 'sha': {'$in': version[FW_POINTERS_REFS_KEY]}}
+        if from_index is None and to_index is None:
+            del spec['segment']
+        spec['sha'] = {'$in': version[FW_POINTERS_REFS_KEY]}
+        return spec
 
     # Version was created both with fw and legacy pointers, choose based on module configuration
     if v_fw_config is FwPointersCfg.HYBRID:
         if ARCTIC_FORWARD_POINTERS_CFG is FwPointersCfg.DISABLED:
             spec['parent'] = version_base_or_id(version)
         else:
+            if from_index is None and to_index is None:
+                del spec['segment']
             spec['sha'] = {'$in': version[FW_POINTERS_REFS_KEY]}
         return spec
 
@@ -202,7 +206,7 @@ def _fw_pointers_convert_append_to_write(previous_version):
     #   - Assume the last write was done with ENABLED (segments don't have parent references updated).
     #   - Subsequent appends were done in DISABLED/HYBRID (append segments have parent references).
     #   - Reading with DISABLED won't "see" the first write's segments.
-    prev_fw_config = FwPointersCfg[previous_version.get(FW_POINTERS_CONFIG_KEY, FwPointersCfg.DISABLED.name)]
+    prev_fw_config = get_fwptr_config(previous_version)
     # Convert to a full-write, which force-updates all segments with parent references.
     return prev_fw_config is FwPointersCfg.ENABLED and ARCTIC_FORWARD_POINTERS_CFG is not FwPointersCfg.ENABLED
 
@@ -406,6 +410,10 @@ class NdarrayStore(object):
         else:
             dtype = self._promote_types(dtype, previous_version['dtype'])
         item = item.astype(dtype)
+
+        version['type'] = self.TYPE
+        version[FW_POINTERS_CONFIG_KEY] = ARCTIC_FORWARD_POINTERS_CFG.name
+
         if str(dtype) != previous_version['dtype'] or \
                 _fw_pointers_convert_append_to_write(previous_version):
             logger.debug('Converting %s from %s to %s' % (symbol, previous_version['dtype'], str(dtype)))
@@ -413,7 +421,6 @@ class NdarrayStore(object):
                 raise UnhandledDtypeException()
             version['dtype'] = str(dtype)
             version['dtype_metadata'] = dict(dtype.metadata or {})
-            version['type'] = self.TYPE
 
             # This function will drop columns read from the previous version if they are not found in the
             # new append. However, the promote_types will raise an exception in that case and this code
@@ -428,7 +435,6 @@ class NdarrayStore(object):
         else:
             version['dtype'] = previous_version['dtype']
             version['dtype_metadata'] = previous_version['dtype_metadata']
-            version['type'] = self.TYPE
             
             # Verify (potential) corruption with append
             if _CHECK_CORRUPTION_ON_APPEND and _fast_check_corruption(
@@ -515,32 +521,30 @@ class NdarrayStore(object):
         version.pop('base_version_id', None)
 
         # Figure out which is the last 'full' chunk
-        spec = {'symbol': symbol,
-                'parent': version_base_or_id(previous_version),
-                'segment': {'$lt': previous_version['up_to']}}
+        spec = _spec_fw_pointers_aware(symbol, previous_version)
 
         read_index_range = [0, None]
         # The unchanged segments are the compressed ones (apart from the last compressed)
-        unchanged_segment_ids = []
-        for segment in sorted(collection.find(spec, projection={'_id': 1, 'segment': 1, 'compressed': 1}),
+        unchanged_segments = []
+        for segment in sorted(collection.find(spec, projection={'_id': 1, 'segment': 1, 'compressed': 1, 'sha': 1}),
                               key=itemgetter('segment')):
             # We want to stop iterating when we find the first uncompressed chunks
             if not segment['compressed']:
                 # We include the last compressed chunk in the recompression
-                if unchanged_segment_ids:
-                    unchanged_segment_ids.pop()
+                if unchanged_segments:
+                    unchanged_segments.pop()
                 break
-            unchanged_segment_ids.append(segment)
+            unchanged_segments.append(segment)
 
         # Found all the chunks which aren't part of an append
-        if len(unchanged_segment_ids) < previous_version['segment_count'] - previous_version['append_count'] - 1:
+        if len(unchanged_segments) < previous_version['segment_count'] - previous_version['append_count'] - 1:
             raise DataIntegrityException("Symbol: %s:%s expected %s segments but found %s" %
                                          (symbol, previous_version['version'],
                                           previous_version['segment_count'] - previous_version['append_count'] - 1,
-                                          len(unchanged_segment_ids)
+                                          len(unchanged_segments)
                                           ))
-        if unchanged_segment_ids:
-            read_index_range[0] = unchanged_segment_ids[-1]['segment'] + 1
+        if unchanged_segments:
+            read_index_range[0] = unchanged_segments[-1]['segment'] + 1
 
         # Only read back the section that needs to be compressed here (index_range=...)
         old_arr = self._do_read(collection, previous_version, symbol, index_range=read_index_range)
@@ -555,9 +559,13 @@ class NdarrayStore(object):
                                                                                      item.dtype, old_arr.dtype))
             self._do_write(collection, version, symbol, np.concatenate([old_arr, item]), previous_version,
                            segment_offset=read_index_range[0])
-        if unchanged_segment_ids:
-            _attempt_update_unchanged(symbol, unchanged_segment_ids, collection, version, previous_version)
-            version['segment_count'] = version['segment_count'] + len(unchanged_segment_ids)
+        if unchanged_segments:
+            if version.get(FW_POINTERS_CONFIG_KEY) != FwPointersCfg.ENABLED.name:
+                _attempt_update_unchanged(symbol, unchanged_segments, collection, version, previous_version)
+            version['segment_count'] = version['segment_count'] + len(unchanged_segments)
+            _update_fw_pointers(
+                collection, symbol, version, previous_version, is_append=False,
+                shas_to_add=version.get(FW_POINTERS_REFS_KEY, []) + [s['sha'] for s in unchanged_segments])
             self.check_written(collection, symbol, version)
 
     @staticmethod
@@ -607,6 +615,7 @@ class NdarrayStore(object):
         version['type'] = self.TYPE
         version['up_to'] = len(item)
         version['sha'] = self.checksum(item)
+        version[FW_POINTERS_CONFIG_KEY] = ARCTIC_FORWARD_POINTERS_CFG.name
 
         if previous_version:
             if 'sha' in previous_version \
@@ -614,7 +623,8 @@ class NdarrayStore(object):
                     and self.checksum(item[:previous_version['up_to']]) == previous_version['sha']:
                 # The first n rows are identical to the previous version, so just append.
                 # Do a 'dirty' append (i.e. concat & start from a new base version) for safety
-                self._do_append(collection, version, symbol, item[previous_version['up_to']:], previous_version, dirty_append=True)
+                self._do_append(collection, version, symbol, item[previous_version['up_to']:], previous_version,
+                                dirty_append=True)
                 return
 
         version['base_sha'] = version['sha']

@@ -40,6 +40,10 @@ except Exception:
     ARCTIC_FORWARD_POINTERS_CFG = FwPointersCfg.DISABLED
 
 
+def get_fwptr_config(version):
+    return FwPointersCfg[version.get(FW_POINTERS_CONFIG_KEY, FwPointersCfg.DISABLED.name)]
+
+
 def _detect_new_count_api():
     try:
         mongo_v = [int(v) for v in pymongo.version.split('.')]
