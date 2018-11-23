@@ -103,24 +103,22 @@ def _get_symbol_pointer_cfgs(symbol, versions_coll):
                for v in versions_coll.find({'symbol': symbol}, projection={FW_POINTERS_CONFIG_KEY: 1}))
 
 
-def cleanup(arctic_lib, symbol, version_ids, versions_coll, shas_to_delete=None, all_v_pointers_cfgs=None):
+def cleanup(arctic_lib, symbol, version_ids, versions_coll, shas_to_delete=None, pointers_cfgs=None):
     """
     Helper method for cleaning up chunks from a version store
     """
-    all_v_pointers_cfgs = set(all_v_pointers_cfgs) if all_v_pointers_cfgs else set()
+    pointers_cfgs = set(pointers_cfgs) if pointers_cfgs else set()
     collection = arctic_lib.get_top_level_collection()
     version_ids = list(version_ids)
 
     # Iterate versions to check if they are created only with fw pointers, parent pointers (old), or mixed
+    # Keep in mind that the version is not yet inserted.
     all_symbol_pointers_cfgs = _get_symbol_pointer_cfgs(symbol, versions_coll)
-    all_symbol_pointers_cfgs.update(all_v_pointers_cfgs)
+    all_symbol_pointers_cfgs.update(pointers_cfgs)
 
     # All the versions of the symbol have been created with old arctic or with disabled forward pointers.
     # Preserves backwards compatibility and regression for old pointers implementation.
-    if any((all_symbol_pointers_cfgs == {FwPointersCfg.DISABLED},
-            not all_symbol_pointers_cfgs,
-            not shas_to_delete)):
-        # Either we have only parent pointers or is called by _fsck()/_cleanup_orphaned_chunks()
+    if all_symbol_pointers_cfgs == {FwPointersCfg.DISABLED} or not all_symbol_pointers_cfgs:
         _cleanup_parent_pointers(collection, symbol, version_ids)
         return
 

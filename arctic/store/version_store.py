@@ -906,7 +906,7 @@ class VersionStore(object):
         # Cleanup any chunks
         mongo_retry(cleanup)(self._arctic_lib, symbol, version_ids, self._versions,
                              shas_to_delete=shas_to_delete,
-                             all_v_pointers_cfgs=[v[1] for v in prunable_ids_to_shas.values()])
+                             pointers_cfgs=[v[1] for v in prunable_ids_to_shas.values()])
 
     @mongo_retry
     def _delete_version(self, symbol, version_num, do_cleanup=True):
