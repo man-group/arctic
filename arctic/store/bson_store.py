@@ -10,7 +10,7 @@ BSON_STORE_TYPE = 'BSONStore'
 class BSONStore(object):
     """
     BSON Data Store. This stores any Python object that encodes to BSON correctly,
-    and offers a vanilla pymongo interface. Note that strings myst be valid UTF-8.
+    and offers a vanilla pymongo interface. Note that strings must be valid UTF-8.
 
     See: https://api.mongodb.com/python/3.4.0/api/bson/index.html
 
