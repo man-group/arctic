@@ -1,10 +1,10 @@
 from collections import namedtuple
 from datetime import datetime as dt
 
-from arctic.date._mktz import mktz
-from arctic.multi_index import groupby_asof
 import pandas as pd
 
+from arctic.date._mktz import mktz
+from arctic.multi_index import groupby_asof
 
 BitemporalItem = namedtuple('BitemporalItem', 'symbol, library, data, metadata, last_updated')
 

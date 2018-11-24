@@ -3,11 +3,10 @@ try:
 except ImportError:
     import pickle
 from datetime import datetime as dt
-import pandas as pd
-from pandas.util.testing import assert_frame_equal
-import pytest
 
-from arctic.exceptions import NoDataFoundException
+import pandas as pd
+import pytest
+from pandas.util.testing import assert_frame_equal
 
 symbol1 = 'symbol1'
 symbol2 = 'symbol2'

@@ -3,8 +3,10 @@ import os
 
 import numpy as np
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
-from ..exceptions import ArcticException
+
 from .._util import NP_OBJECT_DTYPE
+from ..exceptions import ArcticException
+
 try:  # 0.21+ Compatibility
     from pandas._libs.tslib import Timestamp
     from pandas._libs.tslibs.timezones import get_timezone
@@ -52,7 +54,7 @@ def _multi_index_to_records(index, empty_index):
         ix_vals = list(map(np.array, [index.get_level_values(i) for i in range(index.nlevels)]))
     else:
         # empty multi index has no size, create empty arrays for recarry.
-        ix_vals = [np.array([]) for n in index.names]
+        ix_vals = [np.array([]) for _ in index.names]
     index_names = list(index.names)
     count = 0
     for i, n in enumerate(index_names):

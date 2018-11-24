@@ -1,12 +1,12 @@
-import bson
-from datetime import datetime as dt, timedelta as dtd
 import itertools
-from mock import patch, sentinel
+from datetime import datetime as dt, timedelta as dtd
+
+import bson
 import pytest
+from mock import patch, sentinel
 
 from arctic._util import mongo_count
 from arctic.scripts.arctic_fsck import main
-
 from ...util import run_as_main, read_str_as_pandas
 
 

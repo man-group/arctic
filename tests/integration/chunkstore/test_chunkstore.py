@@ -1,21 +1,21 @@
-from pandas import DataFrame, MultiIndex, Index, Series
+import pickle
+import random
 from datetime import datetime as dt
-from datetime import timedelta
+
+import numpy as np
+import pandas as pd
+import pymongo
+import pytest
+from pandas import DataFrame, MultiIndex, Index, Series
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 from arctic._util import mongo_count
-from arctic.date import DateRange
-from arctic.exceptions import NoDataFoundException
-import pandas as pd
-import numpy as np
-import random
-import pytest
-import pymongo
-import pickle
-
 from arctic.chunkstore.chunkstore import START, SYMBOL
 from arctic.chunkstore.passthrough_chunker import PassthroughChunker
+from arctic.date import DateRange
+from arctic.exceptions import NoDataFoundException
 from tests.integration.chunkstore.test_utils import create_test_data
+
 
 def test_write_dataframe(chunkstore_lib):
     df = create_test_data()

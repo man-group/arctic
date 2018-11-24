@@ -1,22 +1,22 @@
-from datetime import datetime as dt, timedelta
 import logging
 import os
+from datetime import datetime as dt, timedelta
 
 import bson
-from pymongo import ReadPreference
 import pymongo
+import six
+from pymongo import ReadPreference
 from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
+from ._pickle_store import PickleStore
+from ._version_store_utils import cleanup
+from .versioned_item import VersionedItem
 from .._util import indent, enable_sharding, mongo_count
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
     ArcticException
 from ..hooks import log_exception
-from ._pickle_store import PickleStore
-from ._version_store_utils import cleanup
-from .versioned_item import VersionedItem
-import six
 
 logger = logging.getLogger(__name__)
 

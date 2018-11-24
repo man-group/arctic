@@ -1,12 +1,9 @@
-import bson
 import numpy as np
-from numpy.testing import assert_equal
 import pytest
+from numpy.testing import assert_equal
 
 from arctic.store._ndarray_store import NdarrayStore, _APPEND_COUNT
 from arctic.store.version_store import register_versioned_storage
-
-from tests.integration.store.test_version_store import _query
 
 register_versioned_storage(NdarrayStore)
 

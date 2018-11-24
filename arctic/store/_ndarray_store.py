@@ -3,20 +3,17 @@ import logging
 import os
 from operator import itemgetter
 
-
-from bson.binary import Binary
 import numpy as np
 import pymongo
+from bson.binary import Binary
 from pymongo.errors import OperationFailure, DuplicateKeyError
-
-from arctic._util import mongo_count
-from ..decorators import mongo_retry
-from ..exceptions import UnhandledDtypeException, DataIntegrityException
-from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
-
-from .._compression import compress_array, decompress
 from six.moves import xrange
 
+from arctic._util import mongo_count
+from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
+from .._compression import compress_array, decompress
+from ..decorators import mongo_retry
+from ..exceptions import UnhandledDtypeException, DataIntegrityException
 
 logger = logging.getLogger(__name__)
 

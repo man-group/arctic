@@ -1,6 +1,6 @@
 from arctic.arctic import Arctic
-from arctic.store.version_store import VersionStore
 from arctic.store.metadata_store import MetadataStore
+from arctic.store.version_store import VersionStore
 
 
 def test_arctic(arctic):

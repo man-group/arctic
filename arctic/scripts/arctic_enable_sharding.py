@@ -1,13 +1,15 @@
 from __future__ import print_function
+
 import optparse
+
 import pymongo
 
+from .utils import setup_logging
+from .._util import enable_sharding
 from ..arctic import Arctic
+from ..auth import authenticate
 from ..auth import get_auth
 from ..hooks import get_mongodb_uri
-from .._util import enable_sharding
-from ..auth import authenticate
-from .utils import setup_logging
 
 
 def main():

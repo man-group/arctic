@@ -10,8 +10,8 @@ from bson import Binary
 
 from arctic.serialization.numpy_records import PandasSerializer
 from .._compression import compress
-from ..exceptions import ArcticSerializationException
 from .._util import MAX_DOCUMENT_SIZE, NP_OBJECT_DTYPE
+from ..exceptions import ArcticSerializationException
 
 ARCTIC_AUTO_EXPAND_CHUNK_SIZE = bool(os.environ.get('ARCTIC_AUTO_EXPAND_CHUNK_SIZE'))
 

@@ -1,8 +1,6 @@
-import bisect
-import os
 import dateutil
-import tzlocal
 import six
+import tzlocal
 
 
 class TimezoneError(Exception):

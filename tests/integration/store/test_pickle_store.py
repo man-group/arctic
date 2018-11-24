@@ -1,7 +1,8 @@
-import bson
 from datetime import datetime as dt, timedelta
-from mock import patch
+
+import bson
 import numpy as np
+from mock import patch
 
 from arctic._util import mongo_count
 from arctic.arctic import Arctic

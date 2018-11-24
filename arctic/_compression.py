@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 from multiprocessing.pool import ThreadPool
 
 try:
