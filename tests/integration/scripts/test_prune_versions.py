@@ -4,11 +4,10 @@ from mock import patch, ANY, call
 
 from arctic.auth import Credential
 from arctic.scripts import arctic_prune_versions as mpv
-
 from ...util import run_as_main
 
 
-def test_prune_versions_symbol(mongo_host, library, library_name):
+def test_prune_versions_symbol(mongo_host, _library, library_name):
     with patch('arctic.scripts.arctic_prune_versions.prune_versions', autospec=True) as prune_versions, \
             patch('arctic.scripts.utils.get_auth', return_value=Credential('admin', 'adminuser', 'adminpwd')), \
             patch('pymongo.database.Database.authenticate', return_value=True):

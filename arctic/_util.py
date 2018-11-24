@@ -5,7 +5,6 @@ import pymongo
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
-
 logger = logging.getLogger(__name__)
 
 MAX_DOCUMENT_SIZE = int(pymongo.common.MAX_BSON_SIZE * 0.8)

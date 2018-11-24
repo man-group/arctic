@@ -7,6 +7,7 @@ logger = logging.getLogger(__name__)
 
 BSON_STORE_TYPE = 'BSONStore'
 
+
 class BSONStore(object):
     """
     BSON Data Store. This stores any Python object that encodes to BSON correctly,

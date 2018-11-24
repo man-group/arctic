@@ -9,7 +9,7 @@ from tests.integration.chunkstore.test_utils import create_test_data
 symbol = 'TS1'
 
 
-def n_append(library, library_name, total_appends, rows_per_append, bulk_data_ts, start_idx, do_snapshots=True, do_prune=True):
+def n_append(library, _library_name, total_appends, rows_per_append, bulk_data_ts, start_idx, do_snapshots=True, do_prune=True):
     open_last_row = 0
     for i in range(total_appends):
         first_row = start_idx + i * rows_per_append
@@ -24,8 +24,8 @@ def n_append(library, library_name, total_appends, rows_per_append, bulk_data_ts
     return open_last_row
 
 
-def _corrupt_with_append_only(library, library_name):
-    def do_fail(version):
+def _corrupt_with_append_only(library, _library_name):
+    def do_fail(_version):
         raise Exception('test')
 
     large_ts = create_test_data(size=2000, cols=100,
@@ -143,7 +143,7 @@ def test_no_corruption_restore_append_non_overlapping_tstamps(library, library_n
         library.read(symbol, as_of=v['version'])
 
 
-def test_restore_append_overlapping_corrupts_old(library, library_name):
+def test_restore_append_overlapping_corrupts_old(library, _library_name):
     large_ts = create_test_data(size=2000, cols=100,
                                 index=True, multiindex=False,
                                 random_data=True, random_ids=True)
@@ -163,7 +163,7 @@ def test_restore_append_overlapping_corrupts_old(library, library_name):
         library.read(symbol, as_of=v['version'])
 
 
-def test_restore_append_overlapping_corrupts_last(library, library_name):
+def test_restore_append_overlapping_corrupts_last(library, _library_name):
     large_ts = create_test_data(size=2000, cols=100,
                                 index=True, multiindex=False,
                                 random_data=True, random_ids=True)
@@ -185,7 +185,7 @@ def test_restore_append_overlapping_corrupts_last(library, library_name):
 
 # This is not necessary to fix, but the Exception thrown is quite confusing.
 @pytest.mark.skip(reason="Not critical as upsert=False is rarely used. A more specific handling/exception is required here.")
-def test_append_fail_after_delete_noupsert(library, library_name):
+def test_append_fail_after_delete_noupsert(library, _library_name):
     large_ts = create_test_data(size=2000, cols=100,
                                 index=True, multiindex=False,
                                 random_data=True, random_ids=True)
@@ -229,7 +229,7 @@ def test_append_with_corrupt_check(library, library_name):
         arctic.store._ndarray_store.set_corruption_check_on_append(orig_check)
 
 
-def test_fast_check_corruption(library, library_name):
+def test_fast_check_corruption(library, _library_name):
     ts = create_test_data(size=100, cols=100,
                           index=True, multiindex=False,
                           random_data=True, random_ids=True)
@@ -250,9 +250,10 @@ def test_fast_check_corruption(library, library_name):
     assert vsu.fast_is_corrupted(library, symbol, input_v=3)
 
 
-def test_fast_is_safe_to_append(library, library_name):
+def test_fast_is_safe_to_append(library, _library_name):
     from bson.binary import Binary
     import hashlib
+
     def modify_segment(segment, item):
         segment['segment'] -= 2
         sha = hashlib.sha1()

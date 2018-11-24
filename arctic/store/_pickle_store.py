@@ -26,11 +26,11 @@ class PickleStore(object):
     def initialize_library(cls, *args, **kwargs):
         pass
 
-    def get_info(self, version):
-        ret = {}
-        ret['type'] = 'blob'
-        ret['handler'] = self.__class__.__name__
-        return ret
+    def get_info(self, _version):
+        return {
+            'type': 'blob',
+            'handler': self.__class__.__name__
+        }
 
     def read(self, mongoose_lib, version, symbol, **kwargs):
         blob = version.get("blob")
@@ -61,7 +61,7 @@ class PickleStore(object):
     def read_options():
         return []
 
-    def write(self, arctic_lib, version, symbol, item, previous_version):
+    def write(self, arctic_lib, version, symbol, item, _previous_version):
         try:
             # If it's encodeable, then ship it
             b = bson.BSON.encode({'data': item})

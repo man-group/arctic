@@ -94,7 +94,7 @@ class ArcticTransaction(object):
             self.base_ts = VersionedItem(symbol=self._symbol, library=None,
                                          version=versions[0], metadata=None, data=None, host=None)
         except OperationFailure:
-            #TODO: Current errors in mongo "Incorrect Number of Segments Returned"
+            # TODO: Current errors in mongo "Incorrect Number of Segments Returned"
             # This workaround should be removed once underlying problem is resolved.
             self.base_ts = self._version_store.read_metadata(symbol=self._symbol)
 
@@ -117,9 +117,9 @@ class ArcticTransaction(object):
         pass
 
     def write(self, symbol, data, prune_previous_version=True, metadata=None, **kwargs):
-        '''Records a write request to be actioned on context exit. Takes exactly the same parameters as the regular
+        """Records a write request to be actioned on context exit. Takes exactly the same parameters as the regular
         library write call.
-        '''
+        """
         if data is not None:
             # We only write data if existing data is None or the Timeseries data has changed or metadata has changed
             if self.base_ts.data is None or not are_equals(data, self.base_ts.data) or metadata != self.base_ts.metadata:
