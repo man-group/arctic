@@ -672,10 +672,10 @@ class VersionStore(object):
         handler = self._write_handler(version, symbol, data, **kwargs)
         handler.write(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
 
-        self._publish_change(symbol, version)
-
         if prune_previous_version and previous_version:
             self._prune_previous_versions(symbol, new_version_shas=version.get(FW_POINTERS_REFS_KEY))
+
+        self._publish_change(symbol, version)
 
         # Insert the new version into the version DB
         self._insert_version(version)
