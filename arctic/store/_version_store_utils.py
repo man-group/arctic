@@ -47,7 +47,7 @@ def checksum(symbol, doc):
 
 
 def get_symbol_alive_shas(symbol, versions_coll):
-    return set(versions_coll.distinct(FW_POINTERS_REFS_KEY, {'symbol': symbol}))
+    return set(Binary(x) for x in versions_coll.distinct(FW_POINTERS_REFS_KEY, {'symbol': symbol}))
 
 
 def _cleanup_fw_pointers(collection, symbol, version_ids, versions_coll, shas_to_delete, do_clean=True):

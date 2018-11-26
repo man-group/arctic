@@ -829,7 +829,6 @@ class VersionStore(object):
         return new_item
 
     @mongo_retry
-
     def _find_prunable_version_ids(self, symbol, keep_mins):
         """
         Find all non-snapshotted versions of a symbol that are older than a version that's at least keep_mins
@@ -860,7 +859,8 @@ class VersionStore(object):
                                skip=1,
                                projection={'_id': 1, FW_POINTERS_REFS_KEY: 1, FW_POINTERS_CONFIG_KEY: 1},
                                )
-        return {v['_id']: (v.get(FW_POINTERS_REFS_KEY, []), get_fwptr_config(v)) for v in cursor}
+        return {v['_id']: ([bson.binary.Binary(x) for x in v.get(FW_POINTERS_REFS_KEY, [])], get_fwptr_config(v))
+                for v in cursor}
 
     @mongo_retry
     def _find_base_version_ids(self, symbol, version_ids):
