@@ -881,7 +881,7 @@ class VersionStore(object):
         """
         new_version_shas = new_version_shas if new_version_shas else []
         prunable_ids_to_shas = self._find_prunable_version_ids(symbol, keep_mins)
-        prunable_ids = prunable_ids_to_shas.keys()
+        prunable_ids = list(prunable_ids_to_shas.keys())
         if keep_version is not None:
             try:
                 prunable_ids.remove(keep_version)
