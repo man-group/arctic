@@ -1115,7 +1115,14 @@ class VersionStore(object):
 
                 logger.info("Cleaning up {} SHAs for symbol {}".format(len(unreachable_shas), symbol))
                 if not dry_run:
-                    chunks_coll.delete_many({'symbol': symbol, 'sha': {'$in': list(unreachable_shas)}})
+                    # Be liberal with the generation time.
+                    id_time_constraint = {'$lt': bson.ObjectId.from_datetime(dt.now() - timedelta(days=1))}
+                    # Do delete the data segments
+                    chunks_coll.delete_many({
+                        '_id': id_time_constraint,  # can't rely on the parent field only for fw-pointers
+                        'symbol': symbol,
+                        'parent': id_time_constraint,
+                        'sha': {'$in': list(unreachable_shas)}})
 
     def _cleanup_orphaned_chunks(self, dry_run):
         """
