@@ -1,7 +1,9 @@
 import logging
+import os
 
 import numpy as np
 import pymongo
+from enum import Enum
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
@@ -13,6 +15,33 @@ NP_OBJECT_DTYPE = np.dtype('O')
 
 # Avoid import-time extra logic
 _use_new_count_api = None
+
+
+# This enum provides all the available modes of operation for Forward pointers
+class FwPointersCfg(Enum):
+    ENABLED = 0   # use only forward pointers, don't update segment parent references
+    DISABLED = 1  # operate in legacy mode, update segment parent references, don't add forward pointers
+    HYBRID = 2    # maintain both forward pointers and parent references in segments; for reads prefer fw pointers
+
+
+# The version document key used to store the ObjectIDs of segments
+FW_POINTERS_REFS_KEY = 'SEGMENT_SHAS'
+# The version document key for storing the FW pointers configuration used to create this version
+FW_POINTERS_CONFIG_KEY = 'FW_POINTERS_CONFIG'
+# This variable controls has effect in Hybrid mode, and controls whether forward and regacy pointers are cross-verified
+ARCTIC_FORWARD_POINTERS_RECONCILE = bool(os.environ.get('ARCTIC_FORWARD_POINTERS_RECONCILE'))
+try:
+    # Controls the mode of operation for FW pointers, has effect on any new versions created
+    ARCTIC_FORWARD_POINTERS_CFG = FwPointersCfg[(os.environ.get('ARCTIC_FORWARD_POINTERS_CFG',
+                                                                FwPointersCfg.DISABLED.name).upper())]
+except Exception:
+    logger.exception("Failed to configure forward pointers with configuration {}".format(
+        os.environ.get('ARCTIC_FORWARD_POINTERS_CFG')))
+    ARCTIC_FORWARD_POINTERS_CFG = FwPointersCfg.DISABLED
+
+
+def get_fwptr_config(version):
+    return FwPointersCfg[version.get(FW_POINTERS_CONFIG_KEY, FwPointersCfg.DISABLED.name)]
 
 
 def _detect_new_count_api():
