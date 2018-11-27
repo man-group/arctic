@@ -1706,13 +1706,13 @@ def test_handler_check_default_osenviron(arctic):
 
 def test_handler_check_set_false(arctic):
     lib_name = 'write_hanlder_test3'
-    arctic.initialize_library(lib_name, VERSION_STORE, STRICT_WRITE_HANDLER_MATCH=False)
+    arctic.initialize_library(lib_name, VERSION_STORE, strict_write_handler=False)
     assert arctic[lib_name]._with_strict_handler_match is False
 
 
 def test_handler_check_set_true(arctic):
     lib_name = 'write_hanlder_test4'
-    arctic.initialize_library(lib_name, VERSION_STORE, STRICT_WRITE_HANDLER_MATCH=True)
+    arctic.initialize_library(lib_name, VERSION_STORE, strict_write_handler=True)
     assert arctic[lib_name]._with_strict_handler_match is True
 
 
