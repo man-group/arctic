@@ -211,7 +211,7 @@ def test_append_fail_after_delete_noupsert(library, library_name):
 
 
 def test_append_without_corrupt_check(library, library_name):
-    orig_check = arctic.store._ndarray_store._CHECK_CORRUPTION_ON_APPEND
+    orig_check = arctic.store._ndarray_store.CHECK_CORRUPTION_ON_APPEND
     arctic.store._ndarray_store.set_corruption_check_on_append(False)
     try:
         with pytest.raises(OperationFailure):
@@ -221,7 +221,7 @@ def test_append_without_corrupt_check(library, library_name):
 
 
 def test_append_with_corrupt_check(library, library_name):
-    orig_check = arctic.store._ndarray_store._CHECK_CORRUPTION_ON_APPEND
+    orig_check = arctic.store._ndarray_store.CHECK_CORRUPTION_ON_APPEND
     arctic.store._ndarray_store.set_corruption_check_on_append(True)
     try:
         _corrupt_with_append_only(library, library_name)

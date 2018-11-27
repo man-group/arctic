@@ -1,5 +1,4 @@
 import bisect
-import os
 import dateutil
 import tzlocal
 import six

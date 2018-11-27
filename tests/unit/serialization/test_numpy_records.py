@@ -14,7 +14,7 @@ class FastCheckSerializable(object):
         self.orig_setting = None
 
     def __enter__(self):
-        self.orig_setting = anr._FAST_CHECK_DF_SERIALIZABLE
+        self.orig_setting = anr.FAST_CHECK_DF_SERIALIZABLE
         anr.set_fast_check_df_serializable(self.enabled)
 
     def __exit__(self, *args):

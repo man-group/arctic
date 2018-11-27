@@ -15,7 +15,8 @@ import pytest
 import numpy as np
 
 import arctic
-from arctic._util import mongo_count, FwPointersCfg, FW_POINTERS_REFS_KEY, get_fwptr_config
+from arctic._config import FwPointersCfg, FW_POINTERS_REFS_KEY
+from arctic._util import mongo_count, get_fwptr_config
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException
 from arctic.date import DateRange
 from arctic.store import _version_store_utils
@@ -1705,13 +1706,13 @@ def test_handler_check_default_osenviron(arctic):
 
 def test_handler_check_set_false(arctic):
     lib_name = 'write_hanlder_test3'
-    arctic.initialize_library(lib_name, VERSION_STORE, STRICT_WRITE_HANDLER_MATCH=False)
+    arctic.initialize_library(lib_name, VERSION_STORE, strict_write_handler=False)
     assert arctic[lib_name]._with_strict_handler_match is False
 
 
 def test_handler_check_set_true(arctic):
     lib_name = 'write_hanlder_test4'
-    arctic.initialize_library(lib_name, VERSION_STORE, STRICT_WRITE_HANDLER_MATCH=True)
+    arctic.initialize_library(lib_name, VERSION_STORE, strict_write_handler=True)
     assert arctic[lib_name]._with_strict_handler_match is True
 
 

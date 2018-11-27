@@ -1,0 +1,87 @@
+import logging
+import os
+from enum import Enum
+
+import pymongo
+
+
+logger = logging.getLogger(__name__)
+
+
+# -----------------------------
+# VersionStore configuration
+# -----------------------------
+# Controls is the write handler can only match handlers for the specific data type. No fallback to pickling if True.
+STRICT_WRITE_HANDLER_MATCH = bool(os.environ.get('STRICT_WRITE_HANDLER_MATCH'))
+
+
+# -----------------------------
+# NdArrayStore configuration
+# -----------------------------
+# Extra sanity checks for corruption during appends. Introduces a 5-7% performance hit (off by default)
+CHECK_CORRUPTION_ON_APPEND = bool(os.environ.get('CHECK_CORRUPTION_ON_APPEND'))
+
+
+# -----------------------------
+# Serialization configuration
+# -----------------------------
+# If a row is too large, then auto-expand the data chunk size from the default _CHUNK_SIZE (it is 2MB)
+ARCTIC_AUTO_EXPAND_CHUNK_SIZE = bool(os.environ.get('ARCTIC_AUTO_EXPAND_CHUNK_SIZE'))
+
+# This is the maximum size the auto-expanding can reach in an effort trying to reach the max
+MAX_DOCUMENT_SIZE = int(pymongo.common.MAX_BSON_SIZE * 0.8)
+
+# Enables the fast check for 'can_write' of the Pandas stores (significant speed-ups for large dataframes with objects)
+FAST_CHECK_DF_SERIALIZABLE = bool(os.environ.get('FAST_CHECK_DF_SERIALIZABLE'))
+
+
+# -------------------------------
+# Forward pointers configuration
+# -------------------------------
+# This enum provides all the available modes of operation for Forward pointers
+class FwPointersCfg(Enum):
+    ENABLED = 0   # use only forward pointers, don't update segment parent references
+    DISABLED = 1  # operate in legacy mode, update segment parent references, don't add forward pointers
+    HYBRID = 2    # maintain both forward pointers and parent references in segments; for reads prefer fw pointers
+
+# The version document key used to store the ObjectIDs of segments
+FW_POINTERS_REFS_KEY = 'SEGMENT_SHAS'
+
+# The version document key holding the FW pointers configuration used to create this version (enabled/disabled/hybrid)
+FW_POINTERS_CONFIG_KEY = 'FW_POINTERS_CONFIG'
+
+# This variable has effect only in Hybrid mode, and controls whether forward and legacy pointers are cross-verified
+ARCTIC_FORWARD_POINTERS_RECONCILE = bool(os.environ.get('ARCTIC_FORWARD_POINTERS_RECONCILE'))
+try:
+    # Controls the mode of operation for FW pointers, has effect on any new versions created
+    ARCTIC_FORWARD_POINTERS_CFG = FwPointersCfg[(os.environ.get('ARCTIC_FORWARD_POINTERS_CFG',
+                                                                FwPointersCfg.DISABLED.name).upper())]
+except Exception:
+    logger.exception("Failed to configure forward pointers with configuration {}".format(
+        os.environ.get('ARCTIC_FORWARD_POINTERS_CFG')))
+    ARCTIC_FORWARD_POINTERS_CFG = FwPointersCfg.DISABLED
+
+
+# ---------------------------
+# Compression configuration
+# ---------------------------
+# Use the parallel LZ4 compress (default is True)
+ENABLE_PARALLEL = not os.environ.get('DISABLE_PARALLEL')
+
+# Use the high-compression configuration for LZ4 (trade runtime speed for better compression ratio)
+LZ4_HIGH_COMPRESSION = bool(os.environ.get('LZ4_HIGH_COMPRESSION'))
+
+# For a guide on how to tune the following parameters, read:
+#     arctic/benchmarks/lz4_tuning/README.txt
+# The size of the compression thread pool.
+# Rule of thumb: use 2 for non HC (VersionStore/NDarrayStore/PandasStore, and 8 for HC (TickStore).
+LZ4_WORKERS = os.environ.get('LZ4_WORKERS', 2)
+
+# The minimum required number of chunks to use parallel compression
+LZ4_N_PARALLEL = os.environ.get('LZ4_N_PARALLEL', 16)
+
+# Minimum data size to use parallel compression
+LZ4_MINSZ_PARALLEL = os.environ.get('LZ4_MINSZ_PARALLEL', 0.5*1024**2)  # 0.5 MB
+
+# Enable this when you run the benchmark_lz4.py
+BENCHMARK_MODE = False

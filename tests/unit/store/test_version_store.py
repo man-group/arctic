@@ -14,7 +14,7 @@ from arctic.store import version_store
 from arctic.store.version_store import VersionStore, VersionedItem
 from arctic.arctic import ArcticLibraryBinding, Arctic
 from arctic.exceptions import ConcurrentModificationException, DuplicateSnapshotException, NoDataFoundException
-from arctic._util import FW_POINTERS_REFS_KEY
+from arctic._config import FW_POINTERS_REFS_KEY
 
 
 def test_delete_version_version_not_found():

@@ -1,19 +1,19 @@
 import abc
 import hashlib
 import logging
-import os
 from threading import RLock
 
 import numpy as np
 import pandas as pd
 from bson import Binary
 
+from arctic._config import ARCTIC_AUTO_EXPAND_CHUNK_SIZE
 from arctic.serialization.numpy_records import PandasSerializer
 from .._compression import compress
+from .._config import MAX_DOCUMENT_SIZE
 from ..exceptions import ArcticSerializationException
-from .._util import MAX_DOCUMENT_SIZE, NP_OBJECT_DTYPE
+from .._util import NP_OBJECT_DTYPE
 
-ARCTIC_AUTO_EXPAND_CHUNK_SIZE = bool(os.environ.get('ARCTIC_AUTO_EXPAND_CHUNK_SIZE'))
 
 ABC = abc.ABCMeta('ABC', (object,), {})
 
