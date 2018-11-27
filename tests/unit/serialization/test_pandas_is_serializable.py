@@ -8,7 +8,7 @@ df_serializer = anr.DataFrameSerializer()
 
 @pytest.mark.parametrize("input_df", input_test_data().keys())
 def test_dataframe_confirm_fast_check_compatibility(input_df):
-    orig_config = anr._FAST_CHECK_DF_SERIALIZABLE
+    orig_config = anr.FAST_CHECK_DF_SERIALIZABLE
     try:
         input_df = input_test_data()[input_df][0]
         anr.set_fast_check_df_serializable(True)
@@ -17,4 +17,4 @@ def test_dataframe_confirm_fast_check_compatibility(input_df):
         without_fast_check = df_serializer.can_convert_to_records_without_objects(input_df, 'symA')
         assert with_fast_check == without_fast_check
     finally:
-        anr._FAST_CHECK_DF_SERIALIZABLE = orig_config
+        anr.FAST_CHECK_DF_SERIALIZABLE = orig_config

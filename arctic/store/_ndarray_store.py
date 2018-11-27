@@ -1,6 +1,5 @@
 import hashlib
 import logging
-import os
 from operator import itemgetter
 
 
@@ -9,10 +8,12 @@ import numpy as np
 import pymongo
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
-from arctic._util import mongo_count, FwPointersCfg, FW_POINTERS_REFS_KEY, \
-    ARCTIC_FORWARD_POINTERS_CFG, ARCTIC_FORWARD_POINTERS_RECONCILE, FW_POINTERS_CONFIG_KEY, get_fwptr_config
+
+from .._config import CHECK_CORRUPTION_ON_APPEND, FW_POINTERS_CONFIG_KEY, FW_POINTERS_REFS_KEY, \
+    ARCTIC_FORWARD_POINTERS_CFG, ARCTIC_FORWARD_POINTERS_RECONCILE, FwPointersCfg
 from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException, DataIntegrityException
+from .._util import mongo_count, get_fwptr_config
 from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
 
 from .._compression import compress_array, decompress
@@ -24,9 +25,6 @@ logger = logging.getLogger(__name__)
 _CHUNK_SIZE = 2 * 1024 * 1024 - 2048  # ~2 MB (a bit less for usePowerOf2Sizes)
 _APPEND_SIZE = 1 * 1024 * 1024  # 1MB
 _APPEND_COUNT = 60  # 1 hour of 1 min data
-
-# Enabling the following has roughly a 5-7% performance hit (off by default)
-_CHECK_CORRUPTION_ON_APPEND = bool(os.environ.get('CHECK_CORRUPTION_ON_APPEND'))
 
 
 def _promote_struct_dtypes(dtype1, dtype2):
@@ -117,8 +115,8 @@ def _resize_with_dtype(arr, dtype):
 
 
 def set_corruption_check_on_append(enable):
-    global _CHECK_CORRUPTION_ON_APPEND
-    _CHECK_CORRUPTION_ON_APPEND = bool(enable)
+    global CHECK_CORRUPTION_ON_APPEND
+    CHECK_CORRUPTION_ON_APPEND = bool(enable)
 
 
 def _update_fw_pointers(collection, symbol, version, previous_version, is_append, shas_to_add=None):
@@ -437,7 +435,7 @@ class NdarrayStore(object):
             version['dtype_metadata'] = previous_version['dtype_metadata']
             
             # Verify (potential) corruption with append
-            if _CHECK_CORRUPTION_ON_APPEND and _fast_check_corruption(
+            if CHECK_CORRUPTION_ON_APPEND and _fast_check_corruption(
                     collection, symbol, previous_version,
                     check_count=False, check_last_segment=True, check_append_safe=True):
                 logging.warning("Found mismatched segments for {} (version={}). "

@@ -15,7 +15,8 @@ import pytest
 import numpy as np
 
 import arctic
-from arctic._util import mongo_count, FwPointersCfg, FW_POINTERS_REFS_KEY, get_fwptr_config
+from arctic._config import FwPointersCfg, FW_POINTERS_REFS_KEY
+from arctic._util import mongo_count, get_fwptr_config
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException
 from arctic.date import DateRange
 from arctic.store import _version_store_utils

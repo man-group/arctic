@@ -1,6 +1,5 @@
 from datetime import datetime
 from functools import wraps
-import os
 import sys
 from time import sleep
 import logging

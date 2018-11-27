@@ -1,29 +1,28 @@
 from datetime import datetime as dt, timedelta
 import logging
-import os
 
 import bson
-from pymongo import ReadPreference
 import pymongo
+import six
+from pymongo import ReadPreference
 from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
-from .._util import indent, enable_sharding, mongo_count, FW_POINTERS_REFS_KEY, get_fwptr_config, FwPointersCfg, \
-    FW_POINTERS_CONFIG_KEY
+from .._config import STRICT_WRITE_HANDLER_MATCH, FW_POINTERS_REFS_KEY, FW_POINTERS_CONFIG_KEY, FwPointersCfg
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
     ArcticException
 from ..hooks import log_exception
 from ._pickle_store import PickleStore
+from .._util import indent, enable_sharding, mongo_count, get_fwptr_config
 from ._version_store_utils import cleanup, get_symbol_alive_shas, _get_symbol_pointer_cfgs
 from .versioned_item import VersionedItem
-import six
+
 
 logger = logging.getLogger(__name__)
 
 VERSION_STORE_TYPE = 'VersionStore'
 _TYPE_HANDLERS = []
-STRICT_WRITE_HANDLER_MATCH = bool(os.environ.get('STRICT_WRITE_HANDLER_MATCH'))
 ARCTIC_VERSION = None
 ARCTIC_VERSION_NUMERICAL = None
 
@@ -56,9 +55,9 @@ class VersionStore(object):
             # 32MB buffer for change notifications
             mongo_retry(c.database.create_collection)('%s.changes' % c.name, capped=True, size=32 * 1024 * 1024)
 
-        if 'STRICT_WRITE_HANDLER_MATCH' in kwargs:
+        if 'strict_write_handler' in kwargs:
             arctic_lib.set_library_metadata('STRICT_WRITE_HANDLER_MATCH',
-                                            bool(kwargs.pop('STRICT_WRITE_HANDLER_MATCH')))
+                                            bool(kwargs.pop('strict_write_handler')))
 
         for th in _TYPE_HANDLERS:
             th.initialize_library(arctic_lib, **kwargs)

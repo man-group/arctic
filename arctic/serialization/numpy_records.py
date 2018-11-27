@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
+from .._config import FAST_CHECK_DF_SERIALIZABLE
 from ..exceptions import ArcticException
 from .._util import NP_OBJECT_DTYPE
 try:  # 0.21+ Compatibility
@@ -19,13 +20,11 @@ log = logging.getLogger(__name__)
 
 DTN64_DTYPE = 'datetime64[ns]'
 
-# TODO: Switch on by default this flag to enable the fast check once this gets thoroughly tested
-_FAST_CHECK_DF_SERIALIZABLE = bool(os.environ.get('ENABLE_FAST_CHECK_DF_SERIALIZABLE'))
 
 
 def set_fast_check_df_serializable(config):
-    global _FAST_CHECK_DF_SERIALIZABLE
-    _FAST_CHECK_DF_SERIALIZABLE = bool(config)
+    global FAST_CHECK_DF_SERIALIZABLE
+    FAST_CHECK_DF_SERIALIZABLE = bool(config)
 
 
 def _to_primitive(arr, string_max_len=None, forced_dtype=None):
@@ -190,7 +189,7 @@ class PandasSerializer(object):
         # We can't easily distinguish string columns from objects
         try:
             #TODO: we can add here instead a check based on df size and enable fast-check if sz > threshold value
-            if _FAST_CHECK_DF_SERIALIZABLE:
+            if FAST_CHECK_DF_SERIALIZABLE:
                 arr, _ = self.fast_check_serializable(df)
             else:
                 arr, _ = self._to_records(df)

@@ -28,13 +28,13 @@ def _bench(rounds, input_df, fast):
 def assess_speed(df_kind):
     rounds = 100
     input_df = input_test_data()[df_kind][0]
-    orig_config = anr._FAST_CHECK_DF_SERIALIZABLE
+    orig_config = anr.FAST_CHECK_DF_SERIALIZABLE
     try:
         _bench(rounds, input_df, fast=False)
 
         _bench(rounds, input_df, fast=True)
     finally:
-        anr._FAST_CHECK_DF_SERIALIZABLE = orig_config
+        anr.FAST_CHECK_DF_SERIALIZABLE = orig_config
 
 
 def main():
