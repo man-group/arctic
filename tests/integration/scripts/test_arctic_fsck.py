@@ -107,7 +107,8 @@ def test_cleanup_orphaned_chunks_ignores_recent(mongo_host, library, data, dry_r
 
 @pytest.mark.parametrize('data, fw_pointers_config',
                          [(x, y) for (x, y) in itertools.product(
-                             [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
+                             [some_object, ts],
+                             [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
 def test_cleanup_orphaned_chunk_doesnt_break_versions(mongo_host, library, data, fw_pointers_config):
     """
     Check that a chunk pointed to by more than one version, aren't inadvertently cleared

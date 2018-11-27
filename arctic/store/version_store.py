@@ -931,8 +931,9 @@ class VersionStore(object):
         #       This would be possible only via FSCK, or by moving the above statement at the end of this method,
         #       but with the risk of failing to delelte the version catastrophically, and ending up with a corrupted v.
         if do_cleanup:
-            cleanup(self._arctic_lib, symbol, [version['_id']],
-                    self._versions, version.get(FW_POINTERS_REFS_KEY, []), [get_fwptr_config(version)])
+            cleanup(self._arctic_lib, symbol, [version['_id']], self._versions,
+                    shas_to_delete=tuple(bson.binary.Binary(s) for s in version.get(FW_POINTERS_REFS_KEY, [])),
+                    pointers_cfgs=(get_fwptr_config(version), ))
 
     @mongo_retry
     def delete(self, symbol):
