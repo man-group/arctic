@@ -5,7 +5,7 @@ import pymongo
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
-from arctic._config import FW_POINTERS_CONFIG_KEY, FwPointersCfg
+from ._config import FW_POINTERS_CONFIG_KEY, FwPointersCfg
 
 logger = logging.getLogger(__name__)
 
