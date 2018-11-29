@@ -17,7 +17,7 @@ Controls if Arctic can only match the intended handlers for the data type. If se
 export STRICT_WRITE_HANDLER_MATCH=1
 ```
 
-When strict match is enabled and handler fails to serialize without objects, users will reveive the the foolowing error:
+When strict match is enabled and handler fails to serialize without objects, users will receive the the following error:
 
 ```
 Traceback (most recent call last):
