@@ -4,6 +4,9 @@ Arctic has several tuning knobs under [arctic/_config.py](https://github.com/man
 
 Most of these variables are initialized via environment variables, which are explained in the rest of this section.
 
+
+<br><br>
+
 ## VersionStore
 
 ### STRICT_WRITE_HANDLER_MATCH
@@ -16,6 +19,9 @@ export STRICT_WRITE_HANDLER_MATCH=1
 
 
 
+<br><br>
+
+
 ## NdArrayStore
 
 ### CHECK_CORRUPTION_ON_APPEND
@@ -26,6 +32,9 @@ Enables more thorough sanity checks for detecting data corruption when issuing a
 export CHECK_CORRUPTION_ON_APPEND=1
 ```
 
+
+
+<br><br>
 
 
 ## Serialization
@@ -65,6 +74,9 @@ export FAST_CHECK_DF_SERIALIZABLE=1
 
 
 
+
+
+<br><br>
 
 
 
@@ -110,9 +122,10 @@ The following table documents the compatibility for reading and writing data for
 | Update with ARCTIC_FORWARD_POINTERS_CFG=DISABLED |            Y              |          Y           |          Y(*)        |
 | Update with ARCTIC_FORWARD_POINTERS_CFG=HYBRID   |            Y              |          Y           |          Y(*)        |
 | Update with ARCTIC_FORWARD_POINTERS_CFG=ENABLED  |            Y              |          Y           |          Y           |
-```
 
 (*) appends will be converted to a full write
+
+```
 
 It is recommended to make a full write for all symbols in HYBRID mode when switching for ENABLED to DISABLED.
 
@@ -142,6 +155,10 @@ This holds the MongoDB document key under which it is stored the forward pointer
 
 It is not recommended to change this value.
 
+
+
+
+<br><br>
 
 
 
