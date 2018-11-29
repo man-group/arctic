@@ -97,18 +97,18 @@ export ARCTIC_FORWARD_POINTERS_CFG=1
 
 The following table documents the compatibility for reading and writing data for all possible combinations of *ARCTIC_FORWARD_POINTERS_CFG*.
 
-|                                                  |   Version written with    | Version written with | Version written with |
-|                                                  | legacy Arctic / DISABLED  |        HYBRID        |       ENABLED        |
-| ------------------------------------------------ | ------------------------- | -------------------- | -------------------- |
-|            Read with Arctic < v1.73.0            |            Y              |          Y           |          -           |
-|  Read with ARCTIC_FORWARD_POINTERS_CFG=DISABLED  |            Y              |          Y           |          Y           |
-|  Read with ARCTIC_FORWARD_POINTERS_CFG=HYBRID    |            Y              |          Y           |          Y           |
-|  Read with ARCTIC_FORWARD_POINTERS_CFG=ENABLED   |            Y              |          Y           |          Y           |
-|                                                  |                           |                      |                      |
-|          Update with Arctic < v1.73.0            |            Y              |          Y           |          -           |
-| Update with ARCTIC_FORWARD_POINTERS_CFG=DISABLED |            Y              |          Y           |          Y(*)        |
-| Update with ARCTIC_FORWARD_POINTERS_CFG=HYBRID   |            Y              |          Y           |          Y(*)        |
-| Update with ARCTIC_FORWARD_POINTERS_CFG=ENABLED  |            Y              |          Y           |          Y           |
+|                                                  |   Version written with    | Version written with | Version written with |<br>
+|                                                  | legacy Arctic / DISABLED  |        HYBRID        |       ENABLED        |<br>
+| ------------------------------------------------ | ------------------------- | -------------------- | -------------------- |<br>
+|            Read with Arctic < v1.73.0            |            Y              |          Y           |          -           |<br>
+|  Read with ARCTIC_FORWARD_POINTERS_CFG=DISABLED  |            Y              |          Y           |          Y           |<br>
+|  Read with ARCTIC_FORWARD_POINTERS_CFG=HYBRID    |            Y              |          Y           |          Y           |<br>
+|  Read with ARCTIC_FORWARD_POINTERS_CFG=ENABLED   |            Y              |          Y           |          Y           |<br>
+|                                                  |                           |                      |                      |<br>
+|          Update with Arctic < v1.73.0            |            Y              |          Y           |          -           |<br>
+| Update with ARCTIC_FORWARD_POINTERS_CFG=DISABLED |            Y              |          Y           |          Y(*)        |<br>
+| Update with ARCTIC_FORWARD_POINTERS_CFG=HYBRID   |            Y              |          Y           |          Y(*)        |<br>
+| Update with ARCTIC_FORWARD_POINTERS_CFG=ENABLED  |            Y              |          Y           |          Y           |<br>
 
 (*) appends will be converted to a full write
 
