@@ -56,3 +56,10 @@ class UnorderedDataException(DataIntegrityException):
 class OverlappingDataException(DataIntegrityException):
     pass
 
+
+class AsyncArcticException(ArcticException):
+    pass
+
+
+class RequestDurationException(AsyncArcticException):
+    pass
