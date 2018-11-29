@@ -77,3 +77,11 @@ Arctic is designed to be very extensible and currently supports a numer of diffe
 * [Chunkstore](chunkstore.md)
 
 Each one has various features and is designed to support specific and general use cases. 
+
+
+
+### Arctic configuration settings
+
+There is a large number of configuration knobs which tune Arctic's performance, and enable/disable various (experimental) features.
+
+For more details refer to the [Arctic configuration guide](configuration.md).
