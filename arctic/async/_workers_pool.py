@@ -29,7 +29,7 @@ def _exec_task(fun, *args, **kwargs):
         raise e
 
 
-class LazySingletonWorkersPool(ABC):
+class LazySingletonTasksCoordinator(ABC):
     """
     A Thread-Safe singleton lazily initialized thread pool class (encapsulating concurrent.futures.ThreadPoolExecutor)
     """
@@ -86,22 +86,22 @@ class LazySingletonWorkersPool(ABC):
         # Enforce the singleton pattern
         with type(self)._SINGLETON_LOCK:
             if type(self)._instance is not None:
-                raise AsyncArcticException("LazySingletonWorkersPool is a singleton, can't create a new instance")
+                raise AsyncArcticException("LazySingletonTasksCoordinator is a singleton, can't create a new instance")
             self._lock = RLock()
             self._pool = None
             self._pool_size = int(pool_size)
             self._pool_update_hooks = []
             self.alive_tasks = {}
+            self.is_shutdown = False
 
-    def reset(self, block=True, pool_size=None, timeout=None):
+    def reset(self, pool_size=None, timeout=None):
         pool_size = ARCTIC_ASYNC_NWORKERS if pool_size is None else int(pool_size)
         with type(self)._POOL_LOCK:
-            self.stop_all_running_tasks()
-            self.wait_all_running_tasks(timeout=timeout)
-            self._workers_pool.shutdown(wait=block)
+            self.shutdown(timeout=timeout)
             pool_size = max(pool_size, 1)
             self._pool = None
             self._pool_size = pool_size
+            self.is_shutdown = False
             # pool will be lazily initialized with pool_size on next request submission
 
     def stop_all_running_tasks(self):
@@ -110,13 +110,6 @@ class LazySingletonWorkersPool(ABC):
                 if ev:
                     ev.set()
                 fut.cancel()
-
-    def wait_all_running_tasks(self, timeout=None, return_when=ALL_COMPLETED, raise_exceptions=True):
-        with type(self)._POOL_LOCK:
-            LazySingletonWorkersPool.wait_tasks(
-                [v[0] for v in itervalues(self.alive_tasks)],
-                timeout=timeout, return_when=return_when, raise_exceptions=raise_exceptions)
-        self.alive_tasks = {}
 
     @staticmethod
     def wait_tasks(futures, timeout=None, return_when=ALL_COMPLETED, raise_exceptions=True):
@@ -128,13 +121,13 @@ class LazySingletonWorkersPool(ABC):
     @staticmethod
     def wait_tasks_or_abort(futures, timeout=60, kill_switch_ev=None):
         try:
-            LazySingletonWorkersPool.wait_tasks(futures, return_when=FIRST_EXCEPTION, raise_exceptions=True)
+            LazySingletonTasksCoordinator.wait_tasks(futures, return_when=FIRST_EXCEPTION, raise_exceptions=True)
         except Exception as e:
             if kill_switch_ev is not None:
                 # Used when we want to keep both raise the exception and wait for all tasks to finish
                 kill_switch_ev.set()
-                LazySingletonWorkersPool.wait_tasks(futures, return_when=ALL_COMPLETED,
-                                                    raise_exceptions=False, timeout=timeout)
+                LazySingletonTasksCoordinator.wait_tasks(futures, return_when=ALL_COMPLETED,
+                                                         raise_exceptions=False, timeout=timeout)
             raise e
 
     def register_update_hook(self, fun):
@@ -145,6 +138,9 @@ class LazySingletonWorkersPool(ABC):
         new_id = uuid.uuid4()
         shutdown_flag = Event() if is_looping else None
         with type(self)._POOL_LOCK:
+            if self.is_shutdown:
+                raise AsyncArcticException("The worker pool has been shutdown and can no longer accept new requests.")
+
             if is_looping:
                 new_future = self._workers_pool.submit(_looping_task, shutdown_flag, fun, *args, **kwargs)
             else:
@@ -158,6 +154,23 @@ class LazySingletonWorkersPool(ABC):
             self.alive_tasks = {k: v for k, v in iteritems(self.alive_tasks) if not v[0].done()}
             total = len(self.alive_tasks)
         return total
+
+    def shutdown(self, timeout=None):
+        with type(self)._POOL_LOCK:
+            self.is_shutdown = True
+        if timeout is not None:
+            self.await_termination(timeout=timeout)
+        self._workers_pool.shutdown(wait=timeout is not None)
+
+    def await_termination(self, timeout=None):
+        with type(self)._POOL_LOCK:
+            if not self.is_shutdown:
+                raise AsyncArcticException("The workers pool has not been shutdown, please call shutdown() first.")
+        LazySingletonTasksCoordinator.wait_tasks(
+            [v[0] for v in itervalues(self.alive_tasks)],
+            timeout=timeout, return_when=ALL_COMPLETED, raise_exceptions=False)
+        with type(self)._POOL_LOCK:
+            self.alive_tasks = {}
 
     @property
     def actual_pool_size(self):

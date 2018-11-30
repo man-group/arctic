@@ -3,11 +3,12 @@ from six.moves import xrange
 
 import arctic._compression as aclz4
 from arctic import Arctic
-from arctic.async import ASYNC_ARCTIC, async_arctic_submit, async_join_all, async_wait_requests
+from arctic.async import ASYNC_ARCTIC, async_arctic_submit, async_shutdown, async_await_termination, async_wait_requests
 from tests.integration.chunkstore.test_utils import create_test_data
 
 
-a = Arctic('localhost:27017')
+# a = Arctic('localhost:27017')
+a = Arctic('dlonapahls229:37917')
 library_name = 'asyncbench.test'
 
 TEST_DATA_CACHE = {}
@@ -46,9 +47,9 @@ def clean_lib():
 def async_bench(num_requests, num_chunks):
     data = get_cached_random_df(num_chunks)
     lib = a[library_name]
-    reqs = [async_arctic_submit(lib, lib.write, True, symbol='sym_{}'.format(x), data=data)
-            for x in xrange(num_requests)]
-    async_wait_requests(reqs)
+    requests = [async_arctic_submit(lib, lib.write, True, symbol='sym_{}'.format(x), data=data)
+                for x in xrange(num_requests)]
+    async_wait_requests(requests, do_raise=True)
 
 
 def serial_bench(num_requests, num_chunks):
@@ -62,7 +63,7 @@ def run_scenario(result_text, rounds, num_requests, num_chunks, parallel_lz4,
                  use_async, async_arctic_pool_workers=None):
     aclz4.enable_parallel_lz4(parallel_lz4)
     if async_arctic_pool_workers is not None:
-        ASYNC_ARCTIC.reset(block=True, pool_size=int(async_arctic_pool_workers))
+        ASYNC_ARCTIC.reset(pool_size=int(async_arctic_pool_workers), timeout=10)
     measurements = []
     for curr_round in xrange(rounds):
         # print("Running round {}".format(curr_round))
@@ -82,8 +83,8 @@ def run_scenario(result_text, rounds, num_requests, num_chunks, parallel_lz4,
 def main():
     n_use_async = (False, True)
 
-    n_rounds = (10,)
-    n_num_requests = (64,)
+    n_rounds = (1,)
+    n_num_requests = (8,)
     n_num_chunks = (4,)
 
     n_parallel_lz4 = (False,)

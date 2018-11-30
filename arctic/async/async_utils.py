@@ -11,7 +11,7 @@ class AsyncRequestType(Enum):
 
 
 class AsyncRequest(object):
-    def __init__(self, kind, library, fun, *args, **kwargs):
+    def __init__(self, kind, library, fun, callback, *args, **kwargs):
         self.id = uuid.uuid4()
 
         # Request library call spec
@@ -26,6 +26,7 @@ class AsyncRequest(object):
 
         # Request's state
         self.future = None
+        self.callback = callback
         self.data = None
         self.exception = None
         self.is_running = False
@@ -41,21 +42,21 @@ class AsyncRequest(object):
     @property
     def execution_duration(self):
         if None in (self.start_time, self.end_time):
-            raise RequestDurationException("{} can't provide an execution_duration ({}).".format(
+            raise RequestDurationException("{} can't provide an execution_duration {}.".format(
                 self, (self.start_time, self.end_time)))
         return self.end_time - self.start_time
 
     @property
     def schedule_delay(self):
         if None in (self.start_time, self.create_time):
-            raise RequestDurationException("{} can't provide an schedule_delay ({}).".format(
+            raise RequestDurationException("{} can't provide a schedule_delay {}.".format(
                 self, (self.start_time, self.create_time)))
         return self.start_time - self.create_time
 
     @property
     def total_time(self):
         if None in (self.end_time, self.create_time):
-            raise RequestDurationException("{} can't provide an total_time ({}).".format(
+            raise RequestDurationException("{} can't provide a total_time {}.".format(
                 self, (self.end_time, self.create_time)))
         return self.end_time - self.create_time
 

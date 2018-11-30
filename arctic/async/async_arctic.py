@@ -6,7 +6,7 @@ from threading import RLock
 from concurrent.futures import FIRST_COMPLETED
 
 from .async_utils import AsyncRequestType, AsyncRequest
-from ._workers_pool import LazySingletonWorkersPool
+from ._workers_pool import LazySingletonTasksCoordinator
 from ..decorators import mongo_retry
 from ..exceptions import AsyncArcticException
 
@@ -30,7 +30,7 @@ def _arctic_task_exec(request):
     return result
 
 
-class AsyncArctic(LazySingletonWorkersPool):
+class AsyncArctic(LazySingletonTasksCoordinator):
     _instance = None
     _SINGLETON_LOCK = RLock()
     _POOL_LOCK = RLock()
@@ -45,6 +45,8 @@ class AsyncArctic(LazySingletonWorkersPool):
             super(AsyncArctic, self).__init__(pool_size)
             self.requests_per_library = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
             self.requests_by_id = dict()
+            self.local_shutdown = False
+            self.deferred_requests = list()
 
     def __reduce__(self):
         return "ASYNC_ARCTIC"
@@ -64,6 +66,10 @@ class AsyncArctic(LazySingletonWorkersPool):
         mongo_retry = bool(kwargs.get('mongo_retry'))
         return library_name, symbol, kind, callback, mongo_retry
 
+    def _is_clashing(self, request):
+        return bool(self._get_modifiers(request.library, request.symbol) or
+                    request.kind is AsyncRequestType.MODIFIER and self._get_accessors(request.library, request.symbol))
+
     def _add_request(self, request):
         self.requests_per_library[request.library][request.symbol][request.kind].append(request)
         self.requests_by_id[request.id] = request
@@ -73,6 +79,19 @@ class AsyncArctic(LazySingletonWorkersPool):
         if request.id in self.requests_by_id:
             del self.requests_by_id[request.id]
 
+    def _schedule_request(self, request):
+        # Update the state of tracked tasks
+        self._add_request(request)
+        try:
+            new_id, new_future = self.submit_task(False, _arctic_task_exec, request)
+            request.id = new_id
+            request.future = new_future
+            request.future.add_done_callback(lambda the_future: self._request_finished(request))
+        except Exception:
+            # clean up the state
+            self._remove_request(request)
+            raise
+
     def submit_arctic_request(self, store, fun, is_modifier, *args, **kwargs):
         lib_name, symbol, kind, callback, mongo_retry = AsyncArctic._verify_request(store, is_modifier, **kwargs)
 
@@ -80,60 +99,104 @@ class AsyncArctic(LazySingletonWorkersPool):
             kwargs.pop(k, None)
 
         with type(self)._POOL_LOCK:  # class level lock, since it is a Singleton
-            if lib_name:
-                if self._get_modifiers(lib_name, symbol):
-                    raise AsyncArcticException("Can't submit async task as one or more {} tasks "
-                                               "are already being processed".format(AsyncRequestType.MODIFIER))
-
-                if is_modifier and self._get_accessors(lib_name, symbol):
-                    raise AsyncArcticException("Can't submit async {} task as one or more {} tasks "
-                                               "are being processed".format(AsyncRequestType.ACCESSOR,
-                                                                            AsyncRequestType.MODIFIER))
+            if self.local_shutdown:
+                raise AsyncArcticException("AsyncArctic has been shutdown and can no longer accept new requests.")
 
             # Create the request object
-            request = AsyncRequest(kind, lib_name, fun, *args, **kwargs)
+            request = AsyncRequest(kind, lib_name, fun, callback, *args, **kwargs)
 
-            # Update the state of tracked tasks
-            self._add_request(request)
+            if lib_name and self._is_clashing(request):
+                self.deferred_requests.append(request)
+                return request
 
-            # Submit the task
-            try:
-                new_id, new_future = self.submit_task(False, _arctic_task_exec, request)
-                request.id = new_id
-                request.future = new_future
-            except Exception:
-                # clean up the state
-                self._remove_request(request)
-                raise
-
-        # No need to hold the lock for the below statements
-        # If request is already finished by now, the callback is invoked immediately
-        request.future.add_done_callback(lambda the_future: self._request_finished(request, callback))
+            self._schedule_request(request)
 
         return request
 
-    def _request_finished(self, request, callback=None):
+    def _reschedule_deferred(self):
+        picked = None
+        try:
+            for deferred in self.deferred_requests:
+                if not self._is_clashing(deferred):
+                    picked = deferred
+                    self._schedule_request(deferred)
+                    break
+        except:
+            logging.exception("Failed to re-schedule a deferred task: {}".format(picked))
+            return
+        self.deferred_requests.remove(picked)
+
+    def _request_finished(self, request):
         with type(self)._POOL_LOCK:
             self._remove_request(request)
+            if self.deferred_requests:
+                self._reschedule_deferred()
+            else:
+                self.shutdown()
         request.is_completed = True
-        if callback:
-            callback(request)
+        if callable(request.callback):
+            request.callback(request)
+
+    def reset(self, pool_size=None, timeout=None):
+        self.shutdown(timeout=timeout)
+        self.await_termination(timeout=timeout)
+        super(AsyncArctic, self).reset(pool_size, timeout)
+        with type(self)._SINGLETON_LOCK:
+            self.requests_per_library = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+            self.requests_by_id = dict()
+            self.local_shutdown = False
+            self.deferred_requests = list()
+
+    def shutdown(self, timeout=None):
+        self.local_shutdown = True
+        if not self.deferred_requests:
+            super(AsyncArctic, self).shutdown(timeout=timeout)
+
+    def await_termination(self, timeout=None):
+        super(AsyncArctic, self).await_termination(timeout)
+        while self.total_pending_requests() > 0:
+            AsyncArctic.wait_requests(self.requests_by_id.values(), do_raise=False, timeout=timeout)
+
+    def total_pending_requests(self):
+        with type(self)._POOL_LOCK:  # the lock here is "really" necessary
+            return len(self.requests_by_id) + len(self.deferred_requests)
 
     @staticmethod
-    def wait_request(request, timeout=None):
-        while request is not None and not request.is_completed:
-            AsyncArctic.wait_tasks_or_abort((request.future, ), timeout=timeout)
+    def _wait_until_scheduled(requests, timeout=None, check_interval=0.1):
+        start = time.time()
+        while True:
+            if any(r for r in requests if r.future is None):
+                time.sleep(check_interval)
+            else:
+                return True
+            if timeout is not None and time.time() - start >= timeout:
+                break
+        return False
 
     @staticmethod
-    def wait_requests(requests, timeout=None):
+    def wait_request(request, do_raise=False, timeout=None):
+        if request is None:
+            return
+        if not AsyncArctic._wait_until_scheduled((request,), timeout):
+            raise AsyncArcticException("Timed-out while waiting for request to be scheduled")
+        while request.is_completed:
+            AsyncArctic.wait_tasks((request.future,), timeout=timeout, raise_exceptions=do_raise)
+
+    @staticmethod
+    def wait_requests(requests, do_raise=False, timeout=None):
+        if not AsyncArctic._wait_until_scheduled(requests, timeout):
+            raise AsyncArcticException("Timed-out while waiting for request to be scheduled")
         while requests and not all(r.is_completed for r in requests):
-            AsyncArctic.wait_tasks_or_abort(tuple(r.future for r in requests if not r.is_completed), timeout=timeout)
+            AsyncArctic.wait_tasks(tuple(r.future for r in requests if not r.is_completed and r.future is not None),
+                                   timeout=timeout, raise_exceptions=do_raise)
 
     @staticmethod
-    def wait_any_request(requests, timeout=None):
+    def wait_any_request(requests, do_raise=False, timeout=None):
+        if not AsyncArctic._wait_until_scheduled(requests, timeout):
+            raise AsyncArcticException("Timed-out while waiting for request to be scheduled")
         while requests and not any(r.is_completed for r in requests):
-            AsyncArctic.wait_tasks(tuple(r.future for r in requests if not r.is_completed),
-                                   timeout=timeout, return_when=FIRST_COMPLETED, raise_exceptions=True)
+            AsyncArctic.wait_tasks(tuple(r.future for r in requests if not r.is_completed and r.future is not None),
+                                   timeout=timeout, return_when=FIRST_COMPLETED, raise_exceptions=do_raise)
 
     @staticmethod
     def filter_finished_requests(requests, do_raise=True):
@@ -146,29 +209,24 @@ class AsyncArctic(LazySingletonWorkersPool):
         return alive_requests, done_requests
 
     @staticmethod
-    def raise_errored(requests):
+    def raise_first_errored(requests):
         errored = tuple(r for r in requests if r.is_completed and r.exception is not None)
         if errored:
             raise errored[0].exception
 
-    def join(self, timeout=None):
-        while len(self.requests_by_id):
-            try:
-                AsyncArctic.wait_requests(self.requests_by_id.values(), timeout=timeout)
-            except Exception as e:
-                logging.exception("Failed to join all requests")
-
-    def total_requests(self):
-        return len(self.requests_by_id)
+    @staticmethod
+    def filter_errored(requests):
+        return tuple(r for r in requests if r.is_completed and r.exception is not None)
 
 
 ASYNC_ARCTIC = AsyncArctic.get_instance()
 async_arctic_submit = ASYNC_ARCTIC.submit_arctic_request
 async_wait_request = ASYNC_ARCTIC.wait_request
 async_wait_requests = ASYNC_ARCTIC.wait_requests
-async_join_all = ASYNC_ARCTIC.join
+async_shutdown = ASYNC_ARCTIC.shutdown
+async_await_termination = ASYNC_ARCTIC.await_termination
 async_reset_pool = ASYNC_ARCTIC.reset
-async_total_requests = ASYNC_ARCTIC.total_requests
+async_total_requests = ASYNC_ARCTIC.total_pending_requests
 
 
 # def async_modifier(func):
