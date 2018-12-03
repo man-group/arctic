@@ -81,6 +81,7 @@ setup(
                    ],
     install_requires=["decorator",
                       "enum-compat",
+                      "futures; python_version == '2.7'",
                       "mockextras",
                       "pandas",
                       "pymongo>=3.6.0",

@@ -85,3 +85,10 @@ LZ4_MINSZ_PARALLEL = os.environ.get('LZ4_MINSZ_PARALLEL', 0.5*1024**2)  # 0.5 MB
 
 # Enable this when you run the benchmark_lz4.py
 BENCHMARK_MODE = False
+
+
+# ---------------------------
+# Async arctic
+# ---------------------------
+# Configures the size of the workers pools used for async arctic requests
+ARCTIC_ASYNC_NWORKERS = os.environ.get('ARCTIC_ASYNC_NWORKERS', 4)
