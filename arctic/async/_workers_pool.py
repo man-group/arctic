@@ -156,6 +156,8 @@ class LazySingletonTasksCoordinator(ABC):
         return total
 
     def shutdown(self, timeout=None):
+        if self.is_shutdown:
+            return
         with type(self)._POOL_LOCK:
             self.is_shutdown = True
         if timeout is not None:

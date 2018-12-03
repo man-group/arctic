@@ -7,8 +7,7 @@ from arctic.async import ASYNC_ARCTIC, async_arctic_submit, async_shutdown, asyn
 from tests.integration.chunkstore.test_utils import create_test_data
 
 
-# a = Arctic('localhost:27017')
-a = Arctic('dlonapahls229:37917')
+a = Arctic('localhost:27017')
 library_name = 'asyncbench.test'
 
 TEST_DATA_CACHE = {}

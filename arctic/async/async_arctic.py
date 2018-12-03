@@ -80,11 +80,11 @@ class AsyncArctic(LazySingletonTasksCoordinator):
             del self.requests_by_id[request.id]
 
     def _schedule_request(self, request):
-        # Update the state of tracked tasks
-        self._add_request(request)
         try:
             new_id, new_future = self.submit_task(False, _arctic_task_exec, request)
             request.id = new_id
+            # Update the state of tracked tasks
+            self._add_request(request)
             request.future = new_future
             request.future.add_done_callback(lambda the_future: self._request_finished(request))
         except Exception:
@@ -131,8 +131,9 @@ class AsyncArctic(LazySingletonTasksCoordinator):
             self._remove_request(request)
             if self.deferred_requests:
                 self._reschedule_deferred()
-            else:
-                self.shutdown()
+            elif self.local_shutdown:
+                # Deferred shutdown of the underlying pool until the deferred jobs have finished
+                super(AsyncArctic, self).shutdown()
         request.is_completed = True
         if callable(request.callback):
             request.callback(request)
@@ -148,14 +149,20 @@ class AsyncArctic(LazySingletonTasksCoordinator):
             self.deferred_requests = list()
 
     def shutdown(self, timeout=None):
-        self.local_shutdown = True
-        if not self.deferred_requests:
-            super(AsyncArctic, self).shutdown(timeout=timeout)
+        if self.local_shutdown:
+            return
+        with type(self)._POOL_LOCK:
+            self.local_shutdown = True
+            if self.total_pending_requests() == 0:
+                # safe to use this non-atomic check here, as self.deferred_requests
+                # is updated only after the deferred request is scheduled
+                super(AsyncArctic, self).shutdown(timeout=timeout)
 
     def await_termination(self, timeout=None):
-        super(AsyncArctic, self).await_termination(timeout)
         while self.total_pending_requests() > 0:
-            AsyncArctic.wait_requests(self.requests_by_id.values(), do_raise=False, timeout=timeout)
+            AsyncArctic.wait_requests(self.requests_by_id.values() + self.deferred_requests,
+                                      do_raise=False, timeout=timeout)
+        # super(AsyncArctic, self).await_termination(timeout)
 
     def total_pending_requests(self):
         with type(self)._POOL_LOCK:  # the lock here is "really" necessary
