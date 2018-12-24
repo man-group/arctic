@@ -259,7 +259,7 @@ def test_fast_is_safe_to_append(library, library_name):
         sha.update(item.encode('ascii'))
         segment['sha'] = Binary(sha.digest())
         segment.pop('_id')
-        
+
     ts = create_test_data(size=100, cols=100,
                           index=True, multiindex=False,
                           random_data=True, random_ids=True)

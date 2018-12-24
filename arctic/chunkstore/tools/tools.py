@@ -45,5 +45,5 @@ def segment_id_repair(library, symbol=None):
                     seg[SEGMENT] = index
                 library._collection.insert_many(segments)
                 ret.append(sym)
-    
+
     return ret

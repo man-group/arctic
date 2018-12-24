@@ -26,6 +26,7 @@ def _get_host(store):
             pass
     return ret
 
+
 _in_retry = False
 _retry_count = 0
 

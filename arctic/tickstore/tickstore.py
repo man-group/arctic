@@ -186,11 +186,11 @@ class TickStore(object):
         if date_range.start:
             assert date_range.start.tzinfo
             start = date_range.start
-            
+
             # If all chunks start inside of the range, we default to capping to our
             # range so that we don't fetch any chunks from the beginning of time
             start_range['$gte'] = start
-            
+
             match = self._symbol_query(symbol)
             match.update({'s': {'$lte': start}})
 
@@ -216,7 +216,6 @@ class TickStore(object):
                         break
             except StopIteration:
                 pass
-            
 
         # Find the end bound
         if date_range.end:

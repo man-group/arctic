@@ -97,7 +97,6 @@ def test_save_read_pandas_dataframe_with_unicode_index_name(library):
     assert np.all(df.values == saved_df.values)
 
 
-
 def test_cant_write_pandas_series_with_tuple_values(library):
     df = Series(data=[('A', 'BC')], index=np.array([dt(2013, 1, 1), ]).astype('datetime64[ns]'))
     assert PandasSeriesStore().can_write(Mock(), 'FOO', df) == False
@@ -468,7 +467,6 @@ def dataframe(columns, length, index):
     return df
 
 
-
 @pytest.mark.parametrize("df_size", list(itertools.combinations_with_replacement([0, 1, 2, 4], r=3)))
 def test_dataframe_save_read(library, df_size):
     df = dataframe(*df_size)
@@ -491,7 +489,6 @@ def test_dataframe_save_append_read(library, df_size):
     if None not in df.index.names:  # saved as 'index' or 'level'
         assert np.all(df.index.names == result.index.names), str(df.index.names) + "!=" + str(result.index.names)
     assert np.all(df.columns.values == result.columns.values), str(df.columns.values) + "!=" + str(result.columns.values)
-
 
 
 def test_large_dataframe_append_rewrite_same_item(library):
@@ -673,7 +670,7 @@ def test_panel_save_read_with_nans(library):
 
 def test_save_read_ints(library):
     ts1 = DataFrame(index=[dt(2012, 1, 1) + dtd(hours=x) for x in range(5)],
-                    data={'col1':np.arange(5), 'col2':np.arange(5)})
+                    data={'col1': np.arange(5), 'col2': np.arange(5)})
     ts1.index.name = 'index'
     library.write('TEST_1', ts1)
     ts2 = library.read('TEST_1').data

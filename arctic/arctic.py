@@ -229,7 +229,6 @@ class Arctic(object):
             pass
         return exists
 
-
     @mongo_retry
     def initialize_library(self, library, lib_type=VERSION_STORE, **kwargs):
         """
@@ -484,7 +483,7 @@ class ArcticLibraryBinding(object):
 
     @mongo_retry
     def _auth(self, database):
-        #Get .mongopass details here
+        # Get .mongopass details here
         if not hasattr(self.arctic, 'mongo_host'):
             return
 

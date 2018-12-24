@@ -236,7 +236,6 @@ def test_multi_index_ts_read_raw(bitemporal_library):
     assert_frame_equal(expected_ts.tz_localize(tz=LOCAL_TZ, level=2), bitemporal_library.read('spam', raw=True).data)
 
 
-
 def test_multi_index_update(bitemporal_library):
     ts = read_str_as_pandas("""          index 1 |    index 2 | near
                          2012-09-08 17:06:11.040 | SPAM Index |  1.0

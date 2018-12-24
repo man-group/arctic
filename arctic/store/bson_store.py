@@ -178,7 +178,7 @@ class BSONStore(object):
         See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.distinct
         """
         return self._collection.distinct(key, **kwargs)
-    
+
     @mongo_retry
     def create_index(self, keys, **kwargs):
         """

@@ -59,14 +59,14 @@ def test_ArcticTransaction_detects_concurrent_writes(library):
     e2 = Event()
 
     def losing_writer():
-        #will attempt to write version 2, should find that version 2 is there and it ends up writing version 3
+        # will attempt to write version 2, should find that version 2 is there and it ends up writing version 3
         with pytest.raises(ConcurrentModificationException):
             with ArcticTransaction(library, 'FOO', 'user', 'log') as cwb:
                 cwb.write('FOO', ts1_append, metadata={'foo': 'bar'})
                 e1.wait()
 
     def winning_writer():
-        #will attempt to write version 2 as well
+        # will attempt to write version 2 as well
         with ArcticTransaction(library, 'FOO', 'user', 'log') as cwb:
             cwb.write('FOO', ts2, metadata={'foo': 'bar'})
             e2.wait()
@@ -120,7 +120,6 @@ def test_metadata_changes_writes(library):
     assert library.read(symbol, audit_log[0]['new_v']).metadata == {'some': 'data', 'original': 'data'}
 
 
-
 def test_audit_read(library):
     with ArcticTransaction(library, symbol3, 'u3', 'foo') as mt:
         mt.write(symbol3, ts1)
@@ -133,7 +132,7 @@ def test_audit_read(library):
 
     with ArcticTransaction(library, symbol2, 'u2', 'l2') as mt:
         mt.write(symbol2, ts2)
-        
+
     audit_log = library.read_audit_log()
 
     assert audit_log == [{u'new_v': 1, u'symbol': u'TS2', u'message': u'l2', u'user': u'u2', u'orig_v': 0},
@@ -153,18 +152,15 @@ def test_audit_read(library):
     assert symbol_audit_log == [{u'new_v': 2, u'symbol': u'TS1', u'message': u'l2', u'user': u'u2', u'orig_v': 1},
                          {u'new_v': 1, u'symbol': u'TS1', u'message': u'l1', u'user': u'u1', u'orig_v': 0}]
 
-
     symbols_audit_log = library.read_audit_log(symbol=[symbol, symbol2])
 
     assert symbols_audit_log == [{u'new_v': 1, u'symbol': u'TS2', u'message': u'l2', u'user': u'u2', u'orig_v': 0},
                                 {u'new_v': 2, u'symbol': u'TS1', u'message': u'l2', u'user': u'u2', u'orig_v': 1},
                          {u'new_v': 1, u'symbol': u'TS1', u'message': u'l1', u'user': u'u1', u'orig_v': 0}]
 
-
     symbol_message_audit_log = library.read_audit_log(symbol=symbol, message='l2')
 
     assert symbol_message_audit_log == [{u'new_v': 2, u'symbol': u'TS1', u'message': u'l2', u'user': u'u2', u'orig_v': 1}, ]
-
 
 
 def test_cleanup_orphaned_versions_integration(library):

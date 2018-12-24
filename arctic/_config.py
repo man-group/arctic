@@ -43,6 +43,7 @@ class FwPointersCfg(Enum):
     DISABLED = 1  # operate in legacy mode, update segment parent references, don't add forward pointers
     HYBRID = 2    # maintain both forward pointers and parent references in segments; for reads prefer fw pointers
 
+
 # The version document key used to store the ObjectIDs of segments
 FW_POINTERS_REFS_KEY = 'SEGMENT_SHAS'
 

@@ -86,7 +86,7 @@ def compress_array(str_list, withHC=LZ4_HIGH_COMPRESSION):
         return _compress_thread_pool.map(do_compress, str_list)
 
     return [do_compress(s) for s in str_list]
-    
+
 
 def compress(_str):
     """

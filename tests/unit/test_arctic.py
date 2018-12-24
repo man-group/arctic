@@ -17,7 +17,7 @@ from arctic.exceptions import LibraryNotFoundException, \
 
 def test_arctic_lazy_init():
     with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True) as mc, \
-        patch('arctic.arctic.mongo_retry', side_effect=lambda x:x, autospec=True), \
+        patch('arctic.arctic.mongo_retry', side_effect=lambda x: x, autospec=True), \
         patch('arctic.arctic.get_auth', autospec=True) as ga:
             store = Arctic('cluster')
             assert not mc.called

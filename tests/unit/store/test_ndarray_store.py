@@ -141,7 +141,7 @@ def test_concat_and_rewrite_checks_different_id():
                                   ]
 
     expected_verify_find_spec = {'symbol': sentinel.symbol, 'segment': {'$lte': 47}, 'parent': sentinel.version_id}
-    
+
     collection.update_many.return_value = create_autospec(UpdateResult, matched_count=0)
     with pytest.raises(DataIntegrityException) as e:
         NdarrayStore._concat_and_rewrite(self, collection, version, symbol, item, previous_version)

@@ -21,7 +21,6 @@ log = logging.getLogger(__name__)
 DTN64_DTYPE = 'datetime64[ns]'
 
 
-
 def set_fast_check_df_serializable(config):
     global FAST_CHECK_DF_SERIALIZABLE
     FAST_CHECK_DF_SERIALIZABLE = bool(config)
@@ -188,7 +187,7 @@ class PandasSerializer(object):
     def can_convert_to_records_without_objects(self, df, symbol):
         # We can't easily distinguish string columns from objects
         try:
-            #TODO: we can add here instead a check based on df size and enable fast-check if sz > threshold value
+            # TODO: we can add here instead a check based on df size and enable fast-check if sz > threshold value
             if FAST_CHECK_DF_SERIALIZABLE:
                 arr, _ = self.fast_check_serializable(df)
             else:

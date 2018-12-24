@@ -26,7 +26,6 @@ from .._compression import compress, decompress, compress_array
 from ._serializer import Serializer
 
 
-
 DATA = 'd'
 MASK = 'm'
 TYPE = 't'

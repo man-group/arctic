@@ -257,4 +257,3 @@ def test__can_append_row():
 def test_fancy_group_by_raises():
     with pytest.raises(ValueError):
         assert(fancy_group_by(None, method=None))
-

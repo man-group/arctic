@@ -84,7 +84,7 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
         max_str_len = len(max(self.input_data[fname].astype(type_sym), key=len))
         str_field_dtype = np.dtype('{}{:d}'.format(type_sym, max_str_len)) if max_str_len > 0 else input_ndtype
         return str_field_dtype, True
-    
+
     def _get_dtype(self):
         # Serializer is being called only if can_convert_to_records_without_objects() has passed,
         # which means that the resulting recarray does not contain objects but only numpy types, string, or unicode

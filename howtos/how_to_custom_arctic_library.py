@@ -138,7 +138,7 @@ if 'mongo_host' not in globals():
     mongo_host = 'localhost'
 store = Arctic(mongo_host)
 
-### Initialize the library
+# Initialize the library
 # Map username.custom_lib -> CustomArcticLibType
 store.initialize_library('username.custom_lib', CustomArcticLibType._LIBRARY_TYPE)
 
@@ -165,7 +165,7 @@ list(lib.query({'field1': 'thing'})) # just get by name
 list(lib.query({'field1': 'a'}))     # Can query lists
 list(lib.query({'field1': 'b'}))
 list(lib.query({'date_field': {'$lt': dt(2013, 2, 2)}}))
-list(lib.query({'field1':'thing',
+list(lib.query({'field1': 'thing',
                   'date_field': {'$lt': dt(2013, 2, 2)} }))
 
 # Remove everything

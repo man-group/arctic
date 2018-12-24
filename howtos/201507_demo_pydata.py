@@ -38,7 +38,6 @@ def get_stock_history(ticker, start_date, end_date):
 ################################################
 
 
-
 arctic = Arctic('localhost')
 
 # Create a VersionStore library
@@ -80,13 +79,12 @@ stocks.snapshot('snap')
 stocks.read('aapl', as_of='snap').data.ix[-1]
 
 
-
 #################################
 # Dealing with lots of data
 #################################
 
 
-#NSYE library
+# NSYE library
 lib = arctic['nyse']
 
 def load_all_stock_history_NYSE():

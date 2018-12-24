@@ -22,7 +22,6 @@ def test_roundtrip_multi(n):
     assert _str == c.decompress(cstr)
 
 
-
 @pytest.mark.parametrize("n, length", [(1, 10), (100, 10), (1000, 10)])
 def test_roundtrip_arr(n, length):
     _strarr = [random_string(length) for _ in range(n)]

@@ -94,7 +94,7 @@ class ArcticTransaction(object):
             self.base_ts = VersionedItem(symbol=self._symbol, library=None,
                                          version=versions[0], metadata=None, data=None, host=None)
         except OperationFailure:
-            #TODO: Current errors in mongo "Incorrect Number of Segments Returned"
+            # TODO: Current errors in mongo "Incorrect Number of Segments Returned"
             # This workaround should be removed once underlying problem is resolved.
             self.base_ts = self._version_store.read_metadata(symbol=self._symbol)
 

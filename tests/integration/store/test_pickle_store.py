@@ -14,6 +14,7 @@ def test_save_read_bson(library):
     saved_blob = library.read('BLOB').data
     assert blob == saved_blob
 
+
 '''
 Run test at your own discretion. Takes > 60 secs
 def test_save_read_MASSIVE(library):

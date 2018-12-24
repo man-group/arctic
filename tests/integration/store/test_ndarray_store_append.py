@@ -322,9 +322,9 @@ def test_append_after_failed_append(library, fw_pointers_cfg):
 
 
 def test_append_reorder_columns(library):
-    foo = np.array([(1,2)], dtype=np.dtype([('a', 'u1'), ('b', 'u1')]))
+    foo = np.array([(1, 2)], dtype=np.dtype([('a', 'u1'), ('b', 'u1')]))
     library.write('MYARR', foo)
-    foo = np.array([(1,2)], dtype=np.dtype([('b', 'u1'), ('a', 'u1')]))
+    foo = np.array([(1, 2)], dtype=np.dtype([('b', 'u1'), ('a', 'u1')]))
     library.append('MYARR', foo)
 
     assert np.all(library.read('MYARR').data == np.array([(2, 1), (1, 2)], dtype=[('b', 'u1'), ('a', 'u1')]))

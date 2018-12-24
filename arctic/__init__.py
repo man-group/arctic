@@ -26,4 +26,3 @@ register_versioned_storage(PandasDataFrameStore)
 register_versioned_storage(PandasSeriesStore)
 register_versioned_storage(PandasPanelStore)
 register_versioned_storage(NdarrayStore)
-

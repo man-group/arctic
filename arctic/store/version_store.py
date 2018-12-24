@@ -703,7 +703,7 @@ class VersionStore(object):
         if lastv_seqn != new_version['version']:
             raise OperationFailure("The symbol {} has been modified concurrently ({} != {})".format(
                 symbol, lastv_seqn, new_version['version']))
-        
+
         # Insert the new version into the version DB
         # (must come before the pruning, otherwise base version won't be preserved)
         self._insert_version(new_version)

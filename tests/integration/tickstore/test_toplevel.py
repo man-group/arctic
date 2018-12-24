@@ -111,7 +111,7 @@ def test_should_add_underlying_library_where_another_library_exists_in_a_non_ove
     toplevel_tickstore._collection.insert_one({'library_name': 'FEED_2011.LEVEL1', 'start': dt(2011, 1, 1), 'end': dt(2011, 12, 31)})
     arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
     toplevel_tickstore.add(DateRange(start=dt(2010, 1, 1), end=dt(2010, 12, 31, 23, 59, 59, 999000)), 'FEED_2010.LEVEL1')
-    assert set([ res['library_name'] for res in toplevel_tickstore._collection.find()]) == set(['FEED_2010.LEVEL1', 'FEED_2011.LEVEL1'])
+    assert set([res['library_name'] for res in toplevel_tickstore._collection.find()]) == set(['FEED_2010.LEVEL1', 'FEED_2011.LEVEL1'])
 
 
 def test_should_raise_exception_if_library_does_not_exist(toplevel_tickstore):
@@ -236,7 +236,7 @@ def test_no_min_max_date(arctic):
     dates = pd.date_range('20100101', periods=6, tz=mktz('Europe/London'))
     df = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
     tstore.write('blah', df)
-    
+
     with pytest.raises(NoDataFoundException):
         tstore.min_date('unknown-symbol')
     with pytest.raises(NoDataFoundException):

@@ -475,7 +475,7 @@ def test_delete_versions(library, fw_pointers_cfg):
         library.write(symbol, ts2, prune_previous_version=False)
 
         coll = library._collection
-    
+
         # Delete version 1 (ts1)
         library._delete_version(symbol, 1)
         assert_frame_equal(library.read(symbol, as_of=2).data, ts2)
@@ -497,8 +497,8 @@ def test_delete_bson_versions(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         coll = library._collection
 
-        a = [{'a':'b'}]
-        c = [{'c':'d'}]
+        a = [{'a': 'b'}]
+        c = [{'c': 'd'}]
         library.write(symbol, a)
         library.write(symbol, c, prune_previous_version=False)
         library.write(symbol, a, prune_previous_version=False)
@@ -754,8 +754,8 @@ def test_prunes_multiple_versions(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         coll = library._collection
 
-        a = [{'a':'b'}]
-        c = [{'c':'d'}]
+        a = [{'a': 'b'}]
+        c = [{'c': 'd'}]
         # Create an ObjectId
         now = dt.utcnow()
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125))):
@@ -781,8 +781,8 @@ def test_prunes_doesnt_prune_snapshots(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         coll = library._collection
 
-        a = [{'a':'b'}]
-        c = [{'c':'d'}]
+        a = [{'a': 'b'}]
+        c = [{'c': 'd'}]
         now = dt.utcnow()
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125))):
             library.write(symbol, a, prune_previous_version=False)
@@ -1023,7 +1023,7 @@ def test_prunes_previous_version_append_interaction(library, fw_pointers_cfg):
 def test_list_symbols(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         library.snapshot('snap1')
-        library.write('asdf', {'foo':'bar'}, metadata={'a':1, 'b':10})
+        library.write('asdf', {'foo': 'bar'}, metadata={'a': 1, 'b': 10})
         library.snapshot('snap2')
         assert 'asdf' in library.list_symbols()
         assert 'asdf' not in library.list_symbols(snapshot='snap1')
@@ -1038,8 +1038,8 @@ def test_list_symbols(library, fw_pointers_cfg):
 def test_list_symbols_regex(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         library.snapshot('snap1')
-        library.write('asdf', {'foo':'bar'}, metadata={'a':1, 'b':10})
-        library.write('furble', {'foo':'bar'}, metadata={'a':1, 'b':10})
+        library.write('asdf', {'foo': 'bar'}, metadata={'a': 1, 'b': 10})
+        library.write('furble', {'foo': 'bar'}, metadata={'a': 1, 'b': 10})
         library.snapshot('snap2')
         assert 'asdf' in library.list_symbols(regex='asd')
         assert 'furble' not in library.list_symbols(regex='asd')
@@ -1104,13 +1104,13 @@ def test_list_symbols_delete_write(library, fw_pointers_cfg):
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
 def test_date_range_large(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
-        index = [dt(2017,1,1)]*20000 + [dt(2017,1,2)]*20000
+        index = [dt(2017, 1, 1)]*20000 + [dt(2017, 1, 2)]*20000
         data = np.random.random((40000, 10))
         df = pd.DataFrame(index=index, data=data)
         df.index.name = 'index'
         df.columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
         library.write('test', df)
-        r = library.read('test', date_range=DateRange(dt(2017,1,1), dt(2017,1,2)))
+        r = library.read('test', date_range=DateRange(dt(2017, 1, 1), dt(2017, 1, 2)))
         assert_frame_equal(df, r.data)
 
 
