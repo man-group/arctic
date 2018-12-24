@@ -1,23 +1,21 @@
-from six import StringIO
-from datetime import datetime as dt, timedelta as dtd
 import itertools
 import string
+from datetime import datetime as dt, timedelta as dtd
 
+import numpy as np
+import pandas as pd
+import pytest
 from dateutil.rrule import rrule, DAILY
 from mock import Mock, patch
 from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat
 from pandas.tseries.offsets import DateOffset
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-import pytest
-import pandas as pd
+from six import StringIO
 
 from arctic._compression import decompress
 from arctic.date import DateRange, mktz
-from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasStore
+from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore
 from arctic.store.version_store import register_versioned_storage
-import numpy as np
-from tests.util import read_str_as_pandas
-
 
 register_versioned_storage(PandasDataFrameStore)
 

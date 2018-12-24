@@ -4,13 +4,12 @@ Created on 25 Aug 2015
 @author: ateng
 '''
 from datetime import datetime as dt
-import pytz
 
+import pytz
 from mock import patch
 from pandas.util.testing import assert_frame_equal
 
 from arctic.date._mktz import mktz
-import pandas as pd
 from tests.util import read_str_as_pandas
 
 pytest_plugins = ['arctic.fixtures.arctic']

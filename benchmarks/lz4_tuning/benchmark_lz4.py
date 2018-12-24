@@ -10,7 +10,6 @@ import pandas as pd
 import arctic._compression as c
 from arctic.serialization.numpy_records import DataFrameSerializer
 
-
 c.enable_parallel_lz4(True)
 c.BENCHMARK_MODE = True
 

@@ -1,10 +1,12 @@
-from arctic.exceptions import OptimisticLockException
-from datetime import datetime, timedelta
-from pandas.core.frame import DataFrame
-import time
 import random
+import time
+from datetime import datetime, timedelta
 from multiprocessing import Process, Semaphore
+
+from pandas.core.frame import DataFrame
+
 from arctic.arctic import Arctic
+from arctic.exceptions import OptimisticLockException
 
 
 class Appender(object):

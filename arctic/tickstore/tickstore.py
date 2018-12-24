@@ -1,13 +1,14 @@
 from __future__ import print_function
-import logging
 
-from bson.binary import Binary
 import copy
+import logging
 from datetime import datetime as dt, timedelta
+
 import numpy as np
 import pandas as pd
-from pandas.core.frame import _arrays_to_mgr
 import pymongo
+from bson.binary import Binary
+from pandas.core.frame import _arrays_to_mgr
 from pymongo import ReadPreference
 from pymongo.errors import OperationFailure
 from six import iteritems, string_types

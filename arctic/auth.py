@@ -1,5 +1,6 @@
-from collections import namedtuple
 import logging
+from collections import namedtuple
+
 from pymongo.errors import OperationFailure
 
 logger = logging.getLogger(__name__)

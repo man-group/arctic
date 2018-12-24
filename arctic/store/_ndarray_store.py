@@ -2,23 +2,19 @@ import hashlib
 import logging
 from operator import itemgetter
 
-
-from bson.binary import Binary
 import numpy as np
 import pymongo
+from bson.binary import Binary
 from pymongo.errors import OperationFailure, DuplicateKeyError
-
-
-from .._config import CHECK_CORRUPTION_ON_APPEND, FW_POINTERS_CONFIG_KEY, FW_POINTERS_REFS_KEY, \
-    ARCTIC_FORWARD_POINTERS_CFG, ARCTIC_FORWARD_POINTERS_RECONCILE, FwPointersCfg
-from ..decorators import mongo_retry
-from ..exceptions import UnhandledDtypeException, DataIntegrityException
-from .._util import mongo_count, get_fwptr_config
-from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
-
-from .._compression import compress_array, decompress
 from six.moves import xrange
 
+from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
+from .._compression import compress_array, decompress
+from .._config import FW_POINTERS_CONFIG_KEY, FW_POINTERS_REFS_KEY, \
+    ARCTIC_FORWARD_POINTERS_CFG, ARCTIC_FORWARD_POINTERS_RECONCILE, FwPointersCfg
+from .._util import mongo_count, get_fwptr_config
+from ..decorators import mongo_retry
+from ..exceptions import UnhandledDtypeException, DataIntegrityException
 
 logger = logging.getLogger(__name__)
 

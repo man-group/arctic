@@ -1,6 +1,7 @@
-import pytest
 import random
 import string
+
+import pytest
 
 import arctic._compression as c
 

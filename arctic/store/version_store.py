@@ -1,5 +1,5 @@
-from datetime import datetime as dt, timedelta
 import logging
+from datetime import datetime as dt, timedelta
 
 import bson
 import pymongo
@@ -7,17 +7,16 @@ import six
 from pymongo import ReadPreference
 from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
+from ._pickle_store import PickleStore
+from ._version_store_utils import cleanup, get_symbol_alive_shas, _get_symbol_pointer_cfgs
+from .versioned_item import VersionedItem
 from .._config import STRICT_WRITE_HANDLER_MATCH, FW_POINTERS_REFS_KEY, FW_POINTERS_CONFIG_KEY, FwPointersCfg
+from .._util import indent, enable_sharding, mongo_count, get_fwptr_config
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
     ArcticException
 from ..hooks import log_exception
-from ._pickle_store import PickleStore
-from .._util import indent, enable_sharding, mongo_count, get_fwptr_config
-from ._version_store_utils import cleanup, get_symbol_alive_shas, _get_symbol_pointer_cfgs
-from .versioned_item import VersionedItem
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,6 @@
-import arctic.fixtures.arctic as fix
 from mock import Mock
+
+import arctic.fixtures.arctic as fix
 from arctic.arctic import Arctic
 
 

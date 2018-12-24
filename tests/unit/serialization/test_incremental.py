@@ -1,4 +1,5 @@
 import itertools
+
 import pytest
 
 from arctic.exceptions import ArcticSerializationException

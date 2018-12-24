@@ -1,8 +1,9 @@
 from __future__ import print_function
+
 import optparse
 
-from ..arctic import Arctic
 from .utils import setup_logging
+from ..arctic import Arctic
 
 print = print
 

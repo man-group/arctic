@@ -1,20 +1,19 @@
 from datetime import datetime as dt
-from functools import partial
-from mock import create_autospec, sentinel, call
-import pytest
-from pymongo import ReadPreference
-from pymongo.collection import Collection
+
 import numpy as np
 import pandas as pd
+import pytest
+from mock import create_autospec, sentinel, call
+from pymongo import ReadPreference
+from pymongo.collection import Collection
+
 from arctic._compression import decompress
-
-
-from arctic.tickstore.tickstore import TickStore, IMAGE_DOC, IMAGE, START, \
-    DTYPE, END, COUNT, SYMBOL, COLUMNS, ROWMASK, DATA, INDEX, IMAGE_TIME
 from arctic.date import CLOSED_OPEN
 from arctic.date._daterange import DateRange
 from arctic.date._mktz import mktz
 from arctic.exceptions import UnorderedDataException
+from arctic.tickstore.tickstore import TickStore, IMAGE_DOC, IMAGE, START, \
+    DTYPE, END, COUNT, SYMBOL, COLUMNS, ROWMASK, DATA, INDEX, IMAGE_TIME
 
 
 def test_mongo_date_range_query():

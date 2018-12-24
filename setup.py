@@ -17,11 +17,11 @@
 # USA
 
 import logging
-from setuptools import setup
-from setuptools import find_packages
-from setuptools.command.test import test as TestCommand
 import sys
 
+from setuptools import find_packages
+from setuptools import setup
+from setuptools.command.test import test as TestCommand
 
 # Convert Markdown to RST for PyPI
 # http://stackoverflow.com/a/26737672

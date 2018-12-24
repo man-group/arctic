@@ -6,9 +6,9 @@ import bson
 import pytest as pytest
 
 from .. import arctic as m
+from ..chunkstore.chunkstore import CHUNK_STORE_TYPE
 from ..store.bitemporal_store import BitemporalStore
 from ..tickstore.tickstore import TICK_STORE_TYPE
-from ..chunkstore.chunkstore import CHUNK_STORE_TYPE
 
 logger = logging.getLogger(__name__)
 

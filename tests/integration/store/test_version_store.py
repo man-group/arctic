@@ -1,32 +1,31 @@
-import bson
-import six
+import inspect
 import struct
+import time
+from datetime import datetime
 from datetime import datetime as dt, timedelta as dtd
+
+import bson
+import numpy as np
 import pandas as pd
-from arctic import VERSION_STORE, PandasDataFrameStore, PandasSeriesStore
+import pymongo
+import pytest
+import six
+from mock import Mock, patch
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pymongo.errors import OperationFailure
 from pymongo.server_type import SERVER_TYPE
-from datetime import datetime
-from mock import Mock, patch
-import inspect
-import time
-import pytest
-import numpy as np
 
 import arctic
+from arctic import VERSION_STORE, PandasDataFrameStore, PandasSeriesStore
 from arctic._config import FwPointersCfg, FW_POINTERS_REFS_KEY
 from arctic._util import mongo_count, get_fwptr_config
-from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException
 from arctic.date import DateRange
+from arctic.date._mktz import mktz
+from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException
 from arctic.store import _version_store_utils
 from arctic.store import version_store
 from tests.unit.serialization.serialization_test_data import _mixed_test_data
-
 from ...util import read_str_as_pandas
-from arctic.date._mktz import mktz
-import pymongo
-
 
 ts1 = read_str_as_pandas("""         times | near
                    2012-09-08 17:06:11.040 |  1.0

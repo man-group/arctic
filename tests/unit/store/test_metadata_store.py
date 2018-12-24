@@ -1,7 +1,8 @@
 import datetime as dt
 
-from arctic.store.metadata_store import MetadataStore
 from mock import create_autospec, call
+
+from arctic.store.metadata_store import MetadataStore
 
 
 def test_ensure_index():

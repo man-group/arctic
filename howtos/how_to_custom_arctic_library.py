@@ -1,7 +1,10 @@
 from __future__ import print_function
+
 from datetime import datetime as dt
+
 from bson.binary import Binary
-from six.moves import cPickle    
+from six.moves import cPickle
+
 from arctic import Arctic, register_library_type
 from arctic.decorators import mongo_retry
 

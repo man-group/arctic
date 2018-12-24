@@ -1,9 +1,10 @@
 """
 Utilities to resolve a string to Mongo host, or a Arctic library.
 """
-import re
 import logging
+import re
 from weakref import WeakValueDictionary
+
 import six
 
 __all__ = ['get_arctic_lib']
@@ -32,7 +33,6 @@ def get_arctic_lib(connection_string, **kwargs):
     --------
     Arctic library
     """
-    from .arctic import Arctic
     m = CONNECTION_STR.match(connection_string)
     if not m:
         raise ValueError("connection string incorrectly formed: %s" % connection_string)

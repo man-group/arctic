@@ -1,13 +1,13 @@
-import bson
 import numpy as np
 from numpy.testing import assert_equal
+import numpy as np
 import pytest
+from numpy.testing import assert_equal
 
 from arctic._util import FwPointersCfg
 from arctic.store._ndarray_store import NdarrayStore, _APPEND_COUNT
 from arctic.store.version_store import register_versioned_storage
-
-from tests.integration.store.test_version_store import _query, FwPointersCtx
+from tests.integration.store.test_version_store import FwPointersCtx
 
 register_versioned_storage(NdarrayStore)
 

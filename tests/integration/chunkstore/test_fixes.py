@@ -4,10 +4,11 @@ Unit tests for bugfixes
 
 from datetime import datetime as dt
 
+import numpy as np
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex
 from pandas.util.testing import assert_frame_equal
-import numpy as np
+
 from arctic.date import DateRange, CLOSED_OPEN, CLOSED_CLOSED, OPEN_OPEN, OPEN_CLOSED
 
 

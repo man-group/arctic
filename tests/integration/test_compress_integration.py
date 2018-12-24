@@ -1,10 +1,12 @@
 from __future__ import print_function
-import random
 
+import random
 import string
+from datetime import datetime as dt
+
 import pytest
 import six
-from datetime import datetime as dt
+
 import arctic._compression as c
 
 try:

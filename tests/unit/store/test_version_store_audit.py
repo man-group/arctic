@@ -1,11 +1,11 @@
-from mock import create_autospec, Mock, sentinel, ANY, call
-from pymongo.errors import OperationFailure
-import pytest
 import pandas as pd
+import pytest
+from mock import Mock, sentinel, ANY, call
+from pymongo.errors import OperationFailure
 
+from arctic.exceptions import ConcurrentModificationException, NoDataFoundException
 from arctic.store.audit import ArcticTransaction, DataChange
 from arctic.store.version_store import VersionedItem, VersionStore
-from arctic.exceptions import ConcurrentModificationException, NoDataFoundException
 
 
 def test_data_change():

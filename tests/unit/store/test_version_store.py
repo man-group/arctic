@@ -1,20 +1,20 @@
-import bson
 import datetime
-import pytest
-import pymongo
-from bson import ObjectId
 from datetime import datetime as dt, timedelta as dtd
-from mock import patch, MagicMock, sentinel, create_autospec, Mock, call, ANY
-from pymongo import ReadPreference, read_preferences
-from pymongo.errors import OperationFailure, DuplicateKeyError
-from pymongo.collection import Collection
 
+import bson
+import pymongo
+import pytest
+from bson import ObjectId
+from mock import patch, MagicMock, sentinel, create_autospec, Mock, call
+from pymongo import ReadPreference
+from pymongo.collection import Collection
+from pymongo.errors import OperationFailure, DuplicateKeyError
+
+from arctic.arctic import ArcticLibraryBinding, Arctic
 from arctic.date import mktz
+from arctic.exceptions import DuplicateSnapshotException, NoDataFoundException
 from arctic.store import version_store
 from arctic.store.version_store import VersionStore, VersionedItem
-from arctic.arctic import ArcticLibraryBinding, Arctic
-from arctic.exceptions import ConcurrentModificationException, DuplicateSnapshotException, NoDataFoundException
-from arctic._config import FW_POINTERS_REFS_KEY
 
 
 def test_delete_version_version_not_found():

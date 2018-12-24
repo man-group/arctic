@@ -1,13 +1,9 @@
-
-from datetime import datetime as dt
-
-import pandas as pd
-from pandas import DataFrame, DatetimeIndex
-from pandas.util.testing import assert_frame_equal
 import numpy as np
+import pandas as pd
+from pandas.util.testing import assert_frame_equal
 
-from arctic.date import DateRange, CLOSED_OPEN, CLOSED_CLOSED, OPEN_OPEN, OPEN_CLOSED
 from arctic.chunkstore.tools import segment_id_repair
+
 
 def test_segment_repair_tool(chunkstore_lib):
     """

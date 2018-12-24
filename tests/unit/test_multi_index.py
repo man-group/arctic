@@ -1,14 +1,14 @@
-from datetime import timedelta
 import itertools
+from datetime import timedelta
 
+import numpy as np
+import pandas as pd
+import pytest
 from pandas import to_datetime as dt
 from pandas.util.testing import assert_frame_equal
 
 from arctic.multi_index import groupby_asof, fancy_group_by, insert_at
-import numpy as np
-import pandas as pd
 from tests.util import read_str_as_pandas
-import pytest
 
 
 def get_bitemporal_test_data():

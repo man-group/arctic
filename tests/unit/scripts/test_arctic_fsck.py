@@ -1,7 +1,6 @@
 from mock import patch, sentinel, call
 
 from arctic.scripts.arctic_fsck import main
-
 from ...util import run_as_main
 
 

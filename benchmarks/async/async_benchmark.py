@@ -1,11 +1,11 @@
 import time
+
 from six.moves import xrange
 
 import arctic._compression as aclz4
 from arctic import Arctic
-from arctic.async import ASYNC_ARCTIC, async_arctic_submit, async_shutdown, async_await_termination, async_wait_requests
+from arctic.async import ASYNC_ARCTIC, async_arctic_submit, async_wait_requests
 from tests.integration.chunkstore.test_utils import create_test_data
-
 
 a = Arctic('localhost:27017')
 library_name = 'asyncbench.test'

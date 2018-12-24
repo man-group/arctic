@@ -1,7 +1,9 @@
 import logging
+
 from pymongo.errors import OperationFailure
-from ..decorators import mongo_retry
+
 from .._util import enable_sharding, mongo_count
+from ..decorators import mongo_retry
 
 logger = logging.getLogger(__name__)
 

@@ -1,10 +1,9 @@
+import pytest
 from mock import patch, call
 from pandas.util.testing import assert_frame_equal
-import pytest
 
 from arctic import arctic as m
 from arctic.scripts import arctic_copy_data as mcd
-
 from ...util import read_str_as_pandas, run_as_main
 
 

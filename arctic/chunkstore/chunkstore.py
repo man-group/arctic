@@ -1,23 +1,20 @@
-import logging
-import pymongo
 import hashlib
-import bson
+import logging
 from collections import defaultdict
+from itertools import groupby
 
+import pymongo
 from bson.binary import Binary
 from pandas import DataFrame, Series
-from six.moves import xrange
-from itertools import groupby
 from pymongo.errors import OperationFailure
+from six.moves import xrange
 
-from ..decorators import mongo_retry
-from .._util import indent, mongo_count, enable_sharding
-from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, METADATA, COLUMNS
 from .date_chunker import DateChunker, START, END
 from .passthrough_chunker import PassthroughChunker
-
+from .._util import indent, mongo_count, enable_sharding
+from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException
-
+from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, METADATA, COLUMNS
 
 logger = logging.getLogger(__name__)
 

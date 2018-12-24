@@ -6,10 +6,10 @@ from functools import partial
 
 from pymongo.errors import OperationFailure
 
+from .versioned_item import VersionedItem, ChangedItem
 from .._util import are_equals
 from ..decorators import _get_host
 from ..exceptions import NoDataFoundException, ConcurrentModificationException
-from .versioned_item import VersionedItem, ChangedItem
 
 logger = logging.getLogger(__name__)
 

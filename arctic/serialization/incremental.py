@@ -11,9 +11,8 @@ from arctic._config import ARCTIC_AUTO_EXPAND_CHUNK_SIZE
 from arctic.serialization.numpy_records import PandasSerializer
 from .._compression import compress
 from .._config import MAX_DOCUMENT_SIZE
-from ..exceptions import ArcticSerializationException
 from .._util import NP_OBJECT_DTYPE
-
+from ..exceptions import ArcticSerializationException
 
 ABC = abc.ABCMeta('ABC', (object,), {})
 

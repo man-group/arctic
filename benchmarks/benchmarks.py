@@ -1,6 +1,8 @@
-from arctic import Arctic
-import pandas as pd
 import random
+
+import pandas as pd
+
+from arctic import Arctic
 
 
 def gen_dataframe_random(cols, rows):

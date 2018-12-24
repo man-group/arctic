@@ -2,11 +2,11 @@ import functools
 import hashlib
 import logging
 import pickle
-import six
 
 import numpy as np
 import pandas as pd
 import pymongo
+import six
 from bson import Binary
 from pandas.compat import pickle_compat
 from pymongo.errors import OperationFailure

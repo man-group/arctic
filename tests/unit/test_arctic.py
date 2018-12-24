@@ -2,17 +2,17 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-from mock import patch, MagicMock, sentinel, create_autospec, Mock, call
 import pytest
-from pymongo.errors import OperationFailure, ServerSelectionTimeoutError, AutoReconnect
+import six
+from mock import patch, MagicMock, sentinel, create_autospec, Mock, call
+from pymongo.errors import OperationFailure, AutoReconnect
 from pymongo.mongo_client import MongoClient
 
-from arctic.auth import Credential
 from arctic.arctic import Arctic, ArcticLibraryBinding, \
     register_library_type, LIBRARY_TYPES
+from arctic.auth import Credential
 from arctic.exceptions import LibraryNotFoundException, \
     ArcticException, QuotaExceededException
-import six
 
 
 def test_arctic_lazy_init():

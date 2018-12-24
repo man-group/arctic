@@ -1,15 +1,14 @@
 from datetime import datetime as dt, timedelta as dtd
-from dateutil.rrule import rrule, DAILY
-import pytest
-import pandas as pd
-from pandas.util.testing import assert_frame_equal
+
 import numpy as np
+import pandas as pd
+import pytest
+from pandas.util.testing import assert_frame_equal
 
 from arctic.date import DateRange, mktz
-from arctic.tickstore import toplevel
-from arctic.tickstore import tickstore
 from arctic.exceptions import NoDataFoundException, LibraryNotFoundException, OverlappingDataException
-
+from arctic.tickstore import tickstore
+from arctic.tickstore import toplevel
 
 FEED_2010_LEVEL1 = toplevel.TickStoreLibrary('FEED_2010.LEVEL1', DateRange(dt(2010, 1, 1), dt(2010, 12, 31, 23, 59, 59)))
 FEED_2011_LEVEL1 = toplevel.TickStoreLibrary('FEED_2011.LEVEL1', DateRange(dt(2011, 1, 1), dt(2011, 12, 31, 23, 59, 59)))

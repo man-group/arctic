@@ -1,7 +1,6 @@
 from mock import patch, call
 
 from arctic.scripts import arctic_list_libraries
-
 from ...util import run_as_main
 
 

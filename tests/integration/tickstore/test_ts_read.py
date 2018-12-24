@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime as dt
-from mock import patch, call, Mock
+
 import numpy as np
-from numpy.testing.utils import assert_array_equal
-from pandas.util.testing import assert_frame_equal
 import pandas as pd
-from pandas import DatetimeIndex
-from pymongo import ReadPreference
 import pytest
-import pytz
 import six
+from mock import patch, call, Mock
+from numpy.testing.utils import assert_array_equal
+from pandas import DatetimeIndex
+from pandas.util.testing import assert_frame_equal
+from pymongo import ReadPreference
 
 from arctic._util import mongo_count
 from arctic.date import DateRange, mktz, CLOSED_CLOSED, CLOSED_OPEN, OPEN_CLOSED, OPEN_OPEN

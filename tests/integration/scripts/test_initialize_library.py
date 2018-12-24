@@ -1,10 +1,9 @@
-from mock import patch
 import pytest
+from mock import patch
 
-from arctic.auth import Credential
 from arctic.arctic import Arctic
+from arctic.auth import Credential
 from arctic.scripts import arctic_init_library as mil
-
 from ...util import run_as_main
 
 

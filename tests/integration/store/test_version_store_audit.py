@@ -1,16 +1,15 @@
-from bson import ObjectId
 from datetime import datetime as dt
+
+import pytest
+from bson import ObjectId
 from mock import patch
 from pandas.util.testing import assert_frame_equal
 from pymongo.errors import OperationFailure
-import pytest
 
 from arctic._util import mongo_count
+from arctic.exceptions import ConcurrentModificationException
 from arctic.store.audit import ArcticTransaction
-from arctic.exceptions import ConcurrentModificationException, NoDataFoundException
-
 from ...util import read_str_as_pandas
-
 
 ts1 = read_str_as_pandas("""         times | near
                    2012-09-08 17:06:11.040 |  1.0

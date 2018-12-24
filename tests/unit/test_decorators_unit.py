@@ -1,11 +1,8 @@
-from mock import patch, create_autospec, sentinel, Mock, PropertyMock, MagicMock
 import pytest
+from mock import patch, sentinel, Mock, MagicMock
 from pymongo.errors import AutoReconnect, OperationFailure, DuplicateKeyError, ServerSelectionTimeoutError
-from pymongo.read_preferences import ReadPreference
 
-from arctic import decorators
 from arctic.decorators import mongo_retry, _get_host
-from pymongo.collection import Collection
 from arctic.hooks import register_log_exception_hook
 
 

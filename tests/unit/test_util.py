@@ -1,5 +1,6 @@
-from arctic._util import are_equals, enable_sharding
 from mock import MagicMock, ANY
+
+from arctic._util import are_equals, enable_sharding
 from arctic.arctic import Arctic
 
 

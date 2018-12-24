@@ -1,25 +1,24 @@
 from __future__ import print_function
 
-################################################
-# Getting started
-################################################
-
-# Install Arctic
-#    pip install git+https://github.com/manahl/arctic.git
-# That's it(!)
-
-# Run MongoDB - https://www.mongodb.org/downloads
-#    $ mkdir /tmp/pydata-demo
-#    $ mongod --dbpath /tmp/pydata-demo
-
-from datetime import datetime
+import collections
 import time
+from datetime import datetime
+
+import pandas as pd
 import ystockquote
 
 from arctic import Arctic
-import collections
-import pandas as pd
-import pprint
+
+
+################################################
+# Getting started
+################################################
+# Install Arctic
+#    pip install git+https://github.com/manahl/arctic.git
+# That's it(!)
+# Run MongoDB - https://www.mongodb.org/downloads
+#    $ mkdir /tmp/pydata-demo
+#    $ mongod --dbpath /tmp/pydata-demo
 
 
 ################################################

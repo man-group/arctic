@@ -1,8 +1,7 @@
-from datetime import datetime
-from functools import wraps
-import sys
-from time import sleep
 import logging
+import sys
+from functools import wraps
+from time import sleep
 
 from pymongo.errors import AutoReconnect, OperationFailure, DuplicateKeyError, ServerSelectionTimeoutError
 

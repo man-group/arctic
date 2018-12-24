@@ -4,7 +4,6 @@ from mock import patch, ANY, call
 
 from arctic.auth import Credential
 from arctic.scripts import arctic_prune_versions as mpv
-
 from ...util import run_as_main
 
 

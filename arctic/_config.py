@@ -1,9 +1,8 @@
 import logging
 import os
-from enum import Enum
 
 import pymongo
-
+from enum import Enum
 
 logger = logging.getLogger(__name__)
 

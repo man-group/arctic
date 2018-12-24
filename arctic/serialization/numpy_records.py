@@ -1,11 +1,11 @@
 import logging
-import os
 
 import numpy as np
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
-from .._config import FAST_CHECK_DF_SERIALIZABLE
-from ..exceptions import ArcticException
+
 from .._util import NP_OBJECT_DTYPE
+from ..exceptions import ArcticException
+
 try:  # 0.21+ Compatibility
     from pandas._libs.tslib import Timestamp
     from pandas._libs.tslibs.timezones import get_timezone
