@@ -7,7 +7,8 @@ try:
 except ImportError as e:
     from lz4 import compress as lz4_compress, compressHC as lz4_compressHC, decompress as lz4_decompress
 
-from ._config import LZ4_HIGH_COMPRESSION, LZ4_WORKERS, LZ4_N_PARALLEL, LZ4_MINSZ_PARALLEL, BENCHMARK_MODE
+from ._config import ENABLE_PARALLEL, LZ4_HIGH_COMPRESSION, LZ4_WORKERS, LZ4_N_PARALLEL, LZ4_MINSZ_PARALLEL, \
+    BENCHMARK_MODE
 
 logger = logging.getLogger(__name__)
 

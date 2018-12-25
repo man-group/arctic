@@ -14,7 +14,7 @@ from six import StringIO
 
 from arctic._compression import decompress
 from arctic.date import DateRange, mktz
-from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore
+from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasStore
 from arctic.store.version_store import register_versioned_storage
 
 register_versioned_storage(PandasDataFrameStore)
