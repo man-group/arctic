@@ -1,16 +1,17 @@
 import calendar
 import datetime
+import sys
 from datetime import timedelta
 
 from ._daterange import DateRange
 from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN
-from ._parse import parse
 from ._mktz import mktz
-import sys
+from ._parse import parse
+
 if sys.version_info > (3,):
     long = int
 
-    
+
 # Support standard brackets syntax for open/closed ranges.
 Ranges = {'()': OPEN_OPEN,
           '(]': OPEN_CLOSED,

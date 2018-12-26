@@ -2,21 +2,20 @@ try:
     from unittest.mock import Mock, patch, MagicMock, create_autospec, sentinel, call
 except:    
     from mock import Mock, patch, MagicMock, create_autospec, sentinel, call
-import sys
-import pytest
 from datetime import datetime as dt
-import pandas as pd
-from pandas.util.testing import assert_frame_equal
+
 import numpy as np
+import pandas as pd
+import pytest
+from dateutil.rrule import rrule, DAILY
 from mockextras import when
+from pandas.util.testing import assert_frame_equal
 
 from arctic.date import DateRange, mktz
 from arctic.exceptions import OverlappingDataException
-from arctic.tickstore.toplevel import TopLevelTickStore, TickStoreLibrary
-from dateutil.rrule import rrule, DAILY
-from arctic.tickstore.tickstore import TickStore
 from arctic.exceptions import UnhandledDtypeException
-
+from arctic.tickstore.tickstore import TickStore
+from arctic.tickstore.toplevel import TopLevelTickStore, TickStoreLibrary
 
 utc = mktz('UTC')
 

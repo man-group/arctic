@@ -1,29 +1,28 @@
 from datetime import datetime as dt
-from functools import partial
-from mock import create_autospec, sentinel, call
-import pytest
-from pymongo import ReadPreference
-from pymongo.collection import Collection
+
 import numpy as np
 import pandas as pd
+import pytest
+from mock import create_autospec, sentinel, call
+from pymongo import ReadPreference
+from pymongo.collection import Collection
+
 from arctic._compression import decompress
-
-
-from arctic.tickstore.tickstore import TickStore, IMAGE_DOC, IMAGE, START, \
-    DTYPE, END, COUNT, SYMBOL, COLUMNS, ROWMASK, DATA, INDEX, IMAGE_TIME
 from arctic.date import CLOSED_OPEN
 from arctic.date._daterange import DateRange
 from arctic.date._mktz import mktz
 from arctic.exceptions import UnorderedDataException
+from arctic.tickstore.tickstore import TickStore, IMAGE_DOC, IMAGE, START, \
+    DTYPE, END, COUNT, SYMBOL, COLUMNS, ROWMASK, DATA, INDEX, IMAGE_TIME
 
 
 def test_mongo_date_range_query():
     self = create_autospec(TickStore)
     self._collection = create_autospec(Collection)
-    self._symbol_query.return_value = {"sy": { "$in" : [ "s1" , "s2"]}}
+    self._symbol_query.return_value = {"sy": {"$in" : ["s1" , "s2"]}}
     self._collection.aggregate.return_value = iter([{"_id": "s1", "start": dt(2014, 1, 1, 0, 0, tzinfo=mktz())},
                                                     {"_id": "s2", "start": dt(2014, 1, 1, 12, 0, tzinfo=mktz())}])
-    
+
     self._collection.find_one.side_effect = [
         {'e': dt(2014, 1, 1, 15, 0, tzinfo=mktz())},
         {'e': dt(2014, 1, 2, 12, 0, tzinfo=mktz())}]
@@ -32,7 +31,7 @@ def test_mongo_date_range_query():
                                                                      dt(2014, 1, 3, 0, 0, tzinfo=mktz())))
 
     assert self._collection.aggregate.call_args_list == [call([
-     {"$match": {"s": {"$lte": dt(2014, 1, 2, 0, 0, tzinfo=mktz())}, "sy": { "$in" : [ "s1" , "s2"]}}},
+     {"$match": {"s": {"$lte": dt(2014, 1, 2, 0, 0, tzinfo=mktz())}, "sy": {"$in" : ["s1" , "s2"]}}},
      {"$project": {"_id": 0, "s": 1, "sy": 1}},
      {"$group": {"_id": "$sy", "start": {"$max": "$s"}}},
      {"$sort": {"start": 1}}])]

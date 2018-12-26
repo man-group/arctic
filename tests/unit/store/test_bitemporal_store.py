@@ -6,7 +6,6 @@ from pandas.util.testing import assert_frame_equal
 from arctic.store.bitemporal_store import BitemporalStore
 from tests.util import read_str_as_pandas
 
-
 ts1 = read_str_as_pandas("""           sample_dt | near
                          2012-09-08 17:06:11.040 |  1.0
                          2012-10-08 17:06:11.040 |  2.0

@@ -2,23 +2,19 @@ import hashlib
 import logging
 from operator import itemgetter
 
-
-from bson.binary import Binary
 import numpy as np
 import pymongo
+from bson.binary import Binary
 from pymongo.errors import OperationFailure, DuplicateKeyError
-
-
-from .._config import CHECK_CORRUPTION_ON_APPEND, FW_POINTERS_CONFIG_KEY, FW_POINTERS_REFS_KEY, \
-    ARCTIC_FORWARD_POINTERS_CFG, ARCTIC_FORWARD_POINTERS_RECONCILE, FwPointersCfg
-from ..decorators import mongo_retry
-from ..exceptions import UnhandledDtypeException, DataIntegrityException
-from .._util import mongo_count, get_fwptr_config
-from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
-
-from .._compression import compress_array, decompress
 from six.moves import xrange
 
+from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
+from .._compression import compress_array, decompress
+from .._config import CHECK_CORRUPTION_ON_APPEND, FW_POINTERS_CONFIG_KEY, FW_POINTERS_REFS_KEY, \
+    ARCTIC_FORWARD_POINTERS_CFG, ARCTIC_FORWARD_POINTERS_RECONCILE, FwPointersCfg
+from .._util import mongo_count, get_fwptr_config
+from ..decorators import mongo_retry
+from ..exceptions import UnhandledDtypeException, DataIntegrityException
 
 logger = logging.getLogger(__name__)
 
@@ -400,7 +396,7 @@ class NdarrayStore(object):
 
         if (self._dtype(previous_version['dtype']).fields is None) != (dtype.fields is None):
             raise ValueError("type changes to or from structured array not supported")
-        
+
         if previous_version['up_to'] == 0:
             dtype = dtype
         elif len(item) == 0:
@@ -433,7 +429,7 @@ class NdarrayStore(object):
         else:
             version['dtype'] = previous_version['dtype']
             version['dtype_metadata'] = previous_version['dtype_metadata']
-            
+
             # Verify (potential) corruption with append
             if CHECK_CORRUPTION_ON_APPEND and _fast_check_corruption(
                     collection, symbol, previous_version,
@@ -458,8 +454,8 @@ class NdarrayStore(object):
             version['append_count'] = previous_version['append_count']
             version['append_size'] = previous_version['append_size']
 
-        #_CHUNK_SIZE is probably too big if we're only appending single rows of data - perhaps something smaller,
-        #or also look at number of appended segments?
+        # _CHUNK_SIZE is probably too big if we're only appending single rows of data - perhaps something smaller,
+        # or also look at number of appended segments?
         if not dirty_append and version['append_count'] < _APPEND_COUNT and version['append_size'] < _APPEND_SIZE:
             version['base_version_id'] = version_base_or_id(previous_version)
 

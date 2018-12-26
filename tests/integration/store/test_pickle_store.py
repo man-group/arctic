@@ -1,7 +1,8 @@
-import bson
 from datetime import datetime as dt, timedelta
-from mock import patch
+
+import bson
 import numpy as np
+from mock import patch
 
 from arctic._util import mongo_count
 from arctic.arctic import Arctic
@@ -12,6 +13,7 @@ def test_save_read_bson(library):
     library.write('BLOB', blob)
     saved_blob = library.read('BLOB').data
     assert blob == saved_blob
+
 
 '''
 Run test at your own discretion. Takes > 60 secs

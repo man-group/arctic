@@ -1,15 +1,11 @@
 from datetime import datetime as dt
-from mock import patch
-import numpy as np
-from pandas.util.testing import assert_frame_equal
+
 import pytest
 import pytz
-from arctic.date import mktz, DateRange
-from arctic.exceptions import OverlappingDataException, \
-    NoDataFoundException
-from arctic.tickstore.tickstore import SYMBOL, START, END, COUNT, COLUMNS
-from tests.util import read_str_as_pandas
+from pandas.util.testing import assert_frame_equal
 
+from arctic.date import mktz, DateRange
+from arctic.exceptions import OverlappingDataException
 
 DUMMY_DATA = [
               {'a': 1.,
@@ -89,7 +85,7 @@ def test_ts_write_named_col(tickstore_lib):
     assert data.a[0] == 1
     assert(data.index.name is None)
     data.index.name = 'IndexName'
-    
+
     tickstore_lib.delete('SYM')
     tickstore_lib.write('SYM', data)
 

@@ -1,9 +1,8 @@
 import logging
 import os
-from enum import Enum
 
 import pymongo
-
+from enum import Enum
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +42,7 @@ class FwPointersCfg(Enum):
     ENABLED = 0   # use only forward pointers, don't update segment parent references
     DISABLED = 1  # operate in legacy mode, update segment parent references, don't add forward pointers
     HYBRID = 2    # maintain both forward pointers and parent references in segments; for reads prefer fw pointers
+
 
 # The version document key used to store the ObjectIDs of segments
 FW_POINTERS_REFS_KEY = 'SEGMENT_SHAS'

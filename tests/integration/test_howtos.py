@@ -1,8 +1,7 @@
 import glob
-import fcntl
 import os
+
 import pytest
-import subprocess
 
 HOWTO_DIR = os.path.realpath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'howtos'))
 

@@ -1,23 +1,21 @@
-from six import StringIO
-from datetime import datetime as dt, timedelta as dtd
 import itertools
 import string
+from datetime import datetime as dt, timedelta as dtd
 
+import numpy as np
+import pandas as pd
+import pytest
 from dateutil.rrule import rrule, DAILY
 from mock import Mock, patch
 from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat
 from pandas.tseries.offsets import DateOffset
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-import pytest
-import pandas as pd
+from six import StringIO
 
 from arctic._compression import decompress
 from arctic.date import DateRange, mktz
 from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasStore
 from arctic.store.version_store import register_versioned_storage
-import numpy as np
-from tests.util import read_str_as_pandas
-
 
 register_versioned_storage(PandasDataFrameStore)
 
@@ -97,7 +95,6 @@ def test_save_read_pandas_dataframe_with_unicode_index_name(library):
     library.write('pandas', df)
     saved_df = library.read('pandas').data
     assert np.all(df.values == saved_df.values)
-
 
 
 def test_cant_write_pandas_series_with_tuple_values(library):
@@ -470,7 +467,6 @@ def dataframe(columns, length, index):
     return df
 
 
-
 @pytest.mark.parametrize("df_size", list(itertools.combinations_with_replacement([0, 1, 2, 4], r=3)))
 def test_dataframe_save_read(library, df_size):
     df = dataframe(*df_size)
@@ -493,7 +489,6 @@ def test_dataframe_save_append_read(library, df_size):
     if None not in df.index.names:  # saved as 'index' or 'level'
         assert np.all(df.index.names == result.index.names), str(df.index.names) + "!=" + str(result.index.names)
     assert np.all(df.columns.values == result.columns.values), str(df.columns.values) + "!=" + str(result.columns.values)
-
 
 
 def test_large_dataframe_append_rewrite_same_item(library):
@@ -675,7 +670,7 @@ def test_panel_save_read_with_nans(library):
 
 def test_save_read_ints(library):
     ts1 = DataFrame(index=[dt(2012, 1, 1) + dtd(hours=x) for x in range(5)],
-                    data={'col1':np.arange(5), 'col2':np.arange(5)})
+                    data={'col1': np.arange(5), 'col2': np.arange(5)})
     ts1.index.name = 'index'
     library.write('TEST_1', ts1)
     ts2 = library.read('TEST_1').data

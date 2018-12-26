@@ -1,7 +1,6 @@
 """
 Helper functions that are not 'core' to chunkstore
 """
-from arctic.chunkstore.date_chunker import DateChunker
 
 
 def read_apply(lib, symbol, func, chunk_range=None):

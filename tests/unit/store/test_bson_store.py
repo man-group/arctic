@@ -1,8 +1,9 @@
-from arctic.store.bson_store import BSONStore
-from arctic.arctic import ArcticLibraryBinding
-from arctic import Arctic
-from pymongo.collection import Collection
 from mock import sentinel, create_autospec, patch, call, Mock
+from pymongo.collection import Collection
+
+from arctic import Arctic
+from arctic.arctic import ArcticLibraryBinding
+from arctic.store.bson_store import BSONStore
 
 
 def test_initialize_library():

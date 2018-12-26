@@ -1,20 +1,20 @@
-import bson
 import datetime
-import pytest
-import pymongo
-from bson import ObjectId
 from datetime import datetime as dt, timedelta as dtd
-from mock import patch, MagicMock, sentinel, create_autospec, Mock, call, ANY
-from pymongo import ReadPreference, read_preferences
-from pymongo.errors import OperationFailure, DuplicateKeyError
-from pymongo.collection import Collection
 
+import bson
+import pymongo
+import pytest
+from bson import ObjectId
+from mock import patch, MagicMock, sentinel, create_autospec, Mock, call
+from pymongo import ReadPreference
+from pymongo.collection import Collection
+from pymongo.errors import OperationFailure, DuplicateKeyError
+
+from arctic.arctic import ArcticLibraryBinding, Arctic
 from arctic.date import mktz
+from arctic.exceptions import DuplicateSnapshotException, NoDataFoundException
 from arctic.store import version_store
 from arctic.store.version_store import VersionStore, VersionedItem
-from arctic.arctic import ArcticLibraryBinding, Arctic
-from arctic.exceptions import ConcurrentModificationException, DuplicateSnapshotException, NoDataFoundException
-from arctic._config import FW_POINTERS_REFS_KEY
 
 
 def test_delete_version_version_not_found():
@@ -126,7 +126,7 @@ def test_read_as_of_LondonTime():
                      _versions=Mock(), _allow_secondary=False)
     VersionStore._read_metadata(vs, 'symbol', dt(2013, 4, 1, 9, 0))
     versions = vs._versions.with_options.return_value
-    versions.find_one.assert_called_once_with({'symbol':'symbol', '_id':
+    versions.find_one.assert_called_once_with({'symbol': 'symbol', '_id':
                                               {'$lt': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0, tzinfo=mktz()) + dtd(seconds=1))}},
                                              sort=[('symbol', pymongo.DESCENDING), ('version', pymongo.DESCENDING)])
 
@@ -137,7 +137,7 @@ def test_read_as_of_NotNaive():
                      _versions=Mock(), _allow_secondary=False)
     VersionStore._read_metadata(vs, 'symbol', dt(2013, 4, 1, 9, 0, tzinfo=mktz('Europe/Paris')))
     versions = vs._versions.with_options.return_value
-    versions.find_one.assert_called_once_with({'symbol':'symbol', '_id':
+    versions.find_one.assert_called_once_with({'symbol': 'symbol', '_id':
                                               {'$lt': bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0, tzinfo=mktz('Europe/Paris')) + dtd(seconds=1))}},
                                              sort=[('symbol', pymongo.DESCENDING), ('version', pymongo.DESCENDING)])
 
@@ -156,8 +156,8 @@ def test_write_check_quota():
     write_handler = Mock(write=Mock(__name__=""))
     vs = create_autospec(VersionStore, instance=True,
                      _collection=Mock(),
-                     _version_nums=Mock(find_one_and_update=Mock(return_value={'version':1})),
-                     _versions=Mock(insert_one=lambda x:None),
+                     _version_nums=Mock(find_one_and_update=Mock(return_value={'version': 1})),
+                     _versions=Mock(insert_one=lambda x: None),
                      _arctic_lib=create_autospec(ArcticLibraryBinding,
                                                  arctic=create_autospec(Arctic, mongo_host='some_host')),
                      _publish_changes=False)

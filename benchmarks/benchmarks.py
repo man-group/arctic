@@ -1,6 +1,8 @@
-from arctic import Arctic
-import pandas as pd
 import random
+
+import pandas as pd
+
+from arctic import Arctic
 
 
 def gen_dataframe_random(cols, rows):
@@ -44,13 +46,13 @@ s_compress = [gen_series_compressible(rows) for rows in TEST_SIZES]
 class TimeSuiteWrite(object):
     params = list(range(len(TEST_SIZES)))
     param_names = ['5K * 10^']
-    
+
     def setup(self, arg):
         self.store = Arctic("127.0.0.1")
         self.store.delete_library('test.lib')
         self.store.initialize_library('test.lib')
         self.lib = self.store['test.lib']
-        
+
     def teardown(self, arg):
         self.store.delete_library('test.lib')
         self.lib = None

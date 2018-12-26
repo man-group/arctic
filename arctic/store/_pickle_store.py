@@ -1,16 +1,15 @@
-import bson
+import io
 import logging
+from operator import itemgetter
+
+import bson
 from bson.binary import Binary
 from bson.errors import InvalidDocument
-from operator import itemgetter
 from six.moves import cPickle, xrange
-import io
-from .._compression import decompress, compress_array
-import pymongo
 
 from ._version_store_utils import checksum, pickle_compat_load, version_base_or_id
+from .._compression import decompress, compress_array
 from ..exceptions import UnsupportedPickleStoreVersion
-
 
 # new versions of chunked pickled objects MUST begin with __chunked__
 _MAGIC_CHUNKED = '__chunked__'

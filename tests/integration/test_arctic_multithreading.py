@@ -1,8 +1,9 @@
 import os
-import pytest
 import time
 from multiprocessing import Process
 from random import random
+
+import pytest
 
 from arctic import Arctic, VERSION_STORE
 from arctic.exceptions import LibraryNotFoundException

@@ -1,10 +1,10 @@
 import abc
 import logging
 import uuid
+from threading import RLock, Event
 
 from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED, FIRST_EXCEPTION
 from six import iteritems, itervalues
-from threading import RLock, Event
 
 from arctic._config import ARCTIC_ASYNC_NWORKERS
 from arctic.exceptions import AsyncArcticException

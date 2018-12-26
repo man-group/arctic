@@ -1,16 +1,15 @@
-import bson
 from datetime import datetime as dt, timedelta as dtd
-from mock import patch
+
+import bson
 import numpy as np
-from numpy.testing import assert_equal
-from pymongo.server_type import SERVER_TYPE
 import pytest
+from mock import patch
+from pymongo.server_type import SERVER_TYPE
 
 from arctic._config import FwPointersCfg, FW_POINTERS_REFS_KEY
 from arctic._util import mongo_count
-from arctic.store._ndarray_store import NdarrayStore, _APPEND_COUNT
+from arctic.store._ndarray_store import NdarrayStore
 from arctic.store.version_store import register_versioned_storage
-
 from tests.integration.store.test_version_store import _query, FwPointersCtx
 
 register_versioned_storage(NdarrayStore)

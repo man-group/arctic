@@ -1,11 +1,11 @@
-from datetime import datetime as dt
-import operator
-import pytest
 import itertools
+import operator
+from datetime import datetime as dt
+
+import pytest
 import six
 
 from arctic.date import DateRange, string_to_daterange, CLOSED_CLOSED, CLOSED_OPEN, OPEN_CLOSED, OPEN_OPEN
-
 
 test_ranges_for_bounding = {
     "unbounded":         (DateRange(),
@@ -173,6 +173,7 @@ def test_string_to_daterange_raises():
     with pytest.raises(ValueError) as e:
         string_to_daterange('20120101-20130101-20140101')
     assert str(e.value) == "Too many dates in input string [20120101-20130101-20140101] with delimiter (-)"
+
 
 QUERY_TESTS = [(DateRange('20110101', '20110102'), {'$gte': dt(2011, 1, 1), '$lte': dt(2011, 1, 2)}),
                (DateRange('20110101', '20110102', OPEN_OPEN), {'$gt': dt(2011, 1, 1), '$lt': dt(2011, 1, 2)}),

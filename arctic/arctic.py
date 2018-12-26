@@ -5,16 +5,16 @@ import threading
 
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect
+from six import string_types
+
 from ._util import indent
 from .auth import authenticate, get_auth
+from .chunkstore import chunkstore
 from .decorators import mongo_retry
 from .exceptions import LibraryNotFoundException, ArcticException, QuotaExceededException
 from .hooks import get_mongodb_uri
 from .store import version_store, bson_store, metadata_store
 from .tickstore import tickstore, toplevel
-from .chunkstore import chunkstore
-from six import string_types
-
 
 __all__ = ['Arctic', 'VERSION_STORE', 'METADATA_STORE', 'TICK_STORE', 'CHUNK_STORE', 'register_library_type']
 
@@ -228,7 +228,6 @@ class Arctic(object):
         except LibraryNotFoundException:
             pass
         return exists
-
 
     @mongo_retry
     def initialize_library(self, library, lib_type=VERSION_STORE, **kwargs):
@@ -484,7 +483,7 @@ class ArcticLibraryBinding(object):
 
     @mongo_retry
     def _auth(self, database):
-        #Get .mongopass details here
+        # Get .mongopass details here
         if not hasattr(self.arctic, 'mongo_host'):
             return
 

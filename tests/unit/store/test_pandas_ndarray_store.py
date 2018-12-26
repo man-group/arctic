@@ -1,11 +1,8 @@
+import numpy as np
 from mock import Mock, sentinel, patch
-from pandas.util.testing import assert_frame_equal
 from pytest import raises
 
-from arctic.store._pandas_ndarray_store import PandasStore, \
-    PandasDataFrameStore, PandasPanelStore
-import numpy as np
-import pandas as pd
+from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasPanelStore, PandasStore
 from tests.util import read_str_as_pandas
 
 

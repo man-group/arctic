@@ -1,18 +1,18 @@
-import pandas as pd
-from six.moves import cPickle
-import pytest
 import sys
+from distutils.version import LooseVersion
 from os import path
+
+import pandas as pd
+import pytest
 from bson.binary import Binary
 from bson.objectid import ObjectId
-from distutils.version import LooseVersion
 from mock import create_autospec, sentinel, Mock, call
+from six.moves import cPickle
 
-from arctic._compression import compress, decompress, compressHC
+from arctic._compression import compress, compressHC
+from arctic.exceptions import UnsupportedPickleStoreVersion
 from arctic.store._pickle_store import PickleStore
 from arctic.store._version_store_utils import checksum
-from arctic.exceptions import UnsupportedPickleStoreVersion
-
 
 PANDAS_VERSION = LooseVersion(pd.__version__)
 
@@ -33,7 +33,7 @@ def test_write_object():
 
     assert version['blob'] == '__chunked__V2'
     coll = arctic_lib.get_top_level_collection.return_value
-    assert coll.update_one.call_args_list == [call({'sha': checksum('sentinel.symbol', {'segment':0, 'data': Binary(compress(cPickle.dumps(sentinel.item, cPickle.HIGHEST_PROTOCOL)))}),
+    assert coll.update_one.call_args_list == [call({'sha': checksum('sentinel.symbol', {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, cPickle.HIGHEST_PROTOCOL)))}),
                                                     'symbol': 'sentinel.symbol'},
                                                    {'$set': {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, cPickle.HIGHEST_PROTOCOL)), 0)},
                                                     '$addToSet': {'parent': version['_id']}}, upsert=True)]

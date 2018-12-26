@@ -1,12 +1,12 @@
-from mock import patch, Mock, call
 import getpass
+
 import pytest
+from mock import patch, Mock, call
 from pymongo.errors import OperationFailure
 from pymongo.read_preferences import Primary
 
 from arctic.hooks import get_mongodb_uri
 from arctic.scripts import arctic_enable_sharding as mes
-
 from ...util import run_as_main
 
 

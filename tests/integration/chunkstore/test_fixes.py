@@ -4,10 +4,11 @@ Unit tests for bugfixes
 
 from datetime import datetime as dt
 
+import numpy as np
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex
 from pandas.util.testing import assert_frame_equal
-import numpy as np
+
 from arctic.date import DateRange, CLOSED_OPEN, CLOSED_CLOSED, OPEN_OPEN, OPEN_CLOSED
 
 
@@ -18,7 +19,6 @@ def test_write_dataframe(chunkstore_lib):
 
     df = DataFrame(data={'something': [100, 200, 300, 400, 500, 600, 700, 800]},
                    index=DatetimeIndex(date_range, name='date'))
-
 
     chunkstore_lib.write('test', df, chunk_size='D')
 
@@ -64,19 +64,18 @@ def test_date_interval(chunkstore_lib):
     df = DataFrame(data={'data': range(8)},
                    index=DatetimeIndex(date_range, name='date'))
 
-
     # test with index
     chunkstore_lib.write('test', df, chunk_size='D')
 
-    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017,5,2), dt(2017,5,5), CLOSED_OPEN))
+    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_OPEN))
     assert_frame_equal(ret, df[1:4])
-    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017,5,2), dt(2017,5,5), OPEN_OPEN))
+    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_OPEN))
     assert_frame_equal(ret, df[2:4])
-    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017,5,2), dt(2017,5,5), OPEN_CLOSED))
+    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_CLOSED))
     assert_frame_equal(ret, df[2:5])
-    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017,5,2), dt(2017,5,5), CLOSED_CLOSED))
+    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_CLOSED))
     assert_frame_equal(ret, df[1:5])
-    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017,5,2), None, CLOSED_OPEN))
+    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), None, CLOSED_OPEN))
     assert_frame_equal(ret, df[1:8])
 
     # test without index
@@ -85,15 +84,15 @@ def test_date_interval(chunkstore_lib):
 
     chunkstore_lib.write('test2', df, chunk_size='D')
 
-    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017,5,2), dt(2017,5,5), CLOSED_OPEN))
+    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_OPEN))
     assert(len(ret) == 3)
-    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017,5,2), dt(2017,5,5), OPEN_OPEN))
+    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_OPEN))
     assert(len(ret) == 2)
-    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017,5,2), dt(2017,5,5), OPEN_CLOSED))
+    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_CLOSED))
     assert(len(ret) == 3)
-    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017,5,2), dt(2017,5,5), CLOSED_CLOSED))
+    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_CLOSED))
     assert(len(ret) == 4)
-    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017,5,2), None, CLOSED_OPEN))
+    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017, 5, 2), None, CLOSED_OPEN))
     assert(len(ret) == 7)
 
 
@@ -111,7 +110,6 @@ def test_rewrite(chunkstore_lib):
 
     df = DataFrame(data={'something': [100, 200, 300, 400, 500, 600, 700, 800]},
                    index=DatetimeIndex(date_range, name='date'))
-
 
     chunkstore_lib.write('test', df, chunk_size='D')
 

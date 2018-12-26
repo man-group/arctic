@@ -1,4 +1,5 @@
 import logging
+
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
@@ -23,7 +24,6 @@ from bson import Binary, SON
 
 from .._compression import compress, decompress, compress_array
 from ._serializer import Serializer
-
 
 
 DATA = 'd'

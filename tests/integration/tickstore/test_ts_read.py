@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime as dt
-from mock import patch, call, Mock
+
 import numpy as np
-from numpy.testing.utils import assert_array_equal
-from pandas.util.testing import assert_frame_equal
 import pandas as pd
-from pandas import DatetimeIndex
-from pymongo import ReadPreference
 import pytest
-import pytz
 import six
+from mock import patch, call, Mock
+from numpy.testing.utils import assert_array_equal
+from pandas import DatetimeIndex
+from pandas.util.testing import assert_frame_equal
+from pymongo import ReadPreference
 
 from arctic._util import mongo_count
 from arctic.date import DateRange, mktz, CLOSED_CLOSED, CLOSED_OPEN, OPEN_CLOSED, OPEN_OPEN
@@ -101,7 +101,6 @@ def test_read_allow_secondary(tickstore_lib):
                   'index': 1185141600600}]
     tickstore_lib.write('FEED::SYMBOL', data)
 
-
     with patch('pymongo.collection.Collection.find', side_effect=tickstore_lib._collection.find) as find:
         with patch('pymongo.collection.Collection.with_options', side_effect=tickstore_lib._collection.with_options) as with_options:
             with patch.object(tickstore_lib, '_read_preference', side_effect=tickstore_lib._read_preference) as read_pref:
@@ -160,7 +159,6 @@ def test_read_multiple_symbols(tickstore_lib):
     assert_array_equal(df['PRICE'].values, np.array([1545, 1543.75]))
     assert_array_equal(df.index.values.astype('object'), np.array([1185076787070000000, 1185141600600000000]))
     assert tickstore_lib._collection.find_one()['c'] == 1
-
 
 
 @pytest.mark.parametrize('chunk_size', [1, 100])
@@ -512,7 +510,7 @@ def test_read_spanning_chunks(tickstore_lib):
     tickstore_lib._chunk_size = 2
     tickstore_lib.write('SYM1', SYM1_DATA)
     tickstore_lib.write('SYM2', SYM2_DATA)
-    
+
     # Even though the latest chunk that's the closest to the start point for SYM1 starts at 11:00, it ends before the start point,
     # so we want to ignore it and start from SYM2 (12:30) instead.
     assert tickstore_lib._mongo_date_range_query(
@@ -630,7 +628,7 @@ def test_read_with_image(tickstore_lib):
     assert df.index[0] == dt(2013, 1, 1, 10, tzinfo=mktz('Europe/London'))
     assert df.index[1] == dt(2013, 1, 1, 11, tzinfo=mktz('Europe/London'))
     assert df.index[2] == dt(2013, 1, 1, 12, tzinfo=mktz('Europe/London'))
-    
+
     # Read one column from the updates
     df = tickstore_lib.read('SYM', columns=('a',), date_range=dr, include_images=True)
     assert set(df.columns) == set(('a',))

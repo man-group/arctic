@@ -1,15 +1,14 @@
 import argparse
-import os
 import logging
-from multiprocessing import Pool
+import os
 import pwd
+from multiprocessing import Pool
 
 from arctic.decorators import _get_host
 from arctic.store.audit import ArcticTransaction
-
-from ..hosts import get_arctic_lib
-from ..date import DateRange, to_pandas_closed_closed, CLOSED_OPEN, OPEN_CLOSED, mktz
 from .utils import setup_logging
+from ..date import DateRange, to_pandas_closed_closed, CLOSED_OPEN, OPEN_CLOSED
+from ..hosts import get_arctic_lib
 
 logger = logging.getLogger(__name__)
 

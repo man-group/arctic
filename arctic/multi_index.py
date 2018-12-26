@@ -1,16 +1,15 @@
 '''
 Utility functions for multi-index dataframes. Useful for creating bi-temporal timeseries.
 '''
-from datetime import datetime
 import logging
-
-from pandas import to_datetime as dt
-from .date import mktz
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
 import six
+from pandas import to_datetime as dt
 
+from .date import mktz
 
 logger = logging.getLogger(__name__)
 

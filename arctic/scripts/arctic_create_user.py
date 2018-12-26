@@ -1,12 +1,13 @@
 import argparse
 import base64
-from pymongo import MongoClient
-import uuid
 import logging
+import uuid
 
-from ..hooks import get_mongodb_uri
-from .utils import do_db_auth
+from pymongo import MongoClient
+
 from arctic.arctic import Arctic
+from .utils import do_db_auth
+from ..hooks import get_mongodb_uri
 
 logger = logging.getLogger(__name__)
 

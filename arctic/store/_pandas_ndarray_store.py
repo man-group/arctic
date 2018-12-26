@@ -1,17 +1,16 @@
 import ast
 import logging
 
-from arctic._util import NP_OBJECT_DTYPE
+import numpy as np
 from bson.binary import Binary
 from pandas import DataFrame, Series, Panel
-import numpy as np
 
+from arctic._util import NP_OBJECT_DTYPE
 from arctic.serialization.numpy_records import SeriesSerializer, DataFrameSerializer
+from ._ndarray_store import NdarrayStore
 from .._compression import compress, decompress
 from ..date._util import to_pandas_closed_closed
 from ..exceptions import ArcticException
-from ._ndarray_store import NdarrayStore
-
 
 log = logging.getLogger(__name__)
 

@@ -1,13 +1,9 @@
-
-from datetime import datetime as dt
-
-import pandas as pd
-from pandas import DataFrame, DatetimeIndex
-from pandas.util.testing import assert_frame_equal
 import numpy as np
+import pandas as pd
+from pandas.util.testing import assert_frame_equal
 
-from arctic.date import DateRange, CLOSED_OPEN, CLOSED_CLOSED, OPEN_OPEN, OPEN_CLOSED
 from arctic.chunkstore.tools import segment_id_repair
+
 
 def test_segment_repair_tool(chunkstore_lib):
     """
@@ -41,15 +37,12 @@ def test_segment_repair_tool(chunkstore_lib):
     chunkstore_lib._collection.update_one({'sy': 'test'}, {'$set': {'sg': -1}})
     assert(get_segments() == [-1])
 
-
     symbols = segment_id_repair(chunkstore_lib)
     assert(symbols == ['test'])
     assert(get_segments() == [0])
-    
 
     date += pd.Timedelta(1, unit='D')
     df2 = generate_data(date)
-
 
     chunkstore_lib.append('test', df2)
     assert(get_segments() == [0, 1])

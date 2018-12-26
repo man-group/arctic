@@ -11,9 +11,8 @@ from arctic._config import ARCTIC_AUTO_EXPAND_CHUNK_SIZE
 from arctic.serialization.numpy_records import PandasSerializer
 from .._compression import compress
 from .._config import MAX_DOCUMENT_SIZE
-from ..exceptions import ArcticSerializationException
 from .._util import NP_OBJECT_DTYPE
-
+from ..exceptions import ArcticSerializationException
 
 ABC = abc.ABCMeta('ABC', (object,), {})
 
@@ -85,7 +84,7 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
         max_str_len = len(max(self.input_data[fname].astype(type_sym), key=len))
         str_field_dtype = np.dtype('{}{:d}'.format(type_sym, max_str_len)) if max_str_len > 0 else input_ndtype
         return str_field_dtype, True
-    
+
     def _get_dtype(self):
         # Serializer is being called only if can_convert_to_records_without_objects() has passed,
         # which means that the resulting recarray does not contain objects but only numpy types, string, or unicode

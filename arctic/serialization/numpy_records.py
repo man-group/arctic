@@ -1,11 +1,12 @@
 import logging
-import os
 
 import numpy as np
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
+
 from .._config import FAST_CHECK_DF_SERIALIZABLE
-from ..exceptions import ArcticException
 from .._util import NP_OBJECT_DTYPE
+from ..exceptions import ArcticException
+
 try:  # 0.21+ Compatibility
     from pandas._libs.tslib import Timestamp
     from pandas._libs.tslibs.timezones import get_timezone
@@ -19,7 +20,6 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 DTN64_DTYPE = 'datetime64[ns]'
-
 
 
 def set_fast_check_df_serializable(config):
@@ -188,7 +188,7 @@ class PandasSerializer(object):
     def can_convert_to_records_without_objects(self, df, symbol):
         # We can't easily distinguish string columns from objects
         try:
-            #TODO: we can add here instead a check based on df size and enable fast-check if sz > threshold value
+            # TODO: we can add here instead a check based on df size and enable fast-check if sz > threshold value
             if FAST_CHECK_DF_SERIALIZABLE:
                 arr, _ = self.fast_check_serializable(df)
             else:

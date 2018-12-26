@@ -5,8 +5,8 @@ from threading import RLock
 
 from concurrent.futures import FIRST_COMPLETED
 
-from .async_utils import AsyncRequestType, AsyncRequest
 from ._workers_pool import LazySingletonTasksCoordinator
+from .async_utils import AsyncRequestType, AsyncRequest
 from ..decorators import mongo_retry
 from ..exceptions import AsyncArcticException
 

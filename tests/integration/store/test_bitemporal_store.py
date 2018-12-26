@@ -4,13 +4,12 @@ Created on 25 Aug 2015
 @author: ateng
 '''
 from datetime import datetime as dt
-import pytz
 
+import pytz
 from mock import patch
 from pandas.util.testing import assert_frame_equal
 
 from arctic.date._mktz import mktz
-import pandas as pd
 from tests.util import read_str_as_pandas
 
 pytest_plugins = ['arctic.fixtures.arctic']
@@ -235,7 +234,6 @@ def test_multi_index_ts_read_raw(bitemporal_library):
                          2012-11-08 17:06:11.040 | SPAM Index |  2015-01-01 |  3.0""", num_index=3)
     bitemporal_library.update('spam', ts, as_of=dt(2015, 1, 1))
     assert_frame_equal(expected_ts.tz_localize(tz=LOCAL_TZ, level=2), bitemporal_library.read('spam', raw=True).data)
-
 
 
 def test_multi_index_update(bitemporal_library):

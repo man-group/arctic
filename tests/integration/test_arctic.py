@@ -1,13 +1,13 @@
-import pytest
 import time
 from datetime import datetime as dt
+
+import pytest
 from mock import patch, MagicMock
 from pandas.util.testing import assert_frame_equal
 from pymongo.errors import OperationFailure
 
 from arctic.arctic import Arctic, VERSION_STORE
 from arctic.exceptions import LibraryNotFoundException, QuotaExceededException
-
 from ..util import get_large_ts
 
 

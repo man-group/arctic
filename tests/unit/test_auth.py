@@ -1,7 +1,7 @@
+import pytest
 from mock import create_autospec, sentinel
 from pymongo.database import Database
 from pymongo.errors import PyMongoError, OperationFailure
-import pytest
 
 from arctic import auth
 

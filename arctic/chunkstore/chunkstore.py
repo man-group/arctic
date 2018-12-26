@@ -1,23 +1,20 @@
-import logging
-import pymongo
 import hashlib
-import bson
+import logging
 from collections import defaultdict
+from itertools import groupby
 
+import pymongo
 from bson.binary import Binary
 from pandas import DataFrame, Series
-from six.moves import xrange
-from itertools import groupby
 from pymongo.errors import OperationFailure
+from six.moves import xrange
 
-from ..decorators import mongo_retry
-from .._util import indent, mongo_count, enable_sharding
-from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, METADATA, COLUMNS
 from .date_chunker import DateChunker, START, END
 from .passthrough_chunker import PassthroughChunker
-
+from .._util import indent, mongo_count, enable_sharding
+from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException
-
+from ..serialization.numpy_arrays import FrametoArraySerializer, DATA, METADATA, COLUMNS
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +233,6 @@ class ChunkStore(object):
             audit['old_symbol'] = from_symbol
             self._audit.insert_one(audit)
 
-
     def read(self, symbol, chunk_range=None, filter_data=True, **kwargs):
         """
         Reads data for a given symbol from the database.
@@ -267,7 +263,6 @@ class ChunkStore(object):
         if not sym:
             raise NoDataFoundException('No data found for %s' % (symbol))
 
-
         spec = {SYMBOL: {'$in': symbol}}
         chunker = CHUNKER_MAP[sym[0][CHUNKER]]
         deser = SER_MAP[sym[0][SERIALIZER]].deserialize
@@ -291,7 +286,6 @@ class ChunkStore(object):
             # otherwise, take all segments and reassemble the data to one chunk
             chunk_data = b''.join([doc[DATA] for doc in segments])
             chunks[segments[0][SYMBOL]].append({DATA: chunk_data, METADATA: mdata})
-
 
         skip_filter = not filter_data or chunk_range is None
 
@@ -472,7 +466,6 @@ class ChunkStore(object):
                                               START: start,
                                               END: end,
                                               SEGMENT: {'$gte': chunk_count}})
-
 
             for i in xrange(chunk_count):
                 chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE: (i + 1) * MAX_CHUNK_SIZE])}

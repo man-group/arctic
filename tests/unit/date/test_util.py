@@ -1,9 +1,10 @@
+from datetime import datetime as dt
+
 import pytest
-import pytz
 from mock import patch
 
-from datetime import datetime as dt
-from arctic.date import datetime_to_ms, ms_to_datetime, mktz, to_pandas_closed_closed, DateRange, OPEN_OPEN, CLOSED_CLOSED
+from arctic.date import datetime_to_ms, ms_to_datetime, mktz, to_pandas_closed_closed, DateRange, OPEN_OPEN, \
+    CLOSED_CLOSED
 from arctic.date._util import to_dt, utc_dt_to_local_dt
 
 

@@ -1,9 +1,9 @@
 import datetime
+
 from six import string_types
 
 from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN, GeneralSlice
 from ._parse import parse
-
 
 INTERVAL_LOOKUP = {(True, True): OPEN_OPEN,
                    (False, False): CLOSED_CLOSED,

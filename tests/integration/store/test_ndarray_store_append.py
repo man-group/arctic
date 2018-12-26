@@ -1,13 +1,13 @@
-import bson
 import numpy as np
 from numpy.testing import assert_equal
+import numpy as np
 import pytest
+from numpy.testing import assert_equal
 
 from arctic._util import FwPointersCfg
 from arctic.store._ndarray_store import NdarrayStore, _APPEND_COUNT
 from arctic.store.version_store import register_versioned_storage
-
-from tests.integration.store.test_version_store import _query, FwPointersCtx
+from tests.integration.store.test_version_store import FwPointersCtx
 
 register_versioned_storage(NdarrayStore)
 
@@ -322,9 +322,9 @@ def test_append_after_failed_append(library, fw_pointers_cfg):
 
 
 def test_append_reorder_columns(library):
-    foo = np.array([(1,2)], dtype=np.dtype([('a', 'u1'), ('b', 'u1')]))
+    foo = np.array([(1, 2)], dtype=np.dtype([('a', 'u1'), ('b', 'u1')]))
     library.write('MYARR', foo)
-    foo = np.array([(1,2)], dtype=np.dtype([('b', 'u1'), ('a', 'u1')]))
+    foo = np.array([(1, 2)], dtype=np.dtype([('b', 'u1'), ('a', 'u1')]))
     library.append('MYARR', foo)
 
     assert np.all(library.read('MYARR').data == np.array([(2, 1), (1, 2)], dtype=[('b', 'u1'), ('a', 'u1')]))

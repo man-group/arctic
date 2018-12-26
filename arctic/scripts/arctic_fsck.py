@@ -1,9 +1,9 @@
-import logging
 import argparse
+import logging
 
-from ..hooks import get_mongodb_uri
-from ..arctic import Arctic, ArcticLibraryBinding
 from .utils import do_db_auth, setup_logging
+from ..arctic import Arctic, ArcticLibraryBinding
+from ..hooks import get_mongodb_uri
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +69,7 @@ def main():
         logger.info("Done: DRY-RUN: No changes made. (Use -f to fix any problems)")
     else:
         logger.info("Done.")
+
 
 if __name__ == '__main__':
     main()
