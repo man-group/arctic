@@ -81,7 +81,7 @@ LZ4_WORKERS = os.environ.get('LZ4_WORKERS', 2)
 LZ4_N_PARALLEL = os.environ.get('LZ4_N_PARALLEL', 16)
 
 # Minimum data size to use parallel compression
-LZ4_MINSZ_PARALLEL = os.environ.get('LZ4_MINSZ_PARALLEL', 0.5*1024**2)  # 0.5 MB
+LZ4_MINSZ_PARALLEL = os.environ.get('LZ4_MINSZ_PARALLEL', 0.5 * 1024 ** 2)  # 0.5 MB
 
 # Enable this when you run the benchmark_lz4.py
 BENCHMARK_MODE = False

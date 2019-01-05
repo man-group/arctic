@@ -46,9 +46,7 @@ class PandasStore(NdarrayStore):
             new_segments = np.array(new_segments, dtype='i8')
             last_rows = recarr[new_segments - start]
             # create numpy index
-            index = np.core.records.fromarrays([last_rows[idx_col]]
-                                               + [new_segments, ],
-                                               dtype=INDEX_DTYPE)
+            index = np.core.records.fromarrays([last_rows[idx_col]] + [new_segments, ], dtype=INDEX_DTYPE)
             # append to existing index if exists
             if existing_index:
                 # existing_index_arr is read-only but it's never written to

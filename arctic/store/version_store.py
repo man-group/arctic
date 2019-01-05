@@ -689,10 +689,10 @@ class VersionStore(object):
         # It is dangerous because if it deletes the version at the last_look, the segments added by the
         # append are dangling (if prune_previous_version is False) and can cause potentially corruption.
         constraints = new_version and \
-                            reference_version and \
-                            new_version['symbol'] == reference_version['symbol'] and \
-                            new_version['_id'] != reference_version['_id'] and \
-                            new_version['base_version_id']
+                      reference_version and \
+                      new_version['symbol'] == reference_version['symbol'] and \
+                      new_version['_id'] != reference_version['_id'] and \
+                      new_version['base_version_id']
         assert constraints
         # There is always a small risk here another process in between these two calls (above/below)
         # to delete the reference_version, which may happen to be the last parent entry in the data segments.

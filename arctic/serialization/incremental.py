@@ -196,23 +196,23 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
         # Note that the range is: [from_idx, to_idx)
         self._lazy_init()
 
-        my_lenth = len(self)
+        my_length = len(self)
 
         # Take into account default arguments and negative indexing (from end offset)
         from_idx = 0 if from_idx is None else from_idx
         if from_idx < 0:
-            from_idx = my_lenth + from_idx
-        to_idx = my_lenth if to_idx is None else min(to_idx, my_lenth)
+            from_idx = my_length + from_idx
+        to_idx = my_length if to_idx is None else min(to_idx, my_length)
         if to_idx < 0:
-            to_idx = my_lenth + to_idx
+            to_idx = my_length + to_idx
 
         # No data, finish iteration
-        if my_lenth == 0 or from_idx >= my_lenth or from_idx >= to_idx:
+        if my_length == 0 or from_idx >= my_length or from_idx >= to_idx:
             return
 
         # Perform serialization for each chunk
         while from_idx < to_idx:
-            curr_stop = min(from_idx+self._rows_per_chunk, to_idx)
+            curr_stop = min(from_idx + self._rows_per_chunk, to_idx)
 
             chunk, _ = self._serializer.serialize(
                 self.input_data[from_idx: curr_stop],

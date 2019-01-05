@@ -2,6 +2,7 @@ import numpy as np
 from mock import Mock, sentinel, patch
 from pytest import raises
 
+# Do not remove PandasStore
 from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasPanelStore, PandasStore
 from tests.util import read_str_as_pandas
 

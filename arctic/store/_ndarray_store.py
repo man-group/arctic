@@ -10,6 +10,7 @@ from six.moves import xrange
 
 from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
 from .._compression import compress_array, decompress
+# CHECK_CORRUPTION_ON_APPEND used in global scope, do not remove.
 from .._config import CHECK_CORRUPTION_ON_APPEND, FW_POINTERS_CONFIG_KEY, FW_POINTERS_REFS_KEY, \
     ARCTIC_FORWARD_POINTERS_CFG, ARCTIC_FORWARD_POINTERS_RECONCILE, FwPointersCfg
 from .._util import mongo_count, get_fwptr_config
@@ -47,12 +48,14 @@ def _attempt_update_unchanged(symbol, unchanged_segment_ids, collection, version
     parent_id = version_base_or_id(version)
 
     # Update the parent set of the unchanged/compressed segments
-    result = collection.update_many({
-                                        'symbol': symbol,  # hit only the right shard
-                                                           # update_many is a broadcast query otherwise
-                                        '_id': {'$in': [x['_id'] for x in unchanged_segment_ids]}
-                                    },
-                                    {'$addToSet': {'parent': parent_id}})
+    result = collection.update_many(
+        {
+            'symbol': symbol,  # hit only the right shard
+            # update_many is a broadcast query otherwise
+            '_id': {'$in': [x['_id'] for x in unchanged_segment_ids]}
+        },
+        {'$addToSet': {'parent': parent_id}}
+    )
     # Fast check for success without extra query
     if result.matched_count == len(unchanged_segment_ids):
         return
@@ -64,7 +67,7 @@ def _attempt_update_unchanged(symbol, unchanged_segment_ids, collection, version
     matched_segments_ids = set([x['_id'] for x in collection.find(spec)])
     if unchanged_ids != matched_segments_ids:
         logger.error("Mismatched unchanged segments for {}: {} != {} (query spec={})".format(
-                        symbol, unchanged_ids, matched_segments_ids, spec))
+            symbol, unchanged_ids, matched_segments_ids, spec))
         raise DataIntegrityException("Symbol: {}:{} update_many updated {} segments instead of {}".format(
             symbol, previous_version['version'], result.matched_count, len(unchanged_segment_ids)))
 
@@ -189,7 +192,7 @@ def _spec_fw_pointers_aware(symbol, version, from_index=None, to_index=None):
 
     # The code below shouldn't really be reached.
     raise DataIntegrityException("Unhandled FW pointers configuration ({}: {}/{}/{})".format(
-            version.get('symbol'), version.get('_id'), version.get('version'), v_fw_config))
+        version.get('symbol'), version.get('_id'), version.get('version'), v_fw_config))
 
 
 def _fw_pointers_convert_append_to_write(previous_version):
@@ -246,7 +249,6 @@ class NdarrayStore(object):
 
 
     segment documents:
-    
     [
      #first chunk written:
      {u'_id': ObjectId('55fa9a778b376a68efdd10e3'),
@@ -349,10 +351,10 @@ class NdarrayStore(object):
         return self._do_read(collection, version, symbol, index_range=index_range)
 
     def _do_read(self, collection, version, symbol, index_range=None):
-        '''
-        index_range is a 2-tuple of integers - a [from, to) range of segments to be read. 
+        """
+        index_range is a 2-tuple of integers - a [from, to) range of segments to be read.
             Either from or to can be None, indicating no bound.
-        '''
+        """
         from_index = index_range[0] if index_range else None
         to_index = version['up_to']
         if index_range and index_range[1] and index_range[1] < version['up_to']:
@@ -460,8 +462,7 @@ class NdarrayStore(object):
             version['base_version_id'] = version_base_or_id(previous_version)
 
             if len(item) > 0:
-                segment = {'data': Binary(data), 'compressed': False}
-                segment['segment'] = version['up_to'] - 1
+                segment = {'data': Binary(data), 'compressed': False, 'segment': version['up_to'] - 1}
                 sha = checksum(symbol, segment)
                 try:
                     # TODO: We could have a common handling with conditional spec-construction for the update spec.
@@ -490,7 +491,7 @@ class NdarrayStore(object):
                     '''If we get a duplicate key error here, this segment has the same symbol/parent/segment
                        as another chunk, but a different sha. This means that we have 'forked' history.
                        If we concat_and_rewrite here, new chunks will have a different parent id (the _id of this version doc)
-                       ...so we can safely write them. 
+                       ...so we can safely write them.
                        '''
                     self._concat_and_rewrite(collection, version, symbol, item, previous_version)
                     return
@@ -556,7 +557,7 @@ class NdarrayStore(object):
         if unchanged_segments:
             if version.get(FW_POINTERS_CONFIG_KEY) != FwPointersCfg.ENABLED.name:
                 _attempt_update_unchanged(symbol, unchanged_segments, collection, version, previous_version)
-            version['segment_count'] = version['segment_count'] + len(unchanged_segments)
+            version['segment_count'] += len(unchanged_segments)
             _update_fw_pointers(
                 collection, symbol, version, previous_version, is_append=False,
                 shas_to_add=version.get(FW_POINTERS_REFS_KEY, []) + [s['sha'] for s in unchanged_segments])
@@ -653,8 +654,11 @@ class NdarrayStore(object):
         # Write
         bulk = []
         for i, chunk in zip(idxs, compressed_chunks):
-            segment = {'data': Binary(chunk), 'compressed': True}
-            segment['segment'] = min((i + 1) * rows_per_chunk - 1, length - 1) + segment_offset
+            segment = {
+                'data': Binary(chunk),
+                'compressed': True,
+                'segment': min((i + 1) * rows_per_chunk - 1, length - 1) + segment_offset,
+            }
             segment_index.append(segment['segment'])
             sha = checksum(symbol, segment)
             segment_spec = {'symbol': symbol, 'sha': sha, 'segment': segment['segment']}

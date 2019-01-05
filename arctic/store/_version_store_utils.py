@@ -80,7 +80,7 @@ def _cleanup_parent_pointers(collection, symbol, version_ids):
 
     # Now remove all chunks which aren't parented - this is unlikely, as they will
     # have been removed by the above
-    collection.delete_one({'symbol':  symbol, 'parent': []})
+    collection.delete_one({'symbol': symbol, 'parent': []})
 
 
 def _cleanup_mixed(symbol, collection, version_ids, versions_coll):
@@ -228,7 +228,7 @@ def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
                 delta_snap_creation,
                 'PREV_MISSING' if prev_n < n - 1 else '',
                 'CORRUPTED VERSION' if corrupted else '')
-            )
+        )
         prev_rows = v.get('up_to', 0)
         prev_n = n
         prev_v = v

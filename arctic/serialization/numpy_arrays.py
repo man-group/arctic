@@ -186,7 +186,7 @@ class FrametoArraySerializer(Serializer):
         return ret
 
     def deserialize(self, data, columns=None):
-        '''
+        """
         Deserializes SON to a DataFrame
 
         Parameters
@@ -199,8 +199,8 @@ class FrametoArraySerializer(Serializer):
         Returns
         -------
         pandas dataframe or series
-        '''
-        if data == []:
+        """
+        if not data:
             return pd.DataFrame()
 
         meta = data[0][METADATA] if isinstance(data, list) else data[METADATA]

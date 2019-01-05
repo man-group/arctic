@@ -26,11 +26,11 @@ class PickleStore(object):
     def initialize_library(cls, *args, **kwargs):
         pass
 
-    def get_info(self, version):
-        ret = {}
-        ret['type'] = 'blob'
-        ret['handler'] = self.__class__.__name__
-        return ret
+    def get_info(self, _version):
+        return {
+            'type': 'blob',
+            'handler': self.__class__.__name__,
+        }
 
     def read(self, mongoose_lib, version, symbol, **kwargs):
         blob = version.get("blob")

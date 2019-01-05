@@ -247,18 +247,18 @@ class Arctic(object):
         kwargs :
             Arguments passed to the Library type for initialization.
         """
-        l = ArcticLibraryBinding(self, library)
+        lib = ArcticLibraryBinding(self, library)
         # check that we don't create too many namespaces
         # can be disabled check_library_count=False
         check_library_count = kwargs.pop('check_library_count', True)
-        if len(self._conn[l.database_name].list_collection_names()) > 5000 and check_library_count:
+        if len(self._conn[lib.database_name].list_collection_names()) > 5000 and check_library_count:
             raise ArcticException("Too many namespaces %s, not creating: %s" %
-                                  (len(self._conn[l.database_name].list_collection_names()), library))
-        l.set_library_type(lib_type)
-        LIBRARY_TYPES[lib_type].initialize_library(l, **kwargs)
+                                  (len(self._conn[lib.database_name].list_collection_names()), library))
+        lib.set_library_type(lib_type)
+        LIBRARY_TYPES[lib_type].initialize_library(lib, **kwargs)
         # Add a 10G quota just in case the user is calling this with API.
-        if not l.get_quota():
-            l.set_quota(10 * 1024 * 1024 * 1024)
+        if not lib.get_quota():
+            lib.set_quota(10 * 1024 * 1024 * 1024)
 
     @mongo_retry
     def delete_library(self, library):
@@ -270,19 +270,19 @@ class Arctic(object):
         library : `str`
             The name of the library. e.g. 'library' or 'user.library'
         """
-        l = ArcticLibraryBinding(self, library)
-        colname = l.get_top_level_collection().name
-        if not [c for c in l._db.list_collection_names(False) if re.match(r"^{}([\.].*)?$".format(colname), c)]:
+        lib = ArcticLibraryBinding(self, library)
+        colname = lib.get_top_level_collection().name
+        if not [c for c in lib._db.list_collection_names(False) if re.match(r"^{}([\.].*)?$".format(colname), c)]:
             logger.info('Nothing to delete. Arctic library %s does not exist.' % colname)
         logger.info('Dropping collection: %s' % colname)
-        l._db.drop_collection(colname)
-        for coll in l._db.list_collection_names():
+        lib._db.drop_collection(colname)
+        for coll in lib._db.list_collection_names():
             if coll.startswith(colname + '.'):
                 logger.info('Dropping collection: %s' % coll)
-                l._db.drop_collection(coll)
+                lib._db.drop_collection(coll)
         if library in self._library_cache:
             del self._library_cache[library]
-            del self._library_cache[l.get_name()]
+            del self._library_cache[lib.get_name()]
 
     def get_library(self, library):
         """
@@ -299,8 +299,8 @@ class Arctic(object):
 
         try:
             error = None
-            l = ArcticLibraryBinding(self, library)
-            lib_type = l.get_library_type()
+            lib = ArcticLibraryBinding(self, library)
+            lib_type = lib.get_library_type()
         except (OperationFailure, AutoReconnect) as e:
             error = e
 
@@ -313,10 +313,10 @@ class Arctic(object):
         elif lib_type not in LIBRARY_TYPES:
             raise LibraryNotFoundException("Couldn't load LibraryType '%s' for '%s' (has the class been registered?)" %
                                            (lib_type, library))
-        instance = LIBRARY_TYPES[lib_type](l)
+        instance = LIBRARY_TYPES[lib_type](lib)
         self._library_cache[library] = instance
         # The library official name may be different from 'library': e.g. 'library' vs 'user.library'
-        self._library_cache[l.get_name()] = instance
+        self._library_cache[lib.get_name()] = instance
         return self._library_cache[library]
 
     def __getitem__(self, key):
@@ -338,8 +338,7 @@ class Arctic(object):
         quota : `int`
             Advisory quota for the library - in bytes
         """
-        l = ArcticLibraryBinding(self, library)
-        l.set_quota(quota)
+        ArcticLibraryBinding(self, library).set_quota(quota)
 
     def get_quota(self, library):
         """
@@ -350,8 +349,7 @@ class Arctic(object):
         library : `str`
             The name of the library. e.g. 'library' or 'user.library'
         """
-        l = ArcticLibraryBinding(self, library)
-        return l.get_quota()
+        return ArcticLibraryBinding(self, library).get_quota()
 
     def check_quota(self, library):
         """
@@ -366,8 +364,7 @@ class Arctic(object):
         ------
         arctic.exceptions.QuotaExceededException if the quota has been exceeded
         """
-        l = ArcticLibraryBinding(self, library)
-        l.check_quota()
+        ArcticLibraryBinding(self, library).check_quota()
 
     def rename_library(self, from_lib, to_lib):
         """
@@ -386,18 +383,18 @@ class Arctic(object):
                 raise ValueError("Collection can only be renamed in the same database")
             to_colname = to_lib.split('.')[1]
 
-        l = ArcticLibraryBinding(self, from_lib)
-        colname = l.get_top_level_collection().name
+        lib = ArcticLibraryBinding(self, from_lib)
+        colname = lib.get_top_level_collection().name
 
         logger.info('Renaming collection: %s' % colname)
-        l._db[colname].rename(to_colname)
-        for coll in l._db.list_collection_names():
+        lib._db[colname].rename(to_colname)
+        for coll in lib._db.list_collection_names():
             if coll.startswith(colname + '.'):
-                l._db[coll].rename(coll.replace(colname, to_colname))
+                lib._db[coll].rename(coll.replace(colname, to_colname))
 
         if from_lib in self._library_cache:
             del self._library_cache[from_lib]
-            del self._library_cache[l.get_name()]
+            del self._library_cache[lib.get_name()]
 
     def get_library_type(self, lib):
         """
@@ -408,8 +405,7 @@ class Arctic(object):
         lib: str
             the library
         """
-        l = ArcticLibraryBinding(self, lib)
-        return l.get_library_type()
+        return ArcticLibraryBinding(self, lib).get_library_type()
 
 
 class ArcticLibraryBinding(object):
@@ -565,14 +561,14 @@ class ArcticLibraryBinding(object):
             remaining_count = remaining / avg_size
             if remaining_count < 100 or float(remaining) / self.quota < 0.1:
                 logger.warning("Mongo Quota: %s %.3f / %.0f GB used" % (
-                                '.'.join([self.database_name, self.library]),
-                                to_gigabytes(size),
-                                to_gigabytes(self.quota)))
+                    '.'.join([self.database_name, self.library]),
+                    to_gigabytes(size),
+                    to_gigabytes(self.quota)))
             else:
                 logger.info("Mongo Quota: %s %.3f / %.0f GB used" % (
-                                '.'.join([self.database_name, self.library]),
-                                to_gigabytes(size),
-                                to_gigabytes(self.quota)))
+                    '.'.join([self.database_name, self.library]),
+                    to_gigabytes(size),
+                    to_gigabytes(self.quota)))
 
             # Set-up a timer to prevent us for checking for a few writes.
             # This will check every average half-life
