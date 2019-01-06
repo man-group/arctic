@@ -1,6 +1,4 @@
-# Arctic Documentation
-
-## Introduction
+# Arctic Introduction
 
 Arctic is a timeseries / dataframe database that sits atop MongoDB. Arctic supports serialization of a number of datatypes for storage in the mongo document model.
 
@@ -69,7 +67,6 @@ Other basic methods:
    - Arctic internally sets quotas on libraries so they do not consume too much space.    You can check and set quotas with these two methods. Note these operate on the       `Arctic` object, not on libraries
 
 
-
 ## Arctic Storage Engines
 
 Arctic is designed to be very extensible and currently supports a numer of different use cases. To understand what Arctic is capable of, one must understand the storage models it uses. Arctic currently supports three storage engines
@@ -81,9 +78,23 @@ Arctic is designed to be very extensible and currently supports a numer of diffe
 Each one has various features and is designed to support specific and general use cases.
 
 
-
 ## Arctic configuration settings
 
 There is a large number of configuration knobs which tune Arctic's performance, and enable/disable various (experimental) features.
 
 For more details refer to the [Arctic configuration guide](configuration.md).
+
+## Presentations
+
+### Video
+
+- [2015 All Your Base : Building a time series database: 10^12 rows and counting](https://vimeo.com/album/3660528/video/145842301)
+- [2014 PyData : Python and MongoDB as a Platform for Financial Market Data](https://www.youtube.com/watch?v=FVyIxdxsyok)
+- [2014 MongoDB World : Replacing Traditional Technologies with MongoDB: A Single Platform for All Financial Data at AHL](https://www.mongodb.com/presentations/replacing-traditional-technologies-mongodb-single-platform-all-financial-data-ahl)
+
+### Slides
+
+- [2015 All Your Base : Building a time series database: 10^12 rows and counting](http://www.slideshare.net/JamesBlackburn1/building-a-time-series-database?ref=http://lanyrd.com/2015/all-your-base/sdrydc/)
+- [2015 PyData : Arctic: High-performance IoT and financial data storage with Python and MongoDB](http://www.slideshare.net/JamesBlackburn1/2015-pydata-highperformance-iot-and-financial-data-storage-with-python-and-mongodb)
+- [2014 PyData : Python and MongoDB as a Platform for Financial Market Data](http://www.slideshare.net/JamesBlackburn1/mongodb-and-python-as-a-market-data-platform)
+- [2014 MongoDB World : Replacing Traditional Technologies with MongoDB: A Single Platform for All Financial Data at AHL](http://www.slideshare.net/mongodb/replacing-traditional-technologies-with-mongodb-a-single-platform-for-all-financial-data-at-ahl?ref=https://www.mongodb.com/presentations/replacing-traditional-technologies-mongodb-single-platform-all-financial-data-ahl)

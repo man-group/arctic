@@ -13,3 +13,14 @@ theme:
 
 plugins:
     - search
+
+# Pages
+pages:
+  - Introduction: 'index.md'
+  - Configuration: 'configuration.md'
+  - Developing on mac: 'developing-conda-mac.md'
+  - Storage Engines:
+    - VersionStore: 'versionstore.md'
+    - TickStore: 'tickstore.md'
+    - ChunkStore: 'chunkstore.md'
+  - FAQ: 'faq.md'
