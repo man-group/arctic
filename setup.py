@@ -92,7 +92,7 @@ setup(
                      ],
     tests_require=["mock",
                    "mockextras",
-                   "pytest",
+                   "pytest<4.1",
                    "pytest-cov",
                    "pytest-server-fixtures",
                    "pytest-timeout",
