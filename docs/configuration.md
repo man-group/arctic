@@ -5,8 +5,6 @@ Arctic has several tuning knobs under [arctic/_config.py](https://github.com/man
 Most of these variables are initialized via environment variables, which are explained in the rest of this section.
 
 
-<br><br>
-
 ## VersionStore
 
 ### STRICT_WRITE_HANDLER_MATCH
@@ -33,9 +31,6 @@ arctic.exceptions.ArcticException: Not falling back to default handler for Symbo
 ```
 
 
-<br><br>
-
-
 ## NdArrayStore
 
 ### CHECK_CORRUPTION_ON_APPEND
@@ -46,9 +41,6 @@ Enables more thorough sanity checks for detecting data corruption when issuing a
 export CHECK_CORRUPTION_ON_APPEND=1
 ```
 
-
-
-<br><br>
 
 
 ## Serialization
@@ -85,13 +77,6 @@ Optional optimisation feature. When set, it applies a fast check for the *can_wr
 ```
 export FAST_CHECK_DF_SERIALIZABLE=1
 ```
-
-
-
-
-
-<br><br>
-
 
 
 ## Forward pointers
@@ -169,10 +154,6 @@ It has an effect only when *ARCTIC_FORWARD_POINTERS_CFG=HYBRID* and affects writ
 ```
 export ARCTIC_FORWARD_POINTERS_RECONCILE=1
 ```
-
-
-
-<br><br>
 
 
 
