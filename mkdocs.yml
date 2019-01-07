@@ -17,10 +17,14 @@ plugins:
 # Pages
 pages:
   - Introduction: 'index.md'
+  - Quickstart: 'quickstart.md'
   - Configuration: 'configuration.md'
   - Developing on mac: 'developing-conda-mac.md'
   - Storage Engines:
     - VersionStore: 'versionstore.md'
     - TickStore: 'tickstore.md'
     - ChunkStore: 'chunkstore.md'
+  - ChunkStore API Reference: 'chunkstore_api.md'
+  - Releasing: 'releasing.md'
+  - Users: 'users.md'
   - FAQ: 'faq.md'

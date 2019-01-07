@@ -1,6 +1,7 @@
 # [![arctic](logo/arctic_50.png)](https://github.com/manahl/arctic) [Arctic TimeSeries and Tick store](https://github.com/manahl/arctic)
 
 
+[![Documentation Status](https://readthedocs.org/projects/arctic/badge/?version=latest)](https://arctic.readthedocs.io/en/latest/?badge=latest)
 [![Travis CI](https://travis-ci.org/manahl/arctic.svg?branch=master)](https://travis-ci.org/manahl/arctic)
 [![Coverage Status](https://coveralls.io/repos/github/manahl/arctic/badge.svg?branch=master)](https://coveralls.io/github/manahl/arctic?branch=master)
 [![Code Health](https://landscape.io/github/manahl/arctic/master/landscape.svg?style=flat)](https://landscape.io/github/manahl/arctic/master)
@@ -65,7 +66,9 @@ VersionStore supports much more: [See the HowTo](howtos/how_to_use_arctic.py)!
 Plugging a custom class in as a library type is straightforward. [This example
 shows how.](howtos/how_to_custom_arctic_library.py)
 
+## Documentation
 
+You can find complete documentation at [Arctic docs](https://arctic.readthedocs.io/en/latest/)
 
 ## Concepts
 
