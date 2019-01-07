@@ -742,13 +742,14 @@ class ChunkStore(object):
         res['chunks'] = db.command('collstats', self._collection.name)
         res['symbols'] = db.command('collstats', self._symbols.name)
         res['metadata'] = db.command('collstats', self._mdata.name)
-        res['totals'] = {'count': res['chunks']['count'],
-                         'size': res['chunks']['size'] + res['symbols']['size'] + res['metadata']['size'],
-                        }
+        res['totals'] = {
+            'count': res['chunks']['count'],
+            'size': res['chunks']['size'] + res['symbols']['size'] + res['metadata']['size'],
+        }
         return res
 
     def has_symbol(self, symbol):
-        '''
+        """
         Check if symbol exists in collection
 
         Parameters
@@ -759,5 +760,5 @@ class ChunkStore(object):
         Returns
         -------
         bool
-        '''
+        """
         return self._get_symbol_info(symbol) is not None

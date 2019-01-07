@@ -85,7 +85,7 @@ def string_to_daterange(str_range, delimiter='-', as_dates=False, interval=CLOSE
 def to_dt(date, default_tz=None):
     """
     Returns a non-naive datetime.datetime.
-    
+
     Interprets numbers as ms-since-epoch.
 
     Parameters
@@ -116,7 +116,7 @@ def to_pandas_closed_closed(date_range, add_tz=True):
 
     Parameters
     ----------
-    date_range : `DateRange` object 
+    date_range : `DateRange` object
         converted to CLOSED_CLOSED form for Pandas slicing
 
     add_tz : `bool`

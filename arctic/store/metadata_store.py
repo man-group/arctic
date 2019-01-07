@@ -89,7 +89,8 @@ class MetadataStore(BSONStore):
 
         if regex or as_of:
             # make sure that symbol is present in query even if only as_of is specified to avoid document scans
-            # see 'Pipeline Operators and Indexes' at https://docs.mongodb.com/manual/core/aggregation-pipeline/#aggregation-pipeline-operators-and-performance
+            # see 'Pipeline Operators and Indexes' at
+            # https://docs.mongodb.com/manual/core/aggregation-pipeline/#aggregation-pipeline-operators-and-performance
             index_query['symbol'] = {'$regex': regex or '^'}
 
         # Document query part
@@ -224,7 +225,7 @@ class MetadataStore(BSONStore):
             return
 
         self.find_one_and_update({'symbol': symbol}, {'$set': {'end_time': start_time}},
-                                  sort=[('start_time', pymongo.DESCENDING)])
+                                 sort=[('start_time', pymongo.DESCENDING)])
         document = {'_id': bson.ObjectId(), 'symbol': symbol, 'metadata': metadata, 'start_time': start_time}
         mongo_retry(self.insert_one)(document)
 

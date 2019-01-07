@@ -82,22 +82,22 @@ class DateRange(GeneralSlice):
         Create a new DateRange representing the maximal range enclosed by this range and other
         """
         startopen = other.startopen if self.start is None \
-                    else self.startopen if other.start is None \
-                    else other.startopen if self.start < other.start \
-                    else self.startopen if self.start > other.start \
-                    else (self.startopen or other.startopen)
+            else self.startopen if other.start is None \
+            else other.startopen if self.start < other.start \
+            else self.startopen if self.start > other.start \
+            else (self.startopen or other.startopen)
         endopen = other.endopen if self.end is None \
-                   else self.endopen if other.end is None \
-                   else other.endopen if self.end > other.end \
-                   else self.endopen if self.end < other.end \
-                   else (self.endopen or other.endopen)
+            else self.endopen if other.end is None \
+            else other.endopen if self.end > other.end \
+            else self.endopen if self.end < other.end \
+            else (self.endopen or other.endopen)
 
         new_start = self.start if other.start is None \
-                    else other.start if self.start is None \
-                    else max(self.start, other.start)
+            else other.start if self.start is None \
+            else max(self.start, other.start)
         new_end = self.end if other.end is None \
-                   else other.end if self.end is None \
-                   else min(self.end, other.end)
+            else other.end if self.end is None \
+            else min(self.end, other.end)
 
         interval = INTERVAL_LOOKUP[(startopen, endopen)]
 

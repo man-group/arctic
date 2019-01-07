@@ -3,6 +3,7 @@ import logging
 import numpy as np
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
 
+# Used in global scope, do not remove.
 from .._config import FAST_CHECK_DF_SERIALIZABLE
 from .._util import NP_OBJECT_DTYPE
 from ..exceptions import ArcticException

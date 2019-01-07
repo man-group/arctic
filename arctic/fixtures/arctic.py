@@ -35,6 +35,7 @@ def arctic_secondary(mongo_server, arctic):
     arctic = m.Arctic(mongo_host=mongo_server.api, allow_secondary=True)
     return arctic
 
+
 @pytest.fixture(scope="function")
 def multicolumn_store_with_uncompressed_write(mongo_server):
     """

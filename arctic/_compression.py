@@ -7,8 +7,9 @@ try:
 except ImportError as e:
     from lz4 import compress as lz4_compress, compressHC as lz4_compressHC, decompress as lz4_decompress
 
+# ENABLE_PARALLEL mutated in global_scope. Do not remove.
 from ._config import ENABLE_PARALLEL, LZ4_HIGH_COMPRESSION, LZ4_WORKERS, LZ4_N_PARALLEL, LZ4_MINSZ_PARALLEL, \
-    BENCHMARK_MODE
+    BENCHMARK_MODE  # noqa # pylint: disable=unused-import
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +79,10 @@ def compress_array(str_list, withHC=LZ4_HIGH_COMPRESSION):
 
     do_compress = lz4_compressHC if withHC else lz4_compress
 
-    use_parallel = ENABLE_PARALLEL and withHC or \
-                   len(str_list) > LZ4_N_PARALLEL and len(str_list[0]) > LZ4_MINSZ_PARALLEL
+    def can_parallelize_strlist(strlist):
+        return len(strlist) > LZ4_N_PARALLEL and len(strlist[0]) > LZ4_MINSZ_PARALLEL
+
+    use_parallel = (ENABLE_PARALLEL and withHC) or can_parallelize_strlist(str_list)
 
     if BENCHMARK_MODE or use_parallel:
         if _compress_thread_pool is None:
