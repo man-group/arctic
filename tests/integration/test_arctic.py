@@ -233,3 +233,47 @@ def test_library_exists_no_auth(arctic):
         assert arctic.library_exists('test')
         assert AB.return_value.get_library_type.called
         assert not arctic.library_exists('nonexistentlib')
+
+
+def test_list_libraries_cached(arctic):
+    libs = ['test1', 'test2']
+    for lib in libs:
+        arctic.initialize_library(lib)
+
+    assert libs == arctic.list_libraries()
+
+    # Check that the cached collection does not exist right now.
+    mongo = arctic._conn
+    assert 'cache' not in mongo.meta_db.collection_names()
+
+    # Should call list_libraries the first time.
+    with patch('arctic.arctic.Arctic._list_libraries', return_value=libs) as uncached_list_libraries:
+        assert arctic._list_libraries_cached() == libs
+        uncached_list_libraries.assert_called()
+
+    # Should fetch it from cache the second time.
+    with patch('arctic.arctic.Arctic._list_libraries', return_value=libs) as uncached_list_libraries:
+        assert arctic._list_libraries_cached() == libs
+        uncached_list_libraries.assert_not_called()
+
+    # collection should exist in collection and not empty
+    assert 'cache' in mongo.meta_db.collection_names()
+    assert list(mongo.meta_db.cache.find()) is not []
+
+
+def test_invalidate_cache(arctic):
+    libs = ['test1', 'test2']
+    for lib in libs:
+        arctic.initialize_library(lib)
+
+    assert arctic._list_libraries_cached() == arctic._list_libraries()
+
+    mongo = arctic._conn
+
+    # Validate that the cache collection has data
+    assert 'cache' in mongo.meta_db.collection_names()
+    assert list(mongo.meta_db.cache.find()) != []
+
+    # Invalidate cache and check that the cache is empty
+    arctic.invalidate_cache()
+    assert list(mongo.meta_db.cache.find()) == []

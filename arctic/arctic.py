@@ -2,11 +2,13 @@ import logging
 import os
 import re
 import threading
+from datetime import datetime
 
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect
 from six import string_types
 
+from ._config import ENABLE_CACHE
 from ._util import indent
 from .auth import authenticate, get_auth
 from .chunkstore import chunkstore
@@ -183,13 +185,16 @@ class Arctic(object):
     def __setstate__(self, state):
         return Arctic.__init__(self, **state)
 
-    @mongo_retry
     def list_libraries(self):
         """
         Returns
         -------
         list of Arctic library names
         """
+        return self._list_libraries_cached() if ENABLE_CACHE else self._list_libraries()
+
+    @mongo_retry
+    def _list_libraries(self):
         libs = []
         for db in self._conn.list_database_names():
             if db.startswith(self.DB_PREFIX + '_'):
@@ -201,6 +206,44 @@ class Arctic(object):
                     if coll.endswith(self.METADATA_COLL):
                         libs.append(coll[:-1 * len(self.METADATA_COLL) - 1])
         return libs
+
+    @mongo_retry
+    def invalidate_cache(self):
+        """
+        Deletes the data in the collection used to cache the result
+        of list_libraries
+        :return:
+        """
+        self._conn.meta_db.cache.drop()
+
+    @mongo_retry
+    def _list_libraries_cached(self):
+        """
+        Returns
+        -------
+        List of Arctic library names from a cached collection (global per mongo cluster) in mongo.
+        Long term list_libraries should have a use_cached argument.
+        TODO: Maybe convert this to a decorator so this code can be used in a generic way.
+        """
+        mongo_db = self._conn.meta_db
+        col_name = 'cache'
+        if col_name not in mongo_db.collection_names():
+            mongo_db.create_collection(col_name).create_index("date", expireAfterSeconds=3600)
+
+        cache_col = mongo_db[col_name]
+        coll_data = cache_col.find_one({"type": "list_libraries"})
+        if coll_data:
+            logger.debug('Library names are in cache.')
+            return coll_data['data']
+        library_names = self._list_libraries()
+        # TODO: Check if ret is serializable to BSON by mongo. For now it's a list of strings.
+        cache_col.update_one(
+            {"type": "list_libraries"},
+            {"$set": {"type": "list_libraries", "date": datetime.utcnow(), "data": library_names}},
+            upsert=True
+        )
+        logger.debug('Cache miss while fetching library names, populating cache with %d items.', len(library_names))
+        return library_names
 
     def library_exists(self, library):
         """
