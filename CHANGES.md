@@ -1,11 +1,13 @@
 ## Changelog
 
-### 1.73 
+### 1.74
+  * Feature: #688 Remove Chunkstore check for issue #422
+
+### 1.73 (2018-11-27)
   * Bugfix: #658 Write/append errors for Panel objects from older pandas versions
   * Feature: #653 Add version meta-info in arctic module
   * Feature: #663 Include arctic numerical version in the metadata of the version document
   * Feature: #650 Implemented forward pointers for chunks in VersionStore (modes: enabled/disabled/hybrid)
-  * Feature: #688 Remove Chunkstore check for issue #422
 
 ### 1.72 (2018-11-06)
   * Feature: #577 Added implementation for incremental serializer for numpy records
