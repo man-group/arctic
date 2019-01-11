@@ -84,14 +84,6 @@ class ChunkStore(object):
         # Do we allow reading from secondaries
         self._allow_secondary = self._arctic_lib.arctic._allow_secondary
         self._reset()
-        self._check_invalid_segment()
-
-    def _check_invalid_segment(self):
-        # Issue 442
-        # for legacy data that was incorectly marked with segment start of -1
-        for symbol in self.list_symbols():
-            if mongo_count(self._collection, filter={SYMBOL: symbol, SEGMENT: -1}) > 1:
-                logger.warning("Symbol %s has malformed segments. Data must be rewritten or fixed with chunkstore segment_id_repair tool" % symbol)
 
     @mongo_retry
     def _reset(self):
