@@ -29,4 +29,7 @@ track of updates.
 This [video](https://vimeo.com/album/3660528/video/145842301) goes into why we
 chose Mongo as the backend for Arctic.
 
+## I'm running Mongo in XXXX setup - what performance should I expect?
+We're constantly asked what the expected performance of Arctic is/should be for given configutations and Mongo cluster setups. Its hard to know for sure given the enormous number of ways Mongo, networks, machines, workstations, etc can be configured. MongoDB performance tuning is outside the scope of this library, but countless tutorials and examples are available via a quick search of the Internet. 
+
 ... Work in Progress.
