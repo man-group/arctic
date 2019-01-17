@@ -29,7 +29,7 @@ def gen_dataframe_compressible(cols, rows):
 
 def gen_series_compressible(rows):
     d = round(random.uniform(-100.0, 100.0), 1)
-    data = [d * rows]
+    data = [d] * rows
 
     index = [range(rows)]
 
