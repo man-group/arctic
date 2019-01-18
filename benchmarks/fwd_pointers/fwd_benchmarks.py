@@ -17,7 +17,7 @@ N_APPENDS = 10
 
 
 class FwPointersCtx:
-    def __init__(self, value_to_test, do_reconcile=True):
+    def __init__(self, value_to_test, do_reconcile=False):
         self.value_to_test = value_to_test
         self.do_reconcile = do_reconcile
 
