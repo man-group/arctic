@@ -18,6 +18,7 @@ from .tickstore import tickstore, toplevel
 
 __all__ = ['Arctic', 'VERSION_STORE', 'METADATA_STORE', 'TICK_STORE', 'CHUNK_STORE', 'register_library_type']
 
+logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 # Default Arctic application name: 'arctic'
