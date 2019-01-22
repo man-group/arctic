@@ -57,7 +57,6 @@ def gen_sparse_rows_for_range(n_rows, low, high, dense):
         value = float(random.randrange(low, high))
         repetitions = min(random.randint(0, 20), n_rows - current)
         rows.extend([value] * repetitions)
-        print('current=', current, 'repetitions=', repetitions)
         current += repetitions
 
     print('lensparse=', len(rows))
@@ -143,6 +142,19 @@ def append_random_rows(config, args):
             lib.append('sym' + str(sym), df)
 
 
+def append_random_rows_2(config, args):
+    store = Arctic(args.mongodb, app_name="benchmark")
+    lib_name = 'bench' + config.name
+    lib = store[lib_name]
+
+    # timestamps = list(rrule(DAILY, count=args.appends, dtstart=dt(1980, 1, 1), interval=1))
+
+    for day in range(args.appends):
+        for sym in range(args.symbols):
+            df = gen_oneminute_dataset(1, False)
+            lib.append('sym' + str(sym), df)
+
+
 def read_all_symbols(config, args):
     store = Arctic(args.mongodb, app_name="benchmark")
     lib_name = 'bench' + config.name
@@ -176,7 +188,7 @@ def main(args):
                     initialize_random_data(fwd_ptr, args, data_gen)
                     w_end = dt.now()
                     # Appends multiple rows to each symbol
-                    append_random_rows(fwd_ptr, args)
+                    append_random_rows_2(fwd_ptr, args)
                     a_end = dt.now()
                     # Read everything.
                     read_all_symbols(fwd_ptr, args)
