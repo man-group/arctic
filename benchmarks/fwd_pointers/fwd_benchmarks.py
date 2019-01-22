@@ -54,10 +54,13 @@ def gen_sparse_rows_for_range(n_rows, low, high, dense):
     current = 0
     rows = []
     while current < n_rows:
-        value = random.randrange(low, high)
+        value = float(random.randrange(low, high))
         repetitions = min(random.randint(0, 20), n_rows - current)
         rows.extend([value] * repetitions)
+        print('current=', current, 'repetitions=', repetitions)
         current += repetitions
+
+    print('lensparse=', len(rows))
     return rows
 
 
@@ -82,10 +85,11 @@ def gen_one_minute_rows(n_rows, dense):
     for header, header_range in header_attributes.iteritems():
         data[header] = gen_sparse_rows_for_range(n_rows, header_range[0], header_range[1], dense)
 
+    print(len(data), len(data['BID']))
     return data
 
 
-def get_broad_dataset(size, dense):
+def gen_broad_dataset(size, dense):
     timestamps = list(rrule(DAILY, count=size, dtstart=dt(1970, 1, 1), interval=1))
     df = pd.DataFrame(
         index=timestamps,
@@ -97,11 +101,14 @@ def get_broad_dataset(size, dense):
 
 def gen_oneminute_dataset(size, dense):
     timestamps = []
+    active_minutes_daily = 120
     # 6 months of 2 hour data minute each
-    for day in range(1, 180):
-        timestamps.append(list(rrule(MINUTELY, count=120, dtstart=dt(2005, 1, 1) + td(days=day))))
+    for day in range(0, size // 120):
+        timestamps.extend(list(rrule(MINUTELY, count=active_minutes_daily, dtstart=dt(2005, 1, 1) + td(days=day))))
 
+    timestamps.extend(list(rrule(MINUTELY, count=size % active_minutes_daily, dtstart=dt(2006, 1, 1))))
     rows = len(timestamps)
+    print('len n_rows=', rows)
 
     return pd.DataFrame(
         index=timestamps,
@@ -109,7 +116,7 @@ def gen_oneminute_dataset(size, dense):
     )
 
 
-def initialize_random_data(config, args):
+def initialize_random_data(config, args, data_gen):
     store = Arctic(args.mongodb, app_name="benchmark")
     lib_name = 'bench' + str(config.name)
     store.delete_library(lib_name)
@@ -117,7 +124,7 @@ def initialize_random_data(config, args):
     lib = store[lib_name]
 
     for sym in range(args.symbols):
-        lib.write('sym' + str(sym), get_broad_dataset(args.ndim, args.dense))
+        lib.write('sym' + str(sym), data_gen(args.ndim, args.dense))
 
 
 def append_random_rows(config, args):
@@ -162,24 +169,26 @@ def main(args):
     print('args=', args)
     for rounds in range(1, args.rounds + 1):
         for fwd_ptr in [FwPointersCfg.DISABLED, FwPointersCfg.ENABLED]:
-            with FwPointersCtx(fwd_ptr):
-                w_start = dt.now()
-                # Writes data to lib with above config.
-                initialize_random_data(fwd_ptr, args)
-                w_end = dt.now()
-                # Appends multiple rows to each symbol
-                append_random_rows(fwd_ptr, args)
-                a_end = dt.now()
-                # Read everything.
-                read_all_symbols(fwd_ptr, args)
-                r_end = dt.now()
-                out = "Config: {fwd_ptr} write: {wtime} append: {atime} read: {rtime}".format(
-                    fwd_ptr=fwd_ptr,
-                    wtime=w_end - w_start,
-                    atime=a_end - w_end,
-                    rtime=r_end - a_end,
-                )
-                pprint(out)
+            for data_gen in (gen_oneminute_dataset, gen_broad_dataset):
+                with FwPointersCtx(fwd_ptr):
+                    w_start = dt.now()
+                    # Writes data to lib with above config.
+                    initialize_random_data(fwd_ptr, args, data_gen)
+                    w_end = dt.now()
+                    # Appends multiple rows to each symbol
+                    append_random_rows(fwd_ptr, args)
+                    a_end = dt.now()
+                    # Read everything.
+                    read_all_symbols(fwd_ptr, args)
+                    r_end = dt.now()
+                    out = "Config: {fwd_ptr} Data Type: {data_gen} write: {wtime} append: {atime} read: {rtime}".format(
+                        fwd_ptr=fwd_ptr,
+                        data_gen=data_gen,
+                        wtime=w_end - w_start,
+                        atime=a_end - w_end,
+                        rtime=r_end - a_end,
+                    )
+                    pprint(out)
 
 
 if __name__ == '__main__':
