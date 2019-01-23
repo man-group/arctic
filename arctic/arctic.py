@@ -18,7 +18,9 @@ from .tickstore import tickstore, toplevel
 
 __all__ = ['Arctic', 'VERSION_STORE', 'METADATA_STORE', 'TICK_STORE', 'CHUNK_STORE', 'register_library_type']
 
+# Set default logging handler to avoid "No handler found" warnings.
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 # Default Arctic application name: 'arctic'
 APPLICATION_NAME = 'arctic'
