@@ -426,7 +426,7 @@ class ArcticLibraryBinding(object):
     quota_countdown = 0
 
     @classmethod
-    def _parse_db_lib(clz, library):
+    def _parse_db_lib(cls, library):
         """
         Returns the canonical (database_name, library) for the passed in
         string 'library'.
@@ -434,12 +434,12 @@ class ArcticLibraryBinding(object):
         database_name = library.split('.', 2)
         if len(database_name) == 2:
             library = database_name[1]
-            if database_name[0].startswith(clz.DB_PREFIX):
+            if database_name[0].startswith(cls.DB_PREFIX):
                 database_name = database_name[0]
             else:
-                database_name = clz.DB_PREFIX + '_' + database_name[0]
+                database_name = cls.DB_PREFIX + '_' + database_name[0]
         else:
-            database_name = clz.DB_PREFIX
+            database_name = cls.DB_PREFIX
         return database_name, library
 
     def __init__(self, arctic, library):
