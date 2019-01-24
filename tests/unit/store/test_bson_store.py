@@ -1,8 +1,9 @@
-from arctic.store.bson_store import BSONStore
-from arctic.arctic import ArcticLibraryBinding
-from arctic import Arctic
+from mock import sentinel, create_autospec, patch, call, Mock
 from pymongo.collection import Collection
-from mock import sentinel, create_autospec, patch, call
+
+from arctic import Arctic
+from arctic.arctic import ArcticLibraryBinding
+from arctic.store.bson_store import BSONStore
 
 
 def test_initialize_library():
@@ -174,14 +175,14 @@ def test_delete_one():
 
 def test_count():
     arctic_lib = create_autospec(ArcticLibraryBinding, instance=True)
-    collection = create_autospec(Collection, instance=True)
+    collection = create_autospec(Collection, instance=True, count=Mock(), count_documents=Mock())
     arctic_lib.get_top_level_collection.return_value = collection
 
     bsons = BSONStore(arctic_lib)
     bsons.count(sentinel.filter)
 
-    assert collection.count.call_count == 1
-    assert collection.count.call_args_list == [call(sentinel.filter)]
+    assert collection.count.call_count + collection.count_documents.call_count == 1
+    assert collection.count.call_args_list == [call(filter=sentinel.filter)] or collection.count_documents.call_args_list == [call(filter=sentinel.filter)]
 
 
 def test_distinct():

@@ -1,4 +1,5 @@
 import logging
+
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
@@ -23,7 +24,6 @@ from bson import Binary, SON
 
 from .._compression import compress, decompress, compress_array
 from ._serializer import Serializer
-
 
 
 DATA = 'd'
@@ -186,7 +186,7 @@ class FrametoArraySerializer(Serializer):
         return ret
 
     def deserialize(self, data, columns=None):
-        '''
+        """
         Deserializes SON to a DataFrame
 
         Parameters
@@ -199,8 +199,8 @@ class FrametoArraySerializer(Serializer):
         Returns
         -------
         pandas dataframe or series
-        '''
-        if data == []:
+        """
+        if not data:
             return pd.DataFrame()
 
         meta = data[0][METADATA] if isinstance(data, list) else data[METADATA]
@@ -208,6 +208,7 @@ class FrametoArraySerializer(Serializer):
 
         if columns:
             if index:
+                columns = list(columns)
                 columns.extend(meta[INDEX])
             if len(columns) > len(set(columns)):
                 raise Exception("Duplicate columns specified, cannot de-serialize")

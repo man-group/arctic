@@ -1,11 +1,14 @@
 import logging
+
 from pymongo.errors import OperationFailure
+
+from .._util import enable_sharding, mongo_count
 from ..decorators import mongo_retry
-from .._util import enable_sharding
 
 logger = logging.getLogger(__name__)
 
 BSON_STORE_TYPE = 'BSONStore'
+
 
 class BSONStore(object):
     """
@@ -161,7 +164,7 @@ class BSONStore(object):
         """
         See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.count
         """
-        return self._collection.count(filter, **kwargs)
+        return mongo_count(self._collection, filter=filter, **kwargs)
 
     @mongo_retry
     def aggregate(self, pipeline, **kwargs):
@@ -176,7 +179,7 @@ class BSONStore(object):
         See http://api.mongodb.com/python/current/api/pymongo/collection.html#pymongo.collection.Collection.distinct
         """
         return self._collection.distinct(key, **kwargs)
-    
+
     @mongo_retry
     def create_index(self, keys, **kwargs):
         """

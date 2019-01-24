@@ -1,15 +1,15 @@
 # Chunkstore Overview
 
-(note: current doc is based on arctic-1.31.0)
+(note: current doc is based on arctic-1.69.0)
 
-Chunkstore serializes and store Pandas Dataframes and Series into user defined chunks in MongoDB. Retrieving specific chunks, or ranges of chunks, is very fast and efficient. Chunkstore is optimized more for reading than for writing, and is ideal for use cases when very large datasets need to be accessed by 'chunk'.
+Chunkstore serializes and stores Pandas Dataframes and Series into user defined chunks in MongoDB. Retrieving specific chunks, or ranges of chunks, is very fast and efficient. Chunkstore is optimized more for reading than for writing, and is ideal for use cases when very large datasets need to be accessed by 'chunk'.
 
 Chunkstore supports pluggable serializers. A Serializer is used to convert the Pandas datatype into something that can be efficiently stored by Mongo. Chunkstore's default serializer is the [FrameConverter](https://github.com/manahl/arctic/blob/master/arctic/serialization/numpy_arrays.py#L22) which works by converting each column in the dataframe to a compressed Numpy array. Columns can be retrieved individually this way, without deserializing the other columns in the dataframe. 
 
 Chunkstore also supports pluggable chunkers. A chunker takes the dataframe and converts it into chunks. Chunks are stored individually in Mongo for easy retrieval by chunk. Chunkstore currently has two chunkers: [DateRange Chunker](https://github.com/manahl/arctic/blob/master/arctic/chunkstore/date_chunker.py) and [PassThrough Chunker](https://github.com/manahl/arctic/blob/master/arctic/chunkstore/passthrough_chunker.py). The DateRange chunker chunks a dataframe by a datetime index or column. Currently it must be called 'date'. It chunks by a period, Daily, Monthly, or Yearly. The data can be retrieved from Mongo for any date range, so for DateRange chunked data, its important that the chunking period (or size) be selected appropriately. If data will frequently be read in daily increments, choosing a Year chunk size doesn't really make sense and will be slower than data access of daily chunked data. The PassThrough chunker simply takes the dataframe and writes it to mongo. It does not chunk the data.
 
 
-# Reading and Writing Data Chunkstore
+# Reading and Writing Data with Chunkstore
 
 ```
 from arctic import CHUNK_STORE, Arctic
@@ -23,7 +23,7 @@ At this point you have an empty Chunkstore library. You can write data to it sev
 
 `symbol, item, chunker=DateChunker(), **kwargs`
 
-`symbol` is the name that is used to store/retrieve the data in Arctic. `item` is the dataframe/series. If you wish to change the chunker type, you can use the keyword arg `chunker` to specify a new chunker. Optional keyword args are passed on to the chunker. For the case of DateRange chunker, you can specify a `chunk_size` (D, M, or Y).
+`symbol` is the name that is used to store/retrieve the data in Arctic. `item` is the dataframe/series. If you wish to change the chunker type, you can use the keyword arg `chunker` to specify a new chunker. Optional keyword args are passed on to the chunker. For the case of DateRange chunker, you can specify a `chunk_size` (D, M, Y, or any other datetime frequency supported by Panads).
 
 `write` is designed to write and replace data. If you write symbol `test` with one dataset and write it again with another, the original data will be overwritten.
 
@@ -93,6 +93,48 @@ date       id
 2016-01-03 1    300
 
 ```
+
+Since Chunkstore is column oriented, you can read out subsets of columns:
+
+
+```
+>>> df = DataFrame(data={'data': [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                         'open': [1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9],
+                         'close': [1.2, 2.3, 3.4, 4.5, 5.6, 6.7, 7.8, 8.9, 9.0],
+                         'prev_close': [.1, .2, .3, .4, .5, .6, .7, .8, .8],
+                         'volume': [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000]
+                         },
+                   index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
+                                                 (dt(2016, 1, 2), 1),
+                                                 (dt(2016, 1, 3), 1),
+                                                 (dt(2016, 2, 1), 1),
+                                                 (dt(2016, 2, 2), 1),
+                                                 (dt(2016, 2, 3), 1),
+                                                 (dt(2016, 3, 1), 1),
+                                                 (dt(2016, 3, 2), 1),
+                                                 (dt(2016, 3, 3), 1)],
+                                                names=['date', 'id'])
+                   )
+
+>>> lib.write('column_test', df, chunk_size='D')
+>>> lib.read('column_test', columns=['prev_close', 'volume'])
+
+               prev_close  volume
+date       id                    
+2016-01-01 1          0.1    1000
+2016-01-02 1          0.2    2000
+2016-01-03 1          0.3    3000
+2016-02-01 1          0.4    4000
+2016-02-02 1          0.5    5000
+2016-02-03 1          0.6    6000
+2016-03-01 1          0.7    7000
+2016-03-02 1          0.8    8000
+2016-03-03 1          0.8    9000
+
+```
+
+Because the data is stored by column, Chunkstore can read out only the specific columns needed, which is far more efficient than reading out the entire dataframe and subsetting after the read.
+
 
 There are other ways to write data. Chunkstore supports `append` and `update` as well. The main difference between the two is that update is idempotent while append is not. If you continually append the same data N times, you'll get N copies of that data in the dataframe. Append only allows you to add data, it will not modify any data already written. Update is idempotent, and does allow you to modify already written data. Whereas append simply finds a chunk, and adds new data to it, update finds a chunk and replaces data in it with the new data. Let's take a look at some examples.
 
@@ -189,7 +231,7 @@ Let's take a look at the arguments that `append` and `update` take.
 
 `append: symbol, item`
 
-Append is quite simple - it takes a symbol name to append to, and item to append.
+Append is quite simple - it takes a symbol name to append to, and item to append. Append also supports the keyword arg `upsert` which, if set to `True`, allows the data to be written if it does not already exist.
 
 `update: symbol, item, chunk_range=None, upsert=False, **kwargs`
 

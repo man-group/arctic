@@ -1,8 +1,13 @@
 import logging
-import numpy as np
 
+import numpy as np
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
+
+# Used in global scope, do not remove.
+from .._config import FAST_CHECK_DF_SERIALIZABLE
+from .._util import NP_OBJECT_DTYPE
 from ..exceptions import ArcticException
+
 try:  # 0.21+ Compatibility
     from pandas._libs.tslib import Timestamp
     from pandas._libs.tslibs.timezones import get_timezone
@@ -18,14 +23,26 @@ log = logging.getLogger(__name__)
 DTN64_DTYPE = 'datetime64[ns]'
 
 
-def _to_primitive(arr, string_max_len=None):
+def set_fast_check_df_serializable(config):
+    global FAST_CHECK_DF_SERIALIZABLE
+    FAST_CHECK_DF_SERIALIZABLE = bool(config)
+
+
+def _to_primitive(arr, string_max_len=None, forced_dtype=None):
     if arr.dtype.hasobject:
-        if len(arr) > 0:
-            if isinstance(arr[0], Timestamp):
-                return np.array([t.value for t in arr], dtype=DTN64_DTYPE)
-        if string_max_len:
-            return np.array(arr.astype('U{:d}'.format(string_max_len)))
-        return np.array(list(arr))
+        if len(arr) > 0 and isinstance(arr[0], Timestamp):
+            return np.array([t.value for t in arr], dtype=DTN64_DTYPE)
+
+        if forced_dtype is not None:
+            casted_arr = arr.astype(dtype=forced_dtype, copy=False)
+        elif string_max_len is not None:
+            casted_arr = np.array(arr.astype('U{:d}'.format(string_max_len)))
+        else:
+            casted_arr = np.array(list(arr))
+
+        # Pick any unwanted data conversions (e.g. np.NaN to 'nan')
+        if np.array_equal(arr, casted_arr):
+            return casted_arr
     return arr
 
 
@@ -34,7 +51,7 @@ def _multi_index_to_records(index, empty_index):
     if not empty_index:
         ix_vals = list(map(np.array, [index.get_level_values(i) for i in range(index.nlevels)]))
     else:
-        # empty multi index has no size, create empty arrays for recarry..
+        # empty multi index has no size, create empty arrays for recarry.
         ix_vals = [np.array([]) for n in index.names]
     index_names = list(index.names)
     count = 0
@@ -96,7 +113,7 @@ class PandasSerializer(object):
             rtn = MultiIndex.from_arrays(level_arrays, names=index)
         return rtn
 
-    def _to_records(self, df, string_max_len=None):
+    def _to_records(self, df, string_max_len=None, forced_dtype=None):
         """
         Similar to DataFrame.to_records()
         Differences:
@@ -120,11 +137,16 @@ class PandasSerializer(object):
         names = index_names + columns
 
         arrays = []
-        for arr in ix_vals + column_vals:
-            arrays.append(_to_primitive(arr, string_max_len))
+        for arr, name in zip(ix_vals + column_vals, index_names + columns):
+            arrays.append(_to_primitive(arr, string_max_len,
+                                        forced_dtype=None if forced_dtype is None else forced_dtype[name]))
 
-        dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1]) for x, v in zip(names, arrays)],
-                         metadata=metadata)
+        if forced_dtype is None:
+            dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1])
+                              for x, v in zip(names, arrays)],
+                             metadata=metadata)
+        else:
+            dtype = forced_dtype
 
         # The argument names is ignored when dtype is passed
         rtn = np.rec.fromarrays(arrays, dtype=dtype, names=names)
@@ -134,27 +156,61 @@ class PandasSerializer(object):
 
         return (rtn, dtype)
 
+    def fast_check_serializable(self, df):
+        """
+        Convert efficiently the frame's object-columns/object-index/multi-index/multi-column to
+        records, by creating a recarray only for the object fields instead for the whole dataframe.
+        If we have no object dtypes, we can safely convert only the first row to recarray to test if serializable.
+        Previously we'd serialize twice the full dataframe when it included object fields or multi-index/columns.
+
+        Parameters
+        ----------
+        df: `pandas.DataFrame` or `pandas.Series`
+
+        Returns
+        -------
+        `tuple[numpy.core.records.recarray, dict[str, numpy.dtype]`
+            If any object dtypes are detected in columns or index will return a dict with field-name -> dtype
+             mappings, and empty dict otherwise.
+        """
+        i_dtype, f_dtypes = df.index.dtype, df.dtypes
+        index_has_object = df.index.dtype is NP_OBJECT_DTYPE
+        fields_with_object = [f for f in df.columns if f_dtypes[f] is NP_OBJECT_DTYPE]
+        if df.empty or (not index_has_object and not fields_with_object):
+            arr, _ = self._to_records(df.iloc[:10])  # only first few rows for performance
+            return arr, {}
+        # If only the Index has Objects, choose a small slice (two columns if possible,
+        # to avoid switching from a DataFrame to a Series)
+        df_objects_only = df[fields_with_object if fields_with_object else df.columns[:2]]
+        # Let any exceptions bubble up from here
+        arr, dtype = self._to_records(df_objects_only)
+        return arr, {f: dtype[f] for f in dtype.names}
+
     def can_convert_to_records_without_objects(self, df, symbol):
         # We can't easily distinguish string columns from objects
         try:
-            arr, _ = self._to_records(df)
+            # TODO: we can add here instead a check based on df size and enable fast-check if sz > threshold value
+            if FAST_CHECK_DF_SERIALIZABLE:
+                arr, _ = self.fast_check_serializable(df)
+            else:
+                arr, _ = self._to_records(df)
         except Exception as e:
             # This exception will also occur when we try to write the object so we fall-back to saving using Pickle
-            log.info('Pandas dataframe %s caused exception "%s" when attempting to convert to records. Saving as Blob.'
-                     % (symbol, repr(e)))
+            log.warning('Pandas dataframe %s caused exception "%s" when attempting to convert to records. '
+                        'Saving as Blob.' % (symbol, repr(e)))
             return False
         else:
             if arr.dtype.hasobject:
-                log.info('Pandas dataframe %s contains Objects, saving as Blob' % symbol)
-                # Will fall-back to saving using Pickle
+                log.warning('Pandas dataframe %s contains Objects, saving as Blob' % symbol)
+                # Fall-back to saving using Pickle
                 return False
             elif any([len(x[0].shape) for x in arr.dtype.fields.values()]):
-                log.info('Pandas dataframe %s contains >1 dimensional arrays, saving as Blob' % symbol)
+                log.warning('Pandas dataframe %s contains >1 dimensional arrays, saving as Blob' % symbol)
                 return False
             else:
                 return True
 
-    def serialize(self, item):
+    def serialize(self, item, string_max_len=None, forced_dtype=None):
         raise NotImplementedError
 
     def deserialize(self, item):
@@ -176,8 +232,8 @@ class SeriesSerializer(PandasSerializer):
         name = item.dtype.names[-1]
         return Series.from_array(item[name], index=index, name=name)
 
-    def serialize(self, item, string_max_len=None):
-        return self._to_records(item, string_max_len)
+    def serialize(self, item, string_max_len=None, forced_dtype=None):
+        return self._to_records(item, string_max_len, forced_dtype)
 
 
 class DataFrameSerializer(PandasSerializer):
@@ -219,5 +275,5 @@ class DataFrameSerializer(PandasSerializer):
 
         return df
 
-    def serialize(self, item, string_max_len=None):
-        return self._to_records(item, string_max_len)
+    def serialize(self, item, string_max_len=None, forced_dtype=None):
+        return self._to_records(item, string_max_len, forced_dtype)

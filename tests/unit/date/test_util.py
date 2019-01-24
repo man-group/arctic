@@ -1,9 +1,10 @@
+from datetime import datetime as dt
+
 import pytest
-import pytz
 from mock import patch
 
-from datetime import datetime as dt
-from arctic.date import datetime_to_ms, ms_to_datetime, mktz, to_pandas_closed_closed, DateRange, OPEN_OPEN, CLOSED_CLOSED
+from arctic.date import datetime_to_ms, ms_to_datetime, mktz, to_pandas_closed_closed, DateRange, OPEN_OPEN, \
+    CLOSED_CLOSED
 from arctic.date._util import to_dt, utc_dt_to_local_dt
 
 
@@ -16,11 +17,21 @@ from arctic.date._util import to_dt, utc_dt_to_local_dt
                             dt(1990, 4, 5, 0, 0, tzinfo=mktz('EST')),
                             ]
 )
-def test_datetime_to_ms_and_back(pdt):
+@pytest.mark.parametrize('local_tz', [
+    mktz('EST'),
+    mktz('CET'),
+    mktz('Asia/Tokyo'),
+    mktz('Cuba'),
+    mktz('US/Alaska'),
+    mktz(),
+    mktz('Europe/London'),
+]
+)
+def test_datetime_to_ms_and_back(pdt, local_tz):
     i = datetime_to_ms(pdt)
-    pdt = pdt.astimezone(mktz())
-    pdt2 = ms_to_datetime(i)
-    assert pdt == pdt2
+    pdt = pdt.astimezone(local_tz)
+    pdt2 = ms_to_datetime(i, tzinfo=local_tz)
+    assert datetime_to_ms(pdt) == datetime_to_ms(pdt2)
 
 
 def test_datetime_to_ms_and_back_microseconds():

@@ -1,16 +1,17 @@
 import calendar
 import datetime
+import sys
 from datetime import timedelta
 
 from ._daterange import DateRange
 from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN
-from ._parse import parse
 from ._mktz import mktz
-import sys
+from ._parse import parse
+
 if sys.version_info > (3,):
     long = int
 
-    
+
 # Support standard brackets syntax for open/closed ranges.
 Ranges = {'()': OPEN_OPEN,
           '(]': OPEN_CLOSED,
@@ -84,7 +85,7 @@ def string_to_daterange(str_range, delimiter='-', as_dates=False, interval=CLOSE
 def to_dt(date, default_tz=None):
     """
     Returns a non-naive datetime.datetime.
-    
+
     Interprets numbers as ms-since-epoch.
 
     Parameters
@@ -115,7 +116,7 @@ def to_pandas_closed_closed(date_range, add_tz=True):
 
     Parameters
     ----------
-    date_range : `DateRange` object 
+    date_range : `DateRange` object
         converted to CLOSED_CLOSED form for Pandas slicing
 
     add_tz : `bool`

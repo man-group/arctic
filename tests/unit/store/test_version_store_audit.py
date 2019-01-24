@@ -1,11 +1,11 @@
-from mock import create_autospec, Mock, sentinel, ANY, call
-from pymongo.errors import OperationFailure
-import pytest
 import pandas as pd
+import pytest
+from mock import Mock, sentinel, ANY, call
+from pymongo.errors import OperationFailure
 
+from arctic.exceptions import ConcurrentModificationException, NoDataFoundException
 from arctic.store.audit import ArcticTransaction, DataChange
 from arctic.store.version_store import VersionedItem, VersionStore
-from arctic.exceptions import ConcurrentModificationException, NoDataFoundException
 
 
 def test_data_change():
@@ -16,10 +16,11 @@ def test_data_change():
 
 def test_ArcticTransaction_simple():
     vs = Mock(spec=VersionStore)
-    ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
-    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
+    ts1 = pd.DataFrame(index=[1, 2], data={'a': [1.0, 2.0]})
+    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None,
+                                         data=ts1, host=sentinel.host)
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2,
-                            metadata=None, data=None)
+                                          metadata=None, data=None, host=sentinel.host)
     vs.list_versions.return_value = [{'version': 2}, {'version': 1}]
 
     with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
@@ -33,10 +34,11 @@ def test_ArcticTransaction_simple():
 
 def test_ArticTransaction_no_audit():
     vs = Mock(spec=VersionStore)
-    ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
-    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
+    ts1 = pd.DataFrame(index=[1, 2], data={'a': [1.0, 2.0]})
+    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None,
+                                         data=ts1, host=sentinel.host)
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2,
-                            metadata=None, data=None)
+                                          metadata=None, data=None, host=sentinel.host)
     vs.list_versions.return_value = [{'version': 2}, {'version': 1}]
 
     with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log, audit=False) as cwb:
@@ -48,9 +50,11 @@ def test_ArticTransaction_no_audit():
 
 def test_ArcticTransaction_writes_if_metadata_changed():
     vs = Mock(spec=VersionStore)
-    ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
-    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
-    vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata=None, data=None)
+    ts1 = pd.DataFrame(index=[1, 2], data={'a': [1.0, 2.0]})
+    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None,
+                                         data=ts1, host=sentinel.host)
+    vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata=None,
+                                          data=None, host=sentinel.host)
     vs.list_versions.return_value = [{'version': 2},
                                     {'version': 1}]
 
@@ -64,7 +68,8 @@ def test_ArcticTransaction_writes_if_metadata_changed():
     vs.list_versions.assert_called_once_with(sentinel.symbol)
 
     # Won't write on exit with same data and metadata
-    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata={1: 2}, data=ts1)
+    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata={1: 2},
+                                         data=ts1, host=sentinel.host)
     with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
         assert cwb._do_write is False
         cwb.write(sentinel.symbol, ts1, metadata={1: 2})
@@ -74,12 +79,12 @@ def test_ArcticTransaction_writes_if_metadata_changed():
 def test_ArcticTransaction_writes_if_base_data_corrupted():
 
     vs = Mock(spec=VersionStore)
-    ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
+    ts1 = pd.DataFrame(index=[1, 2], data={'a': [1.0, 2.0]})
     vs.read.side_effect = OperationFailure('some failure')
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2,
-                            metadata=None, data=None)
+                                          metadata=None, data=None, host=sentinel.host)
     vs.read_metadata.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1,
-                            metadata=None, data=None)
+                                                  metadata=None, data=None, host=sentinel.host)
     vs.list_versions.return_value = [{'version': 2}, {'version': 1}]
 
     with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
@@ -91,10 +96,10 @@ def test_ArcticTransaction_writes_if_base_data_corrupted():
 
 def test_ArcticTransaction_writes_no_data_found():
     vs = Mock(spec=VersionStore)
-    ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
+    ts1 = pd.DataFrame(index=[1, 2], data={'a': [1.0, 2.0]})
     vs.read.side_effect = NoDataFoundException('no data')
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1,
-                            metadata=None, data=None)
+                                          metadata=None, data=None, host=sentinel.host)
     vs.list_versions.side_effect = [[],
                                    [{'version': 1}],
                                    ]
@@ -109,10 +114,10 @@ def test_ArcticTransaction_writes_no_data_found():
 
 def test_ArcticTransaction_writes_no_data_found_deleted():
     vs = Mock(spec=VersionStore)
-    ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
+    ts1 = pd.DataFrame(index=[1, 2], data={'a': [1.0, 2.0]})
     vs.read.side_effect = NoDataFoundException('no data')
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=3,
-                            metadata=None, data=None)
+                                          metadata=None, data=None, host=sentinel.host)
     vs.list_versions.side_effect = [[{'version': 2}, {'version': 1}],
                                    [{'version': 3}, {'version': 2}],
                                    ]
@@ -127,13 +132,15 @@ def test_ArcticTransaction_writes_no_data_found_deleted():
 
 def test_ArcticTransaction_does_nothing_when_data_not_modified():
     vs = Mock(spec=VersionStore)
-    ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
-    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
-    vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata=None, data=None)
+    ts1 = pd.DataFrame(index=[1, 2], data={'a': [1.0, 2.0]})
+    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None,
+                                         data=ts1, host=sentinel.host)
+    vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata=None,
+                                          data=None, host=sentinel.host)
     vs.list_versions.side_effect = [{'version': 2}, {'version': 1}]
 
     with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
-        cwb.write(sentinel.symbol, pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]}))
+        cwb.write(sentinel.symbol, pd.DataFrame(index=[1, 2], data={'a': [1.0, 2.0]}))
 
     assert not vs._delete_version.called
     assert not vs.write.called
@@ -141,10 +148,11 @@ def test_ArcticTransaction_does_nothing_when_data_not_modified():
 
 def test_ArcticTransaction_does_nothing_when_data_is_None():
     vs = Mock(spec=VersionStore)
-    ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
-    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
+    ts1 = pd.DataFrame(index=[1, 2], data={'a': [1.0, 2.0]})
+    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None,
+                                         data=ts1, host=sentinel.host)
     vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2,
-                            metadata=None, data=None)
+                                          metadata=None, data=None, host=sentinel.host)
     vs.list_versions.return_value = [{'version': 1}, {'version': 2}]
 
     with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
@@ -155,9 +163,11 @@ def test_ArcticTransaction_does_nothing_when_data_is_None():
 
 def test_ArcticTransaction_guards_against_inconsistent_ts():
     vs = Mock(spec=VersionStore)
-    ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
-    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
-    vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata=None, data=None)
+    ts1 = pd.DataFrame(index=[1, 2], data={'a': [1.0, 2.0]})
+    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None,
+                                         data=ts1, host=sentinel.host)
+    vs.write.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata=None,
+                                          data=None, host=sentinel.host)
     vs.list_versions.side_effect = [{'version': 2}, {'version': 1}]
 
     ts1 = pd.DataFrame(index=[1, 2], data={'a': [2.0, 3.0]})
@@ -168,11 +178,14 @@ def test_ArcticTransaction_guards_against_inconsistent_ts():
 
 def test_ArcticTransaction_detects_concurrent_writes():
     vs = Mock(spec=VersionStore)
-    ts1 = pd.DataFrame(index=[1, 2], data={'a':[1.0, 2.0]})
-    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None, data=ts1)
-    vs.write.side_effect = [VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata=None, data=None),
-                            VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=3, metadata=None, data=None)]
-    #note that we return some extra version 5, it is possible that we have a write coming in after our own write that gets picked up 
+    ts1 = pd.DataFrame(index=[1, 2], data={'a': [1.0, 2.0]})
+    vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None,
+                                         data=ts1, host=sentinel.host)
+    vs.write.side_effect = [VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata=None,
+                                          data=None, host=sentinel.host),
+                            VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=3, metadata=None,
+                                          data=None, host=sentinel.host)]
+    # note that we return some extra version 5, it is possible that we have a write coming in after our own write that gets picked up 
     vs.list_versions.side_effect = [[{'version': 5}, {'version': 2}, {'version': 1}, ],
                                    [{'version': 5}, {'version': 3}, {'version': 2}, {'version': 1}, ]]
     from threading import Event, Thread
@@ -180,14 +193,14 @@ def test_ArcticTransaction_detects_concurrent_writes():
     e2 = Event()
 
     def losing_writer():
-        #will attempt to write version 2, should find that version 2 is there and it ends up writing version 3
+        # will attempt to write version 2, should find that version 2 is there and it ends up writing version 3
         with pytest.raises(ArcticTransaction):
             with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
                 cwb.write(sentinel.symbol, pd.DataFrame([1.0, 2.0], [3, 4]))
                 e1.wait()
 
     def winning_writer():
-        #will attempt to write version 2 as well
+        # will attempt to write version 2 as well
         with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
             cwb.write(sentinel.symbol, pd.DataFrame([1.0, 2.0], [5, 6]))
             e2.wait()

@@ -1,9 +1,30 @@
-from pandas import DataFrame
-from pandas.util.testing import assert_frame_equal
-from pymongo.errors import OperationFailure
 import logging
 
+import numpy as np
+import pymongo
+from pandas import DataFrame
+from pandas.util.testing import assert_frame_equal
+
+from ._config import FW_POINTERS_CONFIG_KEY, FwPointersCfg
+
 logger = logging.getLogger(__name__)
+
+NP_OBJECT_DTYPE = np.dtype('O')
+
+# Avoid import-time extra logic
+_use_new_count_api = None
+
+
+def get_fwptr_config(version):
+    return FwPointersCfg[version.get(FW_POINTERS_CONFIG_KEY, FwPointersCfg.DISABLED.name)]
+
+
+def _detect_new_count_api():
+    try:
+        mongo_v = [int(v) for v in pymongo.version.split('.')]
+        return mongo_v[0] >= 3 and mongo_v[1] >= 7
+    except:
+        return False
 
 
 def indent(s, num_spaces):
@@ -47,7 +68,7 @@ def enable_sharding(arctic, library_name, hashed=True, key='symbol'):
     library_name = lib.get_top_level_collection().name
     try:
         c.admin.command('enablesharding', dbname)
-    except OperationFailure as e:
+    except pymongo.errors.OperationFailure as e:
         if 'already enabled' not in str(e):
             raise
     if not hashed:
@@ -56,3 +77,15 @@ def enable_sharding(arctic, library_name, hashed=True, key='symbol'):
     else:
         logger.info("Hash sharding '" + key + "' on: " + dbname + '.' + library_name)
         c.admin.command('shardCollection', dbname + '.' + library_name, key={key: 'hashed'})
+
+
+def mongo_count(collection, filter=None, **kwargs):
+    filter = {} if filter is None else filter
+    global _use_new_count_api
+    _use_new_count_api = _detect_new_count_api() if _use_new_count_api is None else _use_new_count_api
+    # This is a temporary compatibility fix for compatibility with pymongo>=3.7, and also avoid deprecation warnings
+    if _use_new_count_api:
+        # Projection is ignored for count_documents
+        return collection.count_documents(filter=filter, **kwargs)
+    else:
+        return collection.count(filter=filter, **kwargs)

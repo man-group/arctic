@@ -1,16 +1,16 @@
 import ast
 import logging
 
+import numpy as np
 from bson.binary import Binary
 from pandas import DataFrame, Series, Panel
-import numpy as np
 
+from arctic._util import NP_OBJECT_DTYPE
 from arctic.serialization.numpy_records import SeriesSerializer, DataFrameSerializer
+from ._ndarray_store import NdarrayStore
 from .._compression import compress, decompress
 from ..date._util import to_pandas_closed_closed
 from ..exceptions import ArcticException
-from ._ndarray_store import NdarrayStore
-
 
 log = logging.getLogger(__name__)
 
@@ -46,9 +46,7 @@ class PandasStore(NdarrayStore):
             new_segments = np.array(new_segments, dtype='i8')
             last_rows = recarr[new_segments - start]
             # create numpy index
-            index = np.core.records.fromarrays([last_rows[idx_col]]
-                                               + [new_segments, ],
-                                               dtype=INDEX_DTYPE)
+            index = np.core.records.fromarrays([last_rows[idx_col]] + [new_segments, ], dtype=INDEX_DTYPE)
             # append to existing index if exists
             if existing_index:
                 # existing_index_arr is read-only but it's never written to
@@ -69,6 +67,9 @@ class PandasStore(NdarrayStore):
             if recarr[name].dtype == DTN64_DTYPE:
                 return name
         return None
+
+    def read_options(self):
+        return ['date_range']
 
     def _index_range(self, version, symbol, date_range=None, **kwargs):
         """ Given a version, read the segment_index and return the chunks associated
@@ -143,9 +144,14 @@ class PandasSeriesStore(PandasStore):
     TYPE = 'pandasseries'
     SERIALIZER = SeriesSerializer()
 
+    @staticmethod
+    def can_write_type(data):
+        return isinstance(data, Series)
+
     def can_write(self, version, symbol, data):
-        if isinstance(data, Series):
-            if data.dtype == np.object_ or data.index.dtype == np.object_:
+        if self.can_write_type(data):
+            # Series has always a single-column
+            if data.dtype is NP_OBJECT_DTYPE or data.index.dtype is NP_OBJECT_DTYPE:
                 return self.SERIALIZER.can_convert_to_records_without_objects(data, symbol)
             return True
         return False
@@ -158,6 +164,9 @@ class PandasSeriesStore(PandasStore):
         item, md = self.SERIALIZER.serialize(item)
         super(PandasSeriesStore, self).append(arctic_lib, version, symbol, item, previous_version, dtype=md, **kwargs)
 
+    def read_options(self):
+        return super(PandasSeriesStore, self).read_options()
+
     def read(self, arctic_lib, version, symbol, **kwargs):
         item = super(PandasSeriesStore, self).read(arctic_lib, version, symbol, **kwargs)
         return self.SERIALIZER.deserialize(item)
@@ -167,9 +176,13 @@ class PandasDataFrameStore(PandasStore):
     TYPE = 'pandasdf'
     SERIALIZER = DataFrameSerializer()
 
+    @staticmethod
+    def can_write_type(data):
+        return isinstance(data, DataFrame)
+
     def can_write(self, version, symbol, data):
-        if isinstance(data, DataFrame):
-            if np.any(data.dtypes.values == 'object'):
+        if self.can_write_type(data):
+            if NP_OBJECT_DTYPE in data.dtypes.values or data.index.dtype is NP_OBJECT_DTYPE:
                 return self.SERIALIZER.can_convert_to_records_without_objects(data, symbol)
             return True
         return False
@@ -186,14 +199,21 @@ class PandasDataFrameStore(PandasStore):
         item = super(PandasDataFrameStore, self).read(arctic_lib, version, symbol, **kwargs)
         return self.SERIALIZER.deserialize(item)
 
+    def read_options(self):
+        return super(PandasDataFrameStore, self).read_options()
+
 
 class PandasPanelStore(PandasDataFrameStore):
     TYPE = 'pandaspan'
 
+    @staticmethod
+    def can_write_type(data):
+        return isinstance(data, Panel)
+
     def can_write(self, version, symbol, data):
-        if isinstance(data, Panel):
+        if self.can_write_type(data):
             frame = data.to_frame(filter_observations=False)
-            if np.any(frame.dtypes.values == 'object'):
+            if NP_OBJECT_DTYPE in frame.dtypes.values or (hasattr(data, 'index') and data.index.dtype is NP_OBJECT_DTYPE):
                 return self.SERIALIZER.can_convert_to_records_without_objects(frame, symbol)
             return True
         return False
@@ -219,6 +239,9 @@ class PandasPanelStore(PandasDataFrameStore):
         if len(item.index.names) == 3:
             return item.iloc[:, 0].unstack().to_panel()
         return item.to_panel()
+
+    def read_options(self):
+        return super(PandasPanelStore, self).read_options()
 
     def append(self, arctic_lib, version, symbol, item, previous_version, **kwargs):
         raise ValueError('Appending not supported for pandas.Panel')

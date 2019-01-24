@@ -1,8 +1,8 @@
-import logging
 import bisect
+import logging
+import re
 from collections import namedtuple
 from datetime import datetime as dt, date, time, timedelta
-import re
 from timeit import itertools
 
 import pandas as pd

@@ -6,10 +6,10 @@ from functools import partial
 
 from pymongo.errors import OperationFailure
 
+from .versioned_item import VersionedItem, ChangedItem
 from .._util import are_equals
 from ..decorators import _get_host
 from ..exceptions import NoDataFoundException, ConcurrentModificationException
-from .versioned_item import VersionedItem, ChangedItem
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class DataChange(object):
 
 
 class ArcticTransaction(object):
-    '''Use this context manager if you want to modify data in a version store while ensuring that no other writes
+    """Use this context manager if you want to modify data in a version store while ensuring that no other writes
     interfere with your own.
 
     To use, base your modifications on the `base_ts` context manager field and put your newly created timeseries and
@@ -43,10 +43,10 @@ class ArcticTransaction(object):
     The block will raise a ConcurrentModificationException if an inconsistency has been detected. You will have to
     retry the whole block should that happens, as the assumption is that you need to base your changes on a different
     starting timeseries.
-    '''
+    """
     def __init__(self, version_store, symbol, user, log, modify_timeseries=None, audit=True,
                  *args, **kwargs):
-        '''
+        """
         Parameters
         ----------
         version_store: `VersionStore` Arctic Library
@@ -76,7 +76,7 @@ class ArcticTransaction(object):
 
         all other args:
             Will be passed into the initial read
-        '''
+        """
         self._version_store = version_store
         self._symbol = symbol
         self._user = user
@@ -84,17 +84,16 @@ class ArcticTransaction(object):
         self._audit = audit
         logger.info("MT: {}@{}: [{}] {}: {}".format(_get_host(version_store).get('l'),
                                                     _get_host(version_store).get('mhost'),
-                                                       user, log, symbol)
-                    )
+                                                    user, log, symbol))
         try:
             self.base_ts = self._version_store.read(self._symbol, *args, **kwargs)
         except NoDataFoundException:
             versions = [x['version'] for x in self._version_store.list_versions(self._symbol, latest_only=True)]
             versions.append(0)
             self.base_ts = VersionedItem(symbol=self._symbol, library=None,
-                                         version=versions[0], metadata=None, data=None)
+                                         version=versions[0], metadata=None, data=None, host=None)
         except OperationFailure:
-            #TODO: Current errors in mongo "Incorrect Number of Segments Returned"
+            # TODO: Current errors in mongo "Incorrect Number of Segments Returned"
             # This workaround should be removed once underlying problem is resolved.
             self.base_ts = self._version_store.read_metadata(symbol=self._symbol)
 
@@ -117,9 +116,10 @@ class ArcticTransaction(object):
         pass
 
     def write(self, symbol, data, prune_previous_version=True, metadata=None, **kwargs):
-        '''Records a write request to be actioned on context exit. Takes exactly the same parameters as the regular
+        """
+        Records a write request to be actioned on context exit. Takes exactly the same parameters as the regular
         library write call.
-        '''
+        """
         if data is not None:
             # We only write data if existing data is None or the Timeseries data has changed or metadata has changed
             if self.base_ts.data is None or not are_equals(data, self.base_ts.data) or metadata != self.base_ts.metadata:

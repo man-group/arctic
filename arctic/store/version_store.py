@@ -1,26 +1,35 @@
-from datetime import datetime as dt, timedelta
 import logging
+from datetime import datetime as dt, timedelta
 
 import bson
-from pymongo import ReadPreference
 import pymongo
+import six
+from pymongo import ReadPreference
 from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
-from .._util import indent, enable_sharding
+from ._pickle_store import PickleStore
+from ._version_store_utils import cleanup, get_symbol_alive_shas, _get_symbol_pointer_cfgs
+from .versioned_item import VersionedItem
+from .._config import STRICT_WRITE_HANDLER_MATCH, FW_POINTERS_REFS_KEY, FW_POINTERS_CONFIG_KEY, FwPointersCfg
+from .._util import indent, enable_sharding, mongo_count, get_fwptr_config
 from ..date import mktz, datetime_to_ms, ms_to_datetime
 from ..decorators import mongo_retry
 from ..exceptions import NoDataFoundException, DuplicateSnapshotException, \
     ArcticException
 from ..hooks import log_exception
-from ._pickle_store import PickleStore
-from ._version_store_utils import cleanup
-from .versioned_item import VersionedItem
-import six
 
 logger = logging.getLogger(__name__)
 
 VERSION_STORE_TYPE = 'VersionStore'
 _TYPE_HANDLERS = []
+ARCTIC_VERSION = None
+ARCTIC_VERSION_NUMERICAL = None
+
+
+def register_version(version, numerical):
+    global ARCTIC_VERSION, ARCTIC_VERSION_NUMERICAL
+    ARCTIC_VERSION = version
+    ARCTIC_VERSION_NUMERICAL = numerical
 
 
 def register_versioned_storage(storageClass):
@@ -41,9 +50,13 @@ class VersionStore(object):
     def initialize_library(cls, arctic_lib, hashed=True, **kwargs):
         c = arctic_lib.get_top_level_collection()
 
-        if '%s.changes' % c.name not in mongo_retry(c.database.collection_names)():
+        if '%s.changes' % c.name not in mongo_retry(c.database.list_collection_names)():
             # 32MB buffer for change notifications
             mongo_retry(c.database.create_collection)('%s.changes' % c.name, capped=True, size=32 * 1024 * 1024)
+
+        if 'strict_write_handler' in kwargs:
+            arctic_lib.set_library_metadata('STRICT_WRITE_HANDLER_MATCH',
+                                            bool(kwargs.pop('strict_write_handler')))
 
         for th in _TYPE_HANDLERS:
             th.initialize_library(arctic_lib, **kwargs)
@@ -79,6 +92,14 @@ class VersionStore(object):
         # Do we allow reading from secondaries
         self._allow_secondary = self._arctic_lib.arctic._allow_secondary
         self._reset()
+        self._with_strict_handler = None
+
+    @property
+    def _with_strict_handler_match(self):
+        if self._with_strict_handler is None:
+            strict_meta = self._arctic_lib.get_library_metadata('STRICT_WRITE_HANDLER_MATCH')
+            self._with_strict_handler = STRICT_WRITE_HANDLER_MATCH if strict_meta is None else strict_meta
+        return self._with_strict_handler
 
     @mongo_retry
     def _reset(self):
@@ -88,7 +109,7 @@ class VersionStore(object):
         self._snapshots = self._collection.snapshots
         self._versions = self._collection.versions
         self._version_nums = self._collection.version_nums
-        self._publish_changes = '%s.changes' % self._collection.name in self._collection.database.collection_names()
+        self._publish_changes = '%s.changes' % self._collection.name in self._collection.database.list_collection_names()
         if self._publish_changes:
             self._changes = self._collection.changes
 
@@ -301,12 +322,21 @@ class VersionStore(object):
             handler = self._bson_handler
         return handler
 
+    @staticmethod
+    def handler_can_write_type(handler, data):
+        type_method = getattr(handler, "can_write_type", None)
+        if callable(type_method):
+            return type_method(data)
+        return False
+
     def _write_handler(self, version, symbol, data, **kwargs):
         handler = None
         for h in _TYPE_HANDLERS:
             if h.can_write(version, symbol, data, **kwargs):
                 handler = h
                 break
+            if self._with_strict_handler_match and self.handler_can_write_type(h, data):
+                raise ArcticException("Not falling back to default handler for %s" % symbol)
         if handler is None:
             version['type'] = 'default'
             handler = self._bson_handler
@@ -384,13 +414,53 @@ class VersionStore(object):
             return handler.get_info(version)
         return {}
 
+    @staticmethod
+    def handler_supports_read_option(handler, option):
+        options_method = getattr(handler, "read_options", None)
+        if callable(options_method):
+            return option in options_method()
+
+        # If the handler doesn't support interrogation of its read options assume
+        # that it does support this option (i.e. fail-open)
+        return True
+
+    def get_arctic_version(self, symbol, as_of=None):
+        """
+        Return the numerical representation of the arctic version used to write the last (or as_of) version for
+        the given symbol.
+
+        Parameters
+        ----------
+        symbol : `str`
+            symbol name for the item
+        as_of : `str` or int or `datetime.datetime`
+            Return the data as it was as_of the point in time.
+            `int` : specific version number
+            `str` : snapshot name which contains the version
+            `datetime.datetime` : the version of the data that existed as_of the requested point in time
+
+        Returns
+        -------
+        arctic_version : int
+            The numerical representation of Arctic version, used to create the specified symbol version
+        """
+        return self._read_metadata(symbol, as_of=as_of).get('arctic_version', 0)
+
     def _do_read(self, symbol, version, from_version=None, **kwargs):
         if version.get('deleted'):
             raise NoDataFoundException("No data found for %s in library %s" % (symbol, self._arctic_lib.get_name()))
         handler = self._read_handler(version, symbol)
+        # We don't push the date_range check in the handler's code, since the "_with_strict_handler_match"
+        #    value is configured on a per-library basis, and is part of the VersionStore instance.
+        if self._with_strict_handler_match and \
+                kwargs.get('date_range') and \
+                not self.handler_supports_read_option(handler, 'date_range'):
+            raise ArcticException("Date range arguments not supported by handler in %s" % symbol)
+
         data = handler.read(self._arctic_lib, version, symbol, from_version=from_version, **kwargs)
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=data)
+                             metadata=version.pop('metadata', None), data=data,
+                             host=self._arctic_lib.arctic.mongo_host)
     _do_read_retry = mongo_retry(_do_read)
 
     @mongo_retry
@@ -416,7 +486,8 @@ class VersionStore(object):
         """
         _version = self._read_metadata(symbol, as_of=as_of, read_preference=self._read_preference(allow_secondary))
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=_version['version'],
-                             metadata=_version.pop('metadata', None), data=None)
+                             metadata=_version.pop('metadata', None), data=None,
+                             host=self._arctic_lib.arctic.mongo_host)
 
     def _read_metadata(self, symbol, as_of=None, read_preference=None):
         if read_preference is None:
@@ -489,6 +560,7 @@ class VersionStore(object):
         """
         self._arctic_lib.check_quota()
         version = {'_id': bson.ObjectId()}
+        version['arctic_version'] = ARCTIC_VERSION_NUMERICAL
         version['symbol'] = symbol
         spec = {'symbol': symbol}
         previous_version = self._versions.find_one(spec,
@@ -496,7 +568,8 @@ class VersionStore(object):
 
         if len(data) == 0 and previous_version is not None:
             return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=previous_version['version'],
-                                 metadata=version.pop('metadata', None), data=None)
+                                 metadata=version.pop('metadata', None), data=None,
+                                 host=self._arctic_lib.arctic.mongo_host)
 
         if upsert and previous_version is None:
             return self.write(symbol=symbol, data=data, prune_previous_version=prune_previous_version, metadata=metadata)
@@ -542,14 +615,16 @@ class VersionStore(object):
 
         if prune_previous_version and previous_version:
             # Does not allow prune to remove the base of the new version
-            self._prune_previous_versions(symbol, keep_version=version.get('base_version_id'))
+            self._prune_previous_versions(symbol, keep_version=version.get('base_version_id'),
+                                          new_version_shas=version.get(FW_POINTERS_REFS_KEY))
 
         # Insert the new version into the version DB
         version['version'] = next_ver
         self._insert_version(version)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=None)
+                             metadata=version.pop('metadata', None), data=None,
+                             host=self._arctic_lib.arctic.mongo_host)
 
     def _publish_change(self, symbol, version):
         if self._publish_changes:
@@ -582,6 +657,7 @@ class VersionStore(object):
         """
         self._arctic_lib.check_quota()
         version = {'_id': bson.ObjectId()}
+        version['arctic_version'] = ARCTIC_VERSION_NUMERICAL
         version['symbol'] = symbol
         version['version'] = self._version_nums.find_one_and_update({'symbol': symbol},
                                                                     {'$inc': {'version': 1}},
@@ -595,7 +671,7 @@ class VersionStore(object):
         handler.write(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
 
         if prune_previous_version and previous_version:
-            self._prune_previous_versions(symbol)
+            self._prune_previous_versions(symbol, new_version_shas=version.get(FW_POINTERS_REFS_KEY))
 
         self._publish_change(symbol, version)
 
@@ -605,17 +681,18 @@ class VersionStore(object):
         logger.debug('Finished writing versions for %s', symbol)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
-                             metadata=version.pop('metadata', None), data=None)
+                             metadata=version.pop('metadata', None), data=None,
+                             host=self._arctic_lib.arctic.mongo_host)
 
     def _add_new_version_using_reference(self, symbol, new_version, reference_version, prune_previous_version):
         # Attention: better not use this method following an append.
         # It is dangerous because if it deletes the version at the last_look, the segments added by the
         # append are dangling (if prune_previous_version is False) and can cause potentially corruption.
         constraints = new_version and \
-                            reference_version and \
-                            new_version['symbol'] == reference_version['symbol'] and \
-                            new_version['_id'] != reference_version['_id'] and \
-                            new_version['base_version_id']
+                      reference_version and \
+                      new_version['symbol'] == reference_version['symbol'] and \
+                      new_version['_id'] != reference_version['_id'] and \
+                      new_version['base_version_id']
         assert constraints
         # There is always a small risk here another process in between these two calls (above/below)
         # to delete the reference_version, which may happen to be the last parent entry in the data segments.
@@ -626,7 +703,7 @@ class VersionStore(object):
         if lastv_seqn != new_version['version']:
             raise OperationFailure("The symbol {} has been modified concurrently ({} != {})".format(
                 symbol, lastv_seqn, new_version['version']))
-        
+
         # Insert the new version into the version DB
         # (must come before the pruning, otherwise base version won't be preserved)
         self._insert_version(new_version)
@@ -641,16 +718,16 @@ class VersionStore(object):
                                    "The previous version (%s, %d) has been removed during the update" %
                                    (symbol, str(reference_version['_id']), reference_version['version']))
 
-
         if prune_previous_version and reference_version:
-            self._prune_previous_versions(symbol)
+            self._prune_previous_versions(symbol, new_version_shas=new_version.get(FW_POINTERS_REFS_KEY))
 
         logger.debug('Finished updating versions with new metadata for %s', symbol)
 
         self._publish_change(symbol, new_version)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=new_version['version'],
-                             metadata=new_version.get('metadata'), data=None)
+                             metadata=new_version.get('metadata'), data=None,
+                             host=self._arctic_lib.arctic.mongo_host)
 
     @mongo_retry
     def write_metadata(self, symbol, metadata, prune_previous_version=True, **kwargs):
@@ -738,6 +815,7 @@ class VersionStore(object):
         if self._last_version_seqnum(symbol) == version_to_restore['version']:
             return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(),
                                  version=version_to_restore['version'],
+                                 host=self._arctic_lib.arctic.mongo_host,
                                  metadata=version_to_restore.pop('metadata', None), data=None)
 
         # Read the existing data from as_of
@@ -777,9 +855,10 @@ class VersionStore(object):
                                sort=[('version', pymongo.DESCENDING)],
                                # Guarantees at least one version is kept
                                skip=1,
-                               projection=['_id'],
+                               projection={'_id': 1, FW_POINTERS_REFS_KEY: 1, FW_POINTERS_CONFIG_KEY: 1},
                                )
-        return [version["_id"] for version in cursor]
+        return {v['_id']: ([bson.binary.Binary(x) for x in v.get(FW_POINTERS_REFS_KEY, [])], get_fwptr_config(v))
+                for v in cursor}
 
     @mongo_retry
     def _find_base_version_ids(self, symbol, version_ids):
@@ -790,16 +869,17 @@ class VersionStore(object):
                                       '_id': {'$nin': version_ids},
                                       'base_version_id': {'$exists': True},
                                       },
-                                     projection=['base_version_id'],
-                                     )
+                                     projection={'base_version_id': 1})
         return [version["base_version_id"] for version in cursor]
 
-    def _prune_previous_versions(self, symbol, keep_mins=120, keep_version=None):
+    def _prune_previous_versions(self, symbol, keep_mins=120, keep_version=None, new_version_shas=None):
         """
         Prune versions, not pointed at by snapshots which are at least keep_mins old. Prune will never
         remove all versions.
         """
-        prunable_ids = self._find_prunable_version_ids(symbol, keep_mins)
+        new_version_shas = new_version_shas if new_version_shas else []
+        prunable_ids_to_shas = self._find_prunable_version_ids(symbol, keep_mins)
+        prunable_ids = list(prunable_ids_to_shas.keys())
         if keep_version is not None:
             try:
                 prunable_ids.remove(keep_version)
@@ -815,8 +895,16 @@ class VersionStore(object):
 
         # Delete the version documents
         mongo_retry(self._versions.delete_many)({'_id': {'$in': version_ids}})
+
+        prunable_ids_to_shas = {k: prunable_ids_to_shas[k] for k in version_ids}
+
+        # The new version has not been written yet, so make sure that any SHAs pointed by it are preserved
+        shas_to_delete = [sha for v in prunable_ids_to_shas.values() for sha in v[0] if sha not in new_version_shas]
+
         # Cleanup any chunks
-        mongo_retry(cleanup)(self._arctic_lib, symbol, version_ids)
+        mongo_retry(cleanup)(self._arctic_lib, symbol, version_ids, self._versions,
+                             shas_to_delete=shas_to_delete,
+                             pointers_cfgs=[v[1] for v in prunable_ids_to_shas.values()])
 
     @mongo_retry
     def _delete_version(self, symbol, version_num, do_cleanup=True):
@@ -837,8 +925,13 @@ class VersionStore(object):
                                                                                     snap_name))
                 return
         self._versions.delete_one({'_id': version['_id']})
+        # TODO: for FW pointers, if the above statement fails, they we have no way to delete the orphaned segments.
+        #       This would be possible only via FSCK, or by moving the above statement at the end of this method,
+        #       but with the risk of failing to delelte the version catastrophically, and ending up with a corrupted v.
         if do_cleanup:
-            cleanup(self._arctic_lib, symbol, [version['_id']])
+            cleanup(self._arctic_lib, symbol, [version['_id']], self._versions,
+                    shas_to_delete=tuple(bson.binary.Binary(s) for s in version.get(FW_POINTERS_REFS_KEY, [])),
+                    pointers_cfgs=(get_fwptr_config(version), ))
 
     @mongo_retry
     def delete(self, symbol):
@@ -998,8 +1091,37 @@ class VersionStore(object):
         """
         # Cleanup Orphaned Chunks
         self._cleanup_orphaned_chunks(dry_run)
+        # Cleanup unreachable SHAs (forward pointers)
+        self._cleanup_unreachable_shas(dry_run)
         # Cleanup Orphaned Snapshots
         self._cleanup_orphaned_versions(dry_run)
+
+    def _cleanup_unreachable_shas(self, dry_run):
+        lib = self
+        chunks_coll = lib._collection
+        versions_coll = chunks_coll.versions
+
+        for symbol in chunks_coll.distinct('symbol'):
+            logger.debug('Checking %s (forward pointers)' % symbol)
+
+            all_symbol_pointers_cfgs = _get_symbol_pointer_cfgs(symbol, versions_coll)
+
+            if FwPointersCfg.DISABLED not in all_symbol_pointers_cfgs:
+                # Obtain the SHAs which are no longer pointed to by any version
+                symbol_alive_shas = get_symbol_alive_shas(symbol, versions_coll)
+                all_symbol_shas = set(chunks_coll.distinct('sha', {'symbol': symbol}))
+                unreachable_shas = all_symbol_shas - symbol_alive_shas
+
+                logger.info("Cleaning up {} SHAs for symbol {}".format(len(unreachable_shas), symbol))
+                if not dry_run:
+                    # Be liberal with the generation time.
+                    id_time_constraint = {'$lt': bson.ObjectId.from_datetime(dt.now() - timedelta(days=1))}
+                    # Do delete the data segments
+                    chunks_coll.delete_many({
+                        '_id': id_time_constraint,  # can't rely on the parent field only for fw-pointers
+                        'symbol': symbol,
+                        'parent': id_time_constraint,
+                        'sha': {'$in': list(unreachable_shas)}})
 
     def _cleanup_orphaned_chunks(self, dry_run):
         """
@@ -1034,7 +1156,7 @@ class VersionStore(object):
             if len(leaked_versions):
                 logger.info("%s leaked %d versions" % (symbol, len(leaked_versions)))
             for x in leaked_versions:
-                chunk_count = chunks_coll.find({'symbol': symbol, 'parent': x}).count()
+                chunk_count = mongo_count(chunks_coll, filter={'symbol': symbol, 'parent': x})
                 logger.info("%s: Missing Version %s (%s) ; %s chunks ref'd" % (symbol,
                                                                                x.generation_time,
                                                                                x,
@@ -1045,7 +1167,8 @@ class VersionStore(object):
                                     (x, symbol))
             # Now cleanup the leaked versions
             if not dry_run:
-                cleanup(lib._arctic_lib, symbol, leaked_versions)
+                # This is now able to handle safely symbols which have both forward and legacy/parent pointers
+                cleanup(lib._arctic_lib, symbol, leaked_versions, versions_coll)
 
     def _cleanup_orphaned_versions(self, dry_run):
         """
@@ -1078,7 +1201,7 @@ class VersionStore(object):
         if len(leaked_snaps):
             logger.info("leaked %d snapshots" % (len(leaked_snaps)))
         for x in leaked_snaps:
-            ver_count = versions_coll.find({'parent': x}).count()
+            ver_count = mongo_count(versions_coll, filter={'parent': x})
             logger.info("Missing Snapshot %s (%s) ; %s versions ref'd" % (x.generation_time,
                                                                           x,
                                                                           ver_count

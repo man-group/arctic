@@ -1,12 +1,13 @@
-import pytest
 import time
 from datetime import datetime as dt
-from mock import patch
+
+import pytest
+from mock import patch, MagicMock
 from pandas.util.testing import assert_frame_equal
+from pymongo.errors import OperationFailure
 
 from arctic.arctic import Arctic, VERSION_STORE
 from arctic.exceptions import LibraryNotFoundException, QuotaExceededException
-
 from ..util import get_large_ts
 
 
@@ -78,22 +79,27 @@ def test_indexes(arctic):
     chunk = c.arctic.library.index_information()
     index_version = chunk['_id_']['v']  # Mongo 3.2 has index v1, 3.4 and 3.5 have v2 (3.4 can run in compabitility mode with v1)
     assert chunk == {u'_id_': {u'key': [(u'_id', 1)], u'ns': u'arctic.library', u'v': index_version},
-                             u'symbol_1_parent_1_segment_1': {u'background': True,
-                                                              u'key': [(u'symbol', 1),
-                                                                       (u'parent', 1),
-                                                                       (u'segment', 1)],
-                                                              u'ns': u'arctic.library',
-                                                              u'unique': True,
-                                                              u'v': index_version},
-                             u'symbol_1_sha_1': {u'background': True,
-                                                 u'key': [(u'symbol', 1), (u'sha', 1)],
-                                                 u'ns': u'arctic.library',
-                                                 u'unique': True,
-                                                 u'v': index_version},
-                             u'symbol_hashed': {u'background': True,
-                                                u'key': [(u'symbol', u'hashed')],
-                                                u'ns': u'arctic.library',
-                                                u'v': index_version}}
+                     u'symbol_1_parent_1_segment_1': {u'background': True,
+                                                      u'key': [(u'symbol', 1),
+                                                               (u'parent', 1),
+                                                               (u'segment', 1)],
+                                                      u'ns': u'arctic.library',
+                                                      u'unique': True,
+                                                      u'v': index_version},
+                     u'symbol_1_sha_1': {u'background': True,
+                                         u'key': [(u'symbol', 1), (u'sha', 1)],
+                                         u'ns': u'arctic.library',
+                                         u'unique': True,
+                                         u'v': index_version},
+                     u'symbol_hashed': {u'background': True,
+                                        u'key': [(u'symbol', u'hashed')],
+                                        u'ns': u'arctic.library',
+                                        u'v': index_version},
+                     u'symbol_1_sha_1_segment_1': {u'background': True,
+                                                   u'key': [(u'symbol', 1), (u'sha', 1), (u'segment', 1)],
+                                                   u'ns': u'arctic.library',
+                                                   u'unique': True,
+                                                   u'v': index_version}}
     snapshots = c.arctic.library.snapshots.index_information()
     assert snapshots == {u'_id_': {u'key': [(u'_id', 1)],
                                                u'ns': u'arctic.library.snapshots',
@@ -132,20 +138,20 @@ def test_delete_library(arctic, library, library_name):
     # create a library2 library too - ensure that this isn't deleted
     arctic.initialize_library('user.library2', VERSION_STORE, segment='month')
     library.write('asdf', get_large_ts(1))
-    assert 'TEST' in mongo.arctic_test.collection_names()
-    assert 'TEST.versions' in mongo.arctic_test.collection_names()
-    assert 'library2' in mongo.arctic_user.collection_names()
-    assert 'library2.versions' in mongo.arctic_user.collection_names()
+    assert 'TEST' in mongo.arctic_test.list_collection_names()
+    assert 'TEST.versions' in mongo.arctic_test.list_collection_names()
+    assert 'library2' in mongo.arctic_user.list_collection_names()
+    assert 'library2.versions' in mongo.arctic_user.list_collection_names()
 
     arctic.delete_library(library_name)
-    assert 'TEST' not in mongo.arctic_user.collection_names()
-    assert 'TEST.versions' not in mongo.arctic_user.collection_names()
+    assert 'TEST' not in mongo.arctic_user.list_collection_names()
+    assert 'TEST.versions' not in mongo.arctic_user.list_collection_names()
     with pytest.raises(LibraryNotFoundException):
         arctic[library_name]
     with pytest.raises(LibraryNotFoundException):
         arctic['arctic_{}'.format(library_name)]
-    assert 'library2' in mongo.arctic_user.collection_names()
-    assert 'library2.versions' in mongo.arctic_user.collection_names()
+    assert 'library2' in mongo.arctic_user.list_collection_names()
+    assert 'library2.versions' in mongo.arctic_user.list_collection_names()
 
 
 def test_quota(arctic, library, library_name):
@@ -211,3 +217,19 @@ def test_lib_rename_namespace(arctic):
 def test_lib_type(arctic):
     arctic.initialize_library('test')
     assert(arctic.get_library_type('test') == VERSION_STORE)
+
+
+def test_library_exists(arctic):
+    arctic.initialize_library('test')
+    assert arctic.library_exists('test')
+    assert not arctic.library_exists('nonexistentlib')
+
+
+def test_library_exists_no_auth(arctic):
+    arctic.initialize_library('test')
+    with patch('arctic.arctic.ArcticLibraryBinding') as AB:
+        AB.return_value = MagicMock(
+            get_library_type=MagicMock(side_effect=OperationFailure("not authorized on arctic to execute command")))
+        assert arctic.library_exists('test')
+        assert AB.return_value.get_library_type.called
+        assert not arctic.library_exists('nonexistentlib')

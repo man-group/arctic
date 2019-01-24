@@ -2,15 +2,14 @@ try:
     import cStringIO as stringio
 except ImportError:
     import io as stringio
+import sys
 from contextlib import contextmanager
 from datetime import datetime as dt
-import sys
 
 import dateutil
-from dateutil.rrule import rrule, DAILY
-import pandas
-
 import numpy as np
+import pandas
+from dateutil.rrule import rrule, DAILY
 
 
 def dt_or_str_parser(string):

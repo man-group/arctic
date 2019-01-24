@@ -1,12 +1,14 @@
 from __future__ import print_function
+
 import argparse
-import pymongo
 import logging
 
-from ..hooks import get_mongodb_uri
+import pymongo
+
+from .utils import do_db_auth, setup_logging
 from ..arctic import Arctic, VERSION_STORE, LIBRARY_TYPES, \
     ArcticLibraryBinding
-from .utils import do_db_auth, setup_logging
+from ..hooks import get_mongodb_uri
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +26,16 @@ def main():
     parser.add_argument("--host", default='localhost', help="Hostname, or clustername. Default: localhost")
     parser.add_argument("--library", help="The name of the library. e.g. 'arctic_jblackburn.lib'")
     parser.add_argument("--type", default=VERSION_STORE, choices=sorted(LIBRARY_TYPES.keys()),
-                                    help="The type of the library, as defined in "
-                                         "arctic.py. Default: %s" % VERSION_STORE)
+                        help="The type of the library, as defined in "
+                             "arctic.py. Default: %s" % VERSION_STORE)
     parser.add_argument("--quota", default=10, help="Quota for the library in GB. A quota of 0 is unlimited."
                                                     "Default: 10")
-    parser.add_argument("--hashed", action="store_true", default=False, help="Use hashed based sharding. Useful where SYMBOLs share a common prefix (e.g. Bloomberg BBGXXXX symbols)"
-                                                        "Default: False")
+    parser.add_argument(
+        "--hashed",
+        action="store_true",
+        default=False,
+        help="Use hashed based sharding. Useful where SYMBOLs share a common prefix (e.g. Bloomberg BBGXXXX symbols) "
+             "Default: False")
 
     opts = parser.parse_args()
 

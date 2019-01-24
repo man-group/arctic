@@ -1,9 +1,6 @@
-from mock import patch, Mock, call, sentinel, MagicMock
-import pytest
+from mock import patch, Mock, call, MagicMock
 
-from arctic.scripts import arctic_init_library as mil
 from arctic.scripts.utils import do_db_auth
-from ...util import run_as_main
 
 
 def test_do_db_auth():

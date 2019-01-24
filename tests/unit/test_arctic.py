@@ -2,28 +2,60 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-from mock import patch, MagicMock, sentinel, create_autospec, Mock, call
 import pytest
-from pymongo.errors import OperationFailure, ServerSelectionTimeoutError, AutoReconnect
+import six
+from mock import patch, MagicMock, sentinel, create_autospec, Mock, call
+from pymongo.errors import OperationFailure, AutoReconnect
 from pymongo.mongo_client import MongoClient
 
-from arctic.auth import Credential
 from arctic.arctic import Arctic, ArcticLibraryBinding, \
     register_library_type, LIBRARY_TYPES
+from arctic.auth import Credential
 from arctic.exceptions import LibraryNotFoundException, \
     ArcticException, QuotaExceededException
-import six
 
 
 def test_arctic_lazy_init():
     with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True) as mc, \
-        patch('arctic.arctic.mongo_retry', side_effect=lambda x:x, autospec=True), \
+        patch('arctic.arctic.mongo_retry', side_effect=lambda x: x, autospec=True), \
         patch('arctic.arctic.get_auth', autospec=True) as ga:
             store = Arctic('cluster')
             assert not mc.called
             # do something to trigger lazy arctic init
             store.list_libraries()
             assert mc.called
+
+
+def test_arctic_lazy_init_ssl_true():
+    with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True) as mc, \
+            patch('arctic.arctic.mongo_retry', side_effect=lambda x: x, autospec=True), \
+            patch('arctic.arctic.get_auth', autospec=True) as ga:
+        store = Arctic('cluster', ssl=True)
+        assert not mc.called
+        # do something to trigger lazy arctic init
+        store.list_libraries()
+        assert mc.called
+        assert len(mc.mock_calls) == 1
+        assert mc.mock_calls[0] == call(connectTimeoutMS=2000,
+                                        host='cluster',
+                                        maxPoolSize=4,
+                                        serverSelectionTimeoutMS=30000,
+                                        socketTimeoutMS=600000,
+                                        ssl=True)
+
+
+def test_connection_passed_warning_raised():
+    with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True), \
+         patch('arctic.arctic.mongo_retry', side_effect=lambda x: x, autospec=True), \
+         patch('arctic.arctic.get_auth', autospec=True), \
+         patch('arctic.arctic.logger') as lg:
+        magic_mock = MagicMock(nodes={("host", "port")})
+        store = Arctic(magic_mock, ssl=True)
+        # Increment _pid to simulate forking the process
+        store._pid += 1
+        _ = store._conn
+        assert lg.mock_calls[0] == call.warn('Forking process. Arctic was passed a pymongo connection during init, '
+                                             'the new pymongo connection may have different parameters.')
 
 
 def test_arctic_auth():
@@ -285,7 +317,7 @@ def test_initialize_library_too_many_ns():
     self._conn = create_autospec(MongoClient)
     lib = create_autospec(ArcticLibraryBinding)
     lib.database_name = sentinel.db_name
-    self._conn.__getitem__.return_value.collection_names.return_value = [x for x in six.moves.xrange(5001)]
+    self._conn.__getitem__.return_value.list_collection_names.return_value = [x for x in six.moves.xrange(5001)]
     lib_type = Mock()
     with pytest.raises(ArcticException) as e:
         with patch.dict('arctic.arctic.LIBRARY_TYPES', {sentinel.lib_type: lib_type}), \
@@ -297,13 +329,13 @@ def test_initialize_library_too_many_ns():
     assert 'Too many namespaces 5001, not creating: sentinel.lib_name' in str(e)
 
 
-def test_initialize_library():
+def test_initialize_library_with_list_coll_names():
     self = create_autospec(Arctic)
     self._conn = create_autospec(MongoClient)
     lib = create_autospec(ArcticLibraryBinding)
     lib.database_name = sentinel.db_name
     lib.get_quota.return_value = None
-    self._conn.__getitem__.return_value.collection_names.return_value = [x for x in six.moves.xrange(5001)]
+    self._conn.__getitem__.return_value.list_collection_names.return_value = [x for x in six.moves.xrange(5001)]
     lib_type = Mock()
     with patch.dict('arctic.arctic.LIBRARY_TYPES', {sentinel.lib_type: lib_type}), \
          patch('arctic.arctic.ArcticLibraryBinding', return_value=lib, autospec=True) as ML:
@@ -312,6 +344,18 @@ def test_initialize_library():
     assert ML.return_value.set_library_type.call_args_list == [call(sentinel.lib_type)]
     assert ML.return_value.set_quota.call_args_list == [call(10 * 1024 * 1024 * 1024)]
     assert lib_type.initialize_library.call_args_list == [call(ML.return_value, thing=sentinel.thing)]
+
+
+def test_library_exists():
+    self = create_autospec(Arctic)
+    self.get_library.return_value = 'not an exception'
+    assert Arctic.library_exists(self, 'mylib')
+
+
+def test_library_doesnt_exist():
+    self = create_autospec(Arctic)
+    self.get_library.side_effect = LibraryNotFoundException('not found')
+    assert not Arctic.library_exists(self, 'mylib')
 
 
 def test_get_library():

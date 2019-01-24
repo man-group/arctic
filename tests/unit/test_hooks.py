@@ -1,7 +1,8 @@
 from mock import sentinel, call, Mock
+
+from arctic.auth import get_auth
 from arctic.hooks import register_get_auth_hook, register_log_exception_hook, \
     register_resolve_mongodb_hook, get_mongodb_uri, log_exception
-from arctic.auth import get_auth
 
 
 def test_log_exception_hook():

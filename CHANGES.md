@@ -1,9 +1,44 @@
 ## Changelog
 
-### 1.68
+### 1.74
+  * Feature: #688 Remove Chunkstore check for issue #422
+
+### 1.73 (2018-11-27)
+  * Bugfix: #658 Write/append errors for Panel objects from older pandas versions
+  * Feature: #653 Add version meta-info in arctic module
+  * Feature: #663 Include arctic numerical version in the metadata of the version document
+  * Feature: #650 Implemented forward pointers for chunks in VersionStore (modes: enabled/disabled/hybrid)
+
+### 1.72 (2018-11-06)
+  * Feature: #577 Added implementation for incremental serializer for numpy records
+  * Bugfix: #648 Fix issue with Timezone aware Pandas types, which don't contain hasobject attribute
+
+### 1.71  (2018-11-05)
+  * Bugfix: #645 Fix write errors for Pandas DataFrame that has mixed object/string types in multi-index column
+
+### 1.70 (2018-10-30)
+  * Bugfix: #157 Assure that serialized dataframes remain value-equivalent (e.g. avoid NaN --> 'nan' in mixed string columns)
+  * Bugfix: #608 Ensure Arctic performs well with MongoDB 3.6 (sorting)
+  * Bugfix: #629 Column kwarg no longer modified
+  * Bugfix: #641 DateRange.intersection open/closed range fix
+  * Feature: #493 Can pass kwargs when calling MongoClient, e.g. for ssl
+  * Feature: #590 Faster write handler selection for DataFrames with objects  
+  * Feature: #604 Improved handling handling for pickling serialization decidions
+
+
+### 1.69 (2018-09-12)
+  * Docs: VersionStore documentation
+  * Bugfix: Issue #612 ThreadPool should be created by process using it
+  * Feature: Upsert option on appends in ChunkStore
+
+### 1.68 (2018-08-17)
   * Feature: #553 Compatibility with both the new and old LZ4 API
   * Feature: #571 Removed the Cython LZ4 code, use the latest python-lz4
   * Feature: #557 Threadpool based compression. Speed imrpovement and tuning benchmarks.
+  * Bugfix: fix tickstore unicode handling, support both unicode and utf-8 arrays
+  * Bugfix: #591 Fix tickstore reads not returning index with localized timezone
+  * Feature: #595 add host attribute to VersionedItem.
+  * Bugfix: #594 Enable sharding on chunkstore
 
 ### 1.67.1 (2018-07-11)
   * Bugfix: #579 Fix symbol corruption due to restore_version and append

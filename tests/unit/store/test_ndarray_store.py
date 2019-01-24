@@ -1,12 +1,12 @@
-from mock import create_autospec, sentinel, call
 import numpy as np
-from pymongo.collection import Collection
 import pytest
+from mock import create_autospec, sentinel, call
+from pymongo.collection import Collection
+from pymongo.results import UpdateResult
 from pytest import raises
 
 from arctic.exceptions import DataIntegrityException
 from arctic.store._ndarray_store import NdarrayStore, _promote_struct_dtypes
-from pymongo.results import UpdateResult
 
 
 def test_dtype_parsing():
@@ -85,8 +85,8 @@ def test_concat_and_rewrite_checks_chunk_count():
     symbol = sentinel.symbol
     item = sentinel.item
 
-    collection.find.return_value = [{'compressed': True},
-                                    {'compressed': False}]
+    collection.find.return_value = [{'compressed': True, 'segment': 1},
+                                    {'compressed': False, 'segment': 2}]
     with pytest.raises(DataIntegrityException) as e:
         NdarrayStore._concat_and_rewrite(self, collection, version, symbol, item, previous_version)
     assert str(e.value) == 'Symbol: sentinel.symbol:sentinel.version expected 1 segments but found 0'
@@ -106,11 +106,12 @@ def test_concat_and_rewrite_checks_written():
     symbol = sentinel.symbol
     item = []
 
-    collection.find.return_value = [{'_id': sentinel.id,
-                                     'segment': 47, 'compressed': True},
-                                    {'compressed': True},
+    collection.find.return_value = [{'_id': sentinel.id, 'segment': 47, 'compressed': True, 'sha': 'abc0'},
+                                    {'_id': sentinel.id_2, 'segment': 48, 'compressed': True, 'sha': 'abc1'},
                                     # 3 appended items
-                                    {'compressed': False}, {'compressed': False}, {'compressed': False}]
+                                    {'_id': sentinel.id_3, 'segment': 49, 'compressed': False, 'sha': 'abc2'},
+                                    {'_id': sentinel.id_4, 'segment': 50, 'compressed': False, 'sha': 'abc3'},
+                                    {'_id': sentinel.id_5, 'segment': 51, 'compressed': False, 'sha': 'abc4'}]
     collection.update_many.return_value = create_autospec(UpdateResult, matched_count=1)
     NdarrayStore._concat_and_rewrite(self, collection, version, symbol, item, previous_version)
     assert self.check_written.call_count == 1
@@ -131,13 +132,16 @@ def test_concat_and_rewrite_checks_different_id():
     item = []
 
     collection.find.side_effect = [
-                                    [{'_id': sentinel.id, 'segment' : 47, 'compressed': True}, {'compressed': True},
-                                     {'compressed': False}, {'compressed': False}, {'compressed': False}], # 3 appended items
+                                    [{'_id': sentinel.id, 'segment' : 47, 'compressed': True},
+                                     {'_id': sentinel.id_3, 'segment': 48, 'compressed': True},
+                                     {'_id': sentinel.id_4, 'segment': 49, 'compressed': False},
+                                     {'_id': sentinel.id_5, 'segment': 50, 'compressed': False},
+                                     {'_id': sentinel.id_6, 'segment': 51, 'compressed': False}], # 3 appended items
                                     [{'_id': sentinel.id_2}]  # the returned id is different after the update_many
                                   ]
 
     expected_verify_find_spec = {'symbol': sentinel.symbol, 'segment': {'$lte': 47}, 'parent': sentinel.version_id}
-    
+
     collection.update_many.return_value = create_autospec(UpdateResult, matched_count=0)
     with pytest.raises(DataIntegrityException) as e:
         NdarrayStore._concat_and_rewrite(self, collection, version, symbol, item, previous_version)
@@ -163,9 +167,9 @@ def test_concat_and_rewrite_checks_fewer_updated():
         [{'_id': sentinel.id_1, 'segment': 47, 'compressed': True},
          {'_id': sentinel.id_2, 'segment': 48, 'compressed': True},
          {'_id': sentinel.id_3, 'segment': 49, 'compressed': True},
-         {'compressed': False},
-         {'compressed': False},
-         {'compressed': False}],  # 3 appended items
+         {'_id': sentinel.id_4, 'segment': 50, 'compressed': False},
+         {'_id': sentinel.id_5, 'segment': 51, 'compressed': False},
+         {'_id': sentinel.id_6, 'segment': 52, 'compressed': False}],  # 3 appended items
         [{'_id': sentinel.id_1}]  # the returned id is different after the update_many
     ]
 

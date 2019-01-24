@@ -1,9 +1,7 @@
-from datetime import datetime
-from functools import wraps
-import os
-import sys
-from time import sleep
 import logging
+import sys
+from functools import wraps
+from time import sleep
 
 from pymongo.errors import AutoReconnect, OperationFailure, DuplicateKeyError, ServerSelectionTimeoutError
 
@@ -27,6 +25,7 @@ def _get_host(store):
             # Sometimes get_name(), for example, fails if we're not connected to MongoDB.
             pass
     return ret
+
 
 _in_retry = False
 _retry_count = 0

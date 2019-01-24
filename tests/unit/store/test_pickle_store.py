@@ -1,18 +1,18 @@
-import pandas as pd
-from six.moves import cPickle
-import pytest
 import sys
+from distutils.version import LooseVersion
 from os import path
+
+import pandas as pd
+import pytest
 from bson.binary import Binary
 from bson.objectid import ObjectId
-from distutils.version import LooseVersion
 from mock import create_autospec, sentinel, Mock, call
+from six.moves import cPickle
 
-from arctic._compression import compress, decompress, compressHC
+from arctic._compression import compress, compressHC
+from arctic.exceptions import UnsupportedPickleStoreVersion
 from arctic.store._pickle_store import PickleStore
 from arctic.store._version_store_utils import checksum
-from arctic.exceptions import UnsupportedPickleStoreVersion
-
 
 PANDAS_VERSION = LooseVersion(pd.__version__)
 
@@ -33,7 +33,7 @@ def test_write_object():
 
     assert version['blob'] == '__chunked__V2'
     coll = arctic_lib.get_top_level_collection.return_value
-    assert coll.update_one.call_args_list == [call({'sha': checksum('sentinel.symbol', {'segment':0, 'data': Binary(compress(cPickle.dumps(sentinel.item, cPickle.HIGHEST_PROTOCOL)))}),
+    assert coll.update_one.call_args_list == [call({'sha': checksum('sentinel.symbol', {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, cPickle.HIGHEST_PROTOCOL)))}),
                                                     'symbol': 'sentinel.symbol'},
                                                    {'$set': {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, cPickle.HIGHEST_PROTOCOL)), 0)},
                                                     '$addToSet': {'parent': version['_id']}}, upsert=True)]
@@ -58,12 +58,13 @@ def test_read_object_2():
     coll = Mock()
     arctic_lib = Mock()
     coll.find.return_value = [{'data': Binary(compressHC(cPickle.dumps(object))),
-                               'symbol': 'sentinel.symbol'}
+                               'symbol': 'sentinel.symbol',
+                               'segment': 1}
                               ]
     arctic_lib.get_top_level_collection.return_value = coll
 
     assert PickleStore.read(self, arctic_lib, version, sentinel.symbol) == object
-    assert coll.find.call_args_list == [call({'symbol': sentinel.symbol, 'parent': sentinel._id}, sort=[('segment', 1)])]
+    assert coll.find.call_args_list == [call({'symbol': sentinel.symbol, 'parent': sentinel._id})]
 
 
 def test_read_with_base_version_id():
@@ -74,12 +75,13 @@ def test_read_with_base_version_id():
     coll = Mock()
     arctic_lib = Mock()
     coll.find.return_value = [{'data': Binary(compressHC(cPickle.dumps(object))),
-                               'symbol': 'sentinel.symbol'}
+                               'symbol': 'sentinel.symbol',
+                               'segment': 1}
                               ]
     arctic_lib.get_top_level_collection.return_value = coll
 
     assert PickleStore.read(self, arctic_lib, version, sentinel.symbol) == object
-    assert coll.find.call_args_list == [call({'symbol': sentinel.symbol, 'parent': sentinel.base_version_id}, sort=[('segment', 1)])]
+    assert coll.find.call_args_list == [call({'symbol': sentinel.symbol, 'parent': sentinel.base_version_id})]
 
 
 @pytest.mark.xfail(sys.version_info >= (3,),

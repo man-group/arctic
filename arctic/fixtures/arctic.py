@@ -6,9 +6,9 @@ import bson
 import pytest as pytest
 
 from .. import arctic as m
+from ..chunkstore.chunkstore import CHUNK_STORE_TYPE
 from ..store.bitemporal_store import BitemporalStore
 from ..tickstore.tickstore import TICK_STORE_TYPE
-from ..chunkstore.chunkstore import CHUNK_STORE_TYPE
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,7 @@ def arctic(mongo_server):
 def arctic_secondary(mongo_server, arctic):
     arctic = m.Arctic(mongo_host=mongo_server.api, allow_secondary=True)
     return arctic
+
 
 @pytest.fixture(scope="function")
 def multicolumn_store_with_uncompressed_write(mongo_server):
@@ -324,6 +325,12 @@ def user_library(arctic, user_library_name):
 def overlay_library(arctic, overlay_library_name):
     """ Overlay library fixture, returns a pair of libs, read-write: ${name} and read-only: ${name}_RAW
     """
+    # Call _create_overlay_library to avoid:
+    #  RemovedInPytest4Warning: Fixture overlay_library called directly. Fixtures are not meant to be called directly
+    return _overlay_library(arctic, overlay_library)
+
+
+def _overlay_library(arctic, overlay_library_name):
     rw_name = overlay_library_name
     ro_name = '{}_RAW'.format(overlay_library_name)
     arctic.initialize_library(rw_name, m.VERSION_STORE, segment='year')
@@ -333,6 +340,12 @@ def overlay_library(arctic, overlay_library_name):
 
 @pytest.fixture(scope="function")
 def tickstore_lib(arctic, library_name):
+    # Call _create_overlay_library to avoid:
+    #  RemovedInPytest4Warning: Fixture overlay_library called directly. Fixtures are not meant to be called directly
+    return _tickstore_lib(arctic, library_name)
+
+
+def _tickstore_lib(arctic, library_name):
     arctic.initialize_library(library_name, TICK_STORE_TYPE)
     return arctic.get_library(library_name)
 

@@ -1,11 +1,13 @@
-from arctic.chunkstore.date_chunker import DateChunker
-from pandas import DataFrame, MultiIndex
 from datetime import datetime as dt
-from arctic.date import DateRange
-from pandas.util.testing import assert_frame_equal
+
 import pandas as pd
 import pytest
 import six
+from pandas import DataFrame, MultiIndex
+from pandas.util.testing import assert_frame_equal
+
+from arctic.chunkstore.date_chunker import DateChunker
+from arctic.date import DateRange
 
 
 def test_date_filter():

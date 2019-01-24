@@ -2,10 +2,11 @@
 #  Arctic Key-Value store
 #
 
-from arctic import Arctic
 from datetime import datetime as dt
+
 import pandas as pd
 
+from arctic import Arctic
 
 # Connect to the mongo-host / cluster
 store = Arctic(mongo_host)

@@ -1,6 +1,7 @@
-import pytest
 import random
 import string
+
+import pytest
 
 import arctic._compression as c
 
@@ -19,7 +20,6 @@ def test_roundtrip_multi(n):
     _str = random_string(n)
     cstr = c.compress(_str)
     assert _str == c.decompress(cstr)
-
 
 
 @pytest.mark.parametrize("n, length", [(1, 10), (100, 10), (1000, 10)])

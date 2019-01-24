@@ -41,6 +41,10 @@ class DataIntegrityException(ArcticException):
     pass
 
 
+class ArcticSerializationException(ArcticException):
+    pass
+
+
 class ConcurrentModificationException(DataIntegrityException):
     pass
 
@@ -52,3 +56,10 @@ class UnorderedDataException(DataIntegrityException):
 class OverlappingDataException(DataIntegrityException):
     pass
 
+
+class AsyncArcticException(ArcticException):
+    pass
+
+
+class RequestDurationException(AsyncArcticException):
+    pass

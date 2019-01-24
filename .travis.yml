@@ -8,6 +8,8 @@ python:
 services:
    - mongodb
 
+before_install:
+  - pip install pycodestyle
 install:
   - mongo --version
   - pip install --upgrade pip
@@ -35,3 +37,5 @@ install:
 script:
   - pip freeze
   - python setup.py test --pytest-args=-v
+  # Skipped codes in setup.cfg. Tests not checked for now.
+  - pycodestyle arctic

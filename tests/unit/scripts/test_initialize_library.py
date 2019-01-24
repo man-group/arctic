@@ -1,11 +1,9 @@
-from mock import patch
 import pytest
+from mock import patch
 
 from arctic.scripts import arctic_init_library as mil
-
-from ...util import run_as_main
-
 from arctic.scripts.arctic_init_library import Arctic as ar
+from ...util import run_as_main
 
 
 def test_init_library():

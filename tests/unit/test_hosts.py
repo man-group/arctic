@@ -1,6 +1,5 @@
-from mock import patch, sentinel, call, PropertyMock, Mock
-import os
 import pytest
+from mock import patch, call
 
 try:
     from ConfigParser import NoSectionError

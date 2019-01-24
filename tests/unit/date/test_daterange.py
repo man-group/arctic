@@ -1,11 +1,11 @@
-from datetime import datetime as dt
-import operator
-import pytest
 import itertools
+import operator
+from datetime import datetime as dt
+
+import pytest
 import six
 
 from arctic.date import DateRange, string_to_daterange, CLOSED_CLOSED, CLOSED_OPEN, OPEN_CLOSED, OPEN_OPEN
-
 
 test_ranges_for_bounding = {
     "unbounded":         (DateRange(),
@@ -174,6 +174,7 @@ def test_string_to_daterange_raises():
         string_to_daterange('20120101-20130101-20140101')
     assert str(e.value) == "Too many dates in input string [20120101-20130101-20140101] with delimiter (-)"
 
+
 QUERY_TESTS = [(DateRange('20110101', '20110102'), {'$gte': dt(2011, 1, 1), '$lte': dt(2011, 1, 2)}),
                (DateRange('20110101', '20110102', OPEN_OPEN), {'$gt': dt(2011, 1, 1), '$lt': dt(2011, 1, 2)}),
                (DateRange('20110101', '20110102', OPEN_CLOSED), {'$gt': dt(2011, 1, 1), '$lte': dt(2011, 1, 2)}),
@@ -234,3 +235,14 @@ def test_intersection_preserves_boundaries():
     assert DateRange('20110101', '20110102', OPEN_OPEN) == DateRange('20110101', '20110102', CLOSED_OPEN).intersection(DateRange('20110101', '20110102', OPEN_OPEN))
     assert DateRange('20110101', '20110102', OPEN_OPEN) == DateRange('20110101', '20110102', OPEN_OPEN).intersection(DateRange('20110101', '20110102', OPEN_CLOSED))
 
+
+def test_intersection_contains():
+    # assert ((d in dr1) & (d in dr2)) == (d in (dr1 & dr2)) for any interval combination
+    start, end = dt(2018, 1, 1), dt(2018, 1, 2)
+    date_ranges = [DateRange(start, end, interval) for interval in CLOSED_CLOSED.__class__]
+
+    def equal_contains(date, dr1, dr2):
+        return ((date in dr1) and (date in dr2)) == (date in dr1.intersection(dr2))
+
+    assert all(equal_contains(start, dr1, dr2) for dr1 in date_ranges for dr2 in date_ranges)
+    assert all(equal_contains(end, dr1, dr2) for dr1 in date_ranges for dr2 in date_ranges)

@@ -1,9 +1,9 @@
-import logging
 import argparse
+import logging
 
-from ..hooks import get_mongodb_uri
-from ..arctic import Arctic, ArcticLibraryBinding
 from .utils import do_db_auth, setup_logging
+from ..arctic import Arctic, ArcticLibraryBinding
+from ..hooks import get_mongodb_uri
 
 logger = logging.getLogger(__name__)
 
@@ -55,20 +55,21 @@ def main():
                      final_stats['versions'].get('avgObjSize', 0) / 1024. / 1024.))
         logger.info("Versions: %10.2fMB Change(+/-) %.2fMB" %
                     (final_stats['versions']['size'] / 1024. / 1024.,
-                    (final_stats['versions']['size'] - orig_stats['versions']['size']) / 1024. / 1024.))
+                     (final_stats['versions']['size'] - orig_stats['versions']['size']) / 1024. / 1024.))
         logger.info('Chunk Count: %7d   Change(+/-) %6d  (av: %.2fMB)' %
                     (final_stats['chunks']['count'],
                      final_stats['chunks']['count'] - orig_stats['chunks']['count'],
                      final_stats['chunks'].get('avgObjSize', 0) / 1024. / 1024.))
         logger.info("Chunks: %12.2fMB Change(+/-) %6.2fMB" %
                     (final_stats['chunks']['size'] / 1024. / 1024.,
-                    (final_stats['chunks']['size'] - orig_stats['chunks']['size']) / 1024. / 1024.))
+                     (final_stats['chunks']['size'] - orig_stats['chunks']['size']) / 1024. / 1024.))
         logger.info('----------------------------')
 
     if not opts.f:
         logger.info("Done: DRY-RUN: No changes made. (Use -f to fix any problems)")
     else:
         logger.info("Done.")
+
 
 if __name__ == '__main__':
     main()

@@ -1,8 +1,10 @@
-import bson
 from datetime import datetime as dt, timedelta
-from mock import patch
-import numpy as np
 
+import bson
+import numpy as np
+from mock import patch
+
+from arctic._util import mongo_count
 from arctic.arctic import Arctic
 
 
@@ -11,6 +13,7 @@ def test_save_read_bson(library):
     library.write('BLOB', blob)
     saved_blob = library.read('BLOB').data
     assert blob == saved_blob
+
 
 '''
 Run test at your own discretion. Takes > 60 secs
@@ -57,11 +60,11 @@ def test_bson_large_object(library):
 def test_bson_leak_objects_delete(library):
     blob = {'foo': dt(2015, 1, 1), 'object': Arctic}
     library.write('BLOB', blob)
-    assert library._collection.count() == 1
-    assert library._collection.versions.count() == 1
+    assert mongo_count(library._collection) == 1
+    assert mongo_count(library._collection.versions) == 1
     library.delete('BLOB')
-    assert library._collection.count() == 0
-    assert library._collection.versions.count() == 0
+    assert mongo_count(library._collection) == 0
+    assert mongo_count(library._collection.versions) == 0
 
 
 def test_bson_leak_objects_prune_previous(library):
@@ -71,19 +74,19 @@ def test_bson_leak_objects_prune_previous(library):
     _id = bson.ObjectId.from_datetime(yesterday)
     with patch("bson.ObjectId", return_value=_id):
         library.write('BLOB', blob)
-    assert library._collection.count() == 1
-    assert library._collection.versions.count() == 1
+    assert mongo_count(library._collection) == 1
+    assert mongo_count(library._collection.versions) == 1
 
     _id = bson.ObjectId.from_datetime(dt.utcnow() - timedelta(minutes=130))
     with patch("bson.ObjectId", return_value=_id):
         library.write('BLOB', {}, prune_previous_version=False)
-    assert library._collection.count() == 1
-    assert library._collection.versions.count() == 2
+    assert mongo_count(library._collection) == 1
+    assert mongo_count(library._collection.versions) == 2
 
     # This write should pruned the oldest version in the chunk collection
     library.write('BLOB', {})
-    assert library._collection.count() == 0
-    assert library._collection.versions.count() == 2
+    assert mongo_count(library._collection) == 0
+    assert mongo_count(library._collection.versions) == 2
 
 
 def test_prune_previous_doesnt_kill_other_objects(library):
@@ -93,23 +96,23 @@ def test_prune_previous_doesnt_kill_other_objects(library):
     _id = bson.ObjectId.from_datetime(yesterday)
     with patch("bson.ObjectId", return_value=_id):
         library.write('BLOB', blob, prune_previous_version=False)
-    assert library._collection.count() == 1
-    assert library._collection.versions.count() == 1
+    assert mongo_count(library._collection) == 1
+    assert mongo_count(library._collection.versions) == 1
 
     _id = bson.ObjectId.from_datetime(dt.utcnow() - timedelta(hours=10))
     with patch("bson.ObjectId", return_value=_id):
         library.write('BLOB', blob, prune_previous_version=False)
-    assert library._collection.count() == 1
-    assert library._collection.versions.count() == 2
+    assert mongo_count(library._collection) == 1
+    assert mongo_count(library._collection.versions) == 2
 
     # This write should pruned the oldest version in the chunk collection
     library.write('BLOB', {})
-    assert library._collection.count() == 1
-    assert library._collection.versions.count() == 2
+    assert mongo_count(library._collection) == 1
+    assert mongo_count(library._collection.versions) == 2
 
     library._delete_version('BLOB', 2)
-    assert library._collection.count() == 0
-    assert library._collection.versions.count() == 1
+    assert mongo_count(library._collection) == 0
+    assert mongo_count(library._collection.versions) == 1
 
 
 def test_write_metadata(library):

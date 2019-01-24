@@ -1,0 +1,30 @@
+# Project info
+site_name: Arctic
+site_url: https://github.com/manahl/arctic
+site_description: High performance datastore for numeric data
+
+# Repository info
+repo_name: 'arctic'
+repo_url: 'https://github.com/manahl/arctic'
+edit_uri: edit/master/docs/
+
+theme:
+  name: 'readthedocs'
+
+plugins:
+    - search
+
+# Pages
+pages:
+  - Introduction: 'index.md'
+  - Quickstart: 'quickstart.md'
+  - Configuration: 'configuration.md'
+  - Developing on mac: 'developing-conda-mac.md'
+  - Storage Engines:
+    - VersionStore: 'versionstore.md'
+    - TickStore: 'tickstore.md'
+    - ChunkStore: 'chunkstore.md'
+  - ChunkStore API Reference: 'chunkstore_api.md'
+  - Releasing: 'releasing.md'
+  - Users: 'users.md'
+  - FAQ: 'faq.md'

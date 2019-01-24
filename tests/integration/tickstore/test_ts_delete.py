@@ -1,8 +1,8 @@
 from datetime import datetime as dt
+
 import numpy as np
 import pytest
 
-from arctic import arctic as m
 from arctic.date import DateRange, CLOSED_OPEN, mktz
 from arctic.exceptions import NoDataFoundException
 
