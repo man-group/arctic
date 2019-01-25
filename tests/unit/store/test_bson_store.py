@@ -6,17 +6,15 @@ from arctic.arctic import ArcticLibraryBinding
 from arctic.store.bson_store import BSONStore
 
 
-def test_initialize_library():
+def test_enable_sharding():
     arctic_lib = create_autospec(ArcticLibraryBinding)
     arctic_lib.arctic = create_autospec(Arctic)
     with patch('arctic.store.bson_store.enable_sharding', autospec=True) as enable_sharding:
         arctic_lib.get_top_level_collection.return_value.database.create_collection.__name__ = 'some_name'
         arctic_lib.get_top_level_collection.return_value.database.collection_names.__name__ = 'some_name'
-        BSONStore.initialize_library(arctic_lib, hashed=True)
-        BSONStore.initialize_library(arctic_lib, hashed=False)
-        # Check we always set the sharding to be hashed, regarless of user input
-        assert enable_sharding.call_args_list == [call(arctic_lib.arctic, arctic_lib.get_name(), hashed=True, key='_id'),
-                                                  call(arctic_lib.arctic, arctic_lib.get_name(), hashed=True, key='_id')]
+        BSONStore.enable_sharding(arctic_lib)
+        # Check we always set the sharding to be hashed.
+        assert enable_sharding.call_args_list == [call(arctic_lib.arctic, arctic_lib.get_name(), hashed=True, key='_id')]
 
 
 def test_find():
