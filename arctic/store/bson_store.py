@@ -30,16 +30,22 @@ class BSONStore(object):
         self._reset()
 
     @classmethod
-    def initialize_library(cls, arctic_lib, hashed=True, **kwargs):
+    def enable_sharding(cls, arctic_lib):
         logger.info("Trying to enable sharding...")
         try:
-            if not hashed:
-                logger.warning("Ignored hashed=False when enabling sharding, only hashed=True "
-                               " makes sense when they key is an ObjectId")
             enable_sharding(arctic_lib.arctic, arctic_lib.get_name(), hashed=True, key='_id')
         except OperationFailure as exception:
-            logger.warning(("Library created, but couldn't enable sharding: "
-                            "%s. This is OK if you're not 'admin'"), exception)
+            logger.warning("Could not enable sharding: %s, you probably need admin permissions.", exception)
+
+    @classmethod
+    def initialize_library(cls, arctic_lib, hashed=True, **kwargs):
+        logger.info("Creating BSONStore without sharding. Use BSONStore.enable_sharding to "
+                    "enable sharding for large amounts of data.")
+        c = arctic_lib.get_top_level_collection()
+        if c.name not in mongo_retry(c.database.list_collection_names)():
+            mongo_retry(c.database.create_collection)(c.name)
+        else:
+            logger.warning("Collection %s already exists", c.name)
 
     @mongo_retry
     def _reset(self):
