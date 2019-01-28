@@ -38,7 +38,7 @@ class BSONStore(object):
             logger.warning("Could not enable sharding: %s, you probably need admin permissions.", exception)
 
     @classmethod
-    def initialize_library(cls, arctic_lib, **kwargs):
+    def initialize_library(cls, arctic_lib, hashed=True, **kwargs):
         logger.info("Creating BSONStore without sharding. Use BSONStore.enable_sharding to "
                     "enable sharding for large amounts of data.")
         c = arctic_lib.get_top_level_collection()
