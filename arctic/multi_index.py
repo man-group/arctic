@@ -65,7 +65,7 @@ def fancy_group_by(df, grouping_level=0, aggregate_level=1, method='last', max_=
     # to work properly. We can check the sortdepth to see if this is in fact the case and resort if necessary.
     # TODO: this might need tweaking if the levels are around the wrong way
     if df.index.lexsort_depth < (aggregate_level + 1):
-        df = df.sortlevel(level=grouping_level)
+        df = df.sort_index(level=grouping_level)
 
     gb = df.groupby(level=grouping_level)
     if method == 'last':
@@ -115,7 +115,7 @@ def multi_index_insert_row(df, index_row, values_row):
         # We've just appended a row to an already-sorted dataframe
         return df
     # The df wasn't sorted or the row has to be put in the middle somewhere
-    return df.sortlevel()
+    return df.sort_index()
 
 
 def insert_at(df, sample_date, values):

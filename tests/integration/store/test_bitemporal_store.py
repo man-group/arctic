@@ -10,7 +10,7 @@ from mock import patch
 from pandas.util.testing import assert_frame_equal
 
 from arctic.date._mktz import mktz
-from tests.util import read_str_as_pandas
+from tests.util import read_str_as_pandas, multi_index_df_from_arrs
 
 pytest_plugins = ['arctic.fixtures.arctic']
 
@@ -211,55 +211,69 @@ def test_bitemporal_store_read_as_of_timezone(bitemporal_library):
 
 
 def test_multi_index_ts_read_write(bitemporal_library):
-    ts = read_str_as_pandas("""          index 1 |    index 2 | near
-                         2012-09-08 17:06:11.040 | SPAM Index |  1.0
-                         2012-10-08 17:06:11.040 | SPAM Index |  2.0
-                         2012-10-09 17:06:11.040 | SPAM Index |  2.5
-                         2012-11-08 17:06:11.040 | SPAM Index |  3.0""", num_index=2)
+    ts = multi_index_df_from_arrs(
+        index_headers=('index 1', 'index 2'),
+        index_arrs=[
+            ['2012-09-08 17:06:11.040', '2012-10-08 17:06:11.040', '2012-10-09 17:06:11.040', '2012-11-08 17:06:11.040'],
+            ['SPAM Index'] * 4
+        ],
+        data_dict={'near': [1.0, 2.0, 2.5, 3.0]}
+    )
     bitemporal_library.update('spam', ts)
     assert_frame_equal(ts, bitemporal_library.read('spam').data)
 
 
 def test_multi_index_ts_read_raw(bitemporal_library):
-    ts = read_str_as_pandas("""          index 1 |    index 2 | near
-                         2012-09-08 17:06:11.040 | SPAM Index |  1.0
-                         2012-10-08 17:06:11.040 | SPAM Index |  2.0
-                         2012-10-09 17:06:11.040 | SPAM Index |  2.5
-                         2012-11-08 17:06:11.040 | SPAM Index |  3.0""", num_index=2)
+    ts = multi_index_df_from_arrs(
+        index_headers=('index 1', 'index 2'),
+        index_arrs=[
+            ['2012-09-08 17:06:11.040', '2012-10-08 17:06:11.040', '2012-10-09 17:06:11.040', '2012-11-08 17:06:11.040'],
+            ['SPAM Index'] * 4
+        ],
+        data_dict={'near': [1.0, 2.0, 2.5, 3.0]}
+    )
 
-    expected_ts = read_str_as_pandas(""" index 1 |    index 2 | observed_dt | near
-                         2012-09-08 17:06:11.040 | SPAM Index |  2015-01-01 |  1.0
-                         2012-10-08 17:06:11.040 | SPAM Index |  2015-01-01 |  2.0
-                         2012-10-09 17:06:11.040 | SPAM Index |  2015-01-01 |  2.5
-                         2012-11-08 17:06:11.040 | SPAM Index |  2015-01-01 |  3.0""", num_index=3)
+    expected_ts = multi_index_df_from_arrs(
+        index_headers=('index 1', 'index 2', 'observed_dt'),
+        index_arrs=[
+            ['2012-09-08 17:06:11.040', '2012-10-08 17:06:11.040', '2012-10-09 17:06:11.040', '2012-11-08 17:06:11.040'],
+            ['SPAM Index'] * 4,
+            ['2015-01-01'] * 4,
+        ],
+        data_dict={'near': [1.0, 2.0, 2.5, 3.0]}
+    )
     bitemporal_library.update('spam', ts, as_of=dt(2015, 1, 1))
     assert_frame_equal(expected_ts.tz_localize(tz=LOCAL_TZ, level=2), bitemporal_library.read('spam', raw=True).data)
 
 
 def test_multi_index_update(bitemporal_library):
-    ts = read_str_as_pandas("""          index 1 |    index 2 | near
-                         2012-09-08 17:06:11.040 | SPAM Index |  1.0
-                         2012-09-08 17:06:11.040 |  EGG Index |  1.1
-                         2012-10-08 17:06:11.040 | SPAM Index |  2.0
-                         2012-10-08 17:06:11.040 |  EGG Index |  2.1
-                         2012-10-09 17:06:11.040 | SPAM Index |  2.5
-                         2012-10-09 17:06:11.040 |  EGG Index |  2.6
-                         2012-11-08 17:06:11.040 | SPAM Index |  3.0
-                         2012-11-08 17:06:11.040 |  EGG Index |  3.1""", num_index=2)
-    ts2 = read_str_as_pandas("""          index 1 |    index 2 | near
-                          2012-09-08 17:06:11.040 | SPAM Index |  1.2
-                          2012-09-08 17:06:11.040 |  EGG Index |  1.6
-                          2012-12-08 17:06:11.040 | SPAM Index |  4.0""", num_index=2)
-    expected_ts = read_str_as_pandas("""  index 1 |    index 2 | near
-                          2012-09-08 17:06:11.040 |  EGG Index |  1.6
-                          2012-09-08 17:06:11.040 | SPAM Index |  1.2
-                          2012-10-08 17:06:11.040 |  EGG Index |  2.1
-                          2012-10-08 17:06:11.040 | SPAM Index |  2.0
-                          2012-10-09 17:06:11.040 |  EGG Index |  2.6
-                          2012-10-09 17:06:11.040 | SPAM Index |  2.5
-                          2012-11-08 17:06:11.040 |  EGG Index |  3.1
-                          2012-11-08 17:06:11.040 | SPAM Index |  3.0
-                          2012-12-08 17:06:11.040 | SPAM Index |  4.0""", num_index=2)
+    sample_timerange = list(sorted(['2012-09-08 17:06:11.040', '2012-10-08 17:06:11.040', '2012-10-09 17:06:11.040', '2012-11-08 17:06:11.040'] * 2))
+    ts = multi_index_df_from_arrs(
+        index_headers=('index 1', 'index 2'),
+        index_arrs=[
+            sample_timerange,
+            ['SPAM Index', 'EGG Index'] * 4
+        ],
+        data_dict={'near': [1.0, 1.1, 2.0, 2.1, 2.5, 2.6, 3.0, 3.1]}
+    )
+
+    ts2 = multi_index_df_from_arrs(
+        index_headers=('index 1', 'index 2'),
+        index_arrs=[
+            ['2012-09-08 17:06:11.040', '2012-09-08 17:06:11.040', '2012-12-08 17:06:11.040'],
+            ['SPAM Index', 'EGG Index', 'SPAM Index'],
+        ],
+        data_dict={'near': [1.2, 1.6, 4.0]}
+    )
+
+    expected_ts = multi_index_df_from_arrs(
+        index_headers=('index 1', 'index 2'),
+        index_arrs=[
+            sample_timerange + ['2012-12-08 17:06:11.040'],
+            ['EGG Index', 'SPAM Index'] * 4 + ['SPAM Index']
+        ],
+        data_dict={'near': [1.6, 1.2, 2.1, 2.0, 2.6, 2.5, 3.1, 3.0, 4.0]}
+    )
     bitemporal_library.update('spam', ts, as_of=dt(2015, 1, 1))
     bitemporal_library.update('spam', ts2, as_of=dt(2015, 1, 2))
     assert_frame_equal(expected_ts, bitemporal_library.read('spam').data)
