@@ -148,11 +148,11 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
         sze = sze if sze < max_chunk_size else max_chunk_size
         rows_per_chunk = int(max_chunk_size / sze)
         if rows_per_chunk < 1 and ARCTIC_AUTO_EXPAND_CHUNK_SIZE:
-                # If a row size is larger than chunk_size, use the maximum document size
-                logging.warning('Chunk size of {} is too small to fit a row ({}). '
-                                'Using maximum document size.'.format(max_chunk_size, MAX_DOCUMENT_SIZE))
-                # For huge rows, fall-back to using a very large document size, less than max-allowed by MongoDB
-                rows_per_chunk = int(MAX_DOCUMENT_SIZE / sze)
+            # If a row size is larger than chunk_size, use the maximum document size
+            logging.warning('Chunk size of {} is too small to fit a row ({}). '
+                            'Using maximum document size.'.format(max_chunk_size, MAX_DOCUMENT_SIZE))
+            # For huge rows, fall-back to using a very large document size, less than max-allowed by MongoDB
+            rows_per_chunk = int(MAX_DOCUMENT_SIZE / sze)
         if rows_per_chunk < 1:
             raise ArcticSerializationException("Serialization failed to split data into max sized chunks.")
         return rows_per_chunk

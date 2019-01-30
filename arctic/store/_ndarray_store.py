@@ -686,7 +686,7 @@ class NdarrayStore(object):
                     set_spec['$set'] = segment
                     bulk.append(pymongo.UpdateOne(segment_spec, set_spec, upsert=True))
                 elif ARCTIC_FORWARD_POINTERS_CFG is FwPointersCfg.HYBRID:
-                        bulk.append(pymongo.UpdateOne(segment_spec, set_spec))
+                    bulk.append(pymongo.UpdateOne(segment_spec, set_spec))
                 # With FwPointersCfg.ENABLED  we make zero updates on existing segment documents, but:
                 #   - write only the new segment(s) documents
                 #   - write the new version document
