@@ -1,3 +1,4 @@
+from __future__ import print_function
 try:
     import cStringIO as stringio
 except ImportError:
@@ -59,3 +60,15 @@ def run_as_main(fn, *args):
         print("run_as_main: %s" % str(args))
         sys.argv = ['progname'] + list(args)
         return fn()
+
+
+def multi_index_df_from_arrs(index_headers, index_arrs, data_dict):
+    parsed_indexes = []
+    for index in index_arrs:
+        try:
+            parsed_indexes.append(pandas.to_datetime(index))
+        except ValueError:
+            parsed_indexes.append(index)
+
+    m_index = pandas.MultiIndex.from_arrays(parsed_indexes, names=index_headers)
+    return pandas.DataFrame(data_dict, index=m_index)
