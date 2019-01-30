@@ -8,7 +8,7 @@ from pandas import to_datetime as dt
 from pandas.util.testing import assert_frame_equal
 
 from arctic.multi_index import groupby_asof, fancy_group_by, insert_at
-from tests.util import read_str_as_pandas
+from tests.util import multi_index_df_from_arrs
 
 
 def get_bitemporal_test_data():
@@ -97,23 +97,43 @@ def test__get_ts__unsorted_index():
 
 
 def test_fancy_group_by_multi_index():
-    ts = read_str_as_pandas("""      index 1 |    index 2 | observed_dt | near
-                     2012-09-08 17:06:11.040 | SPAM Index | 2015-01-01 |  1.0
-                     2012-09-08 17:06:11.040 |  EGG Index | 2015-01-01 |  1.6
-                     2012-10-08 17:06:11.040 | SPAM Index | 2015-01-01 |  2.0
-                     2012-10-08 17:06:11.040 | SPAM Index | 2015-01-05 |  4.2
-                     2012-10-08 17:06:11.040 |  EGG Index | 2015-01-01 |  2.1
-                     2012-10-09 17:06:11.040 | SPAM Index | 2015-01-01 |  2.5
-                     2012-10-09 17:06:11.040 |  EGG Index | 2015-01-01 |  2.6
-                     2012-11-08 17:06:11.040 | SPAM Index | 2015-01-01 |  3.0""", num_index=3)
-    expected_ts = read_str_as_pandas("""  index 1 |    index 2 | near
-                          2012-09-08 17:06:11.040 |  EGG Index |  1.6
-                          2012-09-08 17:06:11.040 | SPAM Index |  1.0
-                          2012-10-08 17:06:11.040 |  EGG Index |  2.1
-                          2012-10-08 17:06:11.040 | SPAM Index |  4.2
-                          2012-10-09 17:06:11.040 |  EGG Index |  2.6
-                          2012-10-09 17:06:11.040 | SPAM Index |  2.5
-                          2012-11-08 17:06:11.040 | SPAM Index |  3.0""", num_index=2)
+
+    ts = multi_index_df_from_arrs(
+        index_headers=('index 1', 'index 2', 'observed_dt'),
+        index_arrs=[
+            [
+                '2012-09-08 17:06:11.040',
+                '2012-09-08 17:06:11.040',
+                '2012-10-08 17:06:11.040',
+                '2012-10-08 17:06:11.040',
+                '2012-10-08 17:06:11.040',
+                '2012-10-09 17:06:11.040',
+                '2012-10-09 17:06:11.040',
+                '2012-11-08 17:06:11.040',
+            ],
+            ['SPAM Index', 'EGG Index', 'SPAM Index', 'SPAM Index'] + ['EGG Index', 'SPAM Index'] * 2,
+            ['2015-01-01'] * 3 + ['2015-01-05'] + ['2015-01-01'] * 4
+        ],
+        data_dict={'near': [1.0, 1.6, 2.0, 4.2, 2.1, 2.5, 2.6, 3.0]}
+    )
+
+    expected_ts= multi_index_df_from_arrs(
+        index_headers=('index 1', 'index 2'),
+        index_arrs=[
+            [
+                '2012-09-08 17:06:11.040',
+                '2012-09-08 17:06:11.040',
+                '2012-10-08 17:06:11.040',
+                '2012-10-08 17:06:11.040',
+                '2012-10-09 17:06:11.040',
+                '2012-10-09 17:06:11.040',
+                '2012-11-08 17:06:11.040',
+            ],
+            ['EGG Index', 'SPAM Index'] * 3 + ['SPAM Index']
+        ],
+        data_dict={'near': [1.6, 1.0, 2.1, 4.2, 2.6, 2.5, 3.0]}
+    )
+
     assert_frame_equal(expected_ts, groupby_asof(ts, dt_col=['index 1', 'index 2'], asof_col='observed_dt'))
 
 
