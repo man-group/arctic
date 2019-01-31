@@ -191,7 +191,13 @@ class Arctic(object):
         -------
         list of Arctic library names
         """
-        return self._list_libraries_cached() if ENABLE_CACHE else self._list_libraries()
+        if ENABLE_CACHE:
+            try:
+                return self._list_libraries_cached()
+            except OperationFailure as exc:
+                logging.warning("Could not fetch from cache due to %s", exc)
+
+        return self._list_libraries()
 
     @mongo_retry
     def _list_libraries(self):
