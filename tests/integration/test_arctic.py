@@ -277,3 +277,27 @@ def test_invalidate_cache(arctic):
     # Invalidate cache and check that the cache is empty
     arctic.invalidate_cache()
     assert list(mongo.meta_db.cache.find()) == []
+
+
+def test_initialize_library_invalidates_cache(arctic):
+    libs = ['test1', 'test2']
+
+    for lib in libs:
+        arctic.initialize_library(lib)
+
+    assert arctic._list_libraries_cached() == arctic._list_libraries()
+
+    mongo = arctic._conn
+
+    # Should have data in cache as list_libraries_cached was called
+    assert list(mongo.meta_db.cache.find()) != []
+
+    # Add another lib
+    arctic.initialize_library('test3')
+
+    # Cache should be empty
+    assert list(mongo.meta_db.cache.find()) == []
+
+    # List libraries should repopulate the cache
+    arctic._list_libraries_cached()
+    assert len(list(mongo.meta_db.cache.find())) != []

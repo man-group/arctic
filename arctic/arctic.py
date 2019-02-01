@@ -309,6 +309,12 @@ class Arctic(object):
         if not lib.get_quota():
             lib.set_quota(10 * 1024 * 1024 * 1024)
 
+        # Try to clean cache whether it's enabled or not.
+        try:
+            self.invalidate_cache()
+        except OperationFailure as exc:
+            logging.warning('Could not invalidate cache due to %s', exc)
+
     @mongo_retry
     def delete_library(self, library):
         """
