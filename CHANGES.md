@@ -2,6 +2,7 @@
 
 ### 1.74
   * Feature: #688 Remove Chunkstore check for issue #422
+  * Bugfix: #712 Pandas deprecation warning in chunkstore serializer
 
 ### 1.73 (2018-11-27)
   * Bugfix: #658 Write/append errors for Panel objects from older pandas versions
