@@ -50,10 +50,6 @@ class VersionStore(object):
     def initialize_library(cls, arctic_lib, hashed=True, **kwargs):
         c = arctic_lib.get_top_level_collection()
 
-        if '%s.changes' % c.name not in mongo_retry(c.database.list_collection_names)():
-            # 32MB buffer for change notifications
-            mongo_retry(c.database.create_collection)('%s.changes' % c.name, capped=True, size=32 * 1024 * 1024)
-
         if 'strict_write_handler' in kwargs:
             arctic_lib.set_library_metadata('STRICT_WRITE_HANDLER_MATCH',
                                             bool(kwargs.pop('strict_write_handler')))
@@ -109,9 +105,6 @@ class VersionStore(object):
         self._snapshots = self._collection.snapshots
         self._versions = self._collection.versions
         self._version_nums = self._collection.version_nums
-        self._publish_changes = '%s.changes' % self._collection.name in self._collection.database.list_collection_names()
-        if self._publish_changes:
-            self._changes = self._collection.changes
 
     def __getstate__(self):
         return {'arctic_lib': self._arctic_lib}
@@ -611,8 +604,6 @@ class VersionStore(object):
         else:
             raise Exception("Append not implemented for handler %s" % handler)
 
-        self._publish_change(symbol, version)
-
         if prune_previous_version and previous_version:
             # Does not allow prune to remove the base of the new version
             self._prune_previous_versions(symbol, keep_version=version.get('base_version_id'),
@@ -625,10 +616,6 @@ class VersionStore(object):
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=version['version'],
                              metadata=version.pop('metadata', None), data=None,
                              host=self._arctic_lib.arctic.mongo_host)
-
-    def _publish_change(self, symbol, version):
-        if self._publish_changes:
-            mongo_retry(self._changes.insert_one)(version)
 
     @mongo_retry
     def write(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
@@ -672,8 +659,6 @@ class VersionStore(object):
 
         if prune_previous_version and previous_version:
             self._prune_previous_versions(symbol, new_version_shas=version.get(FW_POINTERS_REFS_KEY))
-
-        self._publish_change(symbol, version)
 
         # Insert the new version into the version DB
         self._insert_version(version)
@@ -722,8 +707,6 @@ class VersionStore(object):
             self._prune_previous_versions(symbol, new_version_shas=new_version.get(FW_POINTERS_REFS_KEY))
 
         logger.debug('Finished updating versions with new metadata for %s', symbol)
-
-        self._publish_change(symbol, new_version)
 
         return VersionedItem(symbol=symbol, library=self._arctic_lib.get_name(), version=new_version['version'],
                              metadata=new_version.get('metadata'), data=None,
