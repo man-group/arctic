@@ -77,47 +77,6 @@ def multicolumn_store_with_uncompressed_write(mongo_server):
         }
     ])
     db.TEST.ARCTIC.update_one({"_id": "ARCTIC_META"}, {"$set": {"_id": "ARCTIC_META", "TYPE": "VersionStore", "QUOTA": 10737418240}})
-    db.TEST.changes.insert_many([
-        {
-            'append_count': 0,
-            'dtype_metadata': {
-                'index': ['index'],
-                'columns': ["('a', 'a')", "('w', 'v')"]
-            },
-            'segment_count': 1,
-            'dtype': '[(\'index\', \'S1\'), ("(\'a\', \'a\')", \'<i8\'), ("(\'w\', \'v\')", \'<i8\')]',
-            'symbol': 'pandas',
-            'up_to': 1,
-            'metadata': None,
-            'sha': bson.Binary(b'\xf2\x15h\x9d\x925\x95\xa5\x0e\x95J\xc4x\xfc\xfc\xd5\x80\xe0\x1d\xef', 0),
-            'shape': [-1],
-            'version': 1,
-            'base_sha': bson.Binary(b'\xf2\x15h\x9d\x925\x95\xa5\x0e\x95J\xc4x\xfc\xfc\xd5\x80\xe0\x1d\xef', 0),
-            '_id': bson.ObjectId('5ad0dc065c911d1188b512d8'),
-            'type': 'pandasdf',
-            'append_size': 0
-        },
-        {
-            'append_count': 1,
-            'dtype_metadata': {
-                'index': ['index'],
-                'columns': ["('a', 'a')", "('w', 'v')"]
-            },
-            'segment_count': 2,
-            'sha': bson.Binary(b'1\x83[ZO\xec\x080D\x80f\xe4@\xe4\xd3\x94yG\xe2\x08', 0),
-            'dtype': '[(\'index\', \'S1\'), ("(\'a\', \'a\')", \'<i8\'), ("(\'w\', \'v\')", \'<i8\')]',
-            'symbol': 'pandas',
-            'up_to': 2,
-            'metadata': None,
-            'base_version_id': bson.ObjectId('5ad0dc065c911d1188b512d8'),
-            'shape': [-1],
-            'version': 2,
-            'base_sha': bson.Binary(b'\xf2\x15h\x9d\x925\x95\xa5\x0e\x95J\xc4x\xfc\xfc\xd5\x80\xe0\x1d\xef', 0),
-            '_id': bson.ObjectId('5ad0dc075c911d1188b512d9'),
-            'type': 'pandasdf',
-            'append_size': 17
-        }
-    ])
     db.TEST.version_nums.insert_one({'symbol': 'pandas', '_id': bson.ObjectId('5ad0dc067934ecad404070bd'), 'version': 2})
     db.TEST.versions.insert_many([
         {
@@ -206,41 +165,6 @@ def ndarray_store_with_uncompressed_write(mongo_server):
         }
     ])
     db.TEST.ARCTIC.update_one({"_id": "ARCTIC_META"}, {"$set": {"_id": "ARCTIC_META", "TYPE": "VersionStore", "QUOTA": 10737418240}})
-    db.TEST.changes.insert_many([
-        {
-            "_id": bson.ObjectId("5ad0742c5c911d4d80ee2ea3"),
-            "append_count": 0,
-            "dtype_metadata": {},
-            "segment_count": 1,
-            "dtype": "[('abc', '<i8')]",
-            "symbol": "MYARR",
-            "up_to": 1,
-            "append_size": 0,
-            "sha": bson.Binary(base64.b64decode("Bf5AV1MWbxJVWefJrFWGVPEHx+k="), 0),
-            "shape": [-1],
-            "version": 1,
-            "base_sha": bson.Binary(base64.b64decode("Bf5AV1MWbxJVWefJrFWGVPEHx+k="), 0),
-            "type": "ndarray",
-            "metadata": None
-        },
-        {
-            "_id": bson.ObjectId("5ad0742c5c911d4d80ee2ea4"),
-            "append_count": 1,
-            "dtype_metadata": {},
-            "segment_count": 2,
-            "base_version_id": bson.ObjectId("5ad0742c5c911d4d80ee2ea3"),
-            "dtype": "[('abc', '<i8')]",
-            "symbol": "MYARR",
-            "up_to": 2,
-            "append_size": 8,
-            "sha": bson.Binary(base64.b64decode("Ax7oBxVFw1/9wKog2gfOLjbOVD8="), 0),
-            "shape": [-1],
-            "version": 2,
-            "base_sha": bson.Binary(base64.b64decode("Bf5AV1MWbxJVWefJrFWGVPEHx+k="), 0),
-            "type": "ndarray",
-            "metadata": None
-        }
-    ])
     db.TEST.versions_nums.insert_one({"_id": bson.ObjectId("5ad0742ca0949de6727cf993"), "symbol": "MYARR", "version": 2})
     db.TEST.versions.insert_many([
         {

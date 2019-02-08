@@ -1565,24 +1565,6 @@ def test_append_does_not_duplicate_data_when_prune_fails(library, fw_pointers_cf
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
-def test_append_does_not_duplicate_data_when_publish_fails(library, fw_pointers_cfg):
-    with FwPointersCtx(fw_pointers_cfg):
-        side_effect = [OperationFailure(0), arctic.store.version_store.VersionStore._publish_change]
-        new_data = read_str_as_pandas("""times | near
-        2013-01-01 17:06:11.040 |  7.0
-        2013-01-02 17:06:11.040 |  8.2
-        2013-01-03 17:06:11.040 |  3.5
-        2013-01-04 17:06:11.040 |  0.7""")
-        library.write(symbol, ts1)
-
-        with patch.object(arctic.store.version_store.VersionStore, "_publish_change", autospec=True, side_effect=side_effect):
-            library.append(symbol, new_data)
-
-        data = library.read(symbol).data
-        assert len(set(data.index)) == len(data.index)
-
-
-@pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
 def test_write_does_not_succeed_with_a_prune_error(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         # More than max retries OperationFailure would be more realistic, but ValueError is used for simplicity
@@ -1594,19 +1576,6 @@ def test_write_does_not_succeed_with_a_prune_error(library, fw_pointers_cfg):
                 library.write(symbol, ts1)
 
         assert len(library.list_versions(symbol)) == 1
-
-
-@pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
-def test_write_does_not_succeed_with_a_publish_error(library, fw_pointers_cfg):
-    with FwPointersCtx(fw_pointers_cfg):
-        # More than max retries OperationFailure would be more realistic, but ValueError is used for simplicity
-        side_effect = [ValueError, arctic.store.version_store.VersionStore._publish_change]
-
-        with patch.object(arctic.store.version_store.VersionStore, "_publish_change", autospec=True, side_effect=side_effect):
-            with pytest.raises(ValueError):
-                library.append(symbol, ts1)
-
-        assert not library.list_versions(symbol)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
