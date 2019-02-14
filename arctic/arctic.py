@@ -7,6 +7,8 @@ import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect
 from six import string_types
 
+from ._cache import Cache
+from ._config import ENABLE_CACHE
 from ._util import indent
 from .auth import authenticate, get_auth
 from .chunkstore import chunkstore
@@ -107,6 +109,7 @@ class Arctic(object):
         self._lock = threading.RLock()
         self._pid = os.getpid()
         self._pymongo_kwargs = kwargs
+        self._cache = None
 
         if isinstance(mongo_host, string_types):
             self._given_instance = False
@@ -118,6 +121,7 @@ class Arctic(object):
             mongo_host.server_info()
             self.mongo_host = ",".join(["{}:{}".format(x[0], x[1]) for x in mongo_host.nodes])
             self._adminDB = self._conn.admin
+            self._cache = Cache(self._conn)
 
     @property
     @mongo_retry
@@ -143,6 +147,7 @@ class Arctic(object):
                                                   serverSelectionTimeoutMS=self._server_selection_timeout,
                                                   **self._pymongo_kwargs)
                 self._adminDB = self.__conn.admin
+                self._cache = Cache(self.__conn)
 
                 # Authenticate against admin for the user
                 auth = get_auth(self.mongo_host, self._application_name, 'admin')
@@ -183,13 +188,16 @@ class Arctic(object):
     def __setstate__(self, state):
         return Arctic.__init__(self, **state)
 
-    @mongo_retry
-    def list_libraries(self):
+    def list_libraries(self, newer_than_secs=-1):
         """
         Returns
         -------
         list of Arctic library names
         """
+        return self._list_libraries_cached(newer_than_secs) if ENABLE_CACHE else self._list_libraries()
+
+    @mongo_retry
+    def _list_libraries(self):
         libs = []
         for db in self._conn.list_database_names():
             if db.startswith(self.DB_PREFIX + '_'):
@@ -201,6 +209,25 @@ class Arctic(object):
                     if coll.endswith(self.METADATA_COLL):
                         libs.append(coll[:-1 * len(self.METADATA_COLL) - 1])
         return libs
+
+    # Better to be pessimistic here and not retry.
+    def _list_libraries_cached(self, newer_than_secs=-1):
+        """
+        Returns
+        -------
+        List of Arctic library names from a cached collection (global per mongo cluster) in mongo.
+        Long term list_libraries should have a use_cached argument.
+        """
+        _ = self._conn  # Ensures the connection exists and cache is initialized with it.
+        cache_data = self._cache.get('list_libraries', newer_than_secs)
+        if cache_data:
+            logger.debug('Library names are in cache.')
+            return cache_data
+
+        return self._list_libraries()
+
+    def reload_cache(self):
+        self._cache.set('list_libraries', self._list_libraries())
 
     def library_exists(self, library):
         """
@@ -259,6 +286,8 @@ class Arctic(object):
         # Add a 10G quota just in case the user is calling this with API.
         if not lib.get_quota():
             lib.set_quota(10 * 1024 * 1024 * 1024)
+
+        self._cache.append('list_libraries', library)
 
     @mongo_retry
     def delete_library(self, library):
@@ -550,9 +579,9 @@ class ArcticLibraryBinding(object):
         count = stats['totals']['count']
         if size >= self.quota:
             raise QuotaExceededException("Mongo Quota Exceeded: %s %.3f / %.0f GB used" % (
-                                         '.'.join([self.database_name, self.library]),
-                                         to_gigabytes(size),
-                                         to_gigabytes(self.quota)))
+                '.'.join([self.database_name, self.library]),
+                to_gigabytes(size),
+                to_gigabytes(self.quota)))
 
         # Quota not exceeded, print an informational message and return
         try:

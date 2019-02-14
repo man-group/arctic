@@ -233,3 +233,62 @@ def test_library_exists_no_auth(arctic):
         assert arctic.library_exists('test')
         assert AB.return_value.get_library_type.called
         assert not arctic.library_exists('nonexistentlib')
+
+
+def test_list_libraries_cached(arctic):
+    libs = ['test1', 'test2']
+    for lib in libs:
+        arctic.initialize_library(lib)
+
+    # Should use uncached data as reload_cache is required for initializing for the first time.
+    assert sorted(libs) == sorted(arctic.list_libraries())
+
+    # Check that the cached collection does not exist right now.
+    cache = arctic._cache
+    assert not cache.get('list_libraries')
+
+    # Should call list_libraries if cache is empty.
+    with patch('arctic.arctic.Arctic._list_libraries', return_value=libs) as uncached_list_libraries:
+        assert arctic._list_libraries_cached() == libs
+        uncached_list_libraries.assert_called()
+
+    # Reload cache and check that it has data
+    arctic.reload_cache()
+    assert sorted(cache.get('list_libraries')) == sorted(libs)
+
+    # Should fetch it from cache the second time.
+    with patch('arctic.arctic.Arctic._list_libraries', return_value=libs) as uncached_list_libraries:
+        assert arctic._list_libraries_cached() == libs
+        uncached_list_libraries.assert_not_called()
+
+
+def test_initialize_library_adds_to_cache(arctic):
+    libs = ['test1', 'test2']
+
+    for lib in libs:
+        arctic.initialize_library(lib)
+
+    arctic.reload_cache()
+    assert arctic._list_libraries_cached() == arctic._list_libraries()
+
+    # Add another lib
+    arctic.initialize_library('test3')
+
+    assert sorted(arctic._cache.get('list_libraries')) == ['test1', 'test2', 'test3']
+
+
+def test_cache_does_not_return_stale_data(arctic):
+    libs = ['test1', 'test2']
+
+    for lib in libs:
+        arctic.initialize_library(lib)
+
+    arctic.reload_cache()
+    assert arctic._list_libraries_cached() == arctic._list_libraries()
+
+    time.sleep(0.2)
+
+    # Should call uncached list_libraries if the data is stale according to caller.
+    with patch('arctic.arctic.Arctic._list_libraries', return_value=libs) as uncached_list_libraries:
+        assert arctic._list_libraries_cached(newer_than_secs=0.1) == libs
+        uncached_list_libraries.assert_called()
