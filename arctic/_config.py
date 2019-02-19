@@ -92,3 +92,11 @@ BENCHMARK_MODE = False
 # ---------------------------
 # Configures the size of the workers pools used for async arctic requests
 ARCTIC_ASYNC_NWORKERS = os.environ.get('ARCTIC_ASYNC_NWORKERS', 4)
+
+
+# -------------------------------
+# Flag used for indicating caching levels. For now just for list_libraries.
+# -------------------------------
+ENABLE_CACHE = not bool(os.environ.get('DISABLE_CACHE'))
+CACHE_COLL = 'cache'
+CACHE_DB = 'meta_db'
