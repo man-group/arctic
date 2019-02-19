@@ -57,11 +57,15 @@ class Cache:
             logging.debug("This operation is to be run with admin permissions. Should be fine: %s", op)
 
     def append(self, key, append_data):
-        # Not upserting here as this is meant to be use when there is already data for this key.
         try:
             self._cachecol.update_one(
                 {'type': key},
-                {'$push': {'data': append_data}}
+                {
+                    # Add to set will not add the same library again to the list unlike set.
+                    '$addToSet': {'data': append_data},
+                    '$setOnInsert': {'type': key, 'date': datetime.utcnow()}
+                },
+                upsert=True
             )
         except OperationFailure as op:
             logging.debug("Admin is required to append to the cache: %s", op)
