@@ -58,7 +58,7 @@ class Cache:
 
     def append(self, key, append_data):
         try:
-            self._cachecol.update_one(
+            self._cachecol.update(
                 {'type': key},
                 {
                     # Add to set will not add the same library again to the list unlike set.
@@ -69,3 +69,17 @@ class Cache:
             )
         except OperationFailure as op:
             logging.debug("Admin is required to append to the cache: %s", op)
+
+    def delete_item_from_key(self, key, item):
+        try:
+            self._cachecol.update(
+                {'type': key},
+                {"$pull": {"data": item}}
+            )
+        except OperationFailure as op:
+            logging.debug("Admin is required to remove from cache: %s", op)
+
+    def update_item_for_key(self, key, old, new):
+        # This op is not atomic, but given the rarity of renaming a lib, it should not cause issues.
+        self.delete_item_from_key(key, old)
+        self.append(key, new)
