@@ -266,7 +266,6 @@ class Arctic(object):
 
         return library
 
-
     @mongo_retry
     def initialize_library(self, library, lib_type=VERSION_STORE, **kwargs):
         """
