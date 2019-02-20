@@ -229,6 +229,7 @@ class Arctic(object):
         return self._list_libraries()
 
     def reload_cache(self):
+        _ = self._conn  # Ensures the connection exists and cache is initialized with it.
         self._cache.set('list_libraries', self._list_libraries())
 
     def library_exists(self, library):
@@ -257,6 +258,13 @@ class Arctic(object):
         except LibraryNotFoundException:
             pass
         return exists
+
+    def _sanitize_lib_name(self, library):
+        # For list libraries, we don't return the fully qualified lib name. eg. arctic_skhare.test -> skhare.test
+        if library.startswith(self.DB_PREFIX + '_'):
+            return library[len(self.DB_PREFIX) + 1:]
+
+        return library
 
     @mongo_retry
     def initialize_library(self, library, lib_type=VERSION_STORE, **kwargs):
@@ -289,7 +297,7 @@ class Arctic(object):
         if not lib.get_quota():
             lib.set_quota(10 * 1024 * 1024 * 1024)
 
-        self._cache.append('list_libraries', library)
+        self._cache.append('list_libraries', self._sanitize_lib_name(library))
 
     @mongo_retry
     def delete_library(self, library):
@@ -314,6 +322,8 @@ class Arctic(object):
         if library in self._library_cache:
             del self._library_cache[library]
             del self._library_cache[lib.get_name()]
+
+        self._cache.delete_item_from_key('list_libraries', self._sanitize_lib_name(library))
 
     def get_library(self, library):
         """
@@ -426,6 +436,9 @@ class Arctic(object):
         if from_lib in self._library_cache:
             del self._library_cache[from_lib]
             del self._library_cache[lib.get_name()]
+
+        self._cache.update_item_for_key(
+            'list_libraries', self._sanitize_lib_name(from_lib), self._sanitize_lib_name(to_lib))
 
     def get_library_type(self, lib):
         """

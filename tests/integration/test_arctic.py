@@ -236,25 +236,24 @@ def test_library_exists_no_auth(arctic):
 
 
 def test_list_libraries_cached(arctic):
+    # default in arctic is to cache list_libraries.
     libs = ['test1', 'test2']
     for lib in libs:
         arctic.initialize_library(lib)
 
-    # Should use uncached data as reload_cache is required for initializing for the first time.
-    assert sorted(libs) == sorted(arctic.list_libraries())
+    # Cached data should have been appended to cache.
+    assert sorted(libs) == sorted(arctic.list_libraries()) == sorted(arctic._list_libraries())
 
-    # Check that the cached collection does not exist right now.
-    cache = arctic._cache
-    assert not cache.get('list_libraries')
-
-    # Should call list_libraries if cache is empty.
+    # Should default to uncached list_libraries if cache is empty.
     with patch('arctic.arctic.Arctic._list_libraries', return_value=libs) as uncached_list_libraries:
+        # Empty cache manually.
+        arctic._conn.meta_db.cache.remove({})
         assert arctic._list_libraries_cached() == libs
         uncached_list_libraries.assert_called()
 
     # Reload cache and check that it has data
     arctic.reload_cache()
-    assert sorted(cache.get('list_libraries')) == sorted(libs)
+    assert sorted(arctic._cache.get('list_libraries')) == sorted(libs)
 
     # Should fetch it from cache the second time.
     with patch('arctic.arctic.Arctic._list_libraries', return_value=libs) as uncached_list_libraries:
@@ -292,3 +291,27 @@ def test_cache_does_not_return_stale_data(arctic):
     with patch('arctic.arctic.Arctic._list_libraries', return_value=libs) as uncached_list_libraries:
         assert arctic._list_libraries_cached(newer_than_secs=0.1) == libs
         uncached_list_libraries.assert_called()
+
+
+def test_renaming_returns_new_name_in_cache(arctic):
+    libs = ['test1', 'test2']
+
+    for lib in libs:
+        arctic.initialize_library(lib)
+
+    assert arctic._list_libraries_cached() == arctic._list_libraries()
+
+    arctic.rename_library('test1', 'test3')
+
+    assert sorted(arctic._list_libraries_cached()) == sorted(['test2', 'test3'])
+
+
+def test_deleting_library_removes_it_from_cache(arctic):
+    libs = ['test1', 'test2']
+
+    for lib in libs:
+        arctic.initialize_library(lib)
+
+    arctic.delete_library('test1')
+
+    assert arctic._list_libraries_cached() == arctic._list_libraries() == arctic.list_libraries() == ['test2']
