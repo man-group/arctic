@@ -229,6 +229,7 @@ class Arctic(object):
         return self._list_libraries()
 
     def reload_cache(self):
+        _ = self._conn  # Ensures the connection exists and cache is initialized with it.
         self._cache.set('list_libraries', self._list_libraries())
 
     def library_exists(self, library):
