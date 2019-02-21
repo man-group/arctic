@@ -1,8 +1,16 @@
 ## Changelog
 
 ### 1.74
-  * Feature: #688 Remove Chunkstore check for issue #422
   * Bugfix: #712 Pandas deprecation warning in chunkstore serializer
+  * BugFix: #670 Lots of pycodestyle fixes
+  * BugFix: #691 Fix arrays_to_mgr for pandas 0.23.4+
+  * BugFix: #698 Fix no handler in logging warning
+  * BugFix: #705 Use sort_index instead of sortlevel_
+  * BugFix: #710: Initialize SEGMENT_SHA in versions for writes and appends
+  * Feature: #669 Experimental initial implementation of async arctic
+  * Feature: #704 Do not enable sharding by default in BSONStore.
+  * Feature: #688 Remove Chunkstore check for issue #422
+  * Feature: #717 Add a best effort cache for list_libraries
 
 ### 1.73 (2018-11-27)
   * Bugfix: #658 Write/append errors for Panel objects from older pandas versions
