@@ -11,6 +11,7 @@
   * Feature: #704 Do not enable sharding by default in BSONStore.
   * Feature: #688 Remove Chunkstore check for issue #422
   * Feature: #717 Add a best effort cache for list_libraries
+  * Bugfix: #722 Exception while reading a column from chunkstore with a column missing in the chunk
 
 ### 1.73 (2018-11-27)
   * Bugfix: #658 Write/append errors for Panel objects from older pandas versions
