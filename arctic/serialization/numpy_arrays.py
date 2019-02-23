@@ -144,14 +144,19 @@ class FrameConverter(object):
         data = {}
 
         for col in cols:
-            d = decompress(doc[DATA][doc[METADATA][LENGTHS][col][0]: doc[METADATA][LENGTHS][col][1] + 1])
-            # d is ready-only but that's not an issue since DataFrame will copy the data anyway.
-            d = np.frombuffer(d, doc[METADATA][DTYPE][col])
+            # if there is missing data in a chunk, we can default to NaN
+            # and pandas will autofill the missing values to the correct length
+            if col not in doc[METADATA][LENGTHS]:
+                d = [np.nan]
+            else:
+                d = decompress(doc[DATA][doc[METADATA][LENGTHS][col][0]: doc[METADATA][LENGTHS][col][1] + 1])
+                # d is ready-only but that's not an issue since DataFrame will copy the data anyway.
+                d = np.frombuffer(d, doc[METADATA][DTYPE][col])
 
-            if MASK in doc[METADATA] and col in doc[METADATA][MASK]:
-                mask_data = decompress(doc[METADATA][MASK][col])
-                mask = np.frombuffer(mask_data, 'bool')
-                d = ma.masked_array(d, mask)
+                if MASK in doc[METADATA] and col in doc[METADATA][MASK]:
+                    mask_data = decompress(doc[METADATA][MASK][col])
+                    mask = np.frombuffer(mask_data, 'bool')
+                    d = ma.masked_array(d, mask)
             data[col] = d
 
         # Copy into
@@ -216,7 +221,7 @@ class FrametoArraySerializer(Serializer):
         if not isinstance(data, list):
             df = self.converter.objify(data, columns)
         else:
-            df = pd.concat([self.converter.objify(d, columns) for d in data], ignore_index=not index)
+            df = pd.concat([self.converter.objify(d, columns) for d in data], ignore_index=not index, sort=False)
 
         if index:
             df = df.set_index(meta[INDEX])
@@ -226,5 +231,5 @@ class FrametoArraySerializer(Serializer):
 
     def combine(self, a, b):
         if a.index.names != [None]:
-            return pd.concat([a, b]).sort_index()
-        return pd.concat([a, b])
+            return pd.concat([a, b], sort=False).sort_index()
+        return pd.concat([a, b], sort=False)

@@ -14,7 +14,7 @@ class Cache:
         self._cachedb = client[cache_db]
         self._cachecol = None
         try:
-            if cache_col not in self._cachedb.collection_names():
+            if cache_col not in self._cachedb.list_collection_names():
                 self._cachedb.create_collection(cache_col).create_index("date", expireAfterSeconds=cache_expiry)
         except OperationFailure as op:
             logging.debug("This is fine if you are not admin. The collection should already be created for you: %s", op)
@@ -58,7 +58,7 @@ class Cache:
 
     def append(self, key, append_data):
         try:
-            self._cachecol.update(
+            self._cachecol.update_one(
                 {'type': key},
                 {
                     # Add to set will not add the same library again to the list unlike set.
