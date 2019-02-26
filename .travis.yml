@@ -30,6 +30,10 @@ install:
   - pip install pytest-timeout --upgrade
   - pip install pytest-xdist --upgrade
   - pip install setuptools-git --upgrade
+  - pip install boto3 --upgrade
+  - pip install moto --upgrade
+  - pip install s3fs --upgrade
+  - pip install fastparquet --upgrade
 script:
   - pip freeze
   - python setup.py test --pytest-args=-v

@@ -90,6 +90,10 @@ setup(
                       "tzlocal",
                       "lz4"
                      ],
+    extras_require={
+                     's3': ['boto3'],
+                     'parquet': ['fastparquet', 's3fs']
+                   },
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
     tests_require=["mock",
                    "mockextras",
@@ -98,7 +102,7 @@ setup(
                    "pytest-server-fixtures",
                    "pytest-timeout",
                    "pytest-xdist",
-                   "lz4"
+                   "moto"
                   ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',
