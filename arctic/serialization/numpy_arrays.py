@@ -4,6 +4,7 @@ import numpy as np
 import numpy.ma as ma
 import pandas as pd
 
+
 try:
     from pandas.api.types import infer_dtype
 except ImportError:
@@ -19,6 +20,11 @@ except ImportError:
     except ImportError:
         # pandas <=  0.19.x
         from pandas.lib import max_len_string_array
+
+if int(pd.__version__.split('.')[1]) > 22:
+    from functools import partial
+    pd.concat = partial(pd.concat, sort=False)
+
 
 from bson import Binary, SON
 
@@ -221,7 +227,7 @@ class FrametoArraySerializer(Serializer):
         if not isinstance(data, list):
             df = self.converter.objify(data, columns)
         else:
-            df = pd.concat([self.converter.objify(d, columns) for d in data], ignore_index=not index, sort=False)
+            df = pd.concat([self.converter.objify(d, columns) for d in data], ignore_index=not index)
 
         if index:
             df = df.set_index(meta[INDEX])
@@ -231,5 +237,5 @@ class FrametoArraySerializer(Serializer):
 
     def combine(self, a, b):
         if a.index.names != [None]:
-            return pd.concat([a, b], sort=False).sort_index()
-        return pd.concat([a, b], sort=False)
+            return pd.concat([a, b]).sort_index()
+        return pd.concat([a, b])
