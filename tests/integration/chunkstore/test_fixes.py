@@ -12,6 +12,10 @@ from pandas.util.testing import assert_frame_equal
 from arctic.date import DateRange, CLOSED_OPEN, CLOSED_CLOSED, OPEN_OPEN, OPEN_CLOSED
 
 
+if int(pd.__version__.split('.')[1]) > 22:
+    from functools import partial
+    pd.concat = partial(pd.concat, sort=False)
+
 # Issue 384
 def test_write_dataframe(chunkstore_lib):
     # Create dataframe of time measurements taken every 6 hours
@@ -54,7 +58,7 @@ def test_compression(chunkstore_lib):
     df2 = generate_data(date)
     chunkstore_lib.append('test', df2)
     read = chunkstore_lib.read('test')
-    assert_frame_equal(read, pd.concat([df, df2], ignore_index=True, sort=False))
+    assert_frame_equal(read, pd.concat([df, df2], ignore_index=True))
 
 
 # issue #420 - ChunkStore doesnt respect DateRange interval
