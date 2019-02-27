@@ -29,7 +29,6 @@ if int(pd.__version__.split('.')[1]) > 22:
     pd.concat = partial(pd.concat, sort=False)
 
 
-
 DATA = 'd'
 MASK = 'm'
 TYPE = 't'
