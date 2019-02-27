@@ -1,4 +1,4 @@
-import arctic.async as aasync
+import arctic.asynchronous as aasync
 
 
 def test_async_arctic():
