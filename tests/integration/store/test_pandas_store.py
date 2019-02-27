@@ -28,7 +28,7 @@ def test_write_multi_column_to_arctic_1_40_data(multicolumn_store_with_uncompres
     df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], index=['x', 'y', 'z'], columns=[[u'a', 'w'], ['a', 'v']])
     store.write(symbol, df)
 
-    assert np.all(store.read(symbol).data == df)
+    assert np.all(store.read(symbol).data == df).all()
 
 
 def test_save_read_pandas_series(library):
@@ -247,7 +247,7 @@ def test_append_pandas_multi_columns_dataframe_new_column(library):
 
     df = df.append(df2)
     columns = list(itertools.product(["bar", "baz", "foo", "qux"], ["one", "two"]))
-    assert np.all(saved.data[columns] == df[columns])
+    assert np.all(saved.data[columns] == df[columns]).all()
     assert np.all(saved.data['bar', 'three'][2:] == df['bar', 'three'][2:])
 
 
@@ -317,7 +317,7 @@ def test_save_read_multi_index_and_multi_columns_dataframe(library):
     assert isinstance(saved.data.index, df.index.__class__)
     assert np.all(saved.data.index == df.index)
     assert np.all(saved.data.columns == df.columns)
-    assert np.all(saved.data == df)
+    assert np.all(saved.data == df).all()
 
 
 def test_append_pandas_dataframe(library):
