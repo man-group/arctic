@@ -3,7 +3,10 @@ import logging
 import numpy as np
 import numpy.ma as ma
 import pandas as pd
+from bson import Binary, SON
 
+from .._compression import compress, decompress, compress_array
+from ._serializer import Serializer
 
 try:
     from pandas.api.types import infer_dtype
@@ -25,11 +28,6 @@ if int(pd.__version__.split('.')[1]) > 22:
     from functools import partial
     pd.concat = partial(pd.concat, sort=False)
 
-
-from bson import Binary, SON
-
-from .._compression import compress, decompress, compress_array
-from ._serializer import Serializer
 
 
 DATA = 'd'
