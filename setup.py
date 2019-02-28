@@ -27,8 +27,8 @@ from setuptools.command.test import test as TestCommand
 # http://stackoverflow.com/a/26737672
 try:
     import pypandoc
-    long_description = pypandoc.convert('README.md', 'rst')
-    changelog = pypandoc.convert('CHANGES.md', 'rst')
+    long_description = pypandoc.convert_file('README.md', 'rst', format='markdown_github')
+    changelog = pypandoc.convert_file('CHANGES.md', 'rst', format='markdown_github')
 except (IOError, ImportError, OSError):
     long_description = open('README.md').read()
     changelog = open('CHANGES.md').read()
