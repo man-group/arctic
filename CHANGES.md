@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.74
+### 1.74 (2019-02-28)
   * Bugfix: #712 Pandas deprecation warning in chunkstore serializer
   * BugFix: #670 Lots of pycodestyle fixes
   * BugFix: #691 Fix arrays_to_mgr for pandas 0.23.4+
