@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.75
+  * Bugfix: pypandoc not rendering README correctly for PYPI
+
 ### 1.74 (2019-02-28)
   * Bugfix: #712 Pandas deprecation warning in chunkstore serializer
   * BugFix: #670 Lots of pycodestyle fixes
