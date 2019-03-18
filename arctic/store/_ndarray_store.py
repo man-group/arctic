@@ -409,9 +409,10 @@ class NdarrayStore(object):
 
         version['type'] = self.TYPE
         version[FW_POINTERS_CONFIG_KEY] = ARCTIC_FORWARD_POINTERS_CFG.name
+
         # Create an empty entry to prevent cases where this field is accessed without being there. (#710)
-        if version[FW_POINTERS_CONFIG_KEY] != FwPointersCfg.DISABLED.name:
-            version[FW_POINTERS_REFS_KEY] = list()
+        if previous_version and previous_version[FW_POINTERS_CONFIG_KEY] != FwPointersCfg.DISABLED.name:
+            previous_version[FW_POINTERS_REFS_KEY] = list()
 
         if str(dtype) != previous_version['dtype'] or \
                 _fw_pointers_convert_append_to_write(previous_version):
@@ -615,8 +616,8 @@ class NdarrayStore(object):
         version['sha'] = self.checksum(item)
         version[FW_POINTERS_CONFIG_KEY] = ARCTIC_FORWARD_POINTERS_CFG.name
         # Create an empty entry to prevent cases where this field is accessed without being there. (#710)
-        if version[FW_POINTERS_CONFIG_KEY] != FwPointersCfg.DISABLED.name:
-            version[FW_POINTERS_REFS_KEY] = list()
+        if previous_version and previous_version[FW_POINTERS_CONFIG_KEY] != FwPointersCfg.DISABLED.name:
+            previous_version[FW_POINTERS_REFS_KEY] = list()
 
         if previous_version:
             if 'sha' in previous_version \
