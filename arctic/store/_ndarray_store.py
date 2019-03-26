@@ -134,8 +134,8 @@ def _update_fw_pointers(collection, symbol, version, previous_version, is_append
     if is_append:
         # Appends are tricky, as we extract the SHAs from the previous version (assuming it has FW pointers info)
         prev_fw_cfg = get_fwptr_config(previous_version)
-        if prev_fw_cfg is FwPointersCfg.DISABLED.name:
-            version_shas.update(Binary(sha) for sha in collection.find(
+        if prev_fw_cfg == FwPointersCfg.DISABLED.name or FW_POINTERS_REFS_KEY not in previous_version:
+            version_shas.update(Binary(sha['sha']) for sha in collection.find(
                 {'symbol': symbol,
                  'parent': version_base_or_id(previous_version),
                  'segment': {'$lt': previous_version['up_to']}},

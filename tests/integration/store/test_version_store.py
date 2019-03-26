@@ -1131,6 +1131,48 @@ def test_append_after_empty(library, fw_pointers_cfg):
         assert_frame_equal(df, r.data)
 
 
+def test_disable_then_hybrid_fwd_ptr_with_append(library):
+    with FwPointersCtx(FwPointersCfg.DISABLED):
+        len_df = 500
+        index = [dt(2017, 1, 2)] * len_df
+        data = np.random.random((len_df, 10))
+        df = pd.DataFrame(index=index, data=data)
+        df.index.name = 'index'
+        df.columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
+        library.write(symbol, df.iloc[:0])
+
+        for i in range(0, 250):
+            library.append(symbol, df.iloc[i:i + 1])
+
+    with FwPointersCtx(FwPointersCfg.HYBRID):
+        for i in range(250, 500):
+            library.append(symbol, df.iloc[i:i + 1])
+
+        r = library.read(symbol)
+        assert_frame_equal(df, r.data)
+
+
+def test_disable_then_enable_fwd_ptr_with_append(library):
+    with FwPointersCtx(FwPointersCfg.DISABLED):
+        len_df = 500
+        index = [dt(2017, 1, 2)] * len_df
+        data = np.random.random((len_df, 10))
+        df = pd.DataFrame(index=index, data=data)
+        df.index.name = 'index'
+        df.columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
+        library.write(symbol, df.iloc[:0])
+
+        for i in range(0, 250):
+            library.append(symbol, df.iloc[i:i + 1])
+
+    with FwPointersCtx(FwPointersCfg.ENABLED):
+        for i in range(250, 500):
+            library.append(symbol, df.iloc[i:i + 1])
+
+        r = library.read(symbol)
+        assert_frame_equal(df, r.data)
+
+
 def _rnd_df(nrows, ncols):
     ret_df = pd.DataFrame(np.random.randn(nrows, ncols),
                           index=pd.date_range('20170101',
