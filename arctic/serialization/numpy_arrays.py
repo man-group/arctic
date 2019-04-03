@@ -216,7 +216,7 @@ class FrametoArraySerializer(Serializer):
 
         if columns:
             if index:
-                columns = list(columns)
+                columns = columns[:]
                 columns.extend(meta[INDEX])
             if len(columns) > len(set(columns)):
                 raise Exception("Duplicate columns specified, cannot de-serialize")
