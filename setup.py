@@ -97,7 +97,7 @@ setup(
                    "pytest-cov",
                    "pytest-server-fixtures",
                    "pytest-timeout",
-                   "pytest-xdist",
+                   "pytest-xdist<=1.26.1",
                    "lz4"
                   ],
     entry_points={'console_scripts': [

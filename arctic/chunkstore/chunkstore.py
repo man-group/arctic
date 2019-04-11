@@ -586,9 +586,9 @@ class ChunkStore(object):
         ret['chunk_count'] = sym[CHUNK_COUNT]
         ret['len'] = sym[LEN]
         ret['appended_rows'] = sym[APPEND_COUNT]
-        ret['metadata'] = sym[METADATA]
+        ret['metadata'] = sym[METADATA] if METADATA in sym else None
         ret['chunker'] = sym[CHUNKER]
-        ret['chunk_size'] = sym[CHUNK_SIZE]
+        ret['chunk_size'] = sym[CHUNK_SIZE] if CHUNK_SIZE in sym else 0
         ret['serializer'] = sym[SERIALIZER]
         return ret
 

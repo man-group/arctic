@@ -166,3 +166,24 @@ def test_missing_cols(chunkstore_lib):
     assert_frame_equal(chunkstore_lib.read('test'), expected_df)
     df = chunkstore_lib.read('test', columns=['B'])
     assert_frame_equal(df, expected_df['B'].to_frame())
+
+
+def test_column_copy(chunkstore_lib):
+    index = DatetimeIndex(pd.date_range('2019-01-01', periods=3, freq='D'), name='date')
+
+    df = pd.DataFrame({'A': [1, 2, 3], 'B': [5,6,7]}, index=index)
+    cols = ['A']
+    chunkstore_lib.write('test', df)
+    chunkstore_lib.read('test', columns=cols)
+    assert cols == ['A']
+
+
+def test_get_info_empty(chunkstore_lib):
+    chunkstore_lib.write('test', pd.DataFrame(data={'date': [], 'data': []}))
+    ret = chunkstore_lib.get_info('test')
+    assert ret == {'appended_rows': 0,
+                   'chunker': u'date',
+                   'len': 0, 'chunk_size': 0,
+                   'chunk_count': 0,
+                   'serializer': u'FrameToArray',
+                   'metadata': None}
