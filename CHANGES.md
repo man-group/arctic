@@ -2,6 +2,7 @@
 
 ### 1.75
   * Bugfix: pypandoc not rendering README correctly for PYPI
+  * Bugfix: #744 get_info on an empty dataframe raises an exception
 
 ### 1.74 (2019-02-28)
   * Bugfix: #712 Pandas deprecation warning in chunkstore serializer
