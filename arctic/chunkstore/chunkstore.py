@@ -280,6 +280,7 @@ class ChunkStore(object):
             chunks[segments[0][SYMBOL]].append({DATA: chunk_data, METADATA: mdata})
 
         skip_filter = not filter_data or chunk_range is None
+        kwargs['inplace'] = kwargs.get('inplace', True)
 
         if len(symbol) > 1:
             return {sym: deser(chunks[sym], **kwargs) if skip_filter else chunker.filter(deser(chunks[sym], **kwargs), chunk_range) for sym in symbol}
