@@ -193,7 +193,7 @@ class FrametoArraySerializer(Serializer):
         ret[METADATA][TYPE] = dtype
         return ret
 
-    def deserialize(self, data, columns=None):
+    def deserialize(self, data, columns=None, inplace=False):
         """
         Deserializes SON to a DataFrame
 
@@ -203,6 +203,8 @@ class FrametoArraySerializer(Serializer):
         columns: None, or list of strings
             optionally you can deserialize a subset of the data in the SON. Index
             columns are ALWAYS deserialized, and should not be specified
+        inplace: Convert and remove items from data in-place
+            this will modify data
 
         Returns
         -------
@@ -210,6 +212,8 @@ class FrametoArraySerializer(Serializer):
         """
         if not data:
             return pd.DataFrame()
+        if not inplace:
+            data = data[:]
 
         meta = data[0][METADATA] if isinstance(data, list) else data[METADATA]
         index = INDEX in meta
@@ -218,16 +222,19 @@ class FrametoArraySerializer(Serializer):
             if index:
                 columns = columns[:]
                 columns.extend(meta[INDEX])
-            if len(columns) > len(set(columns)):
-                raise Exception("Duplicate columns specified, cannot de-serialize")
+                columns = list(set(columns))
 
         if not isinstance(data, list):
             df = self.converter.objify(data, columns)
         else:
-            df = pd.concat([self.converter.objify(d, columns) for d in data], ignore_index=not index)
+            dfs = []
+            while len(data):
+                dfs.append(self.converter.objify(data.pop(0), columns))
+            df = pd.concat(dfs, ignore_index=not index)
+            del dfs
 
         if index:
-            df = df.set_index(meta[INDEX])
+            df.set_index(meta[INDEX], inplace=True)
         if meta[TYPE] == 'series':
             return df[df.columns[0]]
         return df
