@@ -21,23 +21,26 @@ def test_split_arrs():
 
 
 def test_checksum():
-    digest = checksum('test_my_market_data_$ymB0l', {})
+    digest = checksum("test_my_market_data_$ymB0l", {})
     expected = b"""4OZ*3DO'$>XV['VW1MT4I^+7-3H,"""
     assert binascii.b2a_uu(digest).strip() == expected
 
 
 def test_checksum_handles_p3strs_and_binary():
-    digest = checksum('test_my_market_data_$ymB0l', {'key1': u'unicode',
-                                                     'key2': b'binary_data'})
-    expected = b'4O11 ;<A@C1.0W(JRB1.?D[ZEN!8'
+    digest = checksum(
+        "test_my_market_data_$ymB0l", {"key1": u"unicode", "key2": b"binary_data"}
+    )
+    expected = b"4O11 ;<A@C1.0W(JRB1.?D[ZEN!8"
     assert binascii.b2a_uu(digest).strip() == expected
 
 
 def test_version_base_or_id():
     with pytest.raises(KeyError):
         version_base_or_id({})
-    assert version_base_or_id({'_id': sentinel._id}) == sentinel._id
-    assert version_base_or_id({
-        '_id': sentinel._id,
-        'base_version_id': sentinel.base_version_id
-    }) == sentinel.base_version_id
+    assert version_base_or_id({"_id": sentinel._id}) == sentinel._id
+    assert (
+        version_base_or_id(
+            {"_id": sentinel._id, "base_version_id": sentinel.base_version_id}
+        )
+        == sentinel.base_version_id
+    )

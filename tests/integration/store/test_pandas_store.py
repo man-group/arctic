@@ -7,25 +7,45 @@ import pandas as pd
 import pytest
 from dateutil.rrule import rrule, DAILY
 from mock import Mock, patch
-from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat
+from pandas import (
+    DataFrame,
+    Series,
+    DatetimeIndex,
+    MultiIndex,
+    read_csv,
+    Panel,
+    date_range,
+    concat,
+)
 from pandas.tseries.offsets import DateOffset
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from six import StringIO
 
 from arctic._compression import decompress
 from arctic.date import DateRange, mktz
+
 # Do not remove PandasStore, used in global scope
-from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasStore
+from arctic.store._pandas_ndarray_store import (
+    PandasDataFrameStore,
+    PandasSeriesStore,
+    PandasStore,
+)
 from arctic.store.version_store import register_versioned_storage
 
 register_versioned_storage(PandasDataFrameStore)
 
 
-def test_write_multi_column_to_arctic_1_40_data(multicolumn_store_with_uncompressed_write):
-    store = multicolumn_store_with_uncompressed_write['store']
-    symbol = multicolumn_store_with_uncompressed_write['symbol']
+def test_write_multi_column_to_arctic_1_40_data(
+    multicolumn_store_with_uncompressed_write
+):
+    store = multicolumn_store_with_uncompressed_write["store"]
+    symbol = multicolumn_store_with_uncompressed_write["symbol"]
 
-    df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], index=['x', 'y', 'z'], columns=[[u'a', 'w'], ['a', 'v']])
+    df = pd.DataFrame(
+        [[1, 2], [3, 4], [5, 6]],
+        index=["x", "y", "z"],
+        columns=[[u"a", "w"], ["a", "v"]],
+    )
     store.write(symbol, df)
 
     assert np.all(store.read(symbol).data == df).all()
@@ -33,199 +53,260 @@ def test_write_multi_column_to_arctic_1_40_data(multicolumn_store_with_uncompres
 
 def test_save_read_pandas_series(library):
     s = Series(data=[1, 2, 3], index=[4, 5, 6])
-    library.write('pandas', s)
-    saved = library.read('pandas').data
+    library.write("pandas", s)
+    saved = library.read("pandas").data
     assert np.all(s == saved)
     assert saved.name == "values"
 
 
 def test_save_read_pandas_series_maintains_name(library):
     s = Series(data=[1, 2, 3], index=[4, 5, 6], name="ADJ")
-    library.write('pandas', s)
-    saved = library.read('pandas').data
+    library.write("pandas", s)
+    saved = library.read("pandas").data
     assert np.all(s == saved)
     assert saved.name == "ADJ"
 
 
 def test_save_read_pandas_series_with_multiindex(library):
-    df = Series(data=['A', 'BC', 'DEF'], index=MultiIndex.from_tuples([(1, 2), (1, 3), (2, 2)]))
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = Series(
+        data=["A", "BC", "DEF"], index=MultiIndex.from_tuples([(1, 2), (1, 3), (2, 2)])
+    )
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert np.all(df.values == saved_df.values)
 
 
 def test_save_read_pandas_series_with_multiindex_and_name(library):
-    df = Series(data=['A', 'BC', 'DEF'],
-                index=MultiIndex.from_tuples([(1, 2), (1, 3), (2, 2)]),
-                name='Foo')
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = Series(
+        data=["A", "BC", "DEF"],
+        index=MultiIndex.from_tuples([(1, 2), (1, 3), (2, 2)]),
+        name="Foo",
+    )
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert np.all(df.values == saved_df.values)
-    assert df.name == 'Foo'
+    assert df.name == "Foo"
 
 
 def test_save_read_pandas_series_with_unicode_index_name(library):
-    df = Series(data=['A', 'BC', 'DEF'],
-                index=MultiIndex.from_tuples([(np.datetime64(dt(2013, 1, 1)),),
-                                              (np.datetime64(dt(2013, 1, 2)),),
-                                              (np.datetime64(dt(2013, 1, 3)),)], names=[u'DATETIME']))
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = Series(
+        data=["A", "BC", "DEF"],
+        index=MultiIndex.from_tuples(
+            [
+                (np.datetime64(dt(2013, 1, 1)),),
+                (np.datetime64(dt(2013, 1, 2)),),
+                (np.datetime64(dt(2013, 1, 3)),),
+            ],
+            names=[u"DATETIME"],
+        ),
+    )
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert np.all(df.values == saved_df.values)
 
 
 def test_save_read_pandas_dataframe_with_multiindex(library):
-    df = DataFrame(data=['A', 'BC', 'DEF'], index=MultiIndex.from_tuples([(1, 2), (1, 3), (2, 2)]))
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = DataFrame(
+        data=["A", "BC", "DEF"], index=MultiIndex.from_tuples([(1, 2), (1, 3), (2, 2)])
+    )
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert np.all(df.values == saved_df.values)
 
 
 def test_save_read_pandas_dataframe_with_none_values(library):
     df = DataFrame(data=[(1, None), (1, 3), (2, 2)])
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
-    assert np.all((df.values == saved_df.values) | (np.isnan(df.values) & np.isnan(saved_df.values)))
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
+    assert np.all(
+        (df.values == saved_df.values)
+        | (np.isnan(df.values) & np.isnan(saved_df.values))
+    )
 
 
 def test_save_read_pandas_dataframe_with_unicode_index_name(library):
-    df = DataFrame(data=['A', 'BC', 'DEF'],
-                   index=MultiIndex.from_tuples([(np.datetime64(dt(2013, 1, 1)),),
-                                                 (np.datetime64(dt(2013, 1, 2)),),
-                                                 (np.datetime64(dt(2013, 1, 3)),)], names=[u'DATETIME']))
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = DataFrame(
+        data=["A", "BC", "DEF"],
+        index=MultiIndex.from_tuples(
+            [
+                (np.datetime64(dt(2013, 1, 1)),),
+                (np.datetime64(dt(2013, 1, 2)),),
+                (np.datetime64(dt(2013, 1, 3)),),
+            ],
+            names=[u"DATETIME"],
+        ),
+    )
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert np.all(df.values == saved_df.values)
 
 
 def test_cant_write_pandas_series_with_tuple_values(library):
-    df = Series(data=[('A', 'BC')], index=np.array([dt(2013, 1, 1), ]).astype('datetime64[ns]'))
-    assert PandasSeriesStore().can_write(Mock(), 'FOO', df) == False
+    df = Series(
+        data=[("A", "BC")], index=np.array([dt(2013, 1, 1)]).astype("datetime64[ns]")
+    )
+    assert PandasSeriesStore().can_write(Mock(), "FOO", df) == False
 
 
 def test_save_read_pandas_series_with_datetimeindex_with_timezone(library):
-    df = Series(data=['A', 'BC', 'DEF'], index=DatetimeIndex(np.array([dt(2013, 1, 1),
-                                                                       dt(2013, 1, 2),
-                                                                       dt(2013, 1, 3)]).astype('datetime64[ns]'),
-                                                                tz="America/Chicago"))
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = Series(
+        data=["A", "BC", "DEF"],
+        index=DatetimeIndex(
+            np.array([dt(2013, 1, 1), dt(2013, 1, 2), dt(2013, 1, 3)]).astype(
+                "datetime64[ns]"
+            ),
+            tz="America/Chicago",
+        ),
+    )
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert df.index.tz == saved_df.index.tz
     assert all(df.index == saved_df.index)
 
 
 def test_save_read_pandas_series_with_datetimeindex(library):
-    df = Series(data=['A', 'BC', 'DEF'], index=np.array([dt(2013, 1, 1),
-                                                            dt(2013, 1, 2),
-                                                            dt(2013, 1, 3)]).astype('datetime64[ns]'))
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = Series(
+        data=["A", "BC", "DEF"],
+        index=np.array([dt(2013, 1, 1), dt(2013, 1, 2), dt(2013, 1, 3)]).astype(
+            "datetime64[ns]"
+        ),
+    )
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert np.all(df.index == saved_df.index)
     assert np.all(df.values == saved_df.values)
 
 
 def test_save_read_pandas_dataframe_with_datetimeindex_with_timezone(library):
-    df = DataFrame(data=['A', 'BC', 'DEF'], index=DatetimeIndex(np.array([dt(2013, 1, 1),
-                                                                       dt(2013, 1, 2),
-                                                                       dt(2013, 1, 3)]).astype('datetime64[ns]'),
-                                                                tz="America/Chicago"))
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = DataFrame(
+        data=["A", "BC", "DEF"],
+        index=DatetimeIndex(
+            np.array([dt(2013, 1, 1), dt(2013, 1, 2), dt(2013, 1, 3)]).astype(
+                "datetime64[ns]"
+            ),
+            tz="America/Chicago",
+        ),
+    )
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert df.index.tz == saved_df.index.tz
     assert all(df.index == saved_df.index)
 
 
 def test_save_read_pandas_empty_series_with_datetime_multiindex_with_timezone(library):
-    empty_index = pd.MultiIndex(levels=(pd.DatetimeIndex([], tz="America/Chicago"), pd.Index([])), labels=([], []))
+    empty_index = pd.MultiIndex(
+        levels=(pd.DatetimeIndex([], tz="America/Chicago"), pd.Index([])),
+        labels=([], []),
+    )
     df = Series(data=[], index=empty_index)
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
-    assert empty_index.equal_levels(saved_df.index), "Index timezone information should be maintained, even when empty"
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
+    assert empty_index.equal_levels(
+        saved_df.index
+    ), "Index timezone information should be maintained, even when empty"
 
 
 def test_save_read_pandas_dataframe_with_datetimeindex(library):
-    df = DataFrame(data=['A', 'BC', 'DEF'], index=np.array([dt(2013, 1, 1),
-                                                            dt(2013, 1, 2),
-                                                            dt(2013, 1, 3)]).astype('datetime64[ns]'))
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = DataFrame(
+        data=["A", "BC", "DEF"],
+        index=np.array([dt(2013, 1, 1), dt(2013, 1, 2), dt(2013, 1, 3)]).astype(
+            "datetime64[ns]"
+        ),
+    )
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert np.all(df.index == saved_df.index)
     assert np.all(df.values == saved_df.values)
 
 
 def test_save_read_pandas_dataframe_with_strings(library):
-    df = DataFrame(data=['A', 'BC', 'DEF'], index=[4, 5, 6])
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = DataFrame(data=["A", "BC", "DEF"], index=[4, 5, 6])
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert np.all(df.values == saved_df.values)
 
 
 def test_save_read_pandas_dataframe(library):
     df = DataFrame(data=[1, 2, 3], index=[4, 5, 6])
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert np.all(df.values == saved_df.values)
 
 
 def test_save_read_empty_dataframe(library):
-    df = DataFrame({'a': [], 'b': []})
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = DataFrame({"a": [], "b": []})
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert np.all(df.values == saved_df.values)
 
 
 def test_save_read_pandas_dataframe2(library):
-    df = DataFrame(data=[1, 2, 3], index=DatetimeIndex(start='1/1/2011', periods=3, freq='H'))
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = DataFrame(
+        data=[1, 2, 3], index=DatetimeIndex(start="1/1/2011", periods=3, freq="H")
+    )
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert np.all(df.values == saved_df.values)
 
 
 def test_save_read_pandas_dataframe_strings(library):
-    df = DataFrame(data=['a', 'b', 'c'], index=DatetimeIndex(start='1/1/2011', periods=3, freq='H'))
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = DataFrame(
+        data=["a", "b", "c"], index=DatetimeIndex(start="1/1/2011", periods=3, freq="H")
+    )
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert np.all(df.values == saved_df.values)
 
 
 def test_save_read_pandas_dataframe_empty_multiindex(library):
-    expected = read_csv(StringIO(u'''\
-STRATEGY MAC INSTRUMENT CONTRACT $Price $Delta $Gamma $Vega $Theta $Notional uDelta uGamma uVega uTheta Delta Gamma Vega Theta'''),
-                        delimiter=' ').set_index(['STRATEGY', 'MAC', 'INSTRUMENT', 'CONTRACT'])
-    library.write('pandas', expected)
-    saved_df = library.read('pandas').data
+    expected = read_csv(
+        StringIO(
+            u"""\
+STRATEGY MAC INSTRUMENT CONTRACT $Price $Delta $Gamma $Vega $Theta $Notional uDelta uGamma uVega uTheta Delta Gamma Vega Theta"""
+        ),
+        delimiter=" ",
+    ).set_index(["STRATEGY", "MAC", "INSTRUMENT", "CONTRACT"])
+    library.write("pandas", expected)
+    saved_df = library.read("pandas").data
     assert np.all(expected.values == saved_df.values)
     assert np.all(expected.index.names == saved_df.index.names)
 
 
 def test_save_read_pandas_dataframe_empty_multiindex_and_no_columns(library):
-    expected = read_csv(StringIO(u'''STRATEGY MAC INSTRUMENT CONTRACT'''),
-                        delimiter=' ').set_index(['STRATEGY', 'MAC', 'INSTRUMENT', 'CONTRACT'])
-    library.write('pandas', expected)
-    saved_df = library.read('pandas').data
+    expected = read_csv(
+        StringIO(u"""STRATEGY MAC INSTRUMENT CONTRACT"""), delimiter=" "
+    ).set_index(["STRATEGY", "MAC", "INSTRUMENT", "CONTRACT"])
+    library.write("pandas", expected)
+    saved_df = library.read("pandas").data
     assert np.all(expected.values == saved_df.values)
     assert np.all(expected.index.names == saved_df.index.names)
 
 
 def test_save_read_pandas_dataframe_multiindex_and_no_columns(library):
-    expected = read_csv(StringIO(u'''\
+    expected = read_csv(
+        StringIO(
+            u"""\
 STRATEGY MAC INSTRUMENT CONTRACT
-STRAT F22 ASD 201312'''),
-                        delimiter=' ').set_index(['STRATEGY', 'MAC', 'INSTRUMENT', 'CONTRACT'])
-    library.write('pandas', expected)
-    saved_df = library.read('pandas').data
+STRAT F22 ASD 201312"""
+        ),
+        delimiter=" ",
+    ).set_index(["STRATEGY", "MAC", "INSTRUMENT", "CONTRACT"])
+    library.write("pandas", expected)
+    saved_df = library.read("pandas").data
     assert np.all(expected.values == saved_df.values)
     assert np.all(expected.index.names == saved_df.index.names)
 
 
 def test_append_pandas_multi_columns_dataframe(library):
-    columns = pd.MultiIndex.from_product([["bar", "baz", "foo", "qux"], ["one", "two"]], names=["first", "second"])
+    columns = pd.MultiIndex.from_product(
+        [["bar", "baz", "foo", "qux"], ["one", "two"]], names=["first", "second"]
+    )
     df = pd.DataFrame(np.random.randn(2, 8), index=[0, 1], columns=columns)
     df2 = pd.DataFrame(np.random.randn(2, 8), index=[2, 3], columns=columns)
-    library.write('test', df)
-    library.append('test', df2)
+    library.write("test", df)
+    library.append("test", df2)
 
-    saved = library.read('test')
+    saved = library.read("test")
 
     df = df.append(df2)
     assert df.columns.equal_levels(saved.data.columns)
@@ -236,27 +317,31 @@ def test_append_pandas_multi_columns_dataframe(library):
 
 
 def test_append_pandas_multi_columns_dataframe_new_column(library):
-    columns = pd.MultiIndex.from_product([["bar", "baz", "foo", "qux"], ["one", "two"]], names=["first", "second"])
+    columns = pd.MultiIndex.from_product(
+        [["bar", "baz", "foo", "qux"], ["one", "two"]], names=["first", "second"]
+    )
     df = pd.DataFrame(np.random.randn(2, 8), index=[0, 1], columns=columns)
     df2 = pd.DataFrame(np.random.randn(2, 8), index=[2, 3], columns=columns)
-    library.write('test', df)
-    df2['bar', 'three'] = np.random.randn(2, 1)
-    library.append('test', df2)
+    library.write("test", df)
+    df2["bar", "three"] = np.random.randn(2, 1)
+    library.append("test", df2)
 
-    saved = library.read('test')
+    saved = library.read("test")
 
     df = df.append(df2)
     columns = list(itertools.product(["bar", "baz", "foo", "qux"], ["one", "two"]))
     assert np.all(saved.data[columns] == df[columns]).all()
-    assert np.all(saved.data['bar', 'three'][2:] == df['bar', 'three'][2:])
+    assert np.all(saved.data["bar", "three"][2:] == df["bar", "three"][2:])
 
 
 def test_save_read_pandas_multi_columns_empty_dataframe(library):
-    columns = pd.MultiIndex.from_product([["bar", "baz", "foo", "qux"], ["one", "two"]], names=["first", "second"])
+    columns = pd.MultiIndex.from_product(
+        [["bar", "baz", "foo", "qux"], ["one", "two"]], names=["first", "second"]
+    )
     df = pd.DataFrame([], columns=columns)
-    library.write('test', df)
+    library.write("test", df)
 
-    saved = library.read('test')
+    saved = library.read("test")
 
     assert df.columns.equal_levels(saved.data.columns)
     assert np.all(saved.data.columns == df.columns)
@@ -266,11 +351,13 @@ def test_save_read_pandas_multi_columns_empty_dataframe(library):
 
 
 def test_save_read_pandas_multi_columns_dataframe(library):
-    columns = pd.MultiIndex.from_product([["bar", "baz", "foo", "qux"], ["one", "two"]], names=["first", "second"])
+    columns = pd.MultiIndex.from_product(
+        [["bar", "baz", "foo", "qux"], ["one", "two"]], names=["first", "second"]
+    )
     df = pd.DataFrame(np.random.randn(2, 8), columns=columns)
-    library.write('test', df)
+    library.write("test", df)
 
-    saved = library.read('test')
+    saved = library.read("test")
 
     assert df.columns.equal_levels(saved.data.columns)
     assert np.all(saved.data.columns == df.columns)
@@ -282,9 +369,9 @@ def test_save_read_pandas_multi_columns_dataframe(library):
 def test_save_read_pandas_multi_columns_no_names_dataframe(library):
     columns = pd.MultiIndex.from_product([["bar", "baz", "foo", "qux"], ["one", "two"]])
     df = pd.DataFrame(np.random.randn(2, 8), columns=columns)
-    library.write('test', df)
+    library.write("test", df)
 
-    saved = library.read('test')
+    saved = library.read("test")
 
     assert df.columns.equal_levels(saved.data.columns)
     assert np.all(saved.data.columns == df.columns)
@@ -294,14 +381,18 @@ def test_save_read_pandas_multi_columns_no_names_dataframe(library):
 
 
 def test_save_read_pandas_multi_columns_dataframe_with_int_levels(library):
-    columns = pd.MultiIndex.from_product([[1, 2, 'a'], ['c', 5]])
-    df = pd.DataFrame([[9, 2, 8, 1, 2, 3], [3, 4, 2, 9, 10, 11]], index=['x', 'y'], columns=columns)
-    library.write('test', df)
+    columns = pd.MultiIndex.from_product([[1, 2, "a"], ["c", 5]])
+    df = pd.DataFrame(
+        [[9, 2, 8, 1, 2, 3], [3, 4, 2, 9, 10, 11]], index=["x", "y"], columns=columns
+    )
+    library.write("test", df)
 
-    saved = library.read('test')
+    saved = library.read("test")
 
     # Check that column names were converted to string
-    assert [list(sublevel) for sublevel in saved.data.columns.levels] == [list(map(str, sublevel)) for sublevel in df.columns.levels]
+    assert [list(sublevel) for sublevel in saved.data.columns.levels] == [
+        list(map(str, sublevel)) for sublevel in df.columns.levels
+    ]
     assert np.all(saved.data.index == df.index)
     assert np.all(saved.data.values == df.values)
 
@@ -310,9 +401,9 @@ def test_save_read_multi_index_and_multi_columns_dataframe(library):
     columns = pd.MultiIndex.from_product([["bar", "baz", "foo", "qux"], ["one", "two"]])
     index = pd.MultiIndex.from_product([["x", "y", "z"], ["a", "b"]])
     df = pd.DataFrame(np.random.randn(6, 8), index=index, columns=columns)
-    library.write('test', df)
+    library.write("test", df)
 
-    saved = library.read('test')
+    saved = library.read("test")
 
     assert isinstance(saved.data.index, df.index.__class__)
     assert np.all(saved.data.index == df.index)
@@ -321,180 +412,298 @@ def test_save_read_multi_index_and_multi_columns_dataframe(library):
 
 
 def test_append_pandas_dataframe(library):
-    df = DataFrame(data=[1, 2, 3], index=DatetimeIndex(start='1/1/2011', periods=3, freq='H'))
-    df2 = DataFrame(data=[4, 5, 6], index=DatetimeIndex(start='2/1/2011', periods=3, freq='H'))
-    library.write('pandas', df)
-    library.append('pandas', df2)
-    saved_df = library.read('pandas').data
+    df = DataFrame(
+        data=[1, 2, 3], index=DatetimeIndex(start="1/1/2011", periods=3, freq="H")
+    )
+    df2 = DataFrame(
+        data=[4, 5, 6], index=DatetimeIndex(start="2/1/2011", periods=3, freq="H")
+    )
+    library.write("pandas", df)
+    library.append("pandas", df2)
+    saved_df = library.read("pandas").data
     assert np.all(df.append(df2).values == saved_df.values)
 
 
 def test_empty_dataframe_multindex(library):
-    df = DataFrame({'a': [], 'b': [], 'c': []})
-    df = df.groupby(['a', 'b']).sum()
-    library.write('pandas', df)
-    saved_df = library.read('pandas').data
+    df = DataFrame({"a": [], "b": [], "c": []})
+    df = df.groupby(["a", "b"]).sum()
+    library.write("pandas", df)
+    saved_df = library.read("pandas").data
     assert np.all(df.values == saved_df.values)
     assert np.all(df.index.names == df.index.names)
 
 
 def test_dataframe_append_empty(library):
-    df = DataFrame(data=[1, 2, 3], index=DatetimeIndex(start='1/1/2011', periods=3, freq='H'))
+    df = DataFrame(
+        data=[1, 2, 3], index=DatetimeIndex(start="1/1/2011", periods=3, freq="H")
+    )
     df2 = DataFrame(data=[], index=[])
-    library.write('pandas', df)
-    library.append('pandas', df2)
-    saved_df = library.read('pandas').data
+    library.write("pandas", df)
+    library.append("pandas", df2)
+    saved_df = library.read("pandas").data
     assert np.all(df.append(df2).values == saved_df.values)
 
 
 def test_empy_dataframe_append(library):
     df = DataFrame(data=[], index=[])
-    df2 = DataFrame(data=[1, 2, 3], index=DatetimeIndex(start='1/1/2011', periods=3, freq='H'))
-    library.write('pandas', df)
-    library.append('pandas', df2)
-    saved_df = library.read('pandas').data
+    df2 = DataFrame(
+        data=[1, 2, 3], index=DatetimeIndex(start="1/1/2011", periods=3, freq="H")
+    )
+    library.write("pandas", df)
+    library.append("pandas", df2)
+    saved_df = library.read("pandas").data
     assert np.all(df.append(df2).values == saved_df.values)
 
 
 def test_dataframe_append_empty_multiindex(library):
-    df = DataFrame({'a': [1, 1, 1], 'b': [1, 1, 2], 'c': [1, 2, 3]}).groupby(['a', 'b']).sum()
-    df2 = DataFrame({'a': [], 'b': [], 'c': []}).groupby(['a', 'b']).sum()
-    library.write('pandas', df)
-    library.append('pandas', df2)
-    saved_df = library.read('pandas').data
+    df = (
+        DataFrame({"a": [1, 1, 1], "b": [1, 1, 2], "c": [1, 2, 3]})
+        .groupby(["a", "b"])
+        .sum()
+    )
+    df2 = DataFrame({"a": [], "b": [], "c": []}).groupby(["a", "b"]).sum()
+    library.write("pandas", df)
+    library.append("pandas", df2)
+    saved_df = library.read("pandas").data
     assert np.all(df.append(df2).values == saved_df.values)
     assert np.all(df.index.names == saved_df.index.names)
 
 
 def test_empty_dataframe_append_multiindex(library):
-    df = DataFrame({'a': [], 'b': [], 'c': []}).groupby(['a', 'b']).sum()
-    df2 = DataFrame({'a': [1, 1, 1], 'b': [1, 1, 2], 'c': [1, 2, 3]}).groupby(['a', 'b']).sum()
-    library.write('pandas', df)
-    library.append('pandas', df2)
-    saved_df = library.read('pandas').data
+    df = DataFrame({"a": [], "b": [], "c": []}).groupby(["a", "b"]).sum()
+    df2 = (
+        DataFrame({"a": [1, 1, 1], "b": [1, 1, 2], "c": [1, 2, 3]})
+        .groupby(["a", "b"])
+        .sum()
+    )
+    library.write("pandas", df)
+    library.append("pandas", df2)
+    saved_df = library.read("pandas").data
     assert np.all(df.append(df2).values == saved_df.values)
     assert np.all(df.index.names == saved_df.index.names)
 
 
 def test_empty_dataframe_should_ignore_dtype(library):
-    df = DataFrame({'a': [], 'b': [], 'c': []}).groupby(['a', 'b']).sum()
-    df2 = DataFrame({'a': [1, 1, 1], 'b': [1, 1, 2], 'c': [1, 2, 3]}).groupby(['a']).sum()
-    library.write('pandas', df)
-    library.append('pandas', df2)
-    saved_df = library.read('pandas').data
+    df = DataFrame({"a": [], "b": [], "c": []}).groupby(["a", "b"]).sum()
+    df2 = (
+        DataFrame({"a": [1, 1, 1], "b": [1, 1, 2], "c": [1, 2, 3]}).groupby(["a"]).sum()
+    )
+    library.write("pandas", df)
+    library.append("pandas", df2)
+    saved_df = library.read("pandas").data
     assert np.all(df2.index.names == saved_df.index.names)
 
 
 def test_empty_dataframe_should_ignore_dtype2(library):
-    df = DataFrame({'a': []})
-    df2 = DataFrame({'a': [1, 1, 1], 'b': [1, 1, 2], 'c': [1, 2, 3]}).groupby(['a']).sum()
-    library.write('pandas', df)
-    library.append('pandas', df2)
-    saved_df = library.read('pandas').data
+    df = DataFrame({"a": []})
+    df2 = (
+        DataFrame({"a": [1, 1, 1], "b": [1, 1, 2], "c": [1, 2, 3]}).groupby(["a"]).sum()
+    )
+    library.write("pandas", df)
+    library.append("pandas", df2)
+    saved_df = library.read("pandas").data
     assert np.all(df2.values == saved_df.values)
     assert np.all(df2.index.names == saved_df.index.names)
 
 
 def test_dataframe_append_should_promote_string_column(library):
-    data = np.zeros((2,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a10')])
-    data[:] = [(1, 2., 'Hello'), (2, 3., "World")]
-    df = DataFrame(data, index=DatetimeIndex(np.array([dt(2013, 1, 1),
-                                                       dt(2013, 1, 2)]).astype('datetime64[ns]'), name=[u'DATETIME']))
-    data2 = np.zeros((1,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a30')])
-    data2[:] = [(3, 4., 'Hello World - Good Morning')]
-    df2 = DataFrame(data2, index=DatetimeIndex(np.array([dt(2013, 1, 3)]).astype('datetime64[ns]'), name=[u'DATETIME']))
-    expected_data = np.zeros((3,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a30')])
-    expected_data[:] = [(1, 2., 'Hello'), (2, 3., "World"), (3, 4., 'Hello World - Good Morning')]
-    expected = DataFrame(expected_data, index=DatetimeIndex(np.array([dt(2013, 1, 1),
-                                                                       dt(2013, 1, 2),
-                                                                       dt(2013, 1, 3)]).astype('datetime64[ns]'), name=[u'DATETIME']))
+    data = np.zeros((2,), dtype=[("A", "i4"), ("B", "f4"), ("C", "a10")])
+    data[:] = [(1, 2.0, "Hello"), (2, 3.0, "World")]
+    df = DataFrame(
+        data,
+        index=DatetimeIndex(
+            np.array([dt(2013, 1, 1), dt(2013, 1, 2)]).astype("datetime64[ns]"),
+            name=[u"DATETIME"],
+        ),
+    )
+    data2 = np.zeros((1,), dtype=[("A", "i4"), ("B", "f4"), ("C", "a30")])
+    data2[:] = [(3, 4.0, "Hello World - Good Morning")]
+    df2 = DataFrame(
+        data2,
+        index=DatetimeIndex(
+            np.array([dt(2013, 1, 3)]).astype("datetime64[ns]"), name=[u"DATETIME"]
+        ),
+    )
+    expected_data = np.zeros((3,), dtype=[("A", "i4"), ("B", "f4"), ("C", "a30")])
+    expected_data[:] = [
+        (1, 2.0, "Hello"),
+        (2, 3.0, "World"),
+        (3, 4.0, "Hello World - Good Morning"),
+    ]
+    expected = DataFrame(
+        expected_data,
+        index=DatetimeIndex(
+            np.array([dt(2013, 1, 1), dt(2013, 1, 2), dt(2013, 1, 3)]).astype(
+                "datetime64[ns]"
+            ),
+            name=[u"DATETIME"],
+        ),
+    )
 
-    library.write('pandas', df)
-    library.append('pandas', df2)
-    actual = library.read('pandas').data
+    library.write("pandas", df)
+    library.append("pandas", df2)
+    actual = library.read("pandas").data
 
     assert_frame_equal(expected, actual)
 
 
 def test_dataframe_append_should_add_new_column(library):
-    data = np.zeros((2,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a10')])
-    data[:] = [(1, 2., 'Hello'), (2, 3., "World")]
-    df = DataFrame(data, index=DatetimeIndex(np.array([dt(2013, 1, 1),
-                                                       dt(2013, 1, 2)]).astype('datetime64[ns]'), name=[u'DATETIME']))
-    data2 = np.zeros((1,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a10'), ('D', 'f4')])
-    data2[:] = [(4, 5., 'Hi', 6.)]
-    df2 = DataFrame(data2, index=DatetimeIndex(np.array([dt(2013, 1, 3)]).astype('datetime64[ns]'), name=[u'DATETIME']))
-    expected_data = np.zeros((3,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a10'), ('D', 'f4')])
-    expected_data[:] = [(1, 2., 'Hello', np.nan), (2, 3., "World", np.nan), (4, 5., 'Hi', 6.)]
-    expected = DataFrame(expected_data, index=DatetimeIndex(np.array([dt(2013, 1, 1),
-                                                                       dt(2013, 1, 2),
-                                                                       dt(2013, 1, 3)]).astype('datetime64[ns]'), name=[u'DATETIME']))
+    data = np.zeros((2,), dtype=[("A", "i4"), ("B", "f4"), ("C", "a10")])
+    data[:] = [(1, 2.0, "Hello"), (2, 3.0, "World")]
+    df = DataFrame(
+        data,
+        index=DatetimeIndex(
+            np.array([dt(2013, 1, 1), dt(2013, 1, 2)]).astype("datetime64[ns]"),
+            name=[u"DATETIME"],
+        ),
+    )
+    data2 = np.zeros((1,), dtype=[("A", "i4"), ("B", "f4"), ("C", "a10"), ("D", "f4")])
+    data2[:] = [(4, 5.0, "Hi", 6.0)]
+    df2 = DataFrame(
+        data2,
+        index=DatetimeIndex(
+            np.array([dt(2013, 1, 3)]).astype("datetime64[ns]"), name=[u"DATETIME"]
+        ),
+    )
+    expected_data = np.zeros(
+        (3,), dtype=[("A", "i4"), ("B", "f4"), ("C", "a10"), ("D", "f4")]
+    )
+    expected_data[:] = [
+        (1, 2.0, "Hello", np.nan),
+        (2, 3.0, "World", np.nan),
+        (4, 5.0, "Hi", 6.0),
+    ]
+    expected = DataFrame(
+        expected_data,
+        index=DatetimeIndex(
+            np.array([dt(2013, 1, 1), dt(2013, 1, 2), dt(2013, 1, 3)]).astype(
+                "datetime64[ns]"
+            ),
+            name=[u"DATETIME"],
+        ),
+    )
 
-    library.write('pandas', df)
-    library.append('pandas', df2)
-    actual = library.read('pandas').data
+    library.write("pandas", df)
+    library.append("pandas", df2)
+    actual = library.read("pandas").data
 
     assert_frame_equal(expected, actual)
 
 
 def test_dataframe_append_should_add_new_columns_and_reorder(library):
-    data = np.zeros((2,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a10')])
-    data[:] = [(1, 2., 'Hello'), (2, 3., "World")]
-    df = DataFrame(data, index=DatetimeIndex(np.array([dt(2013, 1, 1),
-                                                       dt(2013, 1, 2)]).astype('datetime64[ns]'), name=[u'DATETIME']))
-    data2 = np.zeros((1,), dtype=[('C', 'a10'), ('A', 'i4'), ('E', 'a1'), ('B', 'f4'), ('D', 'f4'), ('F', 'i4')])
-    data2[:] = [('Hi', 4, 'Y', 5., 6., 7)]
-    df2 = DataFrame(data2, index=DatetimeIndex(np.array([dt(2013, 1, 3)]).astype('datetime64[ns]'), name=[u'DATETIME']))
-    expected_data = np.zeros((3,), dtype=[('C', 'a10'), ('A', 'i4'), ('E', 'a1'),
-                                          ('B', 'f4'), ('D', 'f4'), ('F', 'i4')])
-    expected_data[:] = [('Hello', 1, '', 2., np.nan, 0), ("World", 2, '', 3., np.nan, 0), ('Hi', 4, 'Y', 5., 6., 7)]
-    expected = DataFrame(expected_data, index=DatetimeIndex(np.array([dt(2013, 1, 1),
-                                                                       dt(2013, 1, 2),
-                                                                       dt(2013, 1, 3)]).astype('datetime64[ns]'), name=[u'DATETIME']))
+    data = np.zeros((2,), dtype=[("A", "i4"), ("B", "f4"), ("C", "a10")])
+    data[:] = [(1, 2.0, "Hello"), (2, 3.0, "World")]
+    df = DataFrame(
+        data,
+        index=DatetimeIndex(
+            np.array([dt(2013, 1, 1), dt(2013, 1, 2)]).astype("datetime64[ns]"),
+            name=[u"DATETIME"],
+        ),
+    )
+    data2 = np.zeros(
+        (1,),
+        dtype=[
+            ("C", "a10"),
+            ("A", "i4"),
+            ("E", "a1"),
+            ("B", "f4"),
+            ("D", "f4"),
+            ("F", "i4"),
+        ],
+    )
+    data2[:] = [("Hi", 4, "Y", 5.0, 6.0, 7)]
+    df2 = DataFrame(
+        data2,
+        index=DatetimeIndex(
+            np.array([dt(2013, 1, 3)]).astype("datetime64[ns]"), name=[u"DATETIME"]
+        ),
+    )
+    expected_data = np.zeros(
+        (3,),
+        dtype=[
+            ("C", "a10"),
+            ("A", "i4"),
+            ("E", "a1"),
+            ("B", "f4"),
+            ("D", "f4"),
+            ("F", "i4"),
+        ],
+    )
+    expected_data[:] = [
+        ("Hello", 1, "", 2.0, np.nan, 0),
+        ("World", 2, "", 3.0, np.nan, 0),
+        ("Hi", 4, "Y", 5.0, 6.0, 7),
+    ]
+    expected = DataFrame(
+        expected_data,
+        index=DatetimeIndex(
+            np.array([dt(2013, 1, 1), dt(2013, 1, 2), dt(2013, 1, 3)]).astype(
+                "datetime64[ns]"
+            ),
+            name=[u"DATETIME"],
+        ),
+    )
 
-    library.write('pandas', df)
-    library.append('pandas', df2)
-    actual = library.read('pandas').data
+    library.write("pandas", df)
+    library.append("pandas", df2)
+    actual = library.read("pandas").data
 
     assert_frame_equal(expected, actual)
 
 
 # -- auto generated tests --- #
 def dataframe(columns, length, index):
-    df = DataFrame(np.ones((length, columns)), columns=list(string.ascii_lowercase[:columns]))
+    df = DataFrame(
+        np.ones((length, columns)), columns=list(string.ascii_lowercase[:columns])
+    )
     index = min(index, columns)
     if index:
         df = df.set_index(list(string.ascii_lowercase[:index]))
     return df
 
 
-@pytest.mark.parametrize("df_size", list(itertools.combinations_with_replacement([0, 1, 2, 4], r=3)))
+@pytest.mark.parametrize(
+    "df_size", list(itertools.combinations_with_replacement([0, 1, 2, 4], r=3))
+)
 def test_dataframe_save_read(library, df_size):
     df = dataframe(*df_size)
-    library.write('pandas', df)
-    result = library.read('pandas').data
-    assert np.all(df.values == result.values), str(df.values) + "!=" + str(result.values)
+    library.write("pandas", df)
+    result = library.read("pandas").data
+    assert np.all(df.values == result.values), (
+        str(df.values) + "!=" + str(result.values)
+    )
     if None not in df.index.names:  # saved as 'index' or 'level'
-        assert np.all(df.index.names == result.index.names), str(df.index.names) + "!=" + str(result.index.names)
-    assert np.all(df.index.values == result.index.values), str(df.index.values) + "!=" + str(result.index.values)
-    assert np.all(df.columns.values == result.columns.values), str(df.columns.values) + "!=" + str(result.columns.values)
+        assert np.all(df.index.names == result.index.names), (
+            str(df.index.names) + "!=" + str(result.index.names)
+        )
+    assert np.all(df.index.values == result.index.values), (
+        str(df.index.values) + "!=" + str(result.index.values)
+    )
+    assert np.all(df.columns.values == result.columns.values), (
+        str(df.columns.values) + "!=" + str(result.columns.values)
+    )
 
 
-@pytest.mark.parametrize("df_size", list(itertools.combinations_with_replacement([0, 1, 2, 4], r=3)))
+@pytest.mark.parametrize(
+    "df_size", list(itertools.combinations_with_replacement([0, 1, 2, 4], r=3))
+)
 def test_dataframe_save_append_read(library, df_size):
     df = dataframe(*df_size)
-    library.write('pandas', df)
-    library.append('pandas', df)
-    result = library.read('pandas').data
+    library.write("pandas", df)
+    library.append("pandas", df)
+    result = library.read("pandas").data
     assert len(result) == len(df) * 2
     if None not in df.index.names:  # saved as 'index' or 'level'
-        assert np.all(df.index.names == result.index.names), str(df.index.names) + "!=" + str(result.index.names)
-    assert np.all(df.columns.values == result.columns.values), str(df.columns.values) + "!=" + str(result.columns.values)
+        assert np.all(df.index.names == result.index.names), (
+            str(df.index.names) + "!=" + str(result.index.names)
+        )
+    assert np.all(df.columns.values == result.columns.values), (
+        str(df.columns.values) + "!=" + str(result.columns.values)
+    )
 
 
 def test_large_dataframe_append_rewrite_same_item(library):
-    csv = \
-"""index, f1, f2, f3, f4, f5, f6, f7, f8, iVol, tau, uPrice, uDelta, uGamma, uVega, uTheta, Delta, Gamma, Vega, Theta, $Price, $Delta, $Gamma, $Vega, $Theta, $Time_Value, $Notional, FX, f9
+    csv = """index, f1, f2, f3, f4, f5, f6, f7, f8, iVol, tau, uPrice, uDelta, uGamma, uVega, uTheta, Delta, Gamma, Vega, Theta, $Price, $Delta, $Gamma, $Vega, $Theta, $Time_Value, $Notional, FX, f9
 0, 201401, 2013 - 12 - 20 16:15:00, 15.0, F1, CALL, STRAT, 140.0, 140.345, 0.07231398622706062, 0.008813407863715872, 0.5768068954653813, 0.6427860135978315, 0.391592427081917, 4.915801583071703, -20.166163353481476, 9.641790203967473, 5.873886406228755, 73.73702374607555, -302.49245030222215, 11909.274289984183, 18625.940769791625, 15925.131550993763, 1014.9606370552315, -1601.4183005499872, 4786.093789984206, 2897689.1805000002, 1.37646, SYM
 1, 201401, 2013 - 12 - 20 16:15:00, 15.0, F1, PUT, STRAT, 140.0, 140.345, 0.07231398622706062, 0.008813407863715872, 0.2318116692147143, -0.357200149447554, 0.391592427081917, 4.915801583071703, -20.16670499598669, -5.358002241713311, 5.873886406228755, 73.73702374607555, -302.50057493980034, 4786.192353109285, -10350.550083271604, 15925.131550993763, 1014.9606370552315, -1601.4613130062987, 4786.192353109285, 2897689.1805000002, 1.37646, SYM
 2, 201401, 2013 - 12 - 20 16:15:00, -48.0, F22, CALL, STRAT, 141.5, 140.345, 0.0739452718231504, 0.008813407863715872, 0.05709601681178711, 0.11956012929302556, 0.20479158314197934, 2.628816497069195, -11.027911868706408, -5.738886206065227, -9.829995990815009, -126.18319185932137, 529.3397696979075, -3772.3383984361194, -11086.338978290602, -26650.835319775462, -1736.8611626668148, 2802.3654592245452, -3772.3383984361194, -9272605.3776, 1.37646, SYM
@@ -536,30 +745,29 @@ def test_large_dataframe_append_rewrite_same_item(library):
 38, 201401, 2013 - 12 - 20 16:15:00, -83.0, GEE1, PUT, STRAT, 141.0, 140.345, 0.07172143045750252, 0.008813407863715872, 0.7922715181315709, -0.7543151841866509, 0.333159035321538, 4.147995696473539, -16.876460506586433, 62.608160287492026, -27.652199931687655, -344.28364280730375, 1400.746222046674, -90513.99446933273, 120945.99245071695, -74969.94172708844, -4738.926629785414, 7415.658249224481, -15682.746569332587, -16033880.132100001, 1.37646, SYM
 39, 201401, 2013 - 12 - 20 16:15:00, -56.0, GEE1, PUT, STRAT, 141.5, 140.345, 0.0739452718231504, 0.008813407863715872, 1.212080035129219, -0.88042603375236, 0.20479158314197934, 2.628816497069195, -11.026098543797652, 49.30385789013216, -11.468328655950843, -147.21372383587493, 617.4615184526685, -93429.26236862202, 95244.83704343032, -31092.641206404707, -2026.3380231112837, 3268.888775728308, -4399.8295686219335, -10818039.607199999, 1.37646, SYM"""
     csv = StringIO(csv)
-    df = read_csv(csv).set_index(['index'])
+    df = read_csv(csv).set_index(["index"])
     for _ in range(10):
-        library.write('pandas', df[:-2])
-        result = library.read('pandas').data
+        library.write("pandas", df[:-2])
+        result = library.read("pandas").data
         assert len(result) == len(df[:-2])
         assert np.all(df[:-2].values == result.values)
         assert np.all(df[:-2].columns.values == result.columns.values)
     for _ in range(10):
-        library.write('pandas', df[:-1])
-        result = library.read('pandas').data
+        library.write("pandas", df[:-1])
+        result = library.read("pandas").data
         assert len(result) == len(df[:-1])
         assert np.all(df[:-1].values == result.values)
         assert np.all(df[:-1].columns.values == result.columns.values)
     for _ in range(10):
-        library.write('pandas', df)
-        result = library.read('pandas').data
+        library.write("pandas", df)
+        result = library.read("pandas").data
         assert len(result) == len(df)
         assert np.all(df.values == result.values)
         assert np.all(df.columns.values == result.columns.values)
 
 
 def test_large_dataframe_rewrite_same_item(library):
-    csv = \
-"""index, f1, f2, f3, f4, f5, f6, f7, f8, iVol, tau, uPrice, uDelta, uGamma, uVega, uTheta, Delta, Gamma, Vega, Theta, $Price, $Delta, $Gamma, $Vega, $Theta, $Time_Value, $Notional, FX, f9
+    csv = """index, f1, f2, f3, f4, f5, f6, f7, f8, iVol, tau, uPrice, uDelta, uGamma, uVega, uTheta, Delta, Gamma, Vega, Theta, $Price, $Delta, $Gamma, $Vega, $Theta, $Time_Value, $Notional, FX, f9
 0, 201401, 2013 - 12 - 20 16:15:00, 15.0, F1, CALL, STRAT, 140.0, 140.345, 0.07231398622706062, 0.008813407863715872, 0.5768068954653813, 0.6427860135978315, 0.391592427081917, 4.915801583071703, -20.166163353481476, 9.641790203967473, 5.873886406228755, 73.73702374607555, -302.49245030222215, 11909.274289984183, 18625.940769791625, 15925.131550993763, 1014.9606370552315, -1601.4183005499872, 4786.093789984206, 2897689.1805000002, 1.37646, SYM
 1, 201401, 2013 - 12 - 20 16:15:00, 15.0, F1, PUT, STRAT, 140.0, 140.345, 0.07231398622706062, 0.008813407863715872, 0.2318116692147143, -0.357200149447554, 0.391592427081917, 4.915801583071703, -20.16670499598669, -5.358002241713311, 5.873886406228755, 73.73702374607555, -302.50057493980034, 4786.192353109285, -10350.550083271604, 15925.131550993763, 1014.9606370552315, -1601.4613130062987, 4786.192353109285, 2897689.1805000002, 1.37646, SYM
 2, 201401, 2013 - 12 - 20 16:15:00, -48.0, F22, CALL, STRAT, 141.5, 140.345, 0.0739452718231504, 0.008813407863715872, 0.05709601681178711, 0.11956012929302556, 0.20479158314197934, 2.628816497069195, -11.027911868706408, -5.738886206065227, -9.829995990815009, -126.18319185932137, 529.3397696979075, -3772.3383984361194, -11086.338978290602, -26650.835319775462, -1736.8611626668148, 2802.3654592245452, -3772.3383984361194, -9272605.3776, 1.37646, SYM
@@ -601,67 +809,90 @@ def test_large_dataframe_rewrite_same_item(library):
 38, 201401, 2013 - 12 - 20 16:15:00, -83.0, GEE1, PUT, STRAT, 141.0, 140.345, 0.07172143045750252, 0.008813407863715872, 0.7922715181315709, -0.7543151841866509, 0.333159035321538, 4.147995696473539, -16.876460506586433, 62.608160287492026, -27.652199931687655, -344.28364280730375, 1400.746222046674, -90513.99446933273, 120945.99245071695, -74969.94172708844, -4738.926629785414, 7415.658249224481, -15682.746569332587, -16033880.132100001, 1.37646, SYM
 39, 201401, 2013 - 12 - 20 16:15:00, -56.0, GEE1, PUT, STRAT, 141.5, 140.345, 0.0739452718231504, 0.008813407863715872, 1.212080035129219, -0.88042603375236, 0.20479158314197934, 2.628816497069195, -11.026098543797652, 49.30385789013216, -11.468328655950843, -147.21372383587493, 617.4615184526685, -93429.26236862202, 95244.83704343032, -31092.641206404707, -2026.3380231112837, 3268.888775728308, -4399.8295686219335, -10818039.607199999, 1.37646, SYM"""
     csv = StringIO(csv)
-    df = read_csv(csv).set_index(['index'])
+    df = read_csv(csv).set_index(["index"])
     for _ in range(100):
-        library.write('pandas', df)
-        result = library.read('pandas').data
+        library.write("pandas", df)
+        result = library.read("pandas").data
         assert len(result) == len(df)
         assert np.all(df.values == result.values)
         assert np.all(df.columns.values == result.columns.values)
 
 
 def test_append_after_truncate_after_append(library):
-    columns = ['MAIN_UPPER', 'MAIN_LOWER', 'AUX_UPPER', 'AUX_LOWER', 'TARGET_HEDGE_POSITION']
+    columns = [
+        "MAIN_UPPER",
+        "MAIN_LOWER",
+        "AUX_UPPER",
+        "AUX_LOWER",
+        "TARGET_HEDGE_POSITION",
+    ]
     empty_df = DataFrame(columns=columns, dtype=np.float64)
-    library.write('sym', empty_df)
+    library.write("sym", empty_df)
     full_df = DataFrame(data=[np.zeros(5)], columns=columns)
-    library.write('sym', full_df)
-    library.write('sym', empty_df)
+    library.write("sym", full_df)
+    library.write("sym", empty_df)
     full_df = DataFrame(data=[np.zeros(5)], columns=columns)
-    library.write('sym', full_df)
-    assert len(library.read('sym', 1).data) == 0
-    assert len(library.read('sym', 2).data) == 1
-    assert len(library.read('sym', 3).data) == 0
-    assert len(library.read('sym', 4).data) == 1
+    library.write("sym", full_df)
+    assert len(library.read("sym", 1).data) == 0
+    assert len(library.read("sym", 2).data) == 1
+    assert len(library.read("sym", 3).data) == 0
+    assert len(library.read("sym", 4).data) == 1
 
 
 def test_can_write_pandas_df_with_object_columns(library):
-    expected = DataFrame(data=dict(A=['a', 'b', None, 'c'], B=[1., 2., 3., 4.]), index=range(4))
-    library.write('objects', expected)
-    saved_df = library.read('objects').data
+    expected = DataFrame(
+        data=dict(A=["a", "b", None, "c"], B=[1.0, 2.0, 3.0, 4.0]), index=range(4)
+    )
+    library.write("objects", expected)
+    saved_df = library.read("objects").data
 
     assert_frame_equal(saved_df, expected)
 
 
 def panel(i1, i2, i3):
-    return Panel(np.random.randn(i1, i2, i3), range(i1), ['A%d' % i for i in range(i2)],
-                 list(rrule(DAILY, count=i3, dtstart=dt(1970, 1, 1), interval=1)))
+    return Panel(
+        np.random.randn(i1, i2, i3),
+        range(i1),
+        ["A%d" % i for i in range(i2)],
+        list(rrule(DAILY, count=i3, dtstart=dt(1970, 1, 1), interval=1)),
+    )
 
 
-@pytest.mark.xfail(pd.__version__ >= '0.18.0', reason="see issue #115")
-@pytest.mark.parametrize("df_size", list(itertools.combinations_with_replacement([1, 2, 4], r=3)))
+@pytest.mark.xfail(pd.__version__ >= "0.18.0", reason="see issue #115")
+@pytest.mark.parametrize(
+    "df_size", list(itertools.combinations_with_replacement([1, 2, 4], r=3))
+)
 def test_panel_save_read(library, df_size):
-    '''Note - empties are not tested here as they don't work!'''
+    """Note - empties are not tested here as they don't work!"""
     pn = panel(*df_size)
-    library.write('pandas', pn)
-    result = library.read('pandas').data
-    assert np.all(pn.values == result.values), str(pn.values) + "!=" + str(result.values)
+    library.write("pandas", pn)
+    result = library.read("pandas").data
+    assert np.all(pn.values == result.values), (
+        str(pn.values) + "!=" + str(result.values)
+    )
     for i in range(3):
         assert np.all(pn.axes[i] == result.axes[i])
         if None not in pn.axes[i].names:
-            assert np.all(pn.axes[i].names == result.axes[i].names), \
+            assert np.all(pn.axes[i].names == result.axes[i].names), (
                 str(pn.axes[i].names) + "!=" + str(pn.axes[i].names)
+            )
 
 
-@pytest.mark.xfail(pd.__version__ >= '0.20.0', reason='Panel is deprecated')
+@pytest.mark.xfail(pd.__version__ >= "0.20.0", reason="Panel is deprecated")
 def test_panel_save_read_with_nans(library):
-    '''Ensure that nan rows are not dropped when calling to_frame.'''
-    df1 = DataFrame(data=np.arange(4).reshape((2, 2)), index=['r1', 'r2'], columns=['c1', 'c2'])
-    df2 = DataFrame(data=np.arange(6).reshape((3, 2)), index=['r1', 'r2', 'r3'], columns=['c1', 'c2'])
+    """Ensure that nan rows are not dropped when calling to_frame."""
+    df1 = DataFrame(
+        data=np.arange(4).reshape((2, 2)), index=["r1", "r2"], columns=["c1", "c2"]
+    )
+    df2 = DataFrame(
+        data=np.arange(6).reshape((3, 2)),
+        index=["r1", "r2", "r3"],
+        columns=["c1", "c2"],
+    )
     p_in = Panel(data=dict(i1=df1, i2=df2))
 
-    library.write('pandas', p_in)
-    p_out = library.read('pandas').data
+    library.write("pandas", p_in)
+    p_out = library.read("pandas").data
 
     assert p_in.shape == p_out.shape
     # check_names is False because pandas helpfully names the axes for us.
@@ -670,102 +901,114 @@ def test_panel_save_read_with_nans(library):
 
 
 def test_save_read_ints(library):
-    ts1 = DataFrame(index=[dt(2012, 1, 1) + dtd(hours=x) for x in range(5)],
-                    data={'col1': np.arange(5), 'col2': np.arange(5)})
-    ts1.index.name = 'index'
-    library.write('TEST_1', ts1)
-    ts2 = library.read('TEST_1').data
+    ts1 = DataFrame(
+        index=[dt(2012, 1, 1) + dtd(hours=x) for x in range(5)],
+        data={"col1": np.arange(5), "col2": np.arange(5)},
+    )
+    ts1.index.name = "index"
+    library.write("TEST_1", ts1)
+    ts2 = library.read("TEST_1").data
     assert_frame_equal(ts1, ts2)
 
 
 def test_save_read_datetimes(library):
     # FEF symbols have datetimes in the CLOSE_REVISION field.  Handle specially.
-    ts1 = DataFrame(index=[dt(2012, 1, 1) + dtd(hours=x) for x in range(3)],
-                    data={'field1': [1, 2, 3],
-                          'revision': [dt(2013, 1, 1), dt(2013, 1, 2), dt(2013, 1, 3)],
-                          'field2': [4, 5, 6]},
-                    )
-    ts1.index.name = 'index'
-    library.write('TEST_1', ts1)
-    ts2 = library.read('TEST_1').data
+    ts1 = DataFrame(
+        index=[dt(2012, 1, 1) + dtd(hours=x) for x in range(3)],
+        data={
+            "field1": [1, 2, 3],
+            "revision": [dt(2013, 1, 1), dt(2013, 1, 2), dt(2013, 1, 3)],
+            "field2": [4, 5, 6],
+        },
+    )
+    ts1.index.name = "index"
+    library.write("TEST_1", ts1)
+    ts2 = library.read("TEST_1").data
     assert_frame_equal(ts1, ts2)
 
 
 def test_labels(library):
-    ts1 = DataFrame(index=[dt(2012, 1, 1), dt(2012, 1, 2)],
-                    data={'data': [1., 2.]})
-    ts1.index.name = 'some_index'
-    library.write('TEST_1', ts1)
-    ts2 = library.read('TEST_1').data
+    ts1 = DataFrame(index=[dt(2012, 1, 1), dt(2012, 1, 2)], data={"data": [1.0, 2.0]})
+    ts1.index.name = "some_index"
+    library.write("TEST_1", ts1)
+    ts2 = library.read("TEST_1").data
     assert_frame_equal(ts1, ts2)
 
 
 def test_duplicate_labels(library):
-    ts1 = DataFrame(index=[dt(2012, 1, 1) + dtd(hours=x) for x in range(5)],
-                    data=[[np.arange(5), np.arange(5, 10)]],
-                    columns=['a', 'a']
-                    )
-    library.write('TEST_1', ts1)
-    ts2 = library.read('TEST_1').data
+    ts1 = DataFrame(
+        index=[dt(2012, 1, 1) + dtd(hours=x) for x in range(5)],
+        data=[[np.arange(5), np.arange(5, 10)]],
+        columns=["a", "a"],
+    )
+    library.write("TEST_1", ts1)
+    ts2 = library.read("TEST_1").data
     assert_frame_equal(ts1, ts2)
 
 
 def test_no_labels(library):
-    ts1 = DataFrame(index=[dt(2012, 1, 1) + dtd(hours=x) for x in range(5)],
-                    data=[[np.arange(5), np.arange(5, 10)]])
-    library.write('TEST_1', ts1)
-    ts2 = library.read('TEST_1').data
+    ts1 = DataFrame(
+        index=[dt(2012, 1, 1) + dtd(hours=x) for x in range(5)],
+        data=[[np.arange(5), np.arange(5, 10)]],
+    )
+    library.write("TEST_1", ts1)
+    ts2 = library.read("TEST_1").data
     assert_frame_equal(ts1, ts2)
 
 
-@pytest.mark.xfail(reason='needs investigating')
+@pytest.mark.xfail(reason="needs investigating")
 def test_no_index_labels(library):
-    ts1 = DataFrame(index=[dt(2012, 1, 1), dt(2012, 1, 2)],
-                    data={'data': [1., 2.]})
-    library.write('TEST_1', ts1)
-    ts2 = library.read('TEST_1').data
+    ts1 = DataFrame(index=[dt(2012, 1, 1), dt(2012, 1, 2)], data={"data": [1.0, 2.0]})
+    library.write("TEST_1", ts1)
+    ts2 = library.read("TEST_1").data
     assert_frame_equal(ts1, ts2)
 
 
 def test_not_unique(library):
     d = dt.now()
-    ts = DataFrame(index=[d, d], data={'near': [1., 2.]})
-    ts.index.name = 'index'
-    library.write('ts', ts)
-    ts2 = library.read('ts').data
+    ts = DataFrame(index=[d, d], data={"near": [1.0, 2.0]})
+    ts.index.name = "index"
+    library.write("ts", ts)
+    ts2 = library.read("ts").data
     assert_frame_equal(ts, ts2)
 
 
 def test_daterange_end(library):
-    df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=30 * 1024),
-                   data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)))
+    df = DataFrame(
+        index=date_range(dt(2001, 1, 1), freq="S", periods=30 * 1024),
+        data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)),
+    )
     df.columns = [str(c) for c in df.columns]
-    library.write('MYARR', df)
+    library.write("MYARR", df)
     mdecompressALL = Mock(side_effect=decompress)
-    with patch('arctic.store._ndarray_store.decompress', mdecompressALL):
-        library.read('MYARR').data
+    with patch("arctic.store._ndarray_store.decompress", mdecompressALL):
+        library.read("MYARR").data
     mdecompressLR = Mock(side_effect=decompress)
-    with patch('arctic.store._ndarray_store.decompress', mdecompressLR):
-        result = library.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1])).data
+    with patch("arctic.store._ndarray_store.decompress", mdecompressLR):
+        result = library.read(
+            "MYARR", date_range=DateRange(df.index[-1], df.index[-1])
+        ).data
     assert len(result) == 1
     assert mdecompressLR.call_count < mdecompressALL.call_count
 
 
 def test_daterange_start(library):
-    df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=30 * 1024),
-                   data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)))
+    df = DataFrame(
+        index=date_range(dt(2001, 1, 1), freq="S", periods=30 * 1024),
+        data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)),
+    )
     df.columns = [str(c) for c in df.columns]
-    library.write('MYARR', df)
+    library.write("MYARR", df)
     mdecompressALL = Mock(side_effect=decompress)
-    with patch('arctic.store._ndarray_store.decompress', mdecompressALL):
-        library.read('MYARR').data
+    with patch("arctic.store._ndarray_store.decompress", mdecompressALL):
+        library.read("MYARR").data
     mdecompressLR = Mock(side_effect=decompress)
-    with patch('arctic.store._ndarray_store.decompress', mdecompressLR):
-        result = library.read('MYARR', date_range=DateRange(end=df.index[0])).data
+    with patch("arctic.store._ndarray_store.decompress", mdecompressLR):
+        result = library.read("MYARR", date_range=DateRange(end=df.index[0])).data
     assert len(result) == 1
     assert mdecompressLR.call_count < mdecompressALL.call_count
     end = df.index[0] + dtd(milliseconds=1)
-    result = library.read('MYARR', date_range=DateRange(end=end)).data
+    result = library.read("MYARR", date_range=DateRange(end=end)).data
     assert len(result) == 1
 
 
@@ -774,209 +1017,336 @@ def test_daterange_with_zero_index(library):
     # the segment count is different to the number of rows that will be returned
     row_count = 1
     # a signle element date range gives a first element index of 0
-    df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=row_count),
-                   data=np.tile(np.arange(row_count), 100).reshape((-1, 100)))
+    df = DataFrame(
+        index=date_range(dt(2001, 1, 1), freq="S", periods=row_count),
+        data=np.tile(np.arange(row_count), 100).reshape((-1, 100)),
+    )
     df.columns = [str(c) for c in df.columns]
-    library.write('MYARR', df)
+    library.write("MYARR", df)
     # this append increases the segment count
-    library.append('MYARR', df)
+    library.append("MYARR", df)
     # request for a date range that won't return any values
-    result = library.read('MYARR', date_range=DateRange(end=dt(2000, 1, 1))).data
+    result = library.read("MYARR", date_range=DateRange(end=dt(2000, 1, 1))).data
     assert len(result) == 0
 
 
 def test_daterange_large_DataFrame(library):
-    df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=30 * 1024),
-                   data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)))
+    df = DataFrame(
+        index=date_range(dt(2001, 1, 1), freq="S", periods=30 * 1024),
+        data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)),
+    )
     df.columns = [str(c) for c in df.columns]
-    library.write('MYARR', df)
+    library.write("MYARR", df)
     # assert saved
-    saved_arr = library.read('MYARR').data
+    saved_arr = library.read("MYARR").data
     assert_frame_equal(df, saved_arr, check_names=False)
     # first 100
-    result = library.read('MYARR', date_range=DateRange(df.index[0], df.index[100])).data
-    assert_frame_equal(df[df.index[0]:df.index[100]], result, check_names=False)
+    result = library.read(
+        "MYARR", date_range=DateRange(df.index[0], df.index[100])
+    ).data
+    assert_frame_equal(df[df.index[0] : df.index[100]], result, check_names=False)
     # second 100
-    result = library.read('MYARR', date_range=DateRange(df.index[100], df.index[200])).data
-    assert_frame_equal(df[df.index[100]:df.index[200]], result, check_names=False)
+    result = library.read(
+        "MYARR", date_range=DateRange(df.index[100], df.index[200])
+    ).data
+    assert_frame_equal(df[df.index[100] : df.index[200]], result, check_names=False)
     # first row
-    result = library.read('MYARR', date_range=DateRange(df.index[0], df.index[0])).data
-    assert_frame_equal(df[df.index[0]:df.index[0]], result, check_names=False)
+    result = library.read("MYARR", date_range=DateRange(df.index[0], df.index[0])).data
+    assert_frame_equal(df[df.index[0] : df.index[0]], result, check_names=False)
     # last 100
-    result = library.read('MYARR', date_range=DateRange(df.index[-100])).data
-    assert_frame_equal(df[df.index[-100]:], result, check_names=False)
+    result = library.read("MYARR", date_range=DateRange(df.index[-100])).data
+    assert_frame_equal(df[df.index[-100] :], result, check_names=False)
     # last 200-100
-    result = library.read('MYARR', date_range=DateRange(df.index[-200], df.index[-100])).data
-    assert_frame_equal(df[df.index[-200]:df.index[-100]], result, check_names=False)
+    result = library.read(
+        "MYARR", date_range=DateRange(df.index[-200], df.index[-100])
+    ).data
+    assert_frame_equal(df[df.index[-200] : df.index[-100]], result, check_names=False)
     # last row
-    result = library.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1])).data
-    assert_frame_equal(df[df.index[-1]:df.index[-1]], result, check_names=False)
+    result = library.read(
+        "MYARR", date_range=DateRange(df.index[-1], df.index[-1])
+    ).data
+    assert_frame_equal(df[df.index[-1] : df.index[-1]], result, check_names=False)
     # beyond last row
-    result = library.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1] + dtd(days=1))).data
-    assert_frame_equal(df[df.index[-1]:df.index[-1]], result, check_names=False)
+    result = library.read(
+        "MYARR", date_range=DateRange(df.index[-1], df.index[-1] + dtd(days=1))
+    ).data
+    assert_frame_equal(df[df.index[-1] : df.index[-1]], result, check_names=False)
     # somewhere in time
-    result = library.read('MYARR', date_range=DateRange(dt(2020, 1, 1), dt(2031, 9, 1))).data
-    assert_frame_equal(df[dt(2020, 1, 1):dt(2031, 9, 1)], result, check_names=False)
+    result = library.read(
+        "MYARR", date_range=DateRange(dt(2020, 1, 1), dt(2031, 9, 1))
+    ).data
+    assert_frame_equal(df[dt(2020, 1, 1) : dt(2031, 9, 1)], result, check_names=False)
 
 
 def test_daterange_large_DataFrame_middle(library):
-    df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=30 * 1024),
-                   data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)))
+    df = DataFrame(
+        index=date_range(dt(2001, 1, 1), freq="S", periods=30 * 1024),
+        data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)),
+    )
     df.columns = [str(c) for c in df.columns]
-    library.write('MYARR', df)
+    library.write("MYARR", df)
     # middle
     start = 100
     for end in np.arange(200, 30000, 1000):
-        result = library.read('MYARR', date_range=DateRange(df.index[start], df.index[end])).data
-        assert_frame_equal(df[df.index[start]:df.index[end]], result, check_names=False)
+        result = library.read(
+            "MYARR", date_range=DateRange(df.index[start], df.index[end])
+        ).data
+        assert_frame_equal(
+            df[df.index[start] : df.index[end]], result, check_names=False
+        )
     # middle following
     for start in np.arange(200, 30000, 1000):
         for offset in (100, 300, 500):
             end = start + offset
-            result = library.read('MYARR', date_range=DateRange(df.index[start], df.index[end])).data
-            assert_frame_equal(df[df.index[start]:df.index[end]], result, check_names=False)
+            result = library.read(
+                "MYARR", date_range=DateRange(df.index[start], df.index[end])
+            ).data
+            assert_frame_equal(
+                df[df.index[start] : df.index[end]], result, check_names=False
+            )
 
 
-@pytest.mark.parametrize("df,assert_equal", [
-    (DataFrame(index=date_range(dt(2001, 1, 1), freq='D', periods=30000),
-               data=list(range(30000)), columns=['A']), assert_frame_equal),
-    (Series(index=date_range(dt(2001, 1, 1), freq='D', periods=30000),
-            data=range(30000)), assert_series_equal),
-])
+@pytest.mark.parametrize(
+    "df,assert_equal",
+    [
+        (
+            DataFrame(
+                index=date_range(dt(2001, 1, 1), freq="D", periods=30000),
+                data=list(range(30000)),
+                columns=["A"],
+            ),
+            assert_frame_equal,
+        ),
+        (
+            Series(
+                index=date_range(dt(2001, 1, 1), freq="D", periods=30000),
+                data=range(30000),
+            ),
+            assert_series_equal,
+        ),
+    ],
+)
 def test_daterange(library, df, assert_equal):
-    df.index.name = 'idx'
-    df.name = 'FOO'
-    library.write('MYARR', df)
+    df.index.name = "idx"
+    df.name = "FOO"
+    library.write("MYARR", df)
     # whole array
-    saved_arr = library.read('MYARR').data
+    saved_arr = library.read("MYARR").data
     assert_equal(df, saved_arr)
-    assert_equal(df, library.read('MYARR', date_range=DateRange(df.index[0])).data)
-    assert_equal(df, library.read('MYARR', date_range=DateRange(df.index[0], df.index[-1])).data)
-    assert_equal(df, library.read('MYARR', date_range=DateRange()).data)
-    assert_equal(df[df.index[10]:], library.read('MYARR', date_range=DateRange(df.index[10])).data)
-    assert_equal(df[:df.index[10]], library.read('MYARR', date_range=DateRange(end=df.index[10])).data)
-    assert_equal(df[df.index[-1]:], library.read('MYARR', date_range=DateRange(df.index[-1])).data)
-    assert_equal(df[df.index[-1]:], library.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1])).data)
-    assert_equal(df[df.index[0]:df.index[0]], library.read('MYARR', date_range=DateRange(df.index[0], df.index[0])).data)
-    assert_equal(df[:df.index[0]], library.read('MYARR', date_range=DateRange(end=df.index[0])).data)
-    assert_equal(df[df.index[0] - DateOffset(days=1):],
-                 library.read('MYARR', date_range=DateRange(df.index[0] - DateOffset(days=1))).data)
-    assert_equal(df[df.index[-1] + DateOffset(days=1):],
-                 library.read('MYARR', date_range=DateRange(df.index[-1] + DateOffset(days=1))).data)
-    assert len(library.read('MYARR', date_range=DateRange(dt(1950, 1, 1), dt(1951, 1, 1))).data) == 0
-    assert len(library.read('MYARR', date_range=DateRange(dt(2091, 1, 1), dt(2091, 1, 1))).data) == 0
+    assert_equal(df, library.read("MYARR", date_range=DateRange(df.index[0])).data)
+    assert_equal(
+        df, library.read("MYARR", date_range=DateRange(df.index[0], df.index[-1])).data
+    )
+    assert_equal(df, library.read("MYARR", date_range=DateRange()).data)
+    assert_equal(
+        df[df.index[10] :],
+        library.read("MYARR", date_range=DateRange(df.index[10])).data,
+    )
+    assert_equal(
+        df[: df.index[10]],
+        library.read("MYARR", date_range=DateRange(end=df.index[10])).data,
+    )
+    assert_equal(
+        df[df.index[-1] :],
+        library.read("MYARR", date_range=DateRange(df.index[-1])).data,
+    )
+    assert_equal(
+        df[df.index[-1] :],
+        library.read("MYARR", date_range=DateRange(df.index[-1], df.index[-1])).data,
+    )
+    assert_equal(
+        df[df.index[0] : df.index[0]],
+        library.read("MYARR", date_range=DateRange(df.index[0], df.index[0])).data,
+    )
+    assert_equal(
+        df[: df.index[0]],
+        library.read("MYARR", date_range=DateRange(end=df.index[0])).data,
+    )
+    assert_equal(
+        df[df.index[0] - DateOffset(days=1) :],
+        library.read(
+            "MYARR", date_range=DateRange(df.index[0] - DateOffset(days=1))
+        ).data,
+    )
+    assert_equal(
+        df[df.index[-1] + DateOffset(days=1) :],
+        library.read(
+            "MYARR", date_range=DateRange(df.index[-1] + DateOffset(days=1))
+        ).data,
+    )
+    assert (
+        len(
+            library.read(
+                "MYARR", date_range=DateRange(dt(1950, 1, 1), dt(1951, 1, 1))
+            ).data
+        )
+        == 0
+    )
+    assert (
+        len(
+            library.read(
+                "MYARR", date_range=DateRange(dt(2091, 1, 1), dt(2091, 1, 1))
+            ).data
+        )
+        == 0
+    )
 
 
 def test_daterange_append(library):
-    df = DataFrame(index=date_range(dt(2001, 1, 1), freq='S', periods=30 * 1024),
-                   data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)))
+    df = DataFrame(
+        index=date_range(dt(2001, 1, 1), freq="S", periods=30 * 1024),
+        data=np.tile(np.arange(30 * 1024), 100).reshape((-1, 100)),
+    )
     df.columns = [str(c) for c in df.columns]
-    df.index.name = 'idx'
-    library.write('MYARR', df)
+    df.index.name = "idx"
+    library.write("MYARR", df)
     # assert saved
-    saved_arr = library.read('MYARR').data
+    saved_arr = library.read("MYARR").data
     assert_frame_equal(df, saved_arr, check_names=False)
     # append two more rows
     rows = df.iloc[-2:].copy()
     rows.index = rows.index + dtd(days=1)
-    library.append('MYARR', rows)
+    library.append("MYARR", rows)
     # assert we can rows back out
-    assert_frame_equal(rows, library.read('MYARR', date_range=DateRange(rows.index[0])).data)
+    assert_frame_equal(
+        rows, library.read("MYARR", date_range=DateRange(rows.index[0])).data
+    )
     # assert we can read back the first array
-    assert_frame_equal(df, library.read('MYARR', date_range=DateRange(df.index[0], df.index[-1])).data)
+    assert_frame_equal(
+        df, library.read("MYARR", date_range=DateRange(df.index[0], df.index[-1])).data
+    )
     # append two more rows
     rows1 = df.iloc[-2:].copy()
     rows1.index = rows1.index + dtd(days=2)
-    library.append('MYARR', rows1)
+    library.append("MYARR", rows1)
     # assert we can read a mix of data
-    assert_frame_equal(rows1, library.read('MYARR', date_range=DateRange(rows1.index[0])).data)
-    assert_frame_equal(concat((df, rows, rows1)), library.read('MYARR').data)
-    assert_frame_equal(concat((rows, rows1)), library.read('MYARR', date_range=DateRange(start=rows.index[0])).data)
-    assert_frame_equal(concat((df, rows, rows1))[df.index[50]:rows1.index[-2]],
-                       library.read('MYARR', date_range=DateRange(start=df.index[50], end=rows1.index[-2])).data)
+    assert_frame_equal(
+        rows1, library.read("MYARR", date_range=DateRange(rows1.index[0])).data
+    )
+    assert_frame_equal(concat((df, rows, rows1)), library.read("MYARR").data)
+    assert_frame_equal(
+        concat((rows, rows1)),
+        library.read("MYARR", date_range=DateRange(start=rows.index[0])).data,
+    )
+    assert_frame_equal(
+        concat((df, rows, rows1))[df.index[50] : rows1.index[-2]],
+        library.read(
+            "MYARR", date_range=DateRange(start=df.index[50], end=rows1.index[-2])
+        ).data,
+    )
 
 
 def assert_range_slice(library, expected, date_range, **kwargs):
-    assert_equals = assert_series_equal if isinstance(expected, Series) else assert_frame_equal
-    assert_equals(expected, library.read('MYARR', date_range=date_range).data, **kwargs)
+    assert_equals = (
+        assert_series_equal if isinstance(expected, Series) else assert_frame_equal
+    )
+    assert_equals(expected, library.read("MYARR", date_range=date_range).data, **kwargs)
 
 
 def test_daterange_single_chunk(library):
-    df = read_csv(StringIO("""2015-08-10 00:00:00,200005,1.0
+    df = read_csv(
+        StringIO(
+            """2015-08-10 00:00:00,200005,1.0
                               2015-08-10 00:00:00,200012,2.0
                               2015-08-10 00:00:00,200016,3.0
                               2015-08-11 00:00:00,200005,1.0
                               2015-08-11 00:00:00,200012,2,0
-                              2015-08-11 00:00:00,200016,3.0"""), parse_dates=[0],
-                  names=['date', 'security_id', 'value']).set_index(['date', 'security_id'])
-    library.write('MYARR', df)
-    assert_range_slice(library, df[dt(2015, 8, 11):], DateRange(dt(2015, 8, 11), dt(2015, 8, 11)))
+                              2015-08-11 00:00:00,200016,3.0"""
+        ),
+        parse_dates=[0],
+        names=["date", "security_id", "value"],
+    ).set_index(["date", "security_id"])
+    library.write("MYARR", df)
+    assert_range_slice(
+        library, df[dt(2015, 8, 11) :], DateRange(dt(2015, 8, 11), dt(2015, 8, 11))
+    )
 
 
 def test_daterange_when_end_beyond_chunk_index(library):
-    df = read_csv(StringIO("""2015-08-10 00:00:00,200005,1.0
+    df = read_csv(
+        StringIO(
+            """2015-08-10 00:00:00,200005,1.0
                               2015-08-10 00:00:00,200012,2.0
                               2015-08-10 00:00:00,200016,3.0
                               2015-08-11 00:00:00,200005,1.0
                               2015-08-11 00:00:00,200012,2,0
-                              2015-08-11 00:00:00,200016,3.0"""), parse_dates=[0],
-                  names=['date', 'security_id', 'value']).set_index(['date', 'security_id'])
-    library.write('MYARR', df)
-    assert_range_slice(library, df[dt(2015, 8, 11):], DateRange(dt(2015, 8, 11), dt(2015, 8, 12)))
+                              2015-08-11 00:00:00,200016,3.0"""
+        ),
+        parse_dates=[0],
+        names=["date", "security_id", "value"],
+    ).set_index(["date", "security_id"])
+    library.write("MYARR", df)
+    assert_range_slice(
+        library, df[dt(2015, 8, 11) :], DateRange(dt(2015, 8, 11), dt(2015, 8, 12))
+    )
 
 
 def test_daterange_when_end_beyond_chunk_index_no_start(library):
-    df = read_csv(StringIO("""2015-08-10 00:00:00,200005,1.0
+    df = read_csv(
+        StringIO(
+            """2015-08-10 00:00:00,200005,1.0
                               2015-08-10 00:00:00,200012,2.0
                               2015-08-10 00:00:00,200016,3.0
                               2015-08-11 00:00:00,200005,1.0
                               2015-08-11 00:00:00,200012,2,0
-                              2015-08-11 00:00:00,200016,3.0"""), parse_dates=[0],
-                  names=['date', 'security_id', 'value']).set_index(['date', 'security_id'])
-    library.write('MYARR', df)
+                              2015-08-11 00:00:00,200016,3.0"""
+        ),
+        parse_dates=[0],
+        names=["date", "security_id", "value"],
+    ).set_index(["date", "security_id"])
+    library.write("MYARR", df)
     assert_range_slice(library, df, DateRange(end=dt(2015, 8, 12)))
 
 
 def test_daterange_fails_with_timezone_start(library):
-    df = read_csv(StringIO("""2015-08-10 00:00:00,200005,1.0
-                              2015-08-11 00:00:00,200016,3.0"""), parse_dates=[0],
-                  names=['date', 'security_id', 'value']).set_index(['date', 'security_id'])
-    library.write('MYARR', df)
+    df = read_csv(
+        StringIO(
+            """2015-08-10 00:00:00,200005,1.0
+                              2015-08-11 00:00:00,200016,3.0"""
+        ),
+        parse_dates=[0],
+        names=["date", "security_id", "value"],
+    ).set_index(["date", "security_id"])
+    library.write("MYARR", df)
     with pytest.raises(ValueError):
-        library.read('MYARR', date_range=DateRange(start=dt(2015, 1, 1, tzinfo=mktz())))
+        library.read("MYARR", date_range=DateRange(start=dt(2015, 1, 1, tzinfo=mktz())))
 
 
 def test_data_info_series(library):
     s = Series(data=[1, 2, 3], index=[4, 5, 6])
-    library.write('pandas', s)
-    md = library.get_info('pandas')
-    assert md == {'dtype': [('index', '<i8'), ('values', '<i8')],
-                  'col_names': {u'index': [u'index'], u'columns': [u'values']},
-                  'type': u'pandasseries',
-                  'handler': 'PandasSeriesStore',
-                  'rows': 3,
-                  'segment_count': 1,
-                  'size': 48}
+    library.write("pandas", s)
+    md = library.get_info("pandas")
+    assert md == {
+        "dtype": [("index", "<i8"), ("values", "<i8")],
+        "col_names": {u"index": [u"index"], u"columns": [u"values"]},
+        "type": u"pandasseries",
+        "handler": "PandasSeriesStore",
+        "rows": 3,
+        "segment_count": 1,
+        "size": 48,
+    }
 
 
 def test_data_info_df(library):
     s = DataFrame(data=[1, 2, 3], index=[4, 5, 6])
-    library.write('pandas', s)
-    md = library.get_info('pandas')
-    assert md == {'dtype': [('index', '<i8'), ('0', '<i8')],
-                  'col_names': {u'index': [u'index'], u'columns': [u'0']},
-                  'type': u'pandasdf',
-                  'handler': 'PandasDataFrameStore',
-                  'rows': 3,
-                  'segment_count': 1,
-                  'size': 48}
+    library.write("pandas", s)
+    md = library.get_info("pandas")
+    assert md == {
+        "dtype": [("index", "<i8"), ("0", "<i8")],
+        "col_names": {u"index": [u"index"], u"columns": [u"0"]},
+        "type": u"pandasdf",
+        "handler": "PandasDataFrameStore",
+        "rows": 3,
+        "segment_count": 1,
+        "size": 48,
+    }
 
 
 def test_data_info_cols(library):
     i = MultiIndex.from_tuples([(1, "ab"), (2, "bb"), (3, "cb")])
     s = DataFrame(data=[100, 200, 300], index=i)
-    library.write('test_data', s)
-    md = library.get_info('test_data')
+    library.write("test_data", s)
+    md = library.get_info("test_data")
     # {'dtype': [('level_0', '<i8'), ('level_1', 'S2'), ('0', '<i8')],
     #                  'col_names': {u'index': [u'level_0', u'level_1'], u'columns': [u'0'], 'index_tz': [None, None]},
     #                  'type': u'pandasdf',
@@ -984,33 +1354,53 @@ def test_data_info_cols(library):
     #                  'rows': 3,
     #                  'segment_count': 1,
     #                  'size': 50}
-    assert 'size' in md
-    assert md['segment_count'] == 1
-    assert md['rows'] == 3
-    assert md['handler'] == 'PandasDataFrameStore'
-    assert md['type'] == 'pandasdf'
-    assert md['col_names'] == {'index': ['level_0', u'level_1'], 'columns': [u'0'], 'index_tz': [None, None]}
-    assert len(md['dtype']) == 3
-    assert md['dtype'][0][0] == 'level_0'
-    assert md['dtype'][1][0] == 'level_1'
-    assert md['dtype'][2][0] == '0'
+    assert "size" in md
+    assert md["segment_count"] == 1
+    assert md["rows"] == 3
+    assert md["handler"] == "PandasDataFrameStore"
+    assert md["type"] == "pandasdf"
+    assert md["col_names"] == {
+        "index": ["level_0", u"level_1"],
+        "columns": [u"0"],
+        "index_tz": [None, None],
+    }
+    assert len(md["dtype"]) == 3
+    assert md["dtype"][0][0] == "level_0"
+    assert md["dtype"][1][0] == "level_1"
+    assert md["dtype"][2][0] == "0"
 
 
 def test_read_write_multiindex_store_keeps_timezone(library):
     """If I write a multi-index dataframe and reads it, the timezone of the index shouldn't change, right?"""
-    hk, ny, ldn = mktz('Asia/Hong_Kong'), mktz('America/New_York'), mktz('Europe/London')
-    row0 = [dt(2015, 1, 1, tzinfo=hk), dt(2015, 1, 1, tzinfo=ny), dt(2015, 1, 1, tzinfo=ldn), 0, 42]
-    row1 = [dt(2015, 1, 2, tzinfo=hk), dt(2015, 1, 2, tzinfo=ny), dt(2015, 1, 2, tzinfo=ldn), 1, 43]
-    df = DataFrame([row0, row1], columns=['dt_a', 'dt_b', 'dt_c', 'index_0', 'data'])
-    df = df.set_index(['dt_a', 'dt_b', 'dt_c', 'index_0'])
-    library.write('spam', df)
-    assert list(library.read('spam').data.index[0]) == row0[:-1]
-    assert list(library.read('spam').data.index[1]) == row1[:-1]
+    hk, ny, ldn = (
+        mktz("Asia/Hong_Kong"),
+        mktz("America/New_York"),
+        mktz("Europe/London"),
+    )
+    row0 = [
+        dt(2015, 1, 1, tzinfo=hk),
+        dt(2015, 1, 1, tzinfo=ny),
+        dt(2015, 1, 1, tzinfo=ldn),
+        0,
+        42,
+    ]
+    row1 = [
+        dt(2015, 1, 2, tzinfo=hk),
+        dt(2015, 1, 2, tzinfo=ny),
+        dt(2015, 1, 2, tzinfo=ldn),
+        1,
+        43,
+    ]
+    df = DataFrame([row0, row1], columns=["dt_a", "dt_b", "dt_c", "index_0", "data"])
+    df = df.set_index(["dt_a", "dt_b", "dt_c", "index_0"])
+    library.write("spam", df)
+    assert list(library.read("spam").data.index[0]) == row0[:-1]
+    assert list(library.read("spam").data.index[1]) == row1[:-1]
 
 
 def test_mutable_df(library):
     s = DataFrame(data=[1, 2, 3], index=[4, 5, 6])
     s.__array__().setflags(write=True)
-    library.write('pandas', s)
-    read_s = library.read('pandas')
-    assert read_s.data.__array__().flags['WRITEABLE']
+    library.write("pandas", s)
+    read_s = library.read("pandas")
+    assert read_s.data.__array__().flags["WRITEABLE"]

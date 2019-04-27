@@ -38,6 +38,7 @@ class DataIntegrityException(ArcticException):
     """
     Base class for data integrity issues.
     """
+
     pass
 
 

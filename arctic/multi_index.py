@@ -1,6 +1,6 @@
-'''
+"""
 Utility functions for multi-index dataframes. Useful for creating bi-temporal timeseries.
-'''
+"""
 import logging
 from datetime import datetime
 
@@ -16,7 +16,16 @@ logger = logging.getLogger(__name__)
 
 # ----------------------- Grouping and Aggregating  ---------------------------- #
 
-def fancy_group_by(df, grouping_level=0, aggregate_level=1, method='last', max_=None, min_=None, within=None):
+
+def fancy_group_by(
+    df,
+    grouping_level=0,
+    aggregate_level=1,
+    method="last",
+    max_=None,
+    min_=None,
+    within=None,
+):
     """ Dataframe group-by operation that supports aggregating by different methods on the index.
 
     Parameters
@@ -39,8 +48,8 @@ def fancy_group_by(df, grouping_level=0, aggregate_level=1, method='last', max_=
         If set, will limit results to those having aggregate level values within this range of the group value.
         Note that this is currently unsupported for Multi-index of depth > 2
     """
-    if method not in ('first', 'last'):
-        raise ValueError('Invalid method')
+    if method not in ("first", "last"):
+        raise ValueError("Invalid method")
 
     if isinstance(aggregate_level, six.string_types):
         aggregate_level = df.index.names.index(aggregate_level)
@@ -48,17 +57,17 @@ def fancy_group_by(df, grouping_level=0, aggregate_level=1, method='last', max_=
     # Trim any rows outside the aggregate value bounds
     if max_ is not None or min_ is not None or within is not None:
         agg_idx = df.index.get_level_values(aggregate_level)
-        mask = np.full(len(agg_idx), True, dtype='b1')
+        mask = np.full(len(agg_idx), True, dtype="b1")
         if max_ is not None:
-            mask &= (agg_idx <= max_)
+            mask &= agg_idx <= max_
         if min_ is not None:
-            mask &= (agg_idx >= min_)
+            mask &= agg_idx >= min_
         if within is not None:
             group_idx = df.index.get_level_values(grouping_level)
             if isinstance(agg_idx, pd.DatetimeIndex):
-                mask &= (group_idx >= agg_idx.shift(-1, freq=within))
+                mask &= group_idx >= agg_idx.shift(-1, freq=within)
             else:
-                mask &= (group_idx >= (agg_idx - within))
+                mask &= group_idx >= (agg_idx - within)
         df = df.loc[mask]
 
     # The sort order must be correct in order of grouping_level -> aggregate_level for the aggregation methods
@@ -68,15 +77,16 @@ def fancy_group_by(df, grouping_level=0, aggregate_level=1, method='last', max_=
         df = df.sort_index(level=grouping_level)
 
     gb = df.groupby(level=grouping_level)
-    if method == 'last':
+    if method == "last":
         return gb.last()
     return gb.first()
 
 
 # --------- Common as-of-date use case -------------- #
 
-def groupby_asof(df, as_of=None, dt_col='sample_dt', asof_col='observed_dt'):
-    ''' Common use case for selecting the latest rows from a bitemporal dataframe as-of a certain date.
+
+def groupby_asof(df, as_of=None, dt_col="sample_dt", asof_col="observed_dt"):
+    """ Common use case for selecting the latest rows from a bitemporal dataframe as-of a certain date.
 
     Parameters
     ----------
@@ -89,15 +99,13 @@ def groupby_asof(df, as_of=None, dt_col='sample_dt', asof_col='observed_dt'):
         Name or index of the column in the MultiIndex that is the sample date
     asof_col: ``str`` or ``int``
         Name or index of the column in the MultiIndex that is the observed date
-    '''
+    """
     if as_of:
         if as_of.tzinfo is None and df.index.get_level_values(asof_col).tz is not None:
             as_of = as_of.replace(tzinfo=mktz())
-    return fancy_group_by(df,
-                          grouping_level=dt_col,
-                          aggregate_level=asof_col,
-                          method='last',
-                          max_=as_of)
+    return fancy_group_by(
+        df, grouping_level=dt_col, aggregate_level=asof_col, method="last", max_=as_of
+    )
 
 
 # ----------------------- Insert/Append ---------------------------- #
@@ -107,8 +115,9 @@ def multi_index_insert_row(df, index_row, values_row):
     """ Return a new dataframe with a row inserted for a multi-index dataframe.
         This will sort the rows according to the ordered multi-index levels.
     """
-    row_index = pd.MultiIndex(levels=[[i] for i in index_row],
-                              labels=[[0] for i in index_row])
+    row_index = pd.MultiIndex(
+        levels=[[i] for i in index_row], labels=[[0] for i in index_row]
+    )
     row = pd.DataFrame(values_row, index=row_index, columns=df.columns)
     df = pd.concat((df, row))
     if df.index.lexsort_depth == len(index_row) and df.index[-2] < df.index[-1]:

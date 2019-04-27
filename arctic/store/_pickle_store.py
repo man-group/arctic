@@ -12,50 +12,65 @@ from .._compression import decompress, compress_array
 from ..exceptions import UnsupportedPickleStoreVersion
 
 # new versions of chunked pickled objects MUST begin with __chunked__
-_MAGIC_CHUNKED = '__chunked__'
-_MAGIC_CHUNKEDV2 = '__chunked__V2'
+_MAGIC_CHUNKED = "__chunked__"
+_MAGIC_CHUNKEDV2 = "__chunked__V2"
 _CHUNK_SIZE = 15 * 1024 * 1024  # 15MB
-_MAX_BSON_ENCODE = 256 * 1024  # 256K - don't fill up the version document with encoded bson
+_MAX_BSON_ENCODE = (
+    256 * 1024
+)  # 256K - don't fill up the version document with encoded bson
 
 logger = logging.getLogger(__name__)
 
 
 class PickleStore(object):
-
     @classmethod
     def initialize_library(cls, *args, **kwargs):
         pass
 
     def get_info(self, _version):
-        return {
-            'type': 'blob',
-            'handler': self.__class__.__name__,
-        }
+        return {"type": "blob", "handler": self.__class__.__name__}
 
     def read(self, mongoose_lib, version, symbol, **kwargs):
         blob = version.get("blob")
         if blob is not None:
             if blob == _MAGIC_CHUNKEDV2:
                 collection = mongoose_lib.get_top_level_collection()
-                data = b''.join(decompress(x['data']) for x in sorted(
-                    collection.find({'symbol': symbol, 'parent': version_base_or_id(version)}),
-                    key=itemgetter('segment')))
+                data = b"".join(
+                    decompress(x["data"])
+                    for x in sorted(
+                        collection.find(
+                            {"symbol": symbol, "parent": version_base_or_id(version)}
+                        ),
+                        key=itemgetter("segment"),
+                    )
+                )
             elif blob == _MAGIC_CHUNKED:
                 collection = mongoose_lib.get_top_level_collection()
-                data = b''.join(x['data'] for x in sorted(
-                    collection.find({'symbol': symbol, 'parent': version_base_or_id(version)}),
-                    key=itemgetter('segment')))
+                data = b"".join(
+                    x["data"]
+                    for x in sorted(
+                        collection.find(
+                            {"symbol": symbol, "parent": version_base_or_id(version)}
+                        ),
+                        key=itemgetter("segment"),
+                    )
+                )
                 data = decompress(data)
             else:
-                if blob[:len(_MAGIC_CHUNKED)] == _MAGIC_CHUNKED:
-                    logger.error("Data was written by unsupported version of pickle store for symbol %s. Upgrade Arctic and try again" % symbol)
-                    raise UnsupportedPickleStoreVersion("Data was written by unsupported version of pickle store")
+                if blob[: len(_MAGIC_CHUNKED)] == _MAGIC_CHUNKED:
+                    logger.error(
+                        "Data was written by unsupported version of pickle store for symbol %s. Upgrade Arctic and try again"
+                        % symbol
+                    )
+                    raise UnsupportedPickleStoreVersion(
+                        "Data was written by unsupported version of pickle store"
+                    )
                 try:
                     data = decompress(blob)
                 except:
                     logger.error("Failed to read symbol %s" % symbol)
             return pickle_compat_load(io.BytesIO(data))
-        return version['data']
+        return version["data"]
 
     @staticmethod
     def read_options():
@@ -64,9 +79,9 @@ class PickleStore(object):
     def write(self, arctic_lib, version, symbol, item, previous_version):
         try:
             # If it's encodeable, then ship it
-            b = bson.BSON.encode({'data': item})
+            b = bson.BSON.encode({"data": item})
             if len(b) < _MAX_BSON_ENCODE:
-                version['data'] = item
+                version["data"] = item
                 return
         except InvalidDocument:
             pass
@@ -74,16 +89,23 @@ class PickleStore(object):
         # Pickle, chunk and store the data
         collection = arctic_lib.get_top_level_collection()
         # Try to pickle it. This is best effort
-        version['blob'] = _MAGIC_CHUNKEDV2
+        version["blob"] = _MAGIC_CHUNKEDV2
         pickled = cPickle.dumps(item, protocol=cPickle.HIGHEST_PROTOCOL)
 
-        data = compress_array([pickled[i * _CHUNK_SIZE: (i + 1) * _CHUNK_SIZE] for i in xrange(int(len(pickled) / _CHUNK_SIZE + 1))])
+        data = compress_array(
+            [
+                pickled[i * _CHUNK_SIZE : (i + 1) * _CHUNK_SIZE]
+                for i in xrange(int(len(pickled) / _CHUNK_SIZE + 1))
+            ]
+        )
 
         for seg, d in enumerate(data):
-            segment = {'data': Binary(d)}
-            segment['segment'] = seg
+            segment = {"data": Binary(d)}
+            segment["segment"] = seg
             seg += 1
             sha = checksum(symbol, segment)
-            collection.update_one({'symbol': symbol, 'sha': sha},
-                                  {'$set': segment, '$addToSet': {'parent': version['_id']}},
-                                  upsert=True)
+            collection.update_one(
+                {"symbol": symbol, "sha": sha},
+                {"$set": segment, "$addToSet": {"parent": version["_id"]}},
+                upsert=True,
+            )

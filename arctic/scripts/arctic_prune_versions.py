@@ -32,15 +32,27 @@ def main():
     setup_logging()
 
     parser = optparse.OptionParser(usage=usage)
-    parser.add_option("--host", default='localhost', help="Hostname, or clustername. Default: localhost")
-    parser.add_option("--library", help="The name of the library. e.g. 'arctic_jblackburn.library'")
-    parser.add_option("--symbols", help="The symbols to prune - comma separated (default all)")
-    parser.add_option("--keep-mins", default=10, help="Ensure there's a version at least keep-mins old. Default:10")
+    parser.add_option(
+        "--host",
+        default="localhost",
+        help="Hostname, or clustername. Default: localhost",
+    )
+    parser.add_option(
+        "--library", help="The name of the library. e.g. 'arctic_jblackburn.library'"
+    )
+    parser.add_option(
+        "--symbols", help="The symbols to prune - comma separated (default all)"
+    )
+    parser.add_option(
+        "--keep-mins",
+        default=10,
+        help="Ensure there's a version at least keep-mins old. Default:10",
+    )
 
     (opts, _) = parser.parse_args()
 
     if not opts.library:
-        parser.error('Must specify the Arctic library e.g. arctic_jblackburn.library!')
+        parser.error("Must specify the Arctic library e.g. arctic_jblackburn.library!")
     db_name, _ = ArcticLibraryBinding._parse_db_lib(opts.library)
 
     print("Pruning (old) versions in : %s on mongo %s" % (opts.library, opts.host))
@@ -48,12 +60,12 @@ def main():
     c = pymongo.MongoClient(get_mongodb_uri(opts.host))
 
     if not do_db_auth(opts.host, c, db_name):
-        logger.error('Authentication Failed. Exiting.')
+        logger.error("Authentication Failed. Exiting.")
         return
     lib = Arctic(c)[opts.library]
 
     if opts.symbols:
-        symbols = opts.symbols.split(',')
+        symbols = opts.symbols.split(",")
     else:
         symbols = lib.list_symbols(all_symbols=True)
         logger.info("Found %s symbols" % len(symbols))
@@ -62,5 +74,5 @@ def main():
     logger.info("Done")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

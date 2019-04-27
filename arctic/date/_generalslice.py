@@ -5,7 +5,12 @@ class Intervals(Enum):
     (OPEN_CLOSED, CLOSED_OPEN, OPEN_OPEN, CLOSED_CLOSED) = range(1101, 1105)
 
 
-(OPEN_CLOSED, CLOSED_OPEN, OPEN_OPEN, CLOSED_CLOSED) = INTERVALS = Intervals.__members__.values()
+(
+    OPEN_CLOSED,
+    CLOSED_OPEN,
+    OPEN_OPEN,
+    CLOSED_CLOSED,
+) = INTERVALS = Intervals.__members__.values()
 
 
 class GeneralSlice(object):

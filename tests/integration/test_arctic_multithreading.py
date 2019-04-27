@@ -13,6 +13,7 @@ from arctic.store.version_store import VersionStore
 MY_ARCTIC = None  # module-level Arctic singleton
 AUTH_COUNT = 0
 
+
 def f(library_name, total_writes, do_reset):
     my_pid = os.getpid()
     data = [str(my_pid)] * 100
@@ -29,7 +30,9 @@ def f(library_name, total_writes, do_reset):
             pass
         time.sleep(random() * 0.2)
     for i in range(total_writes):
-        if i % 20 == 0:  # add some randomisation, make sure that processes are multiplexed across time
+        if (
+            i % 20 == 0
+        ):  # add some randomisation, make sure that processes are multiplexed across time
             time.sleep(random())
         key = "{}_{}".format(my_pid, i)
         vstore.write(key, data + [key])
@@ -57,7 +60,10 @@ def test_multiprocessing_safety(mongo_host, library_name):
     MY_ARCTIC.initialize_library(library_name, VERSION_STORE)
     assert isinstance(MY_ARCTIC.get_library(library_name), VersionStore)
 
-    processes = [Process(target=f, args=(library_name, total_writes_per_child, True)) for _ in range(total_processes)]
+    processes = [
+        Process(target=f, args=(library_name, total_writes_per_child, True))
+        for _ in range(total_processes)
+    ]
 
     for p in processes:
         p.start()
@@ -89,7 +95,9 @@ def test_multiprocessing_safety_parent_children_race(mongo_host, library_name):
             p.start()  # start directly, don't wait to create first all children procs
             processes.append(p)
 
-        MY_ARCTIC.initialize_library(library_name, VERSION_STORE)  # this will unblock spinning children
+        MY_ARCTIC.initialize_library(
+            library_name, VERSION_STORE
+        )  # this will unblock spinning children
 
         for p in processes:
             p.join()

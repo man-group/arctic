@@ -4,7 +4,7 @@ from ._chunker import Chunker
 
 
 class PassthroughChunker(Chunker):
-    TYPE = 'passthru'
+    TYPE = "passthru"
 
     def to_chunks(self, df, **kwargs):
         """
@@ -15,7 +15,7 @@ class PassthroughChunker(Chunker):
         ('NA', 'NA', 'NA', dataframe/series)
         """
         if len(df) > 0:
-            yield b'NA', b'NA', b'NA', df
+            yield b"NA", b"NA", b"NA", df
 
     def to_range(self, start, end):
         """
@@ -25,7 +25,7 @@ class PassthroughChunker(Chunker):
         -------
         string
         """
-        return b'NA'
+        return b"NA"
 
     def chunk_to_str(self, chunk_id):
         """
@@ -35,7 +35,7 @@ class PassthroughChunker(Chunker):
         -------
         string
         """
-        return b'NA'
+        return b"NA"
 
     def to_mongo(self, range_obj):
         """

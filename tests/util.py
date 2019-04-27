@@ -1,4 +1,5 @@
 from __future__ import print_function
+
 try:
     import cStringIO as stringio
 except ImportError:
@@ -21,8 +22,13 @@ def dt_or_str_parser(string):
 
 
 def read_str_as_pandas(ts_str, num_index=1):
-    labels = [x.strip() for x in ts_str.split('\n')[0].split('|')]
-    pd = pandas.read_csv(stringio.StringIO(ts_str), sep='|', index_col=list(range(num_index)), date_parser=dt_or_str_parser)
+    labels = [x.strip() for x in ts_str.split("\n")[0].split("|")]
+    pd = pandas.read_csv(
+        stringio.StringIO(ts_str),
+        sep="|",
+        index_col=list(range(num_index)),
+        date_parser=dt_or_str_parser,
+    )
     # Trim the whitespace on the column names
     pd.columns = labels[num_index:]
     pd.index.names = labels[0:num_index]
@@ -31,8 +37,11 @@ def read_str_as_pandas(ts_str, num_index=1):
 
 def get_large_ts(size=2500):
     timestamps = list(rrule(DAILY, count=size, dtstart=dt(1970, 1, 1), interval=1))
-    pd = pandas.DataFrame(index=timestamps, data={'n' + str(i): np.random.random_sample(size) for i in range(size)})
-    pd.index.name = 'index'
+    pd = pandas.DataFrame(
+        index=timestamps,
+        data={"n" + str(i): np.random.random_sample(size) for i in range(size)},
+    )
+    pd.index.name = "index"
     return pd
 
 
@@ -58,7 +67,7 @@ def run_as_main(fn, *args):
     """
     with _save_argv():
         print("run_as_main: %s" % str(args))
-        sys.argv = ['progname'] + list(args)
+        sys.argv = ["progname"] + list(args)
         return fn()
 
 

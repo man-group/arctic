@@ -6,9 +6,9 @@ import pytest
 import arctic._compression as c
 
 
-@pytest.mark.parametrize("compress",
-                         [c.compress, c.compressHC],
-                         ids=('arctic', 'arcticHC'))
+@pytest.mark.parametrize(
+    "compress", [c.compress, c.compressHC], ids=("arctic", "arcticHC")
+)
 def test_roundtrip(compress):
     _str = b"hello world"
     cstr = compress(_str)
@@ -42,5 +42,5 @@ def test_arr_zero():
 
 
 def random_string(N):
-    _str = ''.join(random.choice(string.printable) for _ in range(int(N)))
-    return _str.encode('ascii')
+    _str = "".join(random.choice(string.printable) for _ in range(int(N)))
+    return _str.encode("ascii")

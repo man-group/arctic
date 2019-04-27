@@ -9,9 +9,9 @@ def test_arctic(arctic):
 
 def test_library(library):
     assert isinstance(library, VersionStore)
-    assert library._arctic_lib.get_library_type() == 'VersionStore'
+    assert library._arctic_lib.get_library_type() == "VersionStore"
 
 
 def test_ms_lib(ms_lib):
     assert isinstance(ms_lib, MetadataStore)
-    assert ms_lib._arctic_lib.get_library_type() == 'MetadataStore'
+    assert ms_lib._arctic_lib.get_library_type() == "MetadataStore"

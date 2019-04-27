@@ -7,7 +7,7 @@ from ..decorators import mongo_retry
 
 logger = logging.getLogger(__name__)
 
-BSON_STORE_TYPE = 'BSONStore'
+BSON_STORE_TYPE = "BSONStore"
 
 
 class BSONStore(object):
@@ -33,14 +33,21 @@ class BSONStore(object):
         logger.info("Trying to enable sharding...")
         arctic_lib = self._arctic_lib
         try:
-            enable_sharding(arctic_lib.arctic, arctic_lib.get_name(), hashed=True, key='_id')
+            enable_sharding(
+                arctic_lib.arctic, arctic_lib.get_name(), hashed=True, key="_id"
+            )
         except OperationFailure as exception:
-            logger.warning("Could not enable sharding: %s, you probably need admin permissions.", exception)
+            logger.warning(
+                "Could not enable sharding: %s, you probably need admin permissions.",
+                exception,
+            )
 
     @classmethod
     def initialize_library(cls, arctic_lib, hashed=True, **kwargs):
-        logger.info("Creating BSONStore without sharding. Use BSONStore.enable_sharding to "
-                    "enable sharding for large amounts of data.")
+        logger.info(
+            "Creating BSONStore without sharding. Use BSONStore.enable_sharding to "
+            "enable sharding for large amounts of data."
+        )
         c = arctic_lib.get_top_level_collection()
         if c.name not in mongo_retry(c.database.list_collection_names)():
             mongo_retry(c.database.create_collection)(c.name)
@@ -59,10 +66,9 @@ class BSONStore(object):
         """
         res = {}
         db = self._collection.database
-        res['dbstats'] = db.command('dbstats')
-        res['data'] = db.command('collstats', self._collection.name)
-        res['totals'] = {'count': res['data']['count'],
-                         'size': res['data']['size']}
+        res["dbstats"] = db.command("dbstats")
+        res["data"] = db.command("collstats", self._collection.name)
+        res["totals"] = {"count": res["data"]["count"], "size": res["data"]["size"]}
         return res
 
     @mongo_retry

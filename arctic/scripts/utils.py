@@ -17,18 +17,24 @@ def do_db_auth(host, connection, db_name):
 
     returns True if authentication succeeded.
     """
-    admin_creds = get_auth(host, 'admin', 'admin')
-    user_creds = get_auth(host, 'arctic', db_name)
+    admin_creds = get_auth(host, "admin", "admin")
+    user_creds = get_auth(host, "arctic", db_name)
 
     # Attempt to authenticate the connection
     # Try at 'admin level' first as this allows us to enableSharding, which we want
     if admin_creds is None:
         # Get ordinary credentials for authenticating against the DB
         if user_creds is None:
-            logger.error("You need credentials for db '%s' on '%s', or admin credentials" % (db_name, host))
+            logger.error(
+                "You need credentials for db '%s' on '%s', or admin credentials"
+                % (db_name, host)
+            )
             return False
         if not authenticate(connection[db_name], user_creds.user, user_creds.password):
-            logger.error("Failed to authenticate to db '%s' on '%s', using user credentials" % (db_name, host))
+            logger.error(
+                "Failed to authenticate to db '%s' on '%s', using user credentials"
+                % (db_name, host)
+            )
             return False
         return True
     elif not authenticate(connection.admin, admin_creds.user, admin_creds.password):
@@ -42,4 +48,4 @@ def do_db_auth(host, connection, db_name):
 def setup_logging():
     """ Logging setup for console scripts
     """
-    logging.basicConfig(format='%(asctime)s %(message)s', level='INFO')
+    logging.basicConfig(format="%(asctime)s %(message)s", level="INFO")

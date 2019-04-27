@@ -18,6 +18,7 @@ class DataChange(object):
     """
     Object representing incoming data change
     """
+
     def __init__(self, date_range, new_data):
         self.date_range = date_range
         self.new_data = new_data
@@ -44,8 +45,18 @@ class ArcticTransaction(object):
     retry the whole block should that happens, as the assumption is that you need to base your changes on a different
     starting timeseries.
     """
-    def __init__(self, version_store, symbol, user, log, modify_timeseries=None, audit=True,
-                 *args, **kwargs):
+
+    def __init__(
+        self,
+        version_store,
+        symbol,
+        user,
+        log,
+        modify_timeseries=None,
+        audit=True,
+        *args,
+        **kwargs
+    ):
         """
         Parameters
         ----------
@@ -82,22 +93,41 @@ class ArcticTransaction(object):
         self._user = user
         self._log = log
         self._audit = audit
-        logger.info("MT: {}@{}: [{}] {}: {}".format(_get_host(version_store).get('l'),
-                                                    _get_host(version_store).get('mhost'),
-                                                    user, log, symbol))
+        logger.info(
+            "MT: {}@{}: [{}] {}: {}".format(
+                _get_host(version_store).get("l"),
+                _get_host(version_store).get("mhost"),
+                user,
+                log,
+                symbol,
+            )
+        )
         try:
             self.base_ts = self._version_store.read(self._symbol, *args, **kwargs)
         except NoDataFoundException:
-            versions = [x['version'] for x in self._version_store.list_versions(self._symbol, latest_only=True)]
+            versions = [
+                x["version"]
+                for x in self._version_store.list_versions(
+                    self._symbol, latest_only=True
+                )
+            ]
             versions.append(0)
-            self.base_ts = VersionedItem(symbol=self._symbol, library=None,
-                                         version=versions[0], metadata=None, data=None, host=None)
+            self.base_ts = VersionedItem(
+                symbol=self._symbol,
+                library=None,
+                version=versions[0],
+                metadata=None,
+                data=None,
+                host=None,
+            )
         except OperationFailure:
             # TODO: Current errors in mongo "Incorrect Number of Segments Returned"
             # This workaround should be removed once underlying problem is resolved.
             self.base_ts = self._version_store.read_metadata(symbol=self._symbol)
 
-        if modify_timeseries is not None and not are_equals(modify_timeseries, self.base_ts.data):
+        if modify_timeseries is not None and not are_equals(
+            modify_timeseries, self.base_ts.data
+        ):
             raise ConcurrentModificationException()
         self._do_write = False
 
@@ -122,10 +152,20 @@ class ArcticTransaction(object):
         """
         if data is not None:
             # We only write data if existing data is None or the Timeseries data has changed or metadata has changed
-            if self.base_ts.data is None or not are_equals(data, self.base_ts.data) or metadata != self.base_ts.metadata:
+            if (
+                self.base_ts.data is None
+                or not are_equals(data, self.base_ts.data)
+                or metadata != self.base_ts.metadata
+            ):
                 self._do_write = True
-        self._write = partial(self._version_store.write, symbol, data, prune_previous_version=prune_previous_version,
-                              metadata=metadata, **kwargs)
+        self._write = partial(
+            self._version_store.write,
+            symbol,
+            data,
+            prune_previous_version=prune_previous_version,
+            metadata=metadata,
+            **kwargs
+        )
 
     def __enter__(self):
         return self
@@ -133,15 +173,20 @@ class ArcticTransaction(object):
     def __exit__(self, *args, **kwargs):
         if self._do_write:
             written_ver = self._write()
-            versions = [x['version'] for x in self._version_store.list_versions(self._symbol)]
+            versions = [
+                x["version"] for x in self._version_store.list_versions(self._symbol)
+            ]
             versions.append(0)
             versions.reverse()
             base_offset = versions.index(self.base_ts.version)
             new_offset = versions.index(written_ver.version)
-            if len(versions[base_offset: new_offset + 1]) != 2:
+            if len(versions[base_offset : new_offset + 1]) != 2:
                 self._version_store._delete_version(self._symbol, written_ver.version)
-                raise ConcurrentModificationException("Inconsistent Versions: {}: {}->{}".format(
-                                                      self._symbol, self.base_ts.version, written_ver.version))
+                raise ConcurrentModificationException(
+                    "Inconsistent Versions: {}: {}->{}".format(
+                        self._symbol, self.base_ts.version, written_ver.version
+                    )
+                )
 
             changed = ChangedItem(self._symbol, self.base_ts, written_ver, None)
             if self._audit:

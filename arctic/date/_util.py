@@ -13,13 +13,12 @@ if sys.version_info > (3,):
 
 
 # Support standard brackets syntax for open/closed ranges.
-Ranges = {'()': OPEN_OPEN,
-          '(]': OPEN_CLOSED,
-          '[)': CLOSED_OPEN,
-          '[]': CLOSED_CLOSED}
+Ranges = {"()": OPEN_OPEN, "(]": OPEN_CLOSED, "[)": CLOSED_OPEN, "[]": CLOSED_CLOSED}
 
 
-def string_to_daterange(str_range, delimiter='-', as_dates=False, interval=CLOSED_CLOSED):
+def string_to_daterange(
+    str_range, delimiter="-", as_dates=False, interval=CLOSED_CLOSED
+):
     """
     Convert a string to a DateRange type. If you put only one date, it generates the
     relevant range for just that date or datetime till 24 hours later. You can optionally
@@ -61,12 +60,17 @@ def string_to_daterange(str_range, delimiter='-', as_dates=False, interval=CLOSE
     """
     num_dates = str_range.count(delimiter) + 1
     if num_dates > 2:
-        raise ValueError('Too many dates in input string [%s] with delimiter (%s)' % (str_range, delimiter))
+        raise ValueError(
+            "Too many dates in input string [%s] with delimiter (%s)"
+            % (str_range, delimiter)
+        )
 
     # Allow the user to use the [date-date), etc. range syntax to specify the interval.
     range_mode = Ranges.get(str_range[0] + str_range[-1], None)
     if range_mode:
-        return string_to_daterange(str_range[1:-1], delimiter, as_dates, interval=range_mode)
+        return string_to_daterange(
+            str_range[1:-1], delimiter, as_dates, interval=range_mode
+        )
 
     if as_dates:
         parse_dt = lambda s: parse(s).date() if s else None
@@ -147,7 +151,7 @@ def to_pandas_closed_closed(date_range, add_tz=True):
 def ms_to_datetime(ms, tzinfo=None):
     """Convert a millisecond time value to an offset-aware Python datetime object."""
     if not isinstance(ms, (int, long)):
-        raise TypeError('expected integer, not %s' % type(ms))
+        raise TypeError("expected integer, not %s" % type(ms))
 
     if tzinfo is None:
         tzinfo = mktz()
@@ -167,7 +171,7 @@ def datetime_to_ms(d):
         millisecond = d.microsecond // 1000
         return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
     except AttributeError:
-        raise TypeError('expect Python datetime object, not %s' % type(d))
+        raise TypeError("expect Python datetime object, not %s" % type(d))
 
 
 def utc_dt_to_local_dt(dtm):
@@ -175,9 +179,7 @@ def utc_dt_to_local_dt(dtm):
     utc_zone = mktz("UTC")
     if dtm.tzinfo is not None and dtm.tzinfo != utc_zone:
         raise ValueError(
-            "Expected dtm without tzinfo or with UTC, not %r" % (
-                dtm.tzinfo
-            )
+            "Expected dtm without tzinfo or with UTC, not %r" % (dtm.tzinfo)
         )
 
     if dtm.tzinfo is None:

@@ -12,23 +12,26 @@ from pandas.util.testing import assert_frame_equal
 from arctic.date import DateRange, CLOSED_OPEN, CLOSED_CLOSED, OPEN_OPEN, OPEN_CLOSED
 
 
-if int(pd.__version__.split('.')[1]) > 22:
+if int(pd.__version__.split(".")[1]) > 22:
     from functools import partial
+
     pd.concat = partial(pd.concat, sort=False)
 
 # Issue 384
 def test_write_dataframe(chunkstore_lib):
     # Create dataframe of time measurements taken every 6 hours
-    date_range = pd.date_range(start=dt(2017, 5, 1, 1), periods=8, freq='6H')
+    date_range = pd.date_range(start=dt(2017, 5, 1, 1), periods=8, freq="6H")
 
-    df = DataFrame(data={'something': [100, 200, 300, 400, 500, 600, 700, 800]},
-                   index=DatetimeIndex(date_range, name='date'))
+    df = DataFrame(
+        data={"something": [100, 200, 300, 400, 500, 600, 700, 800]},
+        index=DatetimeIndex(date_range, name="date"),
+    )
 
-    chunkstore_lib.write('test', df, chunk_size='D')
+    chunkstore_lib.write("test", df, chunk_size="D")
 
     # Iterate
-    for chunk in chunkstore_lib.iterator('test'):
-        assert(len(chunk) > 0)
+    for chunk in chunkstore_lib.iterator("test"):
+        assert len(chunk) > 0
 
 
 def test_compression(chunkstore_lib):
@@ -39,65 +42,100 @@ def test_compression(chunkstore_lib):
     Since the -1 segment (which previously indicated a standalone segment) is no
     longer needed, the special -1 segment id is now removed
     """
+
     def generate_data(date):
         """
         Generates a dataframe that is almost exactly the size of
         a segment in chunkstore
         """
-        df = pd.DataFrame(np.random.randn(10000*16, 12),
-                          columns=['beta', 'btop', 'earnyild', 'growth', 'industry', 'leverage',
-                                   'liquidty', 'momentum', 'resvol', 'sid', 'size', 'sizenl'])
-        df['date'] = date
+        df = pd.DataFrame(
+            np.random.randn(10000 * 16, 12),
+            columns=[
+                "beta",
+                "btop",
+                "earnyild",
+                "growth",
+                "industry",
+                "leverage",
+                "liquidty",
+                "momentum",
+                "resvol",
+                "sid",
+                "size",
+                "sizenl",
+            ],
+        )
+        df["date"] = date
 
         return df
 
-    date = pd.Timestamp('2000-01-01')
+    date = pd.Timestamp("2000-01-01")
     df = generate_data(date)
-    chunkstore_lib.write('test', df, chunk_size='A')
-    date += pd.Timedelta(1, unit='D')
+    chunkstore_lib.write("test", df, chunk_size="A")
+    date += pd.Timedelta(1, unit="D")
     df2 = generate_data(date)
-    chunkstore_lib.append('test', df2)
-    read = chunkstore_lib.read('test')
+    chunkstore_lib.append("test", df2)
+    read = chunkstore_lib.read("test")
     assert_frame_equal(read, pd.concat([df, df2], ignore_index=True))
 
 
 # issue #420 - ChunkStore doesnt respect DateRange interval
 def test_date_interval(chunkstore_lib):
-    date_range = pd.date_range(start=dt(2017, 5, 1), periods=8, freq='D')
+    date_range = pd.date_range(start=dt(2017, 5, 1), periods=8, freq="D")
 
-    df = DataFrame(data={'data': range(8)},
-                   index=DatetimeIndex(date_range, name='date'))
+    df = DataFrame(
+        data={"data": range(8)}, index=DatetimeIndex(date_range, name="date")
+    )
 
     # test with index
-    chunkstore_lib.write('test', df, chunk_size='D')
+    chunkstore_lib.write("test", df, chunk_size="D")
 
-    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_OPEN))
+    ret = chunkstore_lib.read(
+        "test", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_OPEN)
+    )
     assert_frame_equal(ret, df[1:4])
-    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_OPEN))
+    ret = chunkstore_lib.read(
+        "test", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_OPEN)
+    )
     assert_frame_equal(ret, df[2:4])
-    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_CLOSED))
+    ret = chunkstore_lib.read(
+        "test", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_CLOSED)
+    )
     assert_frame_equal(ret, df[2:5])
-    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_CLOSED))
+    ret = chunkstore_lib.read(
+        "test", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_CLOSED)
+    )
     assert_frame_equal(ret, df[1:5])
-    ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), None, CLOSED_OPEN))
+    ret = chunkstore_lib.read(
+        "test", chunk_range=DateRange(dt(2017, 5, 2), None, CLOSED_OPEN)
+    )
     assert_frame_equal(ret, df[1:8])
 
     # test without index
-    df = DataFrame(data={'data': range(8),
-                         'date': date_range})
+    df = DataFrame(data={"data": range(8), "date": date_range})
 
-    chunkstore_lib.write('test2', df, chunk_size='D')
+    chunkstore_lib.write("test2", df, chunk_size="D")
 
-    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_OPEN))
-    assert(len(ret) == 3)
-    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_OPEN))
-    assert(len(ret) == 2)
-    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_CLOSED))
-    assert(len(ret) == 3)
-    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_CLOSED))
-    assert(len(ret) == 4)
-    ret = chunkstore_lib.read('test2', chunk_range=DateRange(dt(2017, 5, 2), None, CLOSED_OPEN))
-    assert(len(ret) == 7)
+    ret = chunkstore_lib.read(
+        "test2", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_OPEN)
+    )
+    assert len(ret) == 3
+    ret = chunkstore_lib.read(
+        "test2", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_OPEN)
+    )
+    assert len(ret) == 2
+    ret = chunkstore_lib.read(
+        "test2", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_CLOSED)
+    )
+    assert len(ret) == 3
+    ret = chunkstore_lib.read(
+        "test2", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_CLOSED)
+    )
+    assert len(ret) == 4
+    ret = chunkstore_lib.read(
+        "test2", chunk_range=DateRange(dt(2017, 5, 2), None, CLOSED_OPEN)
+    )
+    assert len(ret) == 7
 
 
 def test_rewrite(chunkstore_lib):
@@ -110,18 +148,21 @@ def test_rewrite(chunkstore_lib):
     are the index for the collection, but metadata was being
     stored without an index (so it was defaulting to null,null,null)
     """
-    date_range = pd.date_range(start=dt(2017, 5, 1, 1), periods=8, freq='6H')
+    date_range = pd.date_range(start=dt(2017, 5, 1, 1), periods=8, freq="6H")
 
-    df = DataFrame(data={'something': [100, 200, 300, 400, 500, 600, 700, 800]},
-                   index=DatetimeIndex(date_range, name='date'))
+    df = DataFrame(
+        data={"something": [100, 200, 300, 400, 500, 600, 700, 800]},
+        index=DatetimeIndex(date_range, name="date"),
+    )
 
-    chunkstore_lib.write('test', df, chunk_size='D')
+    chunkstore_lib.write("test", df, chunk_size="D")
 
-    df2 = DataFrame(data={'something': [100, 200, 300, 400, 500, 600, 700, 800],
-                          'date': date_range})
+    df2 = DataFrame(
+        data={"something": [100, 200, 300, 400, 500, 600, 700, 800], "date": date_range}
+    )
 
-    chunkstore_lib.write('test', df2, chunk_size='D')
-    ret = chunkstore_lib.read('test')
+    chunkstore_lib.write("test", df2, chunk_size="D")
+    ret = chunkstore_lib.read("test")
     assert_frame_equal(ret, df2)
 
 
@@ -130,39 +171,60 @@ def test_iterator(chunkstore_lib):
     Fixes issue #431 - iterator methods were not taking into account
     the fact that symbols can have multiple segments
     """
+
     def generate_data(date):
         """
         Generates a dataframe that is larger than one segment
         a segment in chunkstore
         """
-        df = pd.DataFrame(np.random.randn(200000, 12),
-                          columns=['beta', 'btop', 'earnyild', 'growth', 'industry', 'leverage',
-                                   'liquidty', 'momentum', 'resvol', 'sid', 'size', 'sizenl'])
-        df['date'] = date
+        df = pd.DataFrame(
+            np.random.randn(200000, 12),
+            columns=[
+                "beta",
+                "btop",
+                "earnyild",
+                "growth",
+                "industry",
+                "leverage",
+                "liquidty",
+                "momentum",
+                "resvol",
+                "sid",
+                "size",
+                "sizenl",
+            ],
+        )
+        df["date"] = date
 
         return df
 
-    date = pd.Timestamp('2000-01-01')
+    date = pd.Timestamp("2000-01-01")
     df = generate_data(date)
-    chunkstore_lib.write('test', df, chunk_size='A')
-    ret = chunkstore_lib.get_chunk_ranges('test')
-    assert(len(list(ret)) == 1)
+    chunkstore_lib.write("test", df, chunk_size="A")
+    ret = chunkstore_lib.get_chunk_ranges("test")
+    assert len(list(ret)) == 1
 
 
 # Issue 722
 def test_missing_cols(chunkstore_lib):
-    index = DatetimeIndex(pd.date_range('2019-01-01', periods=3, freq='D'), name='date')
-    index2 = DatetimeIndex(pd.date_range('2019-01-04', periods=3, freq='D'), name='date')
-    expected_index = DatetimeIndex(pd.date_range('2019-01-01', periods=6, freq='D'), name='date')
-    expected_df = DataFrame({'A': [1, 2, 3, 40, 50, 60], 'B': [5.0,6.0,7.0, np.nan, np.nan, np.nan]}, index=expected_index)
+    index = DatetimeIndex(pd.date_range("2019-01-01", periods=3, freq="D"), name="date")
+    index2 = DatetimeIndex(
+        pd.date_range("2019-01-04", periods=3, freq="D"), name="date"
+    )
+    expected_index = DatetimeIndex(
+        pd.date_range("2019-01-01", periods=6, freq="D"), name="date"
+    )
+    expected_df = DataFrame(
+        {"A": [1, 2, 3, 40, 50, 60], "B": [5.0, 6.0, 7.0, np.nan, np.nan, np.nan]},
+        index=expected_index,
+    )
 
-    df = pd.DataFrame({'A': [1, 2, 3], 'B': [5,6,7]}, index=index)
-    chunkstore_lib.write('test', df, chunk_size='D')
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [5, 6, 7]}, index=index)
+    chunkstore_lib.write("test", df, chunk_size="D")
 
-    df = pd.DataFrame({'A': [40, 50, 60]}, index=index2)
-    chunkstore_lib.append('test', df, chunk_size='D')
+    df = pd.DataFrame({"A": [40, 50, 60]}, index=index2)
+    chunkstore_lib.append("test", df, chunk_size="D")
 
-
-    assert_frame_equal(chunkstore_lib.read('test'), expected_df)
-    df = chunkstore_lib.read('test', columns=['B'])
-    assert_frame_equal(df, expected_df['B'].to_frame())
+    assert_frame_equal(chunkstore_lib.read("test"), expected_df)
+    df = chunkstore_lib.read("test", columns=["B"])
+    assert_frame_equal(df, expected_df["B"].to_frame())
