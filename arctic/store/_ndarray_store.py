@@ -5,7 +5,7 @@ from operator import itemgetter
 import numpy as np
 import pymongo
 from bson.binary import Binary
-from pymongo.errors import OperationFailure, DuplicateKeyError
+from pymongo.errors import OperationFailure, DuplicateKeyError, BulkWriteError
 from six.moves import xrange
 
 from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
@@ -699,7 +699,11 @@ class NdarrayStore(object):
                 # This helps with performance as we update as less documents as necessary
 
         if bulk:
-            collection.bulk_write(bulk, ordered=False)
+            try:
+                collection.bulk_write(bulk, ordered=False)
+            except BulkWriteError as bwe:
+                logger.error("Bulk write failed with details: %s (Exception: %s)" % (bwe.details, bwe))
+                raise
 
         segment_index = self._segment_index(item, existing_index=existing_index, start=segment_offset,
                                             new_segments=segment_index)
