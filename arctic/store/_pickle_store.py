@@ -3,6 +3,7 @@ import logging
 from operator import itemgetter
 
 import bson
+import six
 from bson.binary import Binary
 from bson.errors import InvalidDocument
 from six.moves import cPickle, xrange
@@ -54,7 +55,19 @@ class PickleStore(object):
                     data = decompress(blob)
                 except:
                     logger.error("Failed to read symbol %s" % symbol)
-            return pickle_compat_load(io.BytesIO(data))
+
+            if six.PY2:
+                # Providing encoding is not possible on PY2
+                return pickle_compat_load(io.BytesIO(data))
+            else:
+                try:
+                    return pickle_compat_load(io.BytesIO(data), encoding='bytes')
+                except UnicodeDecodeError as ue:
+                    logger.error("Could not load Pickled object in PY3 with bytes encoding: %s" % ue)
+                # Using encoding='latin1' is required for unpickling NumPy arrays and instances of datetime, date and
+                # time pickled by Python 2: https://docs.python.org/3/library/pickle.html#pickle.load
+                encoding = kwargs.get('encoding', 'latin_1')  # Check if someone has manually specified encoding.
+                return pickle_compat_load(io.BytesIO(data), encoding=encoding)
         return version['data']
 
     @staticmethod
