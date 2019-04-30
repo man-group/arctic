@@ -197,7 +197,7 @@ class PandasDataFrameStore(PandasStore):
 
     def read(self, arctic_lib, version, symbol, **kwargs):
         item = super(PandasDataFrameStore, self).read(arctic_lib, version, symbol, **kwargs)
-        return self.SERIALIZER.deserialize(item)
+        return self.SERIALIZER.deserialize(item, force_bytes_to_unicode=kwargs.get('force_bytes_to_unicode', False))
 
     def read_options(self):
         return super(PandasDataFrameStore, self).read_options()
