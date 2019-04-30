@@ -100,3 +100,9 @@ ARCTIC_ASYNC_NWORKERS = os.environ.get('ARCTIC_ASYNC_NWORKERS', 4)
 ENABLE_CACHE = not bool(os.environ.get('DISABLE_CACHE'))
 CACHE_COLL = 'cache'
 CACHE_DB = 'meta_db'
+
+# -------------------------------
+# Flag that causes arctic to convert byte columns to unicode. This is useful if you are moving from py2 to py3
+# and you want str in py2 to be converted to str in py3 and not bytes.
+# -------------------------------
+FORCE_BYTES_TO_UNICODE = bool(os.environ.get('FORCE_BYTES_TO_UNICODE'))

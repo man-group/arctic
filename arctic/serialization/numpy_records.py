@@ -255,7 +255,7 @@ class DataFrameSerializer(PandasSerializer):
         else:
             return columns, column_vals, None
 
-    def deserialize(self, item):
+    def deserialize(self, item, force_bytes_to_unicode=False):
         index = self._index_from_records(item)
         column_fields = [x for x in item.dtype.names if x not in item.dtype.metadata['index']]
         multi_column = item.dtype.metadata.get('multi_column')
@@ -272,6 +272,13 @@ class DataFrameSerializer(PandasSerializer):
 
         if multi_column is not None:
             df.columns = MultiIndex.from_arrays(multi_column["values"], names=multi_column["names"])
+
+        if force_bytes_to_unicode:
+            # This is needed due to 'str' type in py2 when read back in py3 is 'bytes' which breaks the workflow
+            # of people migrating to py3. # https://github.com/manahl/arctic/issues/598
+            for c in df.select_dtypes(object):
+                if type(df[c].iloc[0]) == bytes:
+                    df[c] = df[c].str.decode('utf-8')
 
         return df
 
