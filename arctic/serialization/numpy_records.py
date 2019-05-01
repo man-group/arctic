@@ -276,9 +276,20 @@ class DataFrameSerializer(PandasSerializer):
         if force_bytes_to_unicode:
             # This is needed due to 'str' type in py2 when read back in py3 is 'bytes' which breaks the workflow
             # of people migrating to py3. # https://github.com/manahl/arctic/issues/598
+            # This should not be used for a normal flow, and you should instead of writing unicode strings
+            # if you want to work with str in py3.,
+            def convert_pandas_column_to_unicode(col):
+                return col.str.decode('utf-8')
+
             for c in df.select_dtypes(object):
                 if type(df[c].iloc[0]) == bytes:
-                    df[c] = df[c].str.decode('utf-8')
+                    df[c] = convert_pandas_column_to_unicode(df[c])
+
+            if type(df.index[0]) == bytes:
+                df.index = convert_pandas_column_to_unicode(df.index)
+
+            if type(df.columns[0]) == bytes:
+                df.columns = convert_pandas_column_to_unicode(df.columns)
 
         return df
 
