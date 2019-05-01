@@ -213,7 +213,7 @@ class PandasSerializer(object):
     def serialize(self, item, string_max_len=None, forced_dtype=None):
         raise NotImplementedError
 
-    def deserialize(self, item):
+    def deserialize(self, item, force_bytes_to_unicode=False):
         raise NotImplementedError
 
 
@@ -227,7 +227,7 @@ class SeriesSerializer(PandasSerializer):
         column_vals = [s.values]
         return columns, column_vals, None
 
-    def deserialize(self, item):
+    def deserialize(self, item, _force_bytes_to_unicode=False):
         index = self._index_from_records(item)
         name = item.dtype.names[-1]
         return Series.from_array(item[name], index=index, name=name)
@@ -255,7 +255,7 @@ class DataFrameSerializer(PandasSerializer):
         else:
             return columns, column_vals, None
 
-    def deserialize(self, item):
+    def deserialize(self, item, force_bytes_to_unicode=False):
         index = self._index_from_records(item)
         column_fields = [x for x in item.dtype.names if x not in item.dtype.metadata['index']]
         multi_column = item.dtype.metadata.get('multi_column')
@@ -272,6 +272,24 @@ class DataFrameSerializer(PandasSerializer):
 
         if multi_column is not None:
             df.columns = MultiIndex.from_arrays(multi_column["values"], names=multi_column["names"])
+
+        if force_bytes_to_unicode:
+            # This is needed due to 'str' type in py2 when read back in py3 is 'bytes' which breaks the workflow
+            # of people migrating to py3. # https://github.com/manahl/arctic/issues/598
+            # This should not be used for a normal flow, and you should instead of writing unicode strings
+            # if you want to work with str in py3.,
+            def convert_pandas_column_to_unicode(col):
+                return col.str.decode('utf-8')
+
+            for c in df.select_dtypes(object):
+                if type(df[c].iloc[0]) == bytes:
+                    df[c] = convert_pandas_column_to_unicode(df[c])
+
+            if type(df.index[0]) == bytes:
+                df.index = convert_pandas_column_to_unicode(df.index)
+
+            if type(df.columns[0]) == bytes:
+                df.columns = convert_pandas_column_to_unicode(df.columns)
 
         return df
 
