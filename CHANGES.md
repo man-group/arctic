@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.75
+### 1.77
   * Bugfix: pypandoc not rendering README correctly for PYPI
   * Bugfix: #744 get_info on an empty dataframe raises an exception
   * Bugfix: #751 Handle unpickling py2 datetime and other object types with latin1
