@@ -9,6 +9,7 @@ from arctic._util import NP_OBJECT_DTYPE
 from arctic.serialization.numpy_records import SeriesSerializer, DataFrameSerializer
 from ._ndarray_store import NdarrayStore
 from .._compression import compress, decompress
+from .._config import FORCE_BYTES_TO_UNICODE
 from ..date._util import to_pandas_closed_closed
 from ..exceptions import ArcticException
 
@@ -197,7 +198,9 @@ class PandasDataFrameStore(PandasStore):
 
     def read(self, arctic_lib, version, symbol, **kwargs):
         item = super(PandasDataFrameStore, self).read(arctic_lib, version, symbol, **kwargs)
-        return self.SERIALIZER.deserialize(item, force_bytes_to_unicode=kwargs.get('force_bytes_to_unicode', False))
+        # Try to check if force_bytes_to_unicode is set in kwargs else use the config value (which defaults to False)
+        force_bytes_to_unicode = kwargs.get('force_bytes_to_unicode', FORCE_BYTES_TO_UNICODE)
+        return self.SERIALIZER.deserialize(item, force_bytes_to_unicode=force_bytes_to_unicode)
 
     def read_options(self):
         return super(PandasDataFrameStore, self).read_options()
