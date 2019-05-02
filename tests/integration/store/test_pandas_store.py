@@ -1092,3 +1092,38 @@ def test_forced_encodings_with_df(library):
     # Should force everything to be unicode now.
     assert all([type(x) == unicode for x in df_forced_unicode.columns])
     assert all([type(x) == unicode for x in df_forced_unicode.index])
+
+
+def test_forced_encodings_with_df_py3(library):
+    sample_data = {'str_col': [b'a', b'b'], 'unicode_col': [u'a', u'b'], 'int_col': [1, 2]}
+    unicode_type = unicode if six.PY2 else str
+    # This is for testing reading in py3 with bytes index.
+    if six.PY2:
+        assert True
+        return
+
+    # ===================BEFORE===================
+    df = pd.DataFrame(sample_data, index=[b'str_type', b'uni_type'])
+    assert type(df['str_col'][0]) == bytes
+    assert type(df['unicode_col'][0]) == unicode_type
+    # Check that all column names are stored as as is by pandas
+    assert all([type(x) == unicode_type for x in df.columns])
+    assert all([type(x) == bytes for x in df.index])
+
+    library.write('dummy', df)
+
+    # ===================READ BACK WITHOUT FORCED ENCODING===================
+    df_normal = library.read('dummy').data
+    assert type(df_normal['str_col'][0]) == bytes
+    assert type(df_normal['unicode_col'][0]) == unicode_type
+    # Arctic currently converts all column to unicode_type and will keep index type as is
+    assert all([type(x) == unicode_type for x in df_normal.columns])
+    assert all([type(x) == bytes for x in df_normal.index])
+
+    # ===================READ BACK WITH FORCED ENCODING===================
+    df_forced_unicode = library.read('dummy', force_bytes_to_unicode=True).data
+    assert type(df_forced_unicode['str_col'][0]) == unicode_type
+    assert type(df_forced_unicode['unicode_col'][0]) == unicode_type
+    # Should force everything to be unicode_type now.
+    assert all([type(x) == unicode_type for x in df_forced_unicode.columns])
+    assert all([type(x) == unicode_type for x in df_forced_unicode.index])
