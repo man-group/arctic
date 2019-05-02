@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.79 (2019-05-02)
+  * Bugfix: #765 Pandas data columns require encoding to convert to unicode.
+
 ### 1.78 (2019-05-02)
   * Bugfix: Use the default encoding (ascii) instead of bytes for unpickling.
 
