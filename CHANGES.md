@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.78
+  * Bugfix: Use the default encoding (ascii) instead of bytes for unpickling.
+
 ### 1.77 (2019-05-01)
   * Bugfix: pypandoc not rendering README correctly for PYPI
   * Bugfix: #744 get_info on an empty dataframe raises an exception
