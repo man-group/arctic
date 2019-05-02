@@ -278,18 +278,21 @@ class DataFrameSerializer(PandasSerializer):
             # of people migrating to py3. # https://github.com/manahl/arctic/issues/598
             # This should not be used for a normal flow, and you should instead of writing unicode strings
             # if you want to work with str in py3.,
-            def convert_pandas_column_to_unicode(col):
-                return col.str.decode('utf-8')
 
             for c in df.select_dtypes(object):
+                # The conversion is not using astype similar to the index as pandas has a bug where it tries to convert
+                # the data columns to a unicode string, and the object in this case would be bytes, eg. b'abc'
+                # which is converted to u"b'abc'" i.e it includes the b character as well! This generally happens
+                # when there is a str conversion without specifying the encoding. eg. str(b'abc') -> "b'abc'" and the
+                # fix for this is to tell it the encoding to use: i.e str(b'abc', 'utf-8') -> "abc"
                 if type(df[c].iloc[0]) == bytes:
-                    df[c] = convert_pandas_column_to_unicode(df[c])
+                    df[c] = df[c].str.decode('utf-8')
 
             if type(df.index[0]) == bytes:
-                df.index = convert_pandas_column_to_unicode(df.index)
+                df.index = df.index.astype('unicode')
 
             if type(df.columns[0]) == bytes:
-                df.columns = convert_pandas_column_to_unicode(df.columns)
+                df.columns = df.index.astype('unicode')
 
         return df
 
