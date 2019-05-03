@@ -1017,13 +1017,10 @@ def test_mutable_df(library):
     assert read_s.data.__array__().flags['WRITEABLE']
 
 
+@pytest.mark.skipif(six.PY3, reason="Skip for Python3")
 def test_forced_encodings_with_df_mixed_types(library):
     sample_data = {'str_col': ['a', 'b'], u'unicode_col': [u'a', u'b'], 'int_col': [1, 2]}
     # This is for testing py2 bytes vs unicode serialization issues. Ignoring Py3 for now.
-    if six.PY3:
-        assert True
-        return
-
     # ===================BEFORE===================
     df = pd.DataFrame(sample_data, index=['str_type', u'uni_type'])
     assert type(df['str_col'][0]) == bytes
@@ -1060,13 +1057,10 @@ def test_forced_encodings_with_df_mixed_types(library):
     assert all([type(x) == unicode for x in df_forced_unicode.index])
 
 
+@pytest.mark.skipif(six.PY3, reason="Skip for Python3")
 def test_forced_encodings_with_df(library):
     sample_data = {'str_col': ['a', 'b'], 'unicode_col': [u'a', u'b'], 'int_col': [1, 2]}
     # This is for testing py2 bytes vs unicode serialization issues. Ignoring Py3 for now.
-    if six.PY3:
-        assert True
-        return
-
     # ===================BEFORE===================
     df = pd.DataFrame(sample_data, index=['str_type', 'uni_type'])
     assert type(df['str_col'][0]) == bytes
@@ -1094,13 +1088,10 @@ def test_forced_encodings_with_df(library):
     assert all([type(x) == unicode for x in df_forced_unicode.index])
 
 
+@pytest.mark.skipif(six.PY2, reason="Skip for Python2")
 def test_forced_encodings_with_df_py3(library):
     sample_data = {'str_col': [b'a', b'b'], 'unicode_col': [u'a', u'b'], 'int_col': [1, 2]}
-    unicode_type = unicode if six.PY2 else str
-    # This is for testing reading in py3 with bytes index.
-    if six.PY2:
-        assert True
-        return
+    unicode_type = str
 
     # ===================BEFORE===================
     df = pd.DataFrame(sample_data, index=[b'str_type', b'uni_type'])
@@ -1127,3 +1118,45 @@ def test_forced_encodings_with_df_py3(library):
     # Should force everything to be unicode_type now.
     assert all([type(x) == unicode_type for x in df_forced_unicode.columns])
     assert all([type(x) == unicode_type for x in df_forced_unicode.index])
+
+
+@pytest.mark.skipif(six.PY2, reason="Skip for Python2")
+def test_forced_encodings_with_df_py3_multi_index(library):
+    sample_data = {'str_col': [b'a', b'b'], 'unicode_col': [u'a', u'b'], 'int_col': [1, 2]}
+    unicode_type = str
+
+    # ===================BEFORE===================
+    multi_index_df = pd.DataFrame(sample_data,
+                                  index=pd.MultiIndex.from_tuples([(b'ele1', b'uni_type1'), (b'ele2', b'uni_type2')]))
+    assert type(multi_index_df['str_col'][0]) == bytes
+    assert type(multi_index_df['unicode_col'][0]) == unicode_type
+    # Check that all column names are stored as as is by pandas
+    assert all([type(x) == unicode_type for x in multi_index_df.columns])
+    assert all([
+        type(multi_index_df.index.get_level_values(level)[0]) == bytes
+        for level in range(len(multi_index_df.index.levels))
+    ])
+
+    library.write('dummy', multi_index_df)
+
+    # ===================READ BACK WITHOUT FORCED ENCODING===================
+    df_normal = library.read('dummy').data
+    assert type(df_normal['str_col'][0]) == bytes
+    assert type(df_normal['unicode_col'][0]) == unicode_type
+    # Arctic currently converts all column to unicode_type and will keep index type as is
+    assert all([type(x) == unicode_type for x in df_normal.columns])
+    assert all([
+        type(df_normal.index.get_level_values(level)[0]) == bytes
+        for level in range(len(df_normal.index.levels))
+    ])
+
+    # ===================READ BACK WITH FORCED ENCODING===================
+    df_forced_unicode = library.read('dummy', force_bytes_to_unicode=True).data
+    assert type(df_forced_unicode['str_col'][0]) == unicode_type
+    assert type(df_forced_unicode['unicode_col'][0]) == unicode_type
+    # Should force everything to be unicode_type now.
+    assert all([type(x) == unicode_type for x in df_forced_unicode.columns])
+    assert all([
+        type(df_forced_unicode.index.get_level_values(level)[0]) == unicode_type
+        for level in range(len(df_forced_unicode.index.levels))
+    ])

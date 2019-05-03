@@ -4,7 +4,11 @@ Package is hosted here: https://pypi.python.org/pypi/arctic/
 
 ## General upload and packaging docs
 
-http://peterdowns.com/posts/first-time-with-pypi.html
+https://realpython.com/pypi-publish-python-package/
+
+The version number is of the format: <MAJOR>.<MINOR>.<BUGFIX> 
+For minor bug fixes increment the BUGFIX number. For new features increment the minor letter. MAJOR is only 
+for a major (and possibly non backwards compatible) overhaul of arctic.
 
 ## Pre-requisites
 

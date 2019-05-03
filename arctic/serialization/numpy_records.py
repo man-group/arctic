@@ -288,8 +288,18 @@ class DataFrameSerializer(PandasSerializer):
                 if type(df[c].iloc[0]) == bytes:
                     df[c] = df[c].str.decode('utf-8')
 
-            if type(df.index[0]) == bytes:
-                df.index = df.index.astype('unicode')
+            if isinstance(df.index, MultiIndex):
+                unicode_indexes = []
+                # MultiIndex requires a conversion at each level.
+                for level in range(len(df.index.levels)):
+                    _index = df.index.get_level_values(level)
+                    if isinstance(_index[0], bytes):
+                        _index = _index.astype('unicode')
+                    unicode_indexes.append(_index)
+                df.index = unicode_indexes
+            else:
+                if type(df.index[0]) == bytes:
+                    df.index = df.index.astype('unicode')
 
             if type(df.columns[0]) == bytes:
                 df.columns = df.index.astype('unicode')
