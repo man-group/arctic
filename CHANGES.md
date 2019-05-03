@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.79.1 (2019-05-03)
+  * Bugfix: Pandas convert multiindexes to unicode if flag set.
+
 ### 1.79 (2019-05-02)
   * Bugfix: #765 Pandas data columns require encoding to convert to unicode.
 
