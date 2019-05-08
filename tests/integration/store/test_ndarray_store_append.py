@@ -13,8 +13,7 @@ register_versioned_storage(NdarrayStore)
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_append_simple_ndarray(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -28,8 +27,7 @@ def test_append_simple_ndarray(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_append_simple_ndarray_promoting_types(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -55,9 +53,7 @@ def test_promote_types2(library):
     library.write("MYARR", ndarr[:800])
     library.append("MYARR", ndarr[-200:].astype([("abc", "int64")]))
     saved_arr = library.read("MYARR").data
-    assert np.all(
-        ndarr.astype([("abc", np.promote_types("float64", "int64"))]) == saved_arr
-    )
+    assert np.all(ndarr.astype([("abc", np.promote_types("float64", "int64"))]) == saved_arr)
 
 
 def test_promote_types_smaller_sizes(library):
@@ -95,8 +91,7 @@ def test_promote_field_types_larger_sizes(library):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_append_ndarray_with_field_shape(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -117,8 +112,7 @@ def test_append_ndarray_with_field_shape(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_append_read_large_ndarray(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -146,8 +140,7 @@ def test_append_read_large_ndarray(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_save_append_read_ndarray(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -204,8 +197,7 @@ def test_empty_field_append_keeps_all_columns(library):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_empty_append_promotes_dtype(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -246,8 +238,7 @@ def test_convert_to_structured_array(library):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_empty_append_concat_and_rewrite(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -262,8 +253,7 @@ def test_empty_append_concat_and_rewrite(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_empty_append_concat_and_rewrite_2(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -276,8 +266,7 @@ def test_empty_append_concat_and_rewrite_2(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_empty_append_concat_and_rewrite_3(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -291,31 +280,15 @@ def test_empty_append_concat_and_rewrite_3(library, fw_pointers_cfg):
 
 
 def test_append_with_extra_columns(library):
-    ndarr = np.array(
-        [(2.1, 1, "a")], dtype=[("C", np.float), ("B", np.int), ("A", "S1")]
-    )
+    ndarr = np.array([(2.1, 1, "a")], dtype=[("C", np.float), ("B", np.int), ("A", "S1")])
     ndarr2 = np.array(
         [("b", 2, 3.1, "c", 4, 5.0)],
-        dtype=[
-            ("A", "S1"),
-            ("B", np.int),
-            ("C", np.float),
-            ("D", "S1"),
-            ("E", np.int),
-            ("F", np.float),
-        ],
+        dtype=[("A", "S1"), ("B", np.int), ("C", np.float), ("D", "S1"), ("E", np.int), ("F", np.float)],
     )
     expected = np.array(
         [("a", 1, 2.1, "", 0, np.nan), ("b", 2, 3.1, "c", 4, 5.0)],
         dtype=np.dtype(
-            [
-                ("A", "S1"),
-                ("B", np.int),
-                ("C", np.float),
-                ("D", "S1"),
-                ("E", np.int),
-                ("F", np.float),
-            ]
+            [("A", "S1"), ("B", np.int), ("C", np.float), ("D", "S1"), ("E", np.int), ("F", np.float)]
         ),
     )
     library.write("MYARR", ndarr)
@@ -327,8 +300,7 @@ def test_append_with_extra_columns(library):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_save_append_delete_append(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -350,15 +322,11 @@ def test_save_append_delete_append(library, fw_pointers_cfg):
         assert np.all(ndarr == library.read("MYARR", as_of=v1.version).data)
 
         # Check that we don't get the orphaned chunk from v2 back again.
-        assert np.all(
-            np.concatenate([ndarr, sliver2])
-            == library.read("MYARR", as_of=v3.version).data
-        )
+        assert np.all(np.concatenate([ndarr, sliver2]) == library.read("MYARR", as_of=v3.version).data)
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_append_after_failed_append(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -377,10 +345,7 @@ def test_append_after_failed_append(library, fw_pointers_cfg):
         v3 = library.append("MYARR", sliver2)
 
         assert np.all(ndarr == library.read("MYARR", as_of=v1.version).data)
-        assert np.all(
-            np.concatenate([ndarr, sliver2])
-            == library.read("MYARR", as_of=v3.version).data
-        )
+        assert np.all(np.concatenate([ndarr, sliver2]) == library.read("MYARR", as_of=v3.version).data)
 
 
 def test_append_reorder_columns(library):
@@ -389,7 +354,4 @@ def test_append_reorder_columns(library):
     foo = np.array([(1, 2)], dtype=np.dtype([("b", "u1"), ("a", "u1")]))
     library.append("MYARR", foo)
 
-    assert np.all(
-        library.read("MYARR").data
-        == np.array([(2, 1), (1, 2)], dtype=[("b", "u1"), ("a", "u1")])
-    )
+    assert np.all(library.read("MYARR").data == np.array([(2, 1), (1, 2)], dtype=[("b", "u1"), ("a", "u1")]))

@@ -24,10 +24,7 @@ def dt_or_str_parser(string):
 def read_str_as_pandas(ts_str, num_index=1):
     labels = [x.strip() for x in ts_str.split("\n")[0].split("|")]
     pd = pandas.read_csv(
-        stringio.StringIO(ts_str),
-        sep="|",
-        index_col=list(range(num_index)),
-        date_parser=dt_or_str_parser,
+        stringio.StringIO(ts_str), sep="|", index_col=list(range(num_index)), date_parser=dt_or_str_parser
     )
     # Trim the whitespace on the column names
     pd.columns = labels[num_index:]
@@ -38,8 +35,7 @@ def read_str_as_pandas(ts_str, num_index=1):
 def get_large_ts(size=2500):
     timestamps = list(rrule(DAILY, count=size, dtstart=dt(1970, 1, 1), interval=1))
     pd = pandas.DataFrame(
-        index=timestamps,
-        data={"n" + str(i): np.random.random_sample(size) for i in range(size)},
+        index=timestamps, data={"n" + str(i): np.random.random_sample(size) for i in range(size)}
     )
     pd.index.name = "index"
     return pd

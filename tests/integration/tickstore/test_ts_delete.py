@@ -23,10 +23,7 @@ def test_delete(tickstore_lib):
     tickstore_lib.write("SYM", DUMMY_DATA)
     deleted = tickstore_lib.delete(
         "SYM",
-        DateRange(
-            dt(2013, 1, 1, tzinfo=mktz("Europe/London")),
-            dt(2013, 1, 2, tzinfo=mktz("Europe/London")),
-        ),
+        DateRange(dt(2013, 1, 1, tzinfo=mktz("Europe/London")), dt(2013, 1, 2, tzinfo=mktz("Europe/London"))),
     )
     assert deleted.deleted_count == 1
     df = tickstore_lib.read("SYM", columns=None)

@@ -17,15 +17,7 @@ logger = logging.getLogger(__name__)
 # ----------------------- Grouping and Aggregating  ---------------------------- #
 
 
-def fancy_group_by(
-    df,
-    grouping_level=0,
-    aggregate_level=1,
-    method="last",
-    max_=None,
-    min_=None,
-    within=None,
-):
+def fancy_group_by(df, grouping_level=0, aggregate_level=1, method="last", max_=None, min_=None, within=None):
     """ Dataframe group-by operation that supports aggregating by different methods on the index.
 
     Parameters
@@ -103,9 +95,7 @@ def groupby_asof(df, as_of=None, dt_col="sample_dt", asof_col="observed_dt"):
     if as_of:
         if as_of.tzinfo is None and df.index.get_level_values(asof_col).tz is not None:
             as_of = as_of.replace(tzinfo=mktz())
-    return fancy_group_by(
-        df, grouping_level=dt_col, aggregate_level=asof_col, method="last", max_=as_of
-    )
+    return fancy_group_by(df, grouping_level=dt_col, aggregate_level=asof_col, method="last", max_=as_of)
 
 
 # ----------------------- Insert/Append ---------------------------- #
@@ -115,9 +105,7 @@ def multi_index_insert_row(df, index_row, values_row):
     """ Return a new dataframe with a row inserted for a multi-index dataframe.
         This will sort the rows according to the ordered multi-index levels.
     """
-    row_index = pd.MultiIndex(
-        levels=[[i] for i in index_row], labels=[[0] for i in index_row]
-    )
+    row_index = pd.MultiIndex(levels=[[i] for i in index_row], labels=[[0] for i in index_row])
     row = pd.DataFrame(values_row, index=row_index, columns=df.columns)
     df = pd.concat((df, row))
     if df.index.lexsort_depth == len(index_row) and df.index[-2] < df.index[-1]:

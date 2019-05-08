@@ -66,9 +66,7 @@ def test_raise_exception_if_date_range_overlaps():
     self._get_library_metadata.return_value = [TickStoreLibrary("lib1", None)]
     with pytest.raises(OverlappingDataException) as e:
         TopLevelTickStore.add(
-            self,
-            DateRange(start=dt(2010, 1, 1), end=dt(2011, 1, 1, 23, 59, 59, 999000)),
-            "blah",
+            self, DateRange(start=dt(2010, 1, 1), end=dt(2011, 1, 1, 23, 59, 59, 999000)), "blah"
         )
     assert "There are libraries that overlap with the date range:" in str(e)
 
@@ -99,15 +97,11 @@ def test_raise_exception_if_date_range_overlaps():
 def test_add_library_to_colllection_if_date_range_is_on_UTC_or_naive_day_boundaries(
     start, end, expected_start, expected_end
 ):
-    self = create_autospec(
-        TopLevelTickStore, _arctic_lib=MagicMock(), _collection=MagicMock()
-    )
+    self = create_autospec(TopLevelTickStore, _arctic_lib=MagicMock(), _collection=MagicMock())
     self._get_library_metadata.return_value = []
     TopLevelTickStore.add(self, DateRange(start=start, end=end), "blah")
     self._collection.update_one.assert_called_once_with(
-        {"library_name": "blah"},
-        {"$set": {"start": expected_start, "end": expected_end}},
-        upsert=True,
+        {"library_name": "blah"}, {"$set": {"start": expected_start, "end": expected_end}}, upsert=True
     )
 
 
@@ -134,13 +128,9 @@ def test_add_library_to_colllection_if_date_range_is_on_UTC_or_naive_day_boundar
         ),
     ],
 )
-def test_raise_error_add_library_is_called_with_a_date_range_not_on_day_boundaries(
-    start, end
-):
+def test_raise_error_add_library_is_called_with_a_date_range_not_on_day_boundaries(start, end):
     with pytest.raises(AssertionError) as e:
-        self = create_autospec(
-            TopLevelTickStore, _arctic_lib=MagicMock(), _collection=MagicMock()
-        )
+        self = create_autospec(TopLevelTickStore, _arctic_lib=MagicMock(), _collection=MagicMock())
         self._get_library_metadata.return_value = []
         TopLevelTickStore.add(self, DateRange(start=start, end=end), "blah")
     assert "Date range should fall on UTC day boundaries" in str(e)
@@ -185,44 +175,21 @@ def test_slice_list_of_dicts(start, end, expected_start_index, expected_end_inde
 
 
 def test_write_pandas_data_to_right_libraries():
-    self = create_autospec(
-        TopLevelTickStore, _arctic_lib=MagicMock(), _collection=MagicMock()
-    )
+    self = create_autospec(TopLevelTickStore, _arctic_lib=MagicMock(), _collection=MagicMock())
     self._collection.find.return_value = [
-        {
-            "library_name": sentinel.libname1,
-            "start": sentinel.st1,
-            "end": sentinel.end1,
-        },
-        {
-            "library_name": sentinel.libname2,
-            "start": sentinel.st2,
-            "end": sentinel.end2,
-        },
+        {"library_name": sentinel.libname1, "start": sentinel.st1, "end": sentinel.end1},
+        {"library_name": sentinel.libname2, "start": sentinel.st2, "end": sentinel.end2},
     ]
     slice1 = range(2)
     slice2 = range(4)
-    when(self._slice).called_with(sentinel.data, sentinel.st1, sentinel.end1).then(
-        slice1
-    )
-    when(self._slice).called_with(sentinel.data, sentinel.st2, sentinel.end2).then(
-        slice2
-    )
+    when(self._slice).called_with(sentinel.data, sentinel.st1, sentinel.end1).then(slice1)
+    when(self._slice).called_with(sentinel.data, sentinel.st2, sentinel.end2).then(slice2)
     mock_lib1 = Mock()
     mock_lib2 = Mock()
-    when(self._arctic_lib.arctic.__getitem__).called_with(sentinel.libname1).then(
-        mock_lib1
-    )
-    when(self._arctic_lib.arctic.__getitem__).called_with(sentinel.libname2).then(
-        mock_lib2
-    )
+    when(self._arctic_lib.arctic.__getitem__).called_with(sentinel.libname1).then(mock_lib1)
+    when(self._arctic_lib.arctic.__getitem__).called_with(sentinel.libname2).then(mock_lib2)
     with patch("arctic.tickstore.toplevel.to_dt") as patch_to_dt:
-        patch_to_dt.side_effect = [
-            sentinel.st1,
-            sentinel.end1,
-            sentinel.st2,
-            sentinel.end2,
-        ]
+        patch_to_dt.side_effect = [sentinel.st1, sentinel.end1, sentinel.st2, sentinel.end2]
         TopLevelTickStore.write(self, "blah", sentinel.data)
     mock_lib1.write.assert_called_once_with("blah", slice1)
     mock_lib2.write.assert_called_once_with("blah", slice2)
@@ -241,9 +208,7 @@ def test_read():
             columns=sentinel.include_columns,
             include_images=sentinel.include_images,
         )
-    assert concat.call_args_list == [
-        call([tsl.library.read.return_value, tsl.library.read.return_value])
-    ]
+    assert concat.call_args_list == [call([tsl.library.read.return_value, tsl.library.read.return_value])]
     assert res == concat.return_value
     assert tsl.library.read.call_args_list == [
         call(

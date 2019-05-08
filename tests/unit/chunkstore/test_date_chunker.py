@@ -15,8 +15,7 @@ def test_date_filter():
     df = DataFrame(
         data={"data": [1, 2, 3]},
         index=MultiIndex.from_tuples(
-            [(dt(2016, 1, 1), 1), (dt(2016, 1, 2), 1), (dt(2016, 1, 3), 1)],
-            names=["date", "id"],
+            [(dt(2016, 1, 1), 1), (dt(2016, 1, 2), 1), (dt(2016, 1, 3), 1)], names=["date", "id"]
         ),
     )
 
@@ -38,12 +37,7 @@ def test_date_filter():
 
 def test_date_filter_no_index():
     c = DateChunker()
-    df = DataFrame(
-        data={
-            "data": [1, 2, 3],
-            "date": [dt(2016, 1, 1), dt(2016, 1, 2), dt(2016, 1, 3)],
-        }
-    )
+    df = DataFrame(data={"data": [1, 2, 3], "date": [dt(2016, 1, 1), dt(2016, 1, 2), dt(2016, 1, 3)]})
 
     # OPEN - CLOSED
     assert_frame_equal(c.filter(df, DateRange(None, dt(2016, 1, 3))), df)
@@ -66,8 +60,7 @@ def test_date_filter_with_pd_date_range():
     df = DataFrame(
         data={"data": [1, 2, 3]},
         index=MultiIndex.from_tuples(
-            [(dt(2016, 1, 1), 1), (dt(2016, 1, 2), 1), (dt(2016, 1, 3), 1)],
-            names=["date", "id"],
+            [(dt(2016, 1, 1), 1), (dt(2016, 1, 2), 1), (dt(2016, 1, 3), 1)], names=["date", "id"]
         ),
     )
 
@@ -94,8 +87,7 @@ def test_exclude():
     df = DataFrame(
         data={"data": [1, 2, 3]},
         index=MultiIndex.from_tuples(
-            [(dt(2016, 1, 1), 1), (dt(2016, 1, 2), 1), (dt(2016, 1, 3), 1)],
-            names=["date", "id"],
+            [(dt(2016, 1, 1), 1), (dt(2016, 1, 2), 1), (dt(2016, 1, 3), 1)], names=["date", "id"]
         ),
     )
 
@@ -109,12 +101,7 @@ def test_exclude():
 
 def test_exclude_no_index():
     c = DateChunker()
-    df = DataFrame(
-        data={
-            "data": [1, 2, 3],
-            "date": [dt(2016, 1, 1), dt(2016, 1, 2), dt(2016, 1, 3)],
-        }
-    )
+    df = DataFrame(data={"data": [1, 2, 3], "date": [dt(2016, 1, 1), dt(2016, 1, 2), dt(2016, 1, 3)]})
 
     df2 = DataFrame(data={"data": [1, 2, 3]})
 
@@ -126,12 +113,7 @@ def test_exclude_no_index():
 
 def test_with_tuples():
     c = DateChunker()
-    df = DataFrame(
-        data={
-            "data": [1, 2, 3],
-            "date": [dt(2016, 1, 1), dt(2016, 1, 2), dt(2016, 1, 3)],
-        }
-    )
+    df = DataFrame(data={"data": [1, 2, 3], "date": [dt(2016, 1, 1), dt(2016, 1, 2), dt(2016, 1, 3)]})
 
     # OPEN - CLOSED
     assert_frame_equal(c.filter(df, (None, dt(2016, 1, 3))), df)

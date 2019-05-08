@@ -87,18 +87,10 @@ def test_concat_and_rewrite_checks_chunk_count():
     symbol = sentinel.symbol
     item = sentinel.item
 
-    collection.find.return_value = [
-        {"compressed": True, "segment": 1},
-        {"compressed": False, "segment": 2},
-    ]
+    collection.find.return_value = [{"compressed": True, "segment": 1}, {"compressed": False, "segment": 2}]
     with pytest.raises(DataIntegrityException) as e:
-        NdarrayStore._concat_and_rewrite(
-            self, collection, version, symbol, item, previous_version
-        )
-    assert (
-        str(e.value)
-        == "Symbol: sentinel.symbol:sentinel.version expected 1 segments but found 0"
-    )
+        NdarrayStore._concat_and_rewrite(self, collection, version, symbol, item, previous_version)
+    assert str(e.value) == "Symbol: sentinel.symbol:sentinel.version expected 1 segments but found 0"
 
 
 def test_concat_and_rewrite_checks_written():
@@ -125,9 +117,7 @@ def test_concat_and_rewrite_checks_written():
         {"_id": sentinel.id_5, "segment": 51, "compressed": False, "sha": "abc4"},
     ]
     collection.update_many.return_value = create_autospec(UpdateResult, matched_count=1)
-    NdarrayStore._concat_and_rewrite(
-        self, collection, version, symbol, item, previous_version
-    )
+    NdarrayStore._concat_and_rewrite(self, collection, version, symbol, item, previous_version)
     assert self.check_written.call_count == 1
 
 
@@ -165,13 +155,10 @@ def test_concat_and_rewrite_checks_different_id():
 
     collection.update_many.return_value = create_autospec(UpdateResult, matched_count=0)
     with pytest.raises(DataIntegrityException) as e:
-        NdarrayStore._concat_and_rewrite(
-            self, collection, version, symbol, item, previous_version
-        )
+        NdarrayStore._concat_and_rewrite(self, collection, version, symbol, item, previous_version)
         assert collection.find.call_args_list[1] == call(expected_verify_find_spec)
     assert (
-        str(e.value)
-        == "Symbol: sentinel.symbol:sentinel.version update_many updated 0 segments instead of 1"
+        str(e.value) == "Symbol: sentinel.symbol:sentinel.version update_many updated 0 segments instead of 1"
     )
 
 
@@ -210,11 +197,8 @@ def test_concat_and_rewrite_checks_fewer_updated():
 
     collection.update_many.return_value = create_autospec(UpdateResult, matched_count=1)
     with pytest.raises(DataIntegrityException) as e:
-        NdarrayStore._concat_and_rewrite(
-            self, collection, version, symbol, item, previous_version
-        )
+        NdarrayStore._concat_and_rewrite(self, collection, version, symbol, item, previous_version)
         assert collection.find.call_args_list[1] == call(expected_verify_find_spec)
     assert (
-        str(e.value)
-        == "Symbol: sentinel.symbol:sentinel.version update_many updated 1 segments instead of 2"
+        str(e.value) == "Symbol: sentinel.symbol:sentinel.version update_many updated 1 segments instead of 2"
     )

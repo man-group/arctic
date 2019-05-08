@@ -1,11 +1,6 @@
 import pytest
 from mock import patch, sentinel, Mock, MagicMock
-from pymongo.errors import (
-    AutoReconnect,
-    OperationFailure,
-    DuplicateKeyError,
-    ServerSelectionTimeoutError,
-)
+from pymongo.errors import AutoReconnect, OperationFailure, DuplicateKeyError, ServerSelectionTimeoutError
 
 from arctic.decorators import mongo_retry, _get_host
 from arctic.hooks import register_log_exception_hook
@@ -33,11 +28,7 @@ def test_mongo_retry():
     assert he.call_count == 2
     assert isinstance(he.call_args_list[0][0][1], OperationFailure)
     assert he.call_args_list[0][0][2] == 1
-    assert he.call_args_list[0][1] == {
-        "mnodes": ["a:12"],
-        "mhost": "sentinel.host",
-        "l": sentinel.lib_name,
-    }
+    assert he.call_args_list[0][1] == {"mnodes": ["a:12"], "mhost": "sentinel.host", "l": sentinel.lib_name}
     assert isinstance(he.call_args_list[1][0][1], AutoReconnect)
     assert he.call_args_list[1][0][2] == 2
 
@@ -183,11 +174,7 @@ def test_get_host():
     store._arctic_lib.arctic.mongo_host = sentinel.host
     store._collection.database.client.nodes = set([("a", 12)])
     store._arctic_lib.get_name.return_value = sentinel.lib_name
-    assert _get_host(store) == {
-        "mhost": "sentinel.host",
-        "mnodes": ["a:12"],
-        "l": sentinel.lib_name,
-    }
+    assert _get_host(store) == {"mhost": "sentinel.host", "mnodes": ["a:12"], "l": sentinel.lib_name}
 
 
 def test_get_host_list():
@@ -195,11 +182,7 @@ def test_get_host_list():
     store._arctic_lib.arctic.mongo_host = sentinel.host
     store._collection.database.client.nodes = set([("a", 12)])
     store._arctic_lib.get_name.return_value = sentinel.lib_name
-    assert _get_host([store]) == {
-        "mhost": "sentinel.host",
-        "mnodes": ["a:12"],
-        "l": sentinel.lib_name,
-    }
+    assert _get_host([store]) == {"mhost": "sentinel.host", "mnodes": ["a:12"], "l": sentinel.lib_name}
 
 
 def test_get_host_not_a_vs():

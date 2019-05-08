@@ -16,9 +16,7 @@ _use_new_count_api = None
 
 
 def get_fwptr_config(version):
-    return FwPointersCfg[
-        version.get(FW_POINTERS_CONFIG_KEY, FwPointersCfg.DISABLED.name)
-    ]
+    return FwPointersCfg[version.get(FW_POINTERS_CONFIG_KEY, FwPointersCfg.DISABLED.name)]
 
 
 def _detect_new_count_api():
@@ -78,17 +76,13 @@ def enable_sharding(arctic, library_name, hashed=True, key="symbol"):
         c.admin.command("shardCollection", dbname + "." + library_name, key={key: 1})
     else:
         logger.info("Hash sharding '" + key + "' on: " + dbname + "." + library_name)
-        c.admin.command(
-            "shardCollection", dbname + "." + library_name, key={key: "hashed"}
-        )
+        c.admin.command("shardCollection", dbname + "." + library_name, key={key: "hashed"})
 
 
 def mongo_count(collection, filter=None, **kwargs):
     filter = {} if filter is None else filter
     global _use_new_count_api
-    _use_new_count_api = (
-        _detect_new_count_api() if _use_new_count_api is None else _use_new_count_api
-    )
+    _use_new_count_api = _detect_new_count_api() if _use_new_count_api is None else _use_new_count_api
     # This is a temporary compatibility fix for compatibility with pymongo>=3.7, and also avoid deprecation warnings
     if _use_new_count_api:
         # Projection is ignored for count_documents

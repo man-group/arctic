@@ -43,9 +43,7 @@ def test_new_ts_read_write(bitemporal_library):
 def test_read_ts_raw(bitemporal_library):
     bitemporal_library.update("spam", ts1, as_of=dt(2015, 5, 1, tzinfo=mktz("UTC")))
     assert_frame_equal(
-        bitemporal_library.read("spam", raw=True).data.tz_convert(
-            tz=mktz("UTC"), level=1
-        ),
+        bitemporal_library.read("spam", raw=True).data.tz_convert(tz=mktz("UTC"), level=1),
         read_str_as_pandas(
             """                    sample_dt | observed_dt | near
                                                       2012-09-08 17:06:11.040 |  2015-05-01 |  1.0
@@ -72,9 +70,7 @@ def test_write_ts_with_column_name_same_as_observed_dt_ok(bitemporal_library):
 def test_last_update(bitemporal_library):
     bitemporal_library.update("spam", ts1, as_of=dt(2015, 1, 1))
     bitemporal_library.update("spam", ts1, as_of=dt(2015, 1, 2))
-    assert bitemporal_library.read("spam").last_updated == dt(
-        2015, 1, 2, tzinfo=LOCAL_TZ
-    )
+    assert bitemporal_library.read("spam").last_updated == dt(2015, 1, 2, tzinfo=LOCAL_TZ)
 
 
 def test_existing_ts_update_and_read(bitemporal_library):
@@ -126,9 +122,7 @@ def test_read_ts_with_historical_update(bitemporal_library):
         as_of=dt(2015, 5, 3),
     )
     assert_frame_equal(
-        bitemporal_library.read(
-            "spam", as_of=dt(2015, 5, 2, 10, tzinfo=pytz.timezone("Europe/London"))
-        ).data,
+        bitemporal_library.read("spam", as_of=dt(2015, 5, 2, 10, tzinfo=pytz.timezone("Europe/London"))).data,
         read_str_as_pandas(
             """sample_dt   | near
                                                                            2012-09-08 17:06:11.040 |  1.0
@@ -150,9 +144,7 @@ def test_read_ts_with_historical_update(bitemporal_library):
     )
 
     assert_frame_equal(
-        bitemporal_library.read(
-            "spam", as_of=dt(2015, 5, 1, 10, tzinfo=pytz.timezone("Europe/London"))
-        ).data,
+        bitemporal_library.read("spam", as_of=dt(2015, 5, 1, 10, tzinfo=pytz.timezone("Europe/London"))).data,
         ts1,
     )
 
@@ -185,9 +177,7 @@ def test_read_ts_with_historical_update_and_new_row(bitemporal_library):
         ),
     )
 
-    assert_frame_equal(
-        bitemporal_library.read("spam", as_of=dt(2015, 5, 1, 10)).data, ts1
-    )
+    assert_frame_equal(bitemporal_library.read("spam", as_of=dt(2015, 5, 1, 10)).data, ts1)
 
 
 def test_insert_new_rows_in_middle_remains_sorted(bitemporal_library):
@@ -311,9 +301,7 @@ def test_bitemporal_store_saves_as_of_with_timezone(bitemporal_library):
 
 
 def test_bitemporal_store_read_as_of_timezone(bitemporal_library):
-    bitemporal_library.update(
-        "spam", ts1, as_of=dt(2015, 5, 1, tzinfo=mktz("Europe/London"))
-    )
+    bitemporal_library.update("spam", ts1, as_of=dt(2015, 5, 1, tzinfo=mktz("Europe/London")))
     bitemporal_library.update(
         "spam",
         read_str_as_pandas(
@@ -322,9 +310,7 @@ def test_bitemporal_store_read_as_of_timezone(bitemporal_library):
         ),
         as_of=dt(2015, 5, 2, tzinfo=mktz("Europe/London")),
     )
-    df = bitemporal_library.read(
-        "spam", as_of=dt(2015, 5, 2, tzinfo=mktz("Asia/Hong_Kong"))
-    ).data
+    df = bitemporal_library.read("spam", as_of=dt(2015, 5, 2, tzinfo=mktz("Asia/Hong_Kong"))).data
     assert_frame_equal(df, ts1)
 
 
@@ -377,8 +363,7 @@ def test_multi_index_ts_read_raw(bitemporal_library):
     )
     bitemporal_library.update("spam", ts, as_of=dt(2015, 1, 1))
     assert_frame_equal(
-        expected_ts.tz_localize(tz=LOCAL_TZ, level=2),
-        bitemporal_library.read("spam", raw=True).data,
+        expected_ts.tz_localize(tz=LOCAL_TZ, level=2), bitemporal_library.read("spam", raw=True).data
     )
 
 
@@ -403,11 +388,7 @@ def test_multi_index_update(bitemporal_library):
     ts2 = multi_index_df_from_arrs(
         index_headers=("index 1", "index 2"),
         index_arrs=[
-            [
-                "2012-09-08 17:06:11.040",
-                "2012-09-08 17:06:11.040",
-                "2012-12-08 17:06:11.040",
-            ],
+            ["2012-09-08 17:06:11.040", "2012-09-08 17:06:11.040", "2012-12-08 17:06:11.040"],
             ["SPAM Index", "EGG Index", "SPAM Index"],
         ],
         data_dict={"near": [1.2, 1.6, 4.0]},
@@ -424,6 +405,4 @@ def test_multi_index_update(bitemporal_library):
     bitemporal_library.update("spam", ts, as_of=dt(2015, 1, 1))
     bitemporal_library.update("spam", ts2, as_of=dt(2015, 1, 2))
     assert_frame_equal(expected_ts, bitemporal_library.read("spam").data)
-    assert bitemporal_library.read("spam").last_updated == dt(
-        2015, 1, 2, tzinfo=LOCAL_TZ
-    )
+    assert bitemporal_library.read("spam").last_updated == dt(2015, 1, 2, tzinfo=LOCAL_TZ)

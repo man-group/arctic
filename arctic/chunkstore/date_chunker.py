@@ -40,9 +40,7 @@ class DateChunker(Chunker):
                     df = df.sort(columns="date")
                 dates = pd.DatetimeIndex(df.date)
         else:
-            raise Exception(
-                "Data must be datetime indexed or have a column named 'date'"
-            )
+            raise Exception("Data must be datetime indexed or have a column named 'date'")
 
         period_obj = dates.to_period(chunk_size)
         period_obj_reduced = period_obj.drop_duplicates()
@@ -92,12 +90,7 @@ class DateChunker(Chunker):
         if isinstance(range_obj, (pd.DatetimeIndex, tuple)):
             range_obj = DateRange(range_obj[0], range_obj[-1])
         if range_obj.start and range_obj.end:
-            return {
-                "$and": [
-                    {START: {"$lte": range_obj.end}},
-                    {END: {"$gte": range_obj.start}},
-                ]
-            }
+            return {"$and": [{START: {"$lte": range_obj.end}}, {END: {"$gte": range_obj.start}}]}
         elif range_obj.start:
             return {END: {"$gte": range_obj.start}}
         elif range_obj.end:

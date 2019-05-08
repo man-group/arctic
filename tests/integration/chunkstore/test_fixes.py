@@ -83,32 +83,20 @@ def test_compression(chunkstore_lib):
 def test_date_interval(chunkstore_lib):
     date_range = pd.date_range(start=dt(2017, 5, 1), periods=8, freq="D")
 
-    df = DataFrame(
-        data={"data": range(8)}, index=DatetimeIndex(date_range, name="date")
-    )
+    df = DataFrame(data={"data": range(8)}, index=DatetimeIndex(date_range, name="date"))
 
     # test with index
     chunkstore_lib.write("test", df, chunk_size="D")
 
-    ret = chunkstore_lib.read(
-        "test", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_OPEN)
-    )
+    ret = chunkstore_lib.read("test", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_OPEN))
     assert_frame_equal(ret, df[1:4])
-    ret = chunkstore_lib.read(
-        "test", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_OPEN)
-    )
+    ret = chunkstore_lib.read("test", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_OPEN))
     assert_frame_equal(ret, df[2:4])
-    ret = chunkstore_lib.read(
-        "test", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_CLOSED)
-    )
+    ret = chunkstore_lib.read("test", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_CLOSED))
     assert_frame_equal(ret, df[2:5])
-    ret = chunkstore_lib.read(
-        "test", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_CLOSED)
-    )
+    ret = chunkstore_lib.read("test", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_CLOSED))
     assert_frame_equal(ret, df[1:5])
-    ret = chunkstore_lib.read(
-        "test", chunk_range=DateRange(dt(2017, 5, 2), None, CLOSED_OPEN)
-    )
+    ret = chunkstore_lib.read("test", chunk_range=DateRange(dt(2017, 5, 2), None, CLOSED_OPEN))
     assert_frame_equal(ret, df[1:8])
 
     # test without index
@@ -116,25 +104,15 @@ def test_date_interval(chunkstore_lib):
 
     chunkstore_lib.write("test2", df, chunk_size="D")
 
-    ret = chunkstore_lib.read(
-        "test2", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_OPEN)
-    )
+    ret = chunkstore_lib.read("test2", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_OPEN))
     assert len(ret) == 3
-    ret = chunkstore_lib.read(
-        "test2", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_OPEN)
-    )
+    ret = chunkstore_lib.read("test2", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_OPEN))
     assert len(ret) == 2
-    ret = chunkstore_lib.read(
-        "test2", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_CLOSED)
-    )
+    ret = chunkstore_lib.read("test2", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_CLOSED))
     assert len(ret) == 3
-    ret = chunkstore_lib.read(
-        "test2", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_CLOSED)
-    )
+    ret = chunkstore_lib.read("test2", chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_CLOSED))
     assert len(ret) == 4
-    ret = chunkstore_lib.read(
-        "test2", chunk_range=DateRange(dt(2017, 5, 2), None, CLOSED_OPEN)
-    )
+    ret = chunkstore_lib.read("test2", chunk_range=DateRange(dt(2017, 5, 2), None, CLOSED_OPEN))
     assert len(ret) == 7
 
 
@@ -157,9 +135,7 @@ def test_rewrite(chunkstore_lib):
 
     chunkstore_lib.write("test", df, chunk_size="D")
 
-    df2 = DataFrame(
-        data={"something": [100, 200, 300, 400, 500, 600, 700, 800], "date": date_range}
-    )
+    df2 = DataFrame(data={"something": [100, 200, 300, 400, 500, 600, 700, 800], "date": date_range})
 
     chunkstore_lib.write("test", df2, chunk_size="D")
     ret = chunkstore_lib.read("test")
@@ -208,15 +184,10 @@ def test_iterator(chunkstore_lib):
 # Issue 722
 def test_missing_cols(chunkstore_lib):
     index = DatetimeIndex(pd.date_range("2019-01-01", periods=3, freq="D"), name="date")
-    index2 = DatetimeIndex(
-        pd.date_range("2019-01-04", periods=3, freq="D"), name="date"
-    )
-    expected_index = DatetimeIndex(
-        pd.date_range("2019-01-01", periods=6, freq="D"), name="date"
-    )
+    index2 = DatetimeIndex(pd.date_range("2019-01-04", periods=3, freq="D"), name="date")
+    expected_index = DatetimeIndex(pd.date_range("2019-01-01", periods=6, freq="D"), name="date")
     expected_df = DataFrame(
-        {"A": [1, 2, 3, 40, 50, 60], "B": [5.0, 6.0, 7.0, np.nan, np.nan, np.nan]},
-        index=expected_index,
+        {"A": [1, 2, 3, 40, 50, 60], "B": [5.0, 6.0, 7.0, np.nan, np.nan, np.nan]}, index=expected_index
     )
 
     df = pd.DataFrame({"A": [1, 2, 3], "B": [5, 6, 7]}, index=index)

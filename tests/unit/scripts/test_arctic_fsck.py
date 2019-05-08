@@ -21,21 +21,10 @@ def test_main():
     get_mongodb_uri.assert_called_once_with("sentinel.host:sentinel.port")
     Arctic.assert_called_once_with(get_mongodb_uri.return_value)
     assert do_db_auth.call_args_list == [
-        call(
-            "%s:%s" % (sentinel.host, sentinel.port),
-            Arctic.return_value._conn,
-            "arctic_sentinel",
-        ),
-        call(
-            "%s:%s" % (sentinel.host, sentinel.port),
-            Arctic.return_value._conn,
-            "arctic",
-        ),
+        call("%s:%s" % (sentinel.host, sentinel.port), Arctic.return_value._conn, "arctic_sentinel"),
+        call("%s:%s" % (sentinel.host, sentinel.port), Arctic.return_value._conn, "arctic"),
     ]
-    assert Arctic.return_value.__getitem__.return_value._fsck.call_args_list == [
-        call(False),
-        call(False),
-    ]
+    assert Arctic.return_value.__getitem__.return_value._fsck.call_args_list == [call(False), call(False)]
 
 
 def test_main_dry_run():
@@ -54,7 +43,4 @@ def test_main_dry_run():
     get_mongodb_uri.assert_called_once_with("sentinel.host:sentinel.port")
     Arctic.assert_called_once_with(get_mongodb_uri.return_value)
     assert do_db_auth.call_count == 0
-    assert Arctic.return_value.__getitem__.return_value._fsck.call_args_list == [
-        call(True),
-        call(True),
-    ]
+    assert Arctic.return_value.__getitem__.return_value._fsck.call_args_list == [call(True), call(True)]

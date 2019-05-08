@@ -20,14 +20,7 @@ PANDAS_VERSION = LooseVersion(pd.__version__)
 def test_write():
     self = create_autospec(PickleStore)
     version = {}
-    PickleStore.write(
-        self,
-        sentinel.arctic_lib,
-        version,
-        sentinel.symbol,
-        "item",
-        sentinel.previous_version,
-    )
+    PickleStore.write(self, sentinel.arctic_lib, version, sentinel.symbol, "item", sentinel.previous_version)
     assert version["data"] == "item"
 
 
@@ -35,14 +28,7 @@ def test_write_object():
     arctic_lib = Mock()
     self = create_autospec(PickleStore)
     version = {"_id": ObjectId()}
-    PickleStore.write(
-        self,
-        arctic_lib,
-        version,
-        "sentinel.symbol",
-        sentinel.item,
-        sentinel.previous_version,
-    )
+    PickleStore.write(self, arctic_lib, version, "sentinel.symbol", sentinel.item, sentinel.previous_version)
     assert "data" not in version
 
     assert version["blob"] == "__chunked__V2"
@@ -54,11 +40,7 @@ def test_write_object():
                     "sentinel.symbol",
                     {
                         "segment": 0,
-                        "data": Binary(
-                            compress(
-                                cPickle.dumps(sentinel.item, cPickle.HIGHEST_PROTOCOL)
-                            )
-                        ),
+                        "data": Binary(compress(cPickle.dumps(sentinel.item, cPickle.HIGHEST_PROTOCOL))),
                     },
                 ),
                 "symbol": "sentinel.symbol",
@@ -66,12 +48,7 @@ def test_write_object():
             {
                 "$set": {
                     "segment": 0,
-                    "data": Binary(
-                        compress(
-                            cPickle.dumps(sentinel.item, cPickle.HIGHEST_PROTOCOL)
-                        ),
-                        0,
-                    ),
+                    "data": Binary(compress(cPickle.dumps(sentinel.item, cPickle.HIGHEST_PROTOCOL)), 0),
                 },
                 "$addToSet": {"parent": version["_id"]},
             },
@@ -83,17 +60,13 @@ def test_write_object():
 def test_read():
     self = create_autospec(PickleStore)
     version = {"data": "item"}
-    assert (
-        PickleStore.read(self, sentinel.arctic_lib, version, sentinel.symbol) == "item"
-    )
+    assert PickleStore.read(self, sentinel.arctic_lib, version, sentinel.symbol) == "item"
 
 
 def test_read_object_backwards_compat():
     self = create_autospec(PickleStore)
     version = {"blob": Binary(compressHC(cPickle.dumps(object)))}
-    assert (
-        PickleStore.read(self, sentinel.arctic_lib, version, sentinel.symbol) == object
-    )
+    assert PickleStore.read(self, sentinel.arctic_lib, version, sentinel.symbol) == object
 
 
 def test_read_object_2():
@@ -102,47 +75,30 @@ def test_read_object_2():
     coll = Mock()
     arctic_lib = Mock()
     coll.find.return_value = [
-        {
-            "data": Binary(compressHC(cPickle.dumps(object))),
-            "symbol": "sentinel.symbol",
-            "segment": 1,
-        }
+        {"data": Binary(compressHC(cPickle.dumps(object))), "symbol": "sentinel.symbol", "segment": 1}
     ]
     arctic_lib.get_top_level_collection.return_value = coll
 
     assert PickleStore.read(self, arctic_lib, version, sentinel.symbol) == object
-    assert coll.find.call_args_list == [
-        call({"symbol": sentinel.symbol, "parent": sentinel._id})
-    ]
+    assert coll.find.call_args_list == [call({"symbol": sentinel.symbol, "parent": sentinel._id})]
 
 
 def test_read_with_base_version_id():
     self = create_autospec(PickleStore)
-    version = {
-        "_id": sentinel._id,
-        "base_version_id": sentinel.base_version_id,
-        "blob": "__chunked__",
-    }
+    version = {"_id": sentinel._id, "base_version_id": sentinel.base_version_id, "blob": "__chunked__"}
     coll = Mock()
     arctic_lib = Mock()
     coll.find.return_value = [
-        {
-            "data": Binary(compressHC(cPickle.dumps(object))),
-            "symbol": "sentinel.symbol",
-            "segment": 1,
-        }
+        {"data": Binary(compressHC(cPickle.dumps(object))), "symbol": "sentinel.symbol", "segment": 1}
     ]
     arctic_lib.get_top_level_collection.return_value = coll
 
     assert PickleStore.read(self, arctic_lib, version, sentinel.symbol) == object
-    assert coll.find.call_args_list == [
-        call({"symbol": sentinel.symbol, "parent": sentinel.base_version_id})
-    ]
+    assert coll.find.call_args_list == [call({"symbol": sentinel.symbol, "parent": sentinel.base_version_id})]
 
 
 @pytest.mark.xfail(
-    sys.version_info >= (3,),
-    reason="lz4 data written with python2 not compatible with python3",
+    sys.version_info >= (3,), reason="lz4 data written with python2 not compatible with python3"
 )
 def test_read_backward_compatibility():
     """Test backwards compatibility with a pickled file that's created with Python 2.7.3,
@@ -175,11 +131,7 @@ def test_unpickle_highest_protocol():
     """Pandas version 0.14.1 fails to unpickle a pandas.Series() in compat mode if the
     container has been pickled with HIGHEST_PROTOCOL.
     """
-    version = {
-        "blob": compressHC(
-            cPickle.dumps(pd.Series(), protocol=cPickle.HIGHEST_PROTOCOL)
-        )
-    }
+    version = {"blob": compressHC(cPickle.dumps(pd.Series(), protocol=cPickle.HIGHEST_PROTOCOL))}
 
     store = PickleStore()
     ps = store.read(sentinel.arctic_lib, version, sentinel.symbol)

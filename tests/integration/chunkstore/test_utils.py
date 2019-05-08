@@ -21,17 +21,12 @@ def create_test_data(
     data = {}
     for i in range(cols):
         if random_data:
-            data["data" + str(i)] = [
-                random.random() * random.randint(-100, 100) for _ in range(size)
-            ]
+            data["data" + str(i)] = [random.random() * random.randint(-100, 100) for _ in range(size)]
         else:
             data["data" + str(i)] = range(size)
     dates = [
         dt(2016, 1, 1)
-        + timedelta(
-            days=0 if use_hours else n + date_offset,
-            hours=n + date_offset if use_hours else 0,
-        )
+        + timedelta(days=0 if use_hours else n + date_offset, hours=n + date_offset if use_hours else 0)
         for n in range(size)
     ]
     if index:

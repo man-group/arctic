@@ -20,19 +20,12 @@ def _mixed_test_data():
         large_ts = get_large_ts(1800)
         empty_ts = pd.DataFrame()
         empty_index = create_test_data(
-            size=0,
-            cols=10,
-            index=True,
-            multiindex=False,
-            random_data=True,
-            random_ids=True,
+            size=0, cols=10, index=True, multiindex=False, random_data=True, random_ids=True
         )
 
         with_some_objects_ts = medium_ts.copy(deep=True)
         with_some_objects_ts.iloc[0:NON_HOMOGENEOUS_DTYPE_PATCH_SIZE_ROWS, 0] = None
-        with_some_objects_ts.iloc[
-            0:NON_HOMOGENEOUS_DTYPE_PATCH_SIZE_ROWS, 1
-        ] = "A string"
+        with_some_objects_ts.iloc[0:NON_HOMOGENEOUS_DTYPE_PATCH_SIZE_ROWS, 1] = "A string"
         large_with_some_objects = create_test_data(
             size=10000,
             cols=64,
@@ -43,9 +36,7 @@ def _mixed_test_data():
             use_hours=True,
         )
         large_with_some_objects.iloc[0:NON_HOMOGENEOUS_DTYPE_PATCH_SIZE_ROWS, 0] = None
-        large_with_some_objects.iloc[
-            0:NON_HOMOGENEOUS_DTYPE_PATCH_SIZE_ROWS, 1
-        ] = "A string"
+        large_with_some_objects.iloc[0:NON_HOMOGENEOUS_DTYPE_PATCH_SIZE_ROWS, 1] = "A string"
 
         with_string_ts = medium_ts.copy(deep=True)
         with_string_ts["str_col"] = "abc"
@@ -59,20 +50,10 @@ def _mixed_test_data():
 
         # Multi-index data frames
         multiindex_ts = create_test_data(
-            size=500,
-            cols=10,
-            index=True,
-            multiindex=True,
-            random_data=True,
-            random_ids=True,
+            size=500, cols=10, index=True, multiindex=True, random_data=True, random_ids=True
         )
         empty_multiindex_ts = create_test_data(
-            size=0,
-            cols=10,
-            index=True,
-            multiindex=True,
-            random_data=True,
-            random_ids=True,
+            size=0, cols=10, index=True, multiindex=True, random_data=True, random_ids=True
         )
         large_multi_index = create_test_data(
             size=50000,
@@ -93,47 +74,28 @@ def _mixed_test_data():
         columns = pd.MultiIndex.from_product(
             [["bar", "baz", "foo", "qux"], ["one", "two"]], names=["first", "second"]
         )
-        multi_column_no_multiindex = pd.DataFrame(
-            np.random.randn(2, 8), index=[0, 1], columns=columns
-        )
+        multi_column_no_multiindex = pd.DataFrame(np.random.randn(2, 8), index=[0, 1], columns=columns)
 
-        large_multi_column = pd.DataFrame(
-            np.random.randn(100000, 8), index=range(100000), columns=columns
-        )
+        large_multi_column = pd.DataFrame(np.random.randn(100000, 8), index=range(100000), columns=columns)
 
         columns = pd.MultiIndex.from_product([[1, 2, "a"], ["c", 5]])
         multi_column_int_levels = pd.DataFrame(
-            [[9, 2, 8, 1, 2, 3], [3, 4, 2, 9, 10, 11]],
-            index=["x", "y"],
-            columns=columns,
+            [[9, 2, 8, 1, 2, 3], [3, 4, 2, 9, 10, 11]], index=["x", "y"], columns=columns
         )
 
         # Multi-index and multi-column data frames
-        columns = pd.MultiIndex.from_product(
-            [["bar", "baz", "foo", "qux"], ["one", "two"]]
-        )
+        columns = pd.MultiIndex.from_product([["bar", "baz", "foo", "qux"], ["one", "two"]])
         index = pd.MultiIndex.from_product([["x", "y", "z"], ["a", "b"]])
-        multi_column_and_multi_index = pd.DataFrame(
-            np.random.randn(6, 8), index=index, columns=columns
-        )
+        multi_column_and_multi_index = pd.DataFrame(np.random.randn(6, 8), index=index, columns=columns)
 
         # Nested n-dimensional
         def _new_np_nd_array(val):
-            return np.rec.array(
-                [(val, ["A", "BC"])],
-                dtype=[("index", "<M8[ns]"), ("values", "S2", (2,))],
-            )
+            return np.rec.array([(val, ["A", "BC"])], dtype=[("index", "<M8[ns]"), ("values", "S2", (2,))])
 
         n_dimensional_df = pd.DataFrame(
             {
-                "a": [
-                    _new_np_nd_array(1356998400000000000),
-                    _new_np_nd_array(1356998400000000001),
-                ],
-                "b": [
-                    _new_np_nd_array(1356998400000000002),
-                    _new_np_nd_array(1356998400000000003),
-                ],
+                "a": [_new_np_nd_array(1356998400000000000), _new_np_nd_array(1356998400000000001)],
+                "b": [_new_np_nd_array(1356998400000000002), _new_np_nd_array(1356998400000000003)],
             },
             index=(0, 1),
         )
@@ -142,20 +104,8 @@ def _mixed_test_data():
         input_dict = {
             "POSITION": {
                 (pd.Timestamp("2013-10-07 15:45:43"), "MYSTRT", "SYMA", "XX", 0): 0.0,
-                (
-                    pd.Timestamp("2013-10-07 15:45:43"),
-                    "MYSTRT",
-                    "SYMA",
-                    "FFL",
-                    "201312",
-                ): -558.0,
-                (
-                    pd.Timestamp("2013-10-07 15:45:43"),
-                    "MYSTRT",
-                    "AG",
-                    "FFL",
-                    "201312",
-                ): -74.0,
+                (pd.Timestamp("2013-10-07 15:45:43"), "MYSTRT", "SYMA", "FFL", "201312"): -558.0,
+                (pd.Timestamp("2013-10-07 15:45:43"), "MYSTRT", "AG", "FFL", "201312"): -74.0,
                 (pd.Timestamp("2013-10-07 15:45:43"), "MYSTRT", "AG", "XX", 0): 0.0,
             }
         }
@@ -181,16 +131,11 @@ def _mixed_test_data():
 
         # Multi-column with some objects
         multi_column_with_some_objects = multi_column_no_multiindex.copy()
-        multi_column_with_some_objects.iloc[
-            1:, 1:2
-        ] = "Convert this columnt dtype to object"
+        multi_column_with_some_objects.iloc[1:, 1:2] = "Convert this columnt dtype to object"
 
         # Index with timezone-aware datetime
         index_tz_aware = pd.DataFrame(
-            data={
-                "colA": range(10),
-                "colB": pd.date_range("20130101", periods=10, tz="US/Eastern"),
-            },
+            data={"colA": range(10), "colB": pd.date_range("20130101", periods=10, tz="US/Eastern")},
             index=pd.date_range("20130101", periods=10, tz="US/Eastern"),
         )
         index_tz_aware.index.name = "index"
@@ -224,129 +169,93 @@ def _mixed_test_data():
             "empty_index": (
                 empty_index,
                 df_serializer.serialize(empty_index),
-                df_serializer.can_convert_to_records_without_objects(
-                    empty_index, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(empty_index, "symA"),
             ),
             "with_some_objects": (
                 with_some_objects_ts,
                 df_serializer.serialize(with_some_objects_ts),
-                df_serializer.can_convert_to_records_without_objects(
-                    with_some_objects_ts, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(with_some_objects_ts, "symA"),
             ),
             "large_with_some_objects": (
                 large_with_some_objects,
                 df_serializer.serialize(large_with_some_objects),
-                df_serializer.can_convert_to_records_without_objects(
-                    large_with_some_objects, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(large_with_some_objects, "symA"),
             ),
             "with_string": (
                 with_string_ts,
                 df_serializer.serialize(with_string_ts),
-                df_serializer.can_convert_to_records_without_objects(
-                    with_string_ts, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(with_string_ts, "symA"),
             ),
             "with_unicode": (
                 with_unicode_ts,
                 df_serializer.serialize(with_unicode_ts),
-                df_serializer.can_convert_to_records_without_objects(
-                    with_unicode_ts, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(with_unicode_ts, "symA"),
             ),
             "with_some_none": (
                 with_some_none_ts,
                 df_serializer.serialize(with_some_none_ts),
-                df_serializer.can_convert_to_records_without_objects(
-                    with_some_none_ts, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(with_some_none_ts, "symA"),
             ),
             "multiindex": (
                 multiindex_ts,
                 df_serializer.serialize(multiindex_ts),
-                df_serializer.can_convert_to_records_without_objects(
-                    multiindex_ts, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(multiindex_ts, "symA"),
             ),
             "multiindex_with_object": (
                 multi_index_with_object,
                 df_serializer.serialize(multi_index_with_object),
-                df_serializer.can_convert_to_records_without_objects(
-                    multi_index_with_object, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(multi_index_with_object, "symA"),
             ),
             "empty_multiindex": (
                 empty_multiindex_ts,
                 df_serializer.serialize(empty_multiindex_ts),
-                df_serializer.can_convert_to_records_without_objects(
-                    empty_multiindex_ts, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(empty_multiindex_ts, "symA"),
             ),
             "large_multi_index": (
                 large_multi_index,
                 df_serializer.serialize(large_multi_index),
-                df_serializer.can_convert_to_records_without_objects(
-                    large_multi_index, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(large_multi_index, "symA"),
             ),
             "empty_multicolumn": (
                 empty_multi_column_ts,
                 df_serializer.serialize(empty_multi_column_ts),
-                df_serializer.can_convert_to_records_without_objects(
-                    empty_multi_column_ts, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(empty_multi_column_ts, "symA"),
             ),
             "multi_column_no_multiindex": (
                 multi_column_no_multiindex,
                 df_serializer.serialize(multi_column_no_multiindex),
-                df_serializer.can_convert_to_records_without_objects(
-                    multi_column_no_multiindex, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(multi_column_no_multiindex, "symA"),
             ),
             "large_multi_column": (
                 large_multi_column,
                 df_serializer.serialize(large_multi_column),
-                df_serializer.can_convert_to_records_without_objects(
-                    large_multi_column, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(large_multi_column, "symA"),
             ),
             "multi_column_int_levels": (
                 multi_column_int_levels,
                 df_serializer.serialize(multi_column_int_levels),
-                df_serializer.can_convert_to_records_without_objects(
-                    multi_column_int_levels, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(multi_column_int_levels, "symA"),
             ),
             "multi_column_and_multi_index": (
                 multi_column_and_multi_index,
                 df_serializer.serialize(multi_column_and_multi_index),
-                df_serializer.can_convert_to_records_without_objects(
-                    multi_column_and_multi_index, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(multi_column_and_multi_index, "symA"),
             ),
             "multi_column_with_some_objects": (
                 multi_column_with_some_objects,
                 df_serializer.serialize(multi_column_with_some_objects),
-                df_serializer.can_convert_to_records_without_objects(
-                    multi_column_with_some_objects, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(multi_column_with_some_objects, "symA"),
             ),
             "n_dimensional_df": (n_dimensional_df, Exception, None),
             "mixed_dtypes_df": (
                 mixed_dtypes_df,
                 df_serializer.serialize(mixed_dtypes_df),
-                df_serializer.can_convert_to_records_without_objects(
-                    mixed_dtypes_df, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(mixed_dtypes_df, "symA"),
             ),
             "index_tz_aware": (
                 index_tz_aware,
                 df_serializer.serialize(index_tz_aware),
-                df_serializer.can_convert_to_records_without_objects(
-                    index_tz_aware, "symA"
-                ),
+                df_serializer.can_convert_to_records_without_objects(index_tz_aware, "symA"),
             ),
         }
     return _TEST_DATA

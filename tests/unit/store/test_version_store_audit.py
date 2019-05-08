@@ -36,11 +36,7 @@ def test_ArcticTransaction_simple():
     vs.list_versions.return_value = [{"version": 2}, {"version": 1}]
 
     with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
-        cwb.write(
-            sentinel.symbol,
-            pd.DataFrame(index=[3, 4], data={"a": [1.0, 2.0]}),
-            metadata=sentinel.meta,
-        )
+        cwb.write(sentinel.symbol, pd.DataFrame(index=[3, 4], data={"a": [1.0, 2.0]}), metadata=sentinel.meta)
 
     assert not vs._delete_version.called
     assert vs.write.call_args_list == [
@@ -71,14 +67,8 @@ def test_ArticTransaction_no_audit():
     )
     vs.list_versions.return_value = [{"version": 2}, {"version": 1}]
 
-    with ArcticTransaction(
-        vs, sentinel.symbol, sentinel.user, sentinel.log, audit=False
-    ) as cwb:
-        cwb.write(
-            sentinel.symbol,
-            pd.DataFrame(index=[3, 4], data={"a": [1.0, 2.0]}),
-            metadata=sentinel.meta,
-        )
+    with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log, audit=False) as cwb:
+        cwb.write(sentinel.symbol, pd.DataFrame(index=[3, 4], data={"a": [1.0, 2.0]}), metadata=sentinel.meta)
 
     assert vs.write.call_count == 1
     assert vs._write_audit.call_count == 0
@@ -111,9 +101,7 @@ def test_ArcticTransaction_writes_if_metadata_changed():
         assert cwb._do_write is True
 
     assert not vs._delete_version.called
-    vs.write.assert_called_once_with(
-        sentinel.symbol, ANY, prune_previous_version=True, metadata={1: 2}
-    )
+    vs.write.assert_called_once_with(sentinel.symbol, ANY, prune_previous_version=True, metadata={1: 2})
     vs.list_versions.assert_called_once_with(sentinel.symbol)
 
     # Won't write on exit with same data and metadata
@@ -157,9 +145,7 @@ def test_ArcticTransaction_writes_if_base_data_corrupted():
     with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
         cwb.write(sentinel.symbol, ts1, metadata={1: 2})
 
-    vs.write.assert_called_once_with(
-        sentinel.symbol, ANY, prune_previous_version=True, metadata={1: 2}
-    )
+    vs.write.assert_called_once_with(sentinel.symbol, ANY, prune_previous_version=True, metadata={1: 2})
     assert vs.list_versions.call_args_list == [call(sentinel.symbol)]
 
 
@@ -183,10 +169,7 @@ def test_ArcticTransaction_writes_no_data_found():
     assert vs.write.call_args_list == [
         call(sentinel.symbol, ANY, prune_previous_version=True, metadata={1: 2})
     ]
-    assert vs.list_versions.call_args_list == [
-        call(sentinel.symbol, latest_only=True),
-        call(sentinel.symbol),
-    ]
+    assert vs.list_versions.call_args_list == [call(sentinel.symbol, latest_only=True), call(sentinel.symbol)]
 
 
 def test_ArcticTransaction_writes_no_data_found_deleted():
@@ -201,10 +184,7 @@ def test_ArcticTransaction_writes_no_data_found_deleted():
         data=None,
         host=sentinel.host,
     )
-    vs.list_versions.side_effect = [
-        [{"version": 2}, {"version": 1}],
-        [{"version": 3}, {"version": 2}],
-    ]
+    vs.list_versions.side_effect = [[{"version": 2}, {"version": 1}], [{"version": 3}, {"version": 2}]]
 
     with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
         cwb.write(sentinel.symbol, ts1, metadata={1: 2})
@@ -212,10 +192,7 @@ def test_ArcticTransaction_writes_no_data_found_deleted():
     assert vs.write.call_args_list == [
         call(sentinel.symbol, ANY, prune_previous_version=True, metadata={1: 2})
     ]
-    assert vs.list_versions.call_args_list == [
-        call(sentinel.symbol, latest_only=True),
-        call(sentinel.symbol),
-    ]
+    assert vs.list_versions.call_args_list == [call(sentinel.symbol, latest_only=True), call(sentinel.symbol)]
 
 
 def test_ArcticTransaction_does_nothing_when_data_not_modified():
@@ -344,9 +321,7 @@ def test_ArcticTransaction_detects_concurrent_writes():
     def losing_writer():
         # will attempt to write version 2, should find that version 2 is there and it ends up writing version 3
         with pytest.raises(ArcticTransaction):
-            with ArcticTransaction(
-                vs, sentinel.symbol, sentinel.user, sentinel.log
-            ) as cwb:
+            with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
                 cwb.write(sentinel.symbol, pd.DataFrame([1.0, 2.0], [3, 4]))
                 e1.wait()
 

@@ -14,11 +14,7 @@ try:
 
     lz4_compressHC = lambda _str: lz4_compress(_str, mode="high_compression")
 except ImportError as e:
-    from lz4 import (
-        compress as lz4_compress,
-        compressHC as lz4_compressHC,
-        decompress as lz4_decompress,
-    )
+    from lz4 import compress as lz4_compress, compressHC as lz4_compressHC, decompress as lz4_decompress
 
 
 @pytest.mark.parametrize(
@@ -68,9 +64,7 @@ def test_performance_sequential(n, length):
 
 def random_string(N):
     _str = "".join(
-        random.choice(
-            list(string.printable) + ["hello", "world", "hellworld", "Hello", "w0rld"]
-        )
+        random.choice(list(string.printable) + ["hello", "world", "hellworld", "Hello", "w0rld"])
         for _ in six.moves.xrange(int(N))
     )
     return _str.encode("ascii")

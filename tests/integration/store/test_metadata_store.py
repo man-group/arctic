@@ -142,18 +142,14 @@ def test_prepend(ms_lib):
 
 
 def test_pop(ms_lib):
-    ms_lib.write_history(
-        [pd.DataFrame({symbol1: [metadata1, metadata2]}, [start_time1, start_time2])]
-    )
+    ms_lib.write_history([pd.DataFrame({symbol1: [metadata1, metadata2]}, [start_time1, start_time2])])
     ms_lib.pop(symbol1)
     assert_frame_equal(ms_lib.read_history(symbol1), dataframe1)
     integrity_check(ms_lib, symbol1)
 
 
 def test_purge(ms_lib):
-    ms_lib.write_history(
-        [pd.DataFrame({symbol1: [metadata1, metadata2]}, [start_time1, start_time2])]
-    )
+    ms_lib.write_history([pd.DataFrame({symbol1: [metadata1, metadata2]}, [start_time1, start_time2])])
     ms_lib.purge(symbol1)
 
     assert not ms_lib.has_symbol(symbol1)

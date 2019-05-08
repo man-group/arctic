@@ -37,9 +37,7 @@ class MetadataStore(BSONStore):
     @mongo_retry
     def _ensure_index(self):
         self.create_index(
-            [("symbol", pymongo.ASCENDING), ("start_time", pymongo.DESCENDING)],
-            unique=True,
-            background=True,
+            [("symbol", pymongo.ASCENDING), ("start_time", pymongo.DESCENDING)], unique=True, background=True
         )
 
     def __init__(self, arctic_lib):
@@ -107,17 +105,13 @@ class MetadataStore(BSONStore):
                 data_query["metadata." + k] = v
 
         # Sort using index, relying on https://docs.mongodb.com/manual/core/aggregation-pipeline-optimization/
-        pipeline = [
-            {"$sort": {"symbol": pymongo.ASCENDING, "start_time": pymongo.DESCENDING}}
-        ]
+        pipeline = [{"$sort": {"symbol": pymongo.ASCENDING, "start_time": pymongo.DESCENDING}}]
 
         # Index-based filter on symbol and start_time
         if index_query:
             pipeline.append({"$match": index_query})
         # Group by 'symbol' and get the latest known data
-        pipeline.append(
-            {"$group": {"_id": "$symbol", "metadata": {"$first": "$metadata"}}}
-        )
+        pipeline.append({"$group": {"_id": "$symbol", "metadata": {"$first": "$metadata"}}})
         # Match the data fields
         if data_query:
             pipeline.append({"$match": data_query})
@@ -170,13 +164,10 @@ class MetadataStore(BSONStore):
         """
         if as_of is not None:
             res = self.find_one(
-                {"symbol": symbol, "start_time": {"$lte": as_of}},
-                sort=[("start_time", pymongo.DESCENDING)],
+                {"symbol": symbol, "start_time": {"$lte": as_of}}, sort=[("start_time", pymongo.DESCENDING)]
             )
         else:
-            res = self.find_one(
-                {"symbol": symbol}, sort=[("start_time", pymongo.DESCENDING)]
-            )
+            res = self.find_one({"symbol": symbol}, sort=[("start_time", pymongo.DESCENDING)])
         return res["metadata"] if res is not None else None
 
     def write_history(self, collection):
@@ -227,9 +218,7 @@ class MetadataStore(BSONStore):
         """
         if start_time is None:
             start_time = dt.utcnow()
-        old_metadata = self.find_one(
-            {"symbol": symbol}, sort=[("start_time", pymongo.DESCENDING)]
-        )
+        old_metadata = self.find_one({"symbol": symbol}, sort=[("start_time", pymongo.DESCENDING)])
         if old_metadata is not None:
             if old_metadata["start_time"] >= start_time:
                 raise ValueError(
@@ -243,16 +232,9 @@ class MetadataStore(BSONStore):
             return
 
         self.find_one_and_update(
-            {"symbol": symbol},
-            {"$set": {"end_time": start_time}},
-            sort=[("start_time", pymongo.DESCENDING)],
+            {"symbol": symbol}, {"$set": {"end_time": start_time}}, sort=[("start_time", pymongo.DESCENDING)]
         )
-        document = {
-            "_id": bson.ObjectId(),
-            "symbol": symbol,
-            "metadata": metadata,
-            "start_time": start_time,
-        }
+        document = {"_id": bson.ObjectId(), "symbol": symbol, "metadata": metadata, "start_time": start_time}
         mongo_retry(self.insert_one)(document)
 
         logger.debug("Finished writing metadata for %s", symbol)
@@ -276,9 +258,7 @@ class MetadataStore(BSONStore):
             return
         if start_time is None:
             start_time = dt.min
-        old_metadata = self.find_one(
-            {"symbol": symbol}, sort=[("start_time", pymongo.ASCENDING)]
-        )
+        old_metadata = self.find_one({"symbol": symbol}, sort=[("start_time", pymongo.ASCENDING)])
         if old_metadata is not None:
             if old_metadata["start_time"] <= start_time:
                 raise ValueError(
@@ -298,12 +278,7 @@ class MetadataStore(BSONStore):
         else:
             end_time = None
 
-        document = {
-            "_id": bson.ObjectId(),
-            "symbol": symbol,
-            "metadata": metadata,
-            "start_time": start_time,
-        }
+        document = {"_id": bson.ObjectId(), "symbol": symbol, "metadata": metadata, "start_time": start_time}
         if end_time is not None:
             document["end_time"] = end_time
         mongo_retry(self.insert_one)(document)
@@ -324,19 +299,13 @@ class MetadataStore(BSONStore):
         -------
         Deleted metadata
         """
-        last_metadata = self.find_one(
-            {"symbol": symbol}, sort=[("start_time", pymongo.DESCENDING)]
-        )
+        last_metadata = self.find_one({"symbol": symbol}, sort=[("start_time", pymongo.DESCENDING)])
         if last_metadata is None:
             raise NoDataFoundException("No metadata found for symbol {}".format(symbol))
 
-        self.find_one_and_delete(
-            {"symbol": symbol}, sort=[("start_time", pymongo.DESCENDING)]
-        )
+        self.find_one_and_delete({"symbol": symbol}, sort=[("start_time", pymongo.DESCENDING)])
         mongo_retry(self.find_one_and_update)(
-            {"symbol": symbol},
-            {"$unset": {"end_time": ""}},
-            sort=[("start_time", pymongo.DESCENDING)],
+            {"symbol": symbol}, {"$unset": {"end_time": ""}}, sort=[("start_time", pymongo.DESCENDING)]
         )
 
         return last_metadata
@@ -352,7 +321,6 @@ class MetadataStore(BSONStore):
             symbol name to delete
         """
         logger.warning(
-            "Deleting entire metadata history for %r from %r"
-            % (symbol, self._arctic_lib.get_name())
+            "Deleting entire metadata history for %r from %r" % (symbol, self._arctic_lib.get_name())
         )
         self.delete_many({"symbol": symbol})

@@ -8,29 +8,16 @@ from mock import patch, MagicMock, sentinel, create_autospec, Mock, call
 from pymongo.errors import OperationFailure, AutoReconnect
 from pymongo.mongo_client import MongoClient
 
-from arctic.arctic import (
-    Arctic,
-    ArcticLibraryBinding,
-    register_library_type,
-    LIBRARY_TYPES,
-)
+from arctic.arctic import Arctic, ArcticLibraryBinding, register_library_type, LIBRARY_TYPES
 from arctic.auth import Credential
-from arctic.exceptions import (
-    LibraryNotFoundException,
-    ArcticException,
-    QuotaExceededException,
-)
+from arctic.exceptions import LibraryNotFoundException, ArcticException, QuotaExceededException
 from arctic._cache import Cache
 
 
 def test_arctic_lazy_init():
-    with patch(
-        "pymongo.MongoClient", return_value=MagicMock(), autospec=True
-    ) as mc, patch(
+    with patch("pymongo.MongoClient", return_value=MagicMock(), autospec=True) as mc, patch(
         "arctic.arctic.mongo_retry", side_effect=lambda x: x, autospec=True
-    ), patch(
-        "arctic.arctic.get_auth", autospec=True
-    ) as ga:
+    ), patch("arctic.arctic.get_auth", autospec=True) as ga:
         store = Arctic("cluster")
         assert not mc.called
         # do something to trigger lazy arctic init
@@ -39,13 +26,9 @@ def test_arctic_lazy_init():
 
 
 def test_arctic_lazy_init_ssl_true():
-    with patch(
-        "pymongo.MongoClient", return_value=MagicMock(), autospec=True
-    ) as mc, patch(
+    with patch("pymongo.MongoClient", return_value=MagicMock(), autospec=True) as mc, patch(
         "arctic.arctic.mongo_retry", side_effect=lambda x: x, autospec=True
-    ), patch(
-        "arctic.arctic.get_auth", autospec=True
-    ) as ga:
+    ), patch("arctic.arctic.get_auth", autospec=True) as ga:
         store = Arctic("cluster", ssl=True)
         assert not mc.called
         # do something to trigger lazy arctic init
@@ -65,9 +48,7 @@ def test_arctic_lazy_init_ssl_true():
 def test_connection_passed_warning_raised():
     with patch("pymongo.MongoClient", return_value=MagicMock(), autospec=True), patch(
         "arctic.arctic.mongo_retry", side_effect=lambda x: x, autospec=True
-    ), patch("arctic.arctic.get_auth", autospec=True), patch(
-        "arctic.arctic.logger"
-    ) as lg:
+    ), patch("arctic.arctic.get_auth", autospec=True), patch("arctic.arctic.logger") as lg:
         magic_mock = MagicMock(nodes={("host", "port")})
         store = Arctic(magic_mock, ssl=True)
         # Increment _pid to simulate forking the process
@@ -94,9 +75,7 @@ def test_arctic_auth():
         # Get a 'missing' library
         with pytest.raises(LibraryNotFoundException):
             with patch(
-                "arctic.arctic.ArcticLibraryBinding.get_library_type",
-                return_value=None,
-                autospec=True,
+                "arctic.arctic.ArcticLibraryBinding.get_library_type", return_value=None, autospec=True
             ):
                 ga.return_value = Credential("db", "user", "pass")
                 store._conn["arctic_jblackburn"].name = "arctic_jblackburn"
@@ -104,9 +83,7 @@ def test_arctic_auth():
 
         # Creating the library will have attempted to auth against it
         ga.assert_called_once_with("cluster", "arctic", "arctic_jblackburn")
-        store._conn["arctic_jblackburn"].authenticate.assert_called_once_with(
-            "user", "pass"
-        )
+        store._conn["arctic_jblackburn"].authenticate.assert_called_once_with("user", "pass")
 
 
 def test_arctic_auth_custom_app_name():
@@ -123,26 +100,20 @@ def test_arctic_auth_custom_app_name():
         # Get a 'missing' library
         with pytest.raises(LibraryNotFoundException):
             with patch(
-                "arctic.arctic.ArcticLibraryBinding.get_library_type",
-                return_value=None,
-                autospec=True,
+                "arctic.arctic.ArcticLibraryBinding.get_library_type", return_value=None, autospec=True
             ):
                 ga.return_value = Credential("db", "user", "pass")
                 store._conn["arctic_jblackburn"].name = "arctic_jblackburn"
                 store["jblackburn.library"]
 
         # Creating the library will have attempted to auth against it
-        assert ga.call_args_list == [
-            call("cluster", sentinel.app_name, "arctic_jblackburn")
-        ]
+        assert ga.call_args_list == [call("cluster", sentinel.app_name, "arctic_jblackburn")]
 
 
 def test_arctic_connect_hostname():
-    with patch(
-        "pymongo.MongoClient", return_value=MagicMock(), autospec=True
-    ) as mc, patch("arctic.arctic.mongo_retry", autospec=True) as ar, patch(
-        "arctic.arctic.get_mongodb_uri", autospec=True
-    ) as gmu:
+    with patch("pymongo.MongoClient", return_value=MagicMock(), autospec=True) as mc, patch(
+        "arctic.arctic.mongo_retry", autospec=True
+    ) as ar, patch("arctic.arctic.get_mongodb_uri", autospec=True) as gmu:
         store = Arctic(
             "hostname",
             socketTimeoutMS=sentinel.socket_timeout,
@@ -161,13 +132,9 @@ def test_arctic_connect_hostname():
 
 
 def test_arctic_connect_with_environment_name():
-    with patch(
-        "pymongo.MongoClient", return_value=MagicMock(), autospec=True
-    ) as mc, patch("arctic.arctic.mongo_retry", autospec=True) as ar, patch(
-        "arctic.arctic.get_auth", autospec=True
-    ), patch(
-        "arctic.arctic.get_mongodb_uri"
-    ) as gmfe:
+    with patch("pymongo.MongoClient", return_value=MagicMock(), autospec=True) as mc, patch(
+        "arctic.arctic.mongo_retry", autospec=True
+    ) as ar, patch("arctic.arctic.get_auth", autospec=True), patch("arctic.arctic.get_mongodb_uri") as gmfe:
         store = Arctic(
             "live",
             socketTimeoutMS=sentinel.socket_timeout,
@@ -280,9 +247,7 @@ def test_check_quota_countdown():
 
 
 def test_check_quota():
-    self = create_autospec(
-        ArcticLibraryBinding, database_name="arctic_db", library="lib"
-    )
+    self = create_autospec(ArcticLibraryBinding, database_name="arctic_db", library="lib")
     self.arctic = create_autospec(Arctic)
     self.get_library_metadata.return_value = 1024 * 1024 * 1024
     self.quota_countdown = 0
@@ -297,18 +262,12 @@ def test_check_quota():
 
 
 def test_check_quota_90_percent():
-    self = create_autospec(
-        ArcticLibraryBinding, database_name="arctic_db", library="lib"
-    )
+    self = create_autospec(ArcticLibraryBinding, database_name="arctic_db", library="lib")
     self.arctic = create_autospec(Arctic)
     self.get_library_metadata.return_value = 1024 * 1024 * 1024
     self.quota_countdown = 0
     self.arctic.__getitem__.return_value = Mock(
-        stats=Mock(
-            return_value={
-                "totals": {"size": 0.91 * 1024 * 1024 * 1024, "count": 1000000}
-            }
-        )
+        stats=Mock(return_value={"totals": {"size": 0.91 * 1024 * 1024 * 1024, "count": 1000000}})
     )
     with patch("arctic.arctic.logger.warning") as warn:
         ArcticLibraryBinding.check_quota(self)
@@ -317,9 +276,7 @@ def test_check_quota_90_percent():
 
 
 def test_check_quota_info():
-    self = create_autospec(
-        ArcticLibraryBinding, database_name="arctic_db", library="lib"
-    )
+    self = create_autospec(ArcticLibraryBinding, database_name="arctic_db", library="lib")
     self.arctic = create_autospec(Arctic)
     self.get_library_metadata.return_value = 1024 * 1024 * 1024
     self.quota_countdown = 0
@@ -334,9 +291,7 @@ def test_check_quota_info():
 
 
 def test_check_quota_exceeded():
-    self = create_autospec(
-        ArcticLibraryBinding, database_name="arctic_db", library="lib"
-    )
+    self = create_autospec(ArcticLibraryBinding, database_name="arctic_db", library="lib")
     self.arctic = create_autospec(Arctic)
     self.get_library_metadata.return_value = 1024 * 1024 * 1024
     self.quota_countdown = 0
@@ -356,20 +311,14 @@ def test_initialize_library():
     lib.database_name = sentinel.db_name
     lib.get_quota.return_value = None
     lib_type = Mock()
-    with patch.dict(
-        "arctic.arctic.LIBRARY_TYPES", {sentinel.lib_type: lib_type}
-    ), patch(
+    with patch.dict("arctic.arctic.LIBRARY_TYPES", {sentinel.lib_type: lib_type}), patch(
         "arctic.arctic.ArcticLibraryBinding", return_value=lib, autospec=True
     ) as ML:
-        Arctic.initialize_library(
-            self, sentinel.lib_name, sentinel.lib_type, thing=sentinel.thing
-        )
+        Arctic.initialize_library(self, sentinel.lib_name, sentinel.lib_type, thing=sentinel.thing)
     assert ML.call_args_list == [call(self, sentinel.lib_name)]
     assert ML.return_value.set_library_type.call_args_list == [call(sentinel.lib_type)]
     assert ML.return_value.set_quota.call_args_list == [call(10 * 1024 * 1024 * 1024)]
-    assert lib_type.initialize_library.call_args_list == [
-        call(ML.return_value, thing=sentinel.thing)
-    ]
+    assert lib_type.initialize_library.call_args_list == [call(ML.return_value, thing=sentinel.thing)]
 
 
 def test_initialize_library_too_many_ns():
@@ -383,18 +332,11 @@ def test_initialize_library_too_many_ns():
     ]
     lib_type = Mock()
     with pytest.raises(ArcticException) as e:
-        with patch.dict(
-            "arctic.arctic.LIBRARY_TYPES", {sentinel.lib_type: lib_type}
-        ), patch(
+        with patch.dict("arctic.arctic.LIBRARY_TYPES", {sentinel.lib_type: lib_type}), patch(
             "arctic.arctic.ArcticLibraryBinding", return_value=lib, autospec=True
         ) as ML:
-            Arctic.initialize_library(
-                self, sentinel.lib_name, sentinel.lib_type, thing=sentinel.thing
-            )
-    assert self._conn.__getitem__.call_args_list == [
-        call(sentinel.db_name),
-        call(sentinel.db_name),
-    ]
+            Arctic.initialize_library(self, sentinel.lib_name, sentinel.lib_type, thing=sentinel.thing)
+    assert self._conn.__getitem__.call_args_list == [call(sentinel.db_name), call(sentinel.db_name)]
     assert lib_type.initialize_library.call_count == 0
     assert "Too many namespaces 5001, not creating: sentinel.lib_name" in str(e)
 
@@ -410,24 +352,16 @@ def test_initialize_library_with_list_coll_names():
         x for x in six.moves.xrange(5001)
     ]
     lib_type = Mock()
-    with patch.dict(
-        "arctic.arctic.LIBRARY_TYPES", {sentinel.lib_type: lib_type}
-    ), patch(
+    with patch.dict("arctic.arctic.LIBRARY_TYPES", {sentinel.lib_type: lib_type}), patch(
         "arctic.arctic.ArcticLibraryBinding", return_value=lib, autospec=True
     ) as ML:
         Arctic.initialize_library(
-            self,
-            sentinel.lib_name,
-            sentinel.lib_type,
-            thing=sentinel.thing,
-            check_library_count=False,
+            self, sentinel.lib_name, sentinel.lib_type, thing=sentinel.thing, check_library_count=False
         )
     assert ML.call_args_list == [call(self, sentinel.lib_name)]
     assert ML.return_value.set_library_type.call_args_list == [call(sentinel.lib_type)]
     assert ML.return_value.set_quota.call_args_list == [call(10 * 1024 * 1024 * 1024)]
-    assert lib_type.initialize_library.call_args_list == [
-        call(ML.return_value, thing=sentinel.thing)
-    ]
+    assert lib_type.initialize_library.call_args_list == [call(ML.return_value, thing=sentinel.thing)]
 
 
 def test_library_exists():
@@ -464,10 +398,7 @@ def test_get_library_not_initialized():
     ) as ML:
         ML.return_value.get_library_type.return_value = None
         Arctic.get_library(self, sentinel.lib_name)
-    assert "Library %s was not correctly initialized in %s." % (
-        sentinel.lib_name,
-        self,
-    ) in str(e)
+    assert "Library %s was not correctly initialized in %s." % (sentinel.lib_name, self) in str(e)
 
 
 def test_get_library_auth_issue():
@@ -480,10 +411,7 @@ def test_get_library_auth_issue():
             "database error: not authorized for query on arctic_marketdata.index.ARCTIC"
         )
         Arctic.get_library(self, sentinel.lib_name)
-    assert "Library %s was not correctly initialized in %s." % (
-        sentinel.lib_name,
-        self,
-    ) in str(e)
+    assert "Library %s was not correctly initialized in %s." % (sentinel.lib_name, self) in str(e)
 
 
 def test_get_library_not_registered():

@@ -3,12 +3,7 @@ import sys
 from functools import wraps
 from time import sleep
 
-from pymongo.errors import (
-    AutoReconnect,
-    OperationFailure,
-    DuplicateKeyError,
-    ServerSelectionTimeoutError,
-)
+from pymongo.errors import AutoReconnect, OperationFailure, DuplicateKeyError, ServerSelectionTimeoutError
 
 from .hooks import log_exception as _log_exception
 
@@ -24,9 +19,7 @@ def _get_host(store):
             if isinstance(store, (list, tuple)):
                 store = store[0]
             ret["l"] = store._arctic_lib.get_name()
-            ret["mnodes"] = [
-                "{}:{}".format(h, p) for h, p in store._collection.database.client.nodes
-            ]
+            ret["mnodes"] = ["{}:{}".format(h, p) for h, p in store._collection.database.client.nodes]
             ret["mhost"] = "{}".format(store._arctic_lib.arctic.mongo_host)
         except Exception:
             # Sometimes get_name(), for example, fails if we're not connected to MongoDB.

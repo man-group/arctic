@@ -21,11 +21,7 @@ from arctic._config import FwPointersCfg, FW_POINTERS_REFS_KEY
 from arctic._util import mongo_count, get_fwptr_config
 from arctic.date import DateRange
 from arctic.date._mktz import mktz
-from arctic.exceptions import (
-    NoDataFoundException,
-    DuplicateSnapshotException,
-    ArcticException,
-)
+from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException
 from arctic.store import _version_store_utils
 from arctic.store import version_store
 from tests.unit.serialization.serialization_test_data import _mixed_test_data
@@ -70,18 +66,12 @@ class FwPointersCtx:
         self.orig_value = arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_CFG
         arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_CFG = self.value_to_test
 
-        self.reconcile_orig_value = (
-            arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_RECONCILE
-        )
-        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_RECONCILE = (
-            self.do_reconcile
-        )
+        self.reconcile_orig_value = arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_RECONCILE
+        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_RECONCILE = self.do_reconcile
 
     def __exit__(self, *args):
         arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_CFG = self.orig_value
-        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_RECONCILE = (
-            self.reconcile_orig_value
-        )
+        arctic.store._ndarray_store.ARCTIC_FORWARD_POINTERS_RECONCILE = self.reconcile_orig_value
 
 
 from pymongo.cursor import _QUERY_OPTIONS
@@ -95,14 +85,14 @@ def _query(allow_secondary, library_name):
         versions_coll_name = data_coll_name + ".versions"
         if allow_secondary and coll_name in (data_coll_name, versions_coll_name):
             # Reads to the Version and Chunks collections are allowed to slaves
-            assert (
-                bool(options & _QUERY_OPTIONS["slave_okay"]) == allow_secondary
-            ), "{}: options:{}".format(coll_name, options)
+            assert bool(options & _QUERY_OPTIONS["slave_okay"]) == allow_secondary, "{}: options:{}".format(
+                coll_name, options
+            )
         elif ".$cmd" not in coll_name:
             # All other collections we force PRIMARY read.
-            assert (
-                bool(options & _QUERY_OPTIONS["slave_okay"]) == False
-            ), "{}: options:{}".format(coll_name, options)
+            assert bool(options & _QUERY_OPTIONS["slave_okay"]) == False, "{}: options:{}".format(
+                coll_name, options
+            )
         return __query(options, *args, **kwargs)
 
     return _internal_query
@@ -138,9 +128,7 @@ def test_store_item_new_version(library, library_name):
 def test_store_item_read_preference(library_secondary, library_name):
     with patch("arctic.arctic.ArcticLibraryBinding.check_quota"), patch(
         "pymongo.message.query", side_effect=_query(False, library_name)
-    ) as query, patch(
-        "pymongo.server_description.ServerDescription.server_type", SERVER_TYPE.Mongos
-    ):
+    ) as query, patch("pymongo.server_description.ServerDescription.server_type", SERVER_TYPE.Mongos):
         # write an item
         library_secondary.write(symbol, ts1)
         library_secondary.write(symbol, ts1_append, prune_previous_version=False)
@@ -154,9 +142,7 @@ def test_store_item_read_preference(library_secondary, library_name):
 def test_read_item_read_preference_SECONDARY(library_secondary, library_name):
     # write an item
     library_secondary.write(symbol, ts1)
-    with patch(
-        "pymongo.message.query", side_effect=_query(True, library_name)
-    ) as query, patch(
+    with patch("pymongo.message.query", side_effect=_query(True, library_name)) as query, patch(
         "pymongo.server_description.ServerDescription.server_type", SERVER_TYPE.Mongos
     ):
         library_secondary.read(symbol)
@@ -164,8 +150,7 @@ def test_read_item_read_preference_SECONDARY(library_secondary, library_name):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_query_falls_back_to_primary(library_secondary, library_name, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -185,8 +170,7 @@ def test_query_falls_back_to_primary(library_secondary, library_name, fw_pointer
 
         library_secondary.write(symbol, ts1)
         with patch("pymongo.message.query", side_effect=_query), patch(
-            "pymongo.server_description.ServerDescription.server_type",
-            SERVER_TYPE.Mongos,
+            "pymongo.server_description.ServerDescription.server_type", SERVER_TYPE.Mongos
         ):
             assert library_secondary.read(symbol) is not None
         # We raised at least once on a secondary read
@@ -194,8 +178,7 @@ def test_query_falls_back_to_primary(library_secondary, library_name, fw_pointer
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_store_item_metadata(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -209,8 +192,7 @@ def test_store_item_metadata(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_read_metadata(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -224,8 +206,7 @@ def test_read_metadata(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_read_metadata_newer_version_with_lower_id(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -251,8 +232,7 @@ def test_read_metadata_newer_version_with_lower_id(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_read_metadata_throws_on_deleted_symbol(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -264,8 +244,7 @@ def test_read_metadata_throws_on_deleted_symbol(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_store_item_and_update(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -311,8 +290,7 @@ def test_store_item_and_update(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_append_update(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -373,8 +351,7 @@ def test_append_update(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_append(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -384,8 +361,7 @@ def test_append(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_append_should_overwrite_after_delete(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -398,8 +374,7 @@ def test_append_should_overwrite_after_delete(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_append_empty_ts(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -411,8 +386,7 @@ def test_append_empty_ts(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_append_corrupted_new_version(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -428,9 +402,7 @@ def test_append_corrupted_new_version(library, fw_pointers_cfg):
         # Append version
         library.append(symbol, to_append)
         # The append went wrong, and the new version document (written last), not available
-        library._versions.find_one_and_delete(
-            {"symbol": symbol}, sort=[("version", pymongo.DESCENDING)]
-        )
+        library._versions.find_one_and_delete({"symbol": symbol}, sort=[("version", pymongo.DESCENDING)])
 
         # Should still be able to append new data
         library.append(symbol, to_append_2, upsert=True)
@@ -448,8 +420,7 @@ def test_query_version_as_of_int(library):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_list_version(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -458,9 +429,7 @@ def test_list_version(library, fw_pointers_cfg):
         now = dt.utcnow().replace(tzinfo=mktz("UTC"))
         for x in six.moves.xrange(len(dates)):
             dates[x] = now - dtd(minutes=130 - x)
-            with patch(
-                "bson.ObjectId", return_value=bson.ObjectId.from_datetime(dates[x])
-            ):
+            with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(dates[x])):
                 library.write(symbol, ts1, prune_previous_version=False)
         assert len(list(library.list_versions(symbol))) == 3
 
@@ -527,29 +496,19 @@ def test_list_version_snapshot(library):
 
     assert set(x["symbol"] for x in library.list_versions(snapshot="one")) == set(["A"])
 
-    assert set(x["symbol"] for x in library.list_versions(snapshot="two")) == set(
-        ["A", "B"]
-    )
+    assert set(x["symbol"] for x in library.list_versions(snapshot="two")) == set(["A", "B"])
 
-    assert set(x["symbol"] for x in library.list_versions(snapshot="three")) == set(
-        ["A", "B"]
-    )
+    assert set(x["symbol"] for x in library.list_versions(snapshot="three")) == set(["A", "B"])
 
-    assert [x["snapshots"] for x in library.list_versions(symbol="A")] == [
-        ["three"],
-        ["one", "two"],
-    ]
+    assert [x["snapshots"] for x in library.list_versions(symbol="A")] == [["three"], ["one", "two"]]
 
-    assert [x["snapshots"] for x in library.list_versions(symbol="B")] == [
-        ["two", "three"]
-    ]
+    assert [x["snapshots"] for x in library.list_versions(symbol="B")] == [["two", "three"]]
 
     assert all("parent" not in x for x in library.list_versions(symbol="C"))
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_delete_versions(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -577,8 +536,7 @@ def test_delete_versions(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_delete_bson_versions(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -611,8 +569,7 @@ def test_delete_bson_versions(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_read_none_does_not_exception(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -621,8 +578,7 @@ def test_read_none_does_not_exception(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_delete_item_has_symbol(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -643,8 +599,7 @@ def test_delete_item_has_symbol(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_delete_item_snapshot(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -688,8 +643,7 @@ def test_has_symbol(library):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_snapshot(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -722,8 +676,7 @@ def test_snapshot(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_snapshot_with_versions(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -767,8 +720,7 @@ def test_snapshot_with_versions(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_snapshot_exclusion(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -780,8 +732,7 @@ def test_snapshot_exclusion(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_snapshot_delete(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -806,8 +757,7 @@ def test_snapshot_delete(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_multiple_snapshots(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -861,8 +811,7 @@ def test_duplicate_snapshots(library):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_prunes_multiple_versions(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -872,25 +821,13 @@ def test_prunes_multiple_versions(library, fw_pointers_cfg):
         c = [{"c": "d"}]
         # Create an ObjectId
         now = dt.utcnow()
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125))):
             library.write(symbol, a, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=122)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=122))):
             library.write(symbol, c, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=121)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=121))):
             library.write(symbol, a, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119))):
             library.write(symbol, c, prune_previous_version=False)
         assert mongo_count(coll.versions) == 4
 
@@ -903,8 +840,7 @@ def test_prunes_multiple_versions(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_prunes_doesnt_prune_snapshots(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -913,26 +849,14 @@ def test_prunes_doesnt_prune_snapshots(library, fw_pointers_cfg):
         a = [{"a": "b"}]
         c = [{"c": "d"}]
         now = dt.utcnow()
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125))):
             library.write(symbol, a, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=122)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=122))):
             library.write(symbol, c, prune_previous_version=False)
         library.snapshot("snap")
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=121)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=121))):
             library.write(symbol, a, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119))):
             library.write(symbol, c, prune_previous_version=False)
         assert mongo_count(coll.versions) == 4
 
@@ -955,8 +879,7 @@ def test_prunes_doesnt_prune_snapshots(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_prunes_multiple_versions_ts(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -965,25 +888,13 @@ def test_prunes_multiple_versions_ts(library, fw_pointers_cfg):
         c = ts2
         # Create an ObjectId
         now = dt.utcnow()
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125))):
             library.write(symbol, a, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=122)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=122))):
             library.write(symbol, c, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=121)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=121))):
             library.write(symbol, a, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119))):
             library.write(symbol, c, prune_previous_version=False)
         assert mongo_count(coll.versions) == 4
 
@@ -996,8 +907,7 @@ def test_prunes_multiple_versions_ts(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_prunes_doesnt_prune_snapshots_ts(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1006,26 +916,14 @@ def test_prunes_doesnt_prune_snapshots_ts(library, fw_pointers_cfg):
         a = ts1
         c = ts2
         now = dt.utcnow()
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125))):
             library.write(symbol, a, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=122)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=122))):
             library.write(symbol, c, prune_previous_version=False)
         library.snapshot("snap")
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=121)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=121))):
             library.write(symbol, a, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119))):
             library.write(symbol, c, prune_previous_version=False)
         assert mongo_count(coll.versions) == 4
 
@@ -1048,8 +946,7 @@ def test_prunes_doesnt_prune_snapshots_ts(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_prunes_multiple_versions_fully_different_tss(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1062,31 +959,16 @@ def test_prunes_multiple_versions_fully_different_tss(library, fw_pointers_cfg):
         c.index.name = b.index.name
         # Create an ObjectId
         now = dt.utcnow()
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125))):
             library.write(symbol, a, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=124)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=124))):
             library.write(symbol, b, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=122)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=122))):
             library.write(symbol, c, prune_previous_version=False)
         # a b and c versions above will be pruned a and b share months
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=121)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=121))):
             library.write(symbol, c, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119))):
             library.write(symbol, c, prune_previous_version=False)
         assert mongo_count(coll.versions) == 5
 
@@ -1098,8 +980,7 @@ def test_prunes_multiple_versions_fully_different_tss(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_prunes_doesnt_prune_snapshots_fully_different_tss(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1111,36 +992,18 @@ def test_prunes_doesnt_prune_snapshots_fully_different_tss(library, fw_pointers_
         c.index = [i + dtd(days=365) for i in c.index]
         c.index.name = b.index.name
         now = dt.utcnow()
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=125))):
             library.write(symbol, a, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=123)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=123))):
             library.write(symbol, b, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=122)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=122))):
             library.write(symbol, c, prune_previous_version=False)
         library.snapshot("snap")
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=121)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=121))):
             library.write(symbol, c, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=118)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=118))):
             library.write(symbol, c, prune_previous_version=False)
-        with patch(
-            "bson.ObjectId",
-            return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119)),
-        ):
+        with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=119))):
             library.write(symbol, c, prune_previous_version=False)
         assert mongo_count(coll.versions) == 6
 
@@ -1163,8 +1026,7 @@ def test_prunes_doesnt_prune_snapshots_fully_different_tss(library, fw_pointers_
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_prunes_previous_version_append_interaction(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1257,8 +1119,7 @@ def test_prunes_previous_version_append_interaction(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_list_symbols(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1275,8 +1136,7 @@ def test_list_symbols(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_list_symbols_regex(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1298,8 +1158,7 @@ def test_list_symbols_regex(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_list_symbols_newer_version_with_lower_id(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1323,8 +1182,7 @@ def test_list_symbols_newer_version_with_lower_id(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_list_symbols_write_snapshot_write_delete(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1341,8 +1199,7 @@ def test_list_symbols_write_snapshot_write_delete(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_list_symbols_delete_write(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1354,8 +1211,7 @@ def test_list_symbols_delete_write(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_date_range_large(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1370,8 +1226,7 @@ def test_date_range_large(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_append_after_empty(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1400,30 +1255,21 @@ def _rnd_df(nrows, ncols):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_write_metadata(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         symbol = "FTL"
         mydf_a, mydf_b = _rnd_df(10, 5), _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
-            library.write(
-                symbol, data=mydf_b, metadata={"field_a": 2}
-            )  # creates version 2
-            library.write_metadata(
-                symbol, metadata={"field_b": 1}
-            )  # creates version 3 (only metadata)
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
+            library.write(symbol, data=mydf_b, metadata={"field_a": 2})  # creates version 2
+            library.write_metadata(symbol, metadata={"field_b": 1})  # creates version 3 (only metadata)
 
             v_doc_2 = library._versions.find_one({"symbol": symbol, "version": 2})
             v_doc_3 = library._versions.find_one({"symbol": symbol, "version": 3})
             assert get_fwptr_config(v_doc_2) is fw_pointers_cfg
-            assert v_doc_2.get(FW_POINTERS_REFS_KEY) == v_doc_3.get(
-                FW_POINTERS_REFS_KEY
-            )
+            assert v_doc_2.get(FW_POINTERS_REFS_KEY) == v_doc_3.get(FW_POINTERS_REFS_KEY)
 
             v = library.read(symbol)
             assert_frame_equal(v.data, mydf_b)
@@ -1433,23 +1279,16 @@ def test_write_metadata(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_write_metadata_followed_by_append(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         symbol = "FTL"
         mydf_a, mydf_b = _rnd_df(10, 5), _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
-            library.write_metadata(
-                symbol, metadata={"field_b": 1}
-            )  # creates version 2 (only metadata)
-            library.append(
-                symbol, data=mydf_b, metadata={"field_c": 1}
-            )  # creates version 3
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
+            library.write_metadata(symbol, metadata={"field_b": 1})  # creates version 2 (only metadata)
+            library.append(symbol, data=mydf_b, metadata={"field_c": 1})  # creates version 3
 
             # Trigger GC now
             time.sleep(2)
@@ -1463,16 +1302,13 @@ def test_write_metadata_followed_by_append(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_write_metadata_new_symbol(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         symbol = "FTL"
         with patch("arctic.arctic.logger.info") as info:
-            library.write_metadata(
-                symbol, metadata={"field_b": 1}
-            )  # creates version 1 (only metadata)
+            library.write_metadata(symbol, metadata={"field_b": 1})  # creates version 1 (only metadata)
             v = library.read(symbol)
             assert v.data == None
             assert v.metadata == {"field_b": 1}
@@ -1480,20 +1316,15 @@ def test_write_metadata_new_symbol(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_write_metadata_after_append(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         symbol = "FTL"
         mydf_a, mydf_b = _rnd_df(10, 5), _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
-            library.append(
-                symbol, data=mydf_b, metadata={"field_a": 2}
-            )  # creates version 2
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
+            library.append(symbol, data=mydf_b, metadata={"field_a": 2})  # creates version 2
             library.write_metadata(symbol, metadata={"field_b": 1})  # creates version 3
             v = library.read(symbol)
             assert_frame_equal(v.data, mydf_a.append(mydf_b))
@@ -1502,8 +1333,7 @@ def test_write_metadata_after_append(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_write_metadata_purge_previous_versions(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1511,16 +1341,10 @@ def test_write_metadata_purge_previous_versions(library, fw_pointers_cfg):
         mydf_a, mydf_b, mydf_c = _rnd_df(10, 5), _rnd_df(10, 5), _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
             with FwPointersCtx(fw_pointers_cfg):
-                library.write(
-                    symbol, data=mydf_a, metadata={"field_a": 1}
-                )  # creates version 1
-                library.write(
-                    symbol, data=mydf_b, metadata={"field_a": 2}
-                )  # creates version 2
+                library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
+                library.write(symbol, data=mydf_b, metadata={"field_a": 2})  # creates version 2
                 assert library._read_metadata(symbol).get("version") == 2
-                library.write_metadata(
-                    symbol, metadata={"field_b": 1}
-                )  # creates version 3 (only metadata)
+                library.write_metadata(symbol, metadata={"field_b": 1})  # creates version 3 (only metadata)
 
                 # Trigger GC now
                 library._prune_previous_versions(symbol, 0)
@@ -1536,15 +1360,12 @@ def test_write_metadata_purge_previous_versions(library, fw_pointers_cfg):
                 library.delete(symbol)
                 v = library.read(symbol, as_of="SNAP_1")
                 assert_frame_equal(v.data, mydf_b)
-                assert (
-                    library._read_metadata(symbol, as_of="SNAP_1").get("version") == 3
-                )
+                assert library._read_metadata(symbol, as_of="SNAP_1").get("version") == 3
                 assert v.metadata == {"field_b": 1}
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_write_metadata_delete_symbol(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1552,44 +1373,31 @@ def test_write_metadata_delete_symbol(library, fw_pointers_cfg):
         mydf_a = _rnd_df(10, 5)
         mydf_b = _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
-            library.write_metadata(
-                symbol, metadata={"field_b": 1}
-            )  # creates version 2 (only metadata)
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
+            library.write_metadata(symbol, metadata={"field_b": 1})  # creates version 2 (only metadata)
 
             library.delete(symbol)
 
             with pytest.raises(NoDataFoundException):
                 library.read(symbol)
 
-            library.write(
-                symbol, data=mydf_b, metadata={"field_a": 1}
-            )  # creates version 1
+            library.write(symbol, data=mydf_b, metadata={"field_a": 1})  # creates version 1
             assert_frame_equal(library.read(symbol).data, mydf_b)
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_write_metadata_snapshots(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         symbol = "FTL"
         mydf_a, mydf_b = _rnd_df(10, 5), _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
             library.snapshot("SNAP_1")
-            library.write_metadata(
-                symbol, metadata={"field_b": 1}
-            )  # creates version 2 (only metadata)
+            library.write_metadata(symbol, metadata={"field_b": 1})  # creates version 2 (only metadata)
             library.snapshot("SNAP_2")
-            library.write(
-                symbol, data=mydf_b, metadata={"field_c": 1}
-            )  # creates version 3
+            library.write(symbol, data=mydf_b, metadata={"field_c": 1})  # creates version 3
             library.snapshot("SNAP_3")
 
             library._prune_previous_versions(symbol, keep_mins=0)
@@ -1608,8 +1416,7 @@ def test_write_metadata_snapshots(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_restore_version(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1617,12 +1424,8 @@ def test_restore_version(library, fw_pointers_cfg):
         mydf_a = _rnd_df(10, 5)
         mydf_b = _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
-            library.write(
-                symbol, data=mydf_b, metadata={"field_a": 2}
-            )  # creates version 2
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
+            library.write(symbol, data=mydf_b, metadata={"field_a": 2})  # creates version 2
 
             item = library.read(symbol)
             assert_frame_equal(item.data, mydf_b)
@@ -1640,8 +1443,7 @@ def test_restore_version(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_restore_version_followed_by_append(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1650,20 +1452,14 @@ def test_restore_version_followed_by_append(library, fw_pointers_cfg):
         mydf_b = _rnd_df(10, 5)
         mydf_c = _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
-            library.write(
-                symbol, data=mydf_b, metadata={"field_b": 2}
-            )  # creates version 2
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
+            library.write(symbol, data=mydf_b, metadata={"field_b": 2})  # creates version 2
 
             restore_item = library.restore_version(symbol, as_of=1)  # creates version 3
             assert restore_item.version == 3
             assert restore_item.metadata == {"field_a": 1}
 
-            library.append(
-                symbol, data=mydf_c, metadata={"field_c": 3}
-            )  # creates version 4
+            library.append(symbol, data=mydf_c, metadata={"field_c": 3})  # creates version 4
 
             # Trigger GC now
             library._prune_previous_versions(symbol, 0)
@@ -1676,8 +1472,7 @@ def test_restore_version_followed_by_append(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_restore_version_purging_previous_versions(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1685,12 +1480,8 @@ def test_restore_version_purging_previous_versions(library, fw_pointers_cfg):
         mydf_a = _rnd_df(10, 5)
         mydf_b = _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
-            library.write(
-                symbol, data=mydf_b, metadata={"field_a": 2}
-            )  # creates version 2
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
+            library.write(symbol, data=mydf_b, metadata={"field_a": 2})  # creates version 2
 
             restore_item = library.restore_version(symbol, as_of=1)  # creates version 3
             assert restore_item.version == 3
@@ -1709,17 +1500,14 @@ def test_restore_version_purging_previous_versions(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_restore_version_non_existent_version(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         symbol = "FTL"
         mydf_a = _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
 
             with pytest.raises(NoDataFoundException):
                 library.restore_version(symbol, as_of=3)
@@ -1731,8 +1519,7 @@ def test_restore_version_non_existent_version(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_restore_version_which_updated_only_metadata(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1740,9 +1527,7 @@ def test_restore_version_which_updated_only_metadata(library, fw_pointers_cfg):
         mydf_a = _rnd_df(10, 5)
         mydf_b = _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
             library.write_metadata(symbol, metadata={"field_b": 1})  # creates version 2
             library.write(symbol, data=mydf_b)  # creates version 3
 
@@ -1757,8 +1542,7 @@ def test_restore_version_which_updated_only_metadata(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_restore_version_then_snapshot(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1766,9 +1550,7 @@ def test_restore_version_then_snapshot(library, fw_pointers_cfg):
         mydf_a = _rnd_df(10, 5)
         mydf_b = _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
             library.write_metadata(symbol, metadata={"field_b": 1})  # creates version 2
 
             restore_item = library.restore_version(symbol, as_of=1)  # creates version 3
@@ -1785,23 +1567,18 @@ def test_restore_version_then_snapshot(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_restore_version_latest_snapshot_noop(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         symbol = "FTL"
         mydf_a = _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
             library.write_metadata(symbol, metadata={"field_b": 1})  # creates version 2
             library.snapshot("SNAP_1")
 
-            restore_item = library.restore_version(
-                symbol, as_of="SNAP_1"
-            )  # does not create a new version
+            restore_item = library.restore_version(symbol, as_of="SNAP_1")  # does not create a new version
             assert restore_item.metadata == {"field_b": 1}
             assert restore_item.version == 2
 
@@ -1812,22 +1589,17 @@ def test_restore_version_latest_snapshot_noop(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_restore_version_latest_version_noop(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         symbol = "FTL"
         mydf_a = _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
             library.write_metadata(symbol, metadata={"field_b": 1})  # creates version 2
 
-            restore_item = library.restore_version(
-                symbol, as_of=2
-            )  # does not create a new version
+            restore_item = library.restore_version(symbol, as_of=2)  # does not create a new version
             assert restore_item.metadata == {"field_b": 1}
             assert restore_item.version == 2
 
@@ -1838,17 +1610,14 @@ def test_restore_version_latest_version_noop(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_restore_version_snap_delete_symbol_restore(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         symbol = "FTL"
         mydf = _rnd_df(20, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf[:10], metadata={"field_a": 1}
-            )  # creates version 1
+            library.write(symbol, data=mydf[:10], metadata={"field_a": 1})  # creates version 1
             library.append(symbol, data=mydf[10:15])  # version 2
             library.snapshot("snapA")
 
@@ -1866,17 +1635,14 @@ def test_restore_version_snap_delete_symbol_restore(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_restore_from_version_with_deleted_symbol(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         symbol = "FTL"
         mydf_a = _rnd_df(10, 5)
         with patch("arctic.arctic.logger.info") as info:
-            library.write(
-                symbol, data=mydf_a, metadata={"field_a": 1}
-            )  # creates version 1
+            library.write(symbol, data=mydf_a, metadata={"field_a": 1})  # creates version 1
             library.delete(symbol)
 
             with pytest.raises(NoDataFoundException):
@@ -1884,8 +1650,7 @@ def test_restore_from_version_with_deleted_symbol(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_prune_previous_versions_retries_on_cleanup_error(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1903,27 +1668,15 @@ def test_prune_previous_versions_retries_on_cleanup_error(library, fw_pointers_c
         library.write(symbol, ts1)
         library.write(symbol, ts2)
 
-        with patch(
-            "arctic.store.version_store.cleanup", side_effect=_cleanup
-        ) as cleanup:
+        with patch("arctic.store.version_store.cleanup", side_effect=_cleanup) as cleanup:
             cleanup.__name__ = "cleanup"  # required by functools.wraps
             library._prune_previous_versions(symbol, keep_mins=0)
 
-        assert (
-            len(
-                list(
-                    library._arctic_lib.get_top_level_collection().find(
-                        {"symbol": symbol}
-                    )
-                )
-            )
-            == 1
-        )
+        assert len(list(library._arctic_lib.get_top_level_collection().find({"symbol": symbol}))) == 1
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_prune_previous_versions_retries_find_calls(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -1933,9 +1686,7 @@ def test_prune_previous_versions_retries_find_calls(library, fw_pointers_cfg):
 
         def _next(*args, **kwargs):
             vs_caller_name = next(
-                c
-                for c in inspect.stack()
-                if c[1].endswith("arctic/store/version_store.py")
+                c for c in inspect.stack() if c[1].endswith("arctic/store/version_store.py")
             )[3]
             if vs_caller_name not in callers:
                 callers.add(vs_caller_name)
@@ -1946,24 +1697,18 @@ def test_prune_previous_versions_retries_find_calls(library, fw_pointers_cfg):
         library.write(symbol, ts1, prune_previous_version=False)
         library.write(symbol, ts2, prune_previous_version=False)
 
-        with patch.object(
-            pymongo.cursor.Cursor, "next", autospec=True, side_effect=_next
-        ):
+        with patch.object(pymongo.cursor.Cursor, "next", autospec=True, side_effect=_next):
             library._prune_previous_versions(symbol, keep_mins=0)
 
         assert mongo_count(library._versions, filter={"symbol": symbol}) == 1
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_append_does_not_duplicate_data_when_prune_fails(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
-        side_effect = [
-            OperationFailure(0),
-            arctic.store.version_store.VersionStore._prune_previous_versions,
-        ]
+        side_effect = [OperationFailure(0), arctic.store.version_store.VersionStore._prune_previous_versions]
         new_data = read_str_as_pandas(
             """times | near
         2013-01-01 17:06:11.040 |  7.0
@@ -1986,16 +1731,12 @@ def test_append_does_not_duplicate_data_when_prune_fails(library, fw_pointers_cf
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_write_does_not_succeed_with_a_prune_error(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         # More than max retries OperationFailure would be more realistic, but ValueError is used for simplicity
-        side_effect = [
-            ValueError,
-            arctic.store.version_store.VersionStore._prune_previous_versions,
-        ]
+        side_effect = [ValueError, arctic.store.version_store.VersionStore._prune_previous_versions]
         library.write(symbol, ts1)
 
         with patch.object(
@@ -2011,17 +1752,13 @@ def test_write_does_not_succeed_with_a_prune_error(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_prune_keeps_version(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         library.write(symbol, ts1)
         library.write(symbol, ts1)
-        old_version = [
-            v["_id"]
-            for v in library._versions.find({"symbol": symbol}, sort=[("_id", 1)])
-        ][0]
+        old_version = [v["_id"] for v in library._versions.find({"symbol": symbol}, sort=[("_id", 1)])][0]
 
         library._prune_previous_versions(symbol, keep_mins=0, keep_version=old_version)
 
@@ -2037,8 +1774,7 @@ def test_empty_string_column_name(library):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_snapshot_list_versions_after_delete(library, library_name, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -2049,11 +1785,7 @@ def test_snapshot_list_versions_after_delete(library, library_name, fw_pointers_
 
         library.delete("symC")
 
-        assert {v["symbol"] for v in library.list_versions(snapshot="snapA")} == {
-            "symA",
-            "symB",
-            "symC",
-        }
+        assert {v["symbol"] for v in library.list_versions(snapshot="snapA")} == {"symA", "symB", "symC"}
 
 
 def test_write_non_serializable_throws(arctic):
@@ -2074,8 +1806,7 @@ def test_write_non_serializable_throws(arctic):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_write_non_serializable_pickling_default(arctic, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -2088,8 +1819,7 @@ def test_write_non_serializable_pickling_default(arctic, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_write_strict_no_daterange(arctic, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -2105,9 +1835,7 @@ def test_write_strict_no_daterange(arctic, fw_pointers_cfg):
             # When the option is set, we should now be unable to read this item when we specify a
             # date range, even though it was written successfully
             with pytest.raises(ArcticException):
-                library.read(
-                    "ns4", date_range=DateRange(dt(2017, 1, 1), dt(2017, 1, 2))
-                )
+                library.read("ns4", date_range=DateRange(dt(2017, 1, 1), dt(2017, 1, 2)))
 
             assert data == library.read("ns4").data
 
@@ -2165,8 +1893,7 @@ def test_write_series_with_some_objects(library, input_series):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_can_write_tz_aware_data_df(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -2174,19 +1901,13 @@ def test_can_write_tz_aware_data_df(library, fw_pointers_cfg):
         library.write(symbol="symTz", data=mydf)
         read_data = library.read(symbol="symTz").data
         # Arctic converts by default the data to UTC, convert back
-        read_data.colB = read_data.colB.dt.tz_localize("UTC").dt.tz_convert(
-            read_data.index.tzinfo
-        )
-        assert (
-            library._versions.find_one({"symbol": "symTz"})["type"]
-            == PandasDataFrameStore.TYPE
-        )
+        read_data.colB = read_data.colB.dt.tz_localize("UTC").dt.tz_convert(read_data.index.tzinfo)
+        assert library._versions.find_one({"symbol": "symTz"})["type"] == PandasDataFrameStore.TYPE
         assert_frame_equal(mydf, read_data)
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_can_write_tz_aware_data_series(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -2194,110 +1915,39 @@ def test_can_write_tz_aware_data_series(library, fw_pointers_cfg):
         library.write(symbol="symTzSer", data=myseries)
         read_data = library.read(symbol="symTzSer").data
         # Arctic converts by default the data to UTC, convert back
-        read_data = read_data.dt.tz_localize("UTC").dt.tz_convert(
-            read_data.index.tzinfo
-        )
-        assert (
-            library._versions.find_one({"symbol": "symTzSer"})["type"]
-            == PandasSeriesStore.TYPE
-        )
+        read_data = read_data.dt.tz_localize("UTC").dt.tz_convert(read_data.index.tzinfo)
+        assert library._versions.find_one({"symbol": "symTzSer"})["type"] == PandasSeriesStore.TYPE
         assert_series_equal(myseries, read_data)
 
 
 @pytest.mark.parametrize(
     "write_cfg, read_cfg, append_cfg, reread_cfg",
     [
-        (
-            FwPointersCfg.DISABLED,
-            FwPointersCfg.DISABLED,
-            FwPointersCfg.DISABLED,
-            FwPointersCfg.DISABLED,
-        ),
-        (
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.ENABLED,
-        ),
-        (
-            FwPointersCfg.HYBRID,
-            FwPointersCfg.HYBRID,
-            FwPointersCfg.HYBRID,
-            FwPointersCfg.HYBRID,
-        ),
-        (
-            FwPointersCfg.HYBRID,
-            FwPointersCfg.DISABLED,
-            FwPointersCfg.HYBRID,
-            FwPointersCfg.DISABLED,
-        ),
-        (
-            FwPointersCfg.HYBRID,
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.HYBRID,
-            FwPointersCfg.ENABLED,
-        ),
-        (
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.HYBRID,
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.HYBRID,
-        ),
-        (
-            FwPointersCfg.DISABLED,
-            FwPointersCfg.HYBRID,
-            FwPointersCfg.DISABLED,
-            FwPointersCfg.HYBRID,
-        ),
-        (
-            FwPointersCfg.DISABLED,
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.DISABLED,
-            FwPointersCfg.ENABLED,
-        ),
+        (FwPointersCfg.DISABLED, FwPointersCfg.DISABLED, FwPointersCfg.DISABLED, FwPointersCfg.DISABLED),
+        (FwPointersCfg.ENABLED, FwPointersCfg.ENABLED, FwPointersCfg.ENABLED, FwPointersCfg.ENABLED),
+        (FwPointersCfg.HYBRID, FwPointersCfg.HYBRID, FwPointersCfg.HYBRID, FwPointersCfg.HYBRID),
+        (FwPointersCfg.HYBRID, FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.DISABLED),
+        (FwPointersCfg.HYBRID, FwPointersCfg.ENABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED),
+        (FwPointersCfg.ENABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED, FwPointersCfg.HYBRID),
+        (FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.DISABLED, FwPointersCfg.HYBRID),
+        (FwPointersCfg.DISABLED, FwPointersCfg.ENABLED, FwPointersCfg.DISABLED, FwPointersCfg.ENABLED),
         # This throws exception, and ENABLED --> DISABLED fw-pointers config is not allowed/supported
-        (
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.DISABLED,
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.DISABLED,
-        ),
-        (
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.DISABLED,
-            FwPointersCfg.DISABLED,
-        ),
-        (
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.HYBRID,
-            FwPointersCfg.DISABLED,
-        ),
-        (
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.ENABLED,
-            FwPointersCfg.HYBRID,
-            FwPointersCfg.ENABLED,
-        ),
+        (FwPointersCfg.ENABLED, FwPointersCfg.DISABLED, FwPointersCfg.ENABLED, FwPointersCfg.DISABLED),
+        (FwPointersCfg.ENABLED, FwPointersCfg.ENABLED, FwPointersCfg.DISABLED, FwPointersCfg.DISABLED),
+        (FwPointersCfg.ENABLED, FwPointersCfg.ENABLED, FwPointersCfg.HYBRID, FwPointersCfg.DISABLED),
+        (FwPointersCfg.ENABLED, FwPointersCfg.ENABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED),
     ],
 )
-def test_fwpointers_mixed_scenarios(
-    library, write_cfg, read_cfg, append_cfg, reread_cfg
-):
+def test_fwpointers_mixed_scenarios(library, write_cfg, read_cfg, append_cfg, reread_cfg):
     def _assert_fw_ptr_meta(symbol, fw_cfg):
-        last_v = library._versions.find_one(
-            {"symbol": symbol}, sort=[("version", pymongo.DESCENDING)]
-        )
+        last_v = library._versions.find_one({"symbol": symbol}, sort=[("version", pymongo.DESCENDING)])
         if fw_cfg is FwPointersCfg.DISABLED:
             assert FW_POINTERS_REFS_KEY not in last_v
         else:
             assert FW_POINTERS_REFS_KEY in last_v
 
     def _assert_append(symbol, fw_cfg, prev_v_fw_cfg):
-        last_v = library._versions.find_one(
-            {"symbol": symbol}, sort=[("version", pymongo.DESCENDING)]
-        )
+        last_v = library._versions.find_one({"symbol": symbol}, sort=[("version", pymongo.DESCENDING)])
         if fw_cfg is prev_v_fw_cfg:
             assert last_v.get("append_count", 0)
         else:
@@ -2314,9 +1964,7 @@ def test_fwpointers_mixed_scenarios(
         outer["round"] += 1
         if outer["round"] % 2 == 0:
             outer["raised"] = True
-            raise pymongo.errors.OperationFailure(
-                "Failed to write all the chunks. Mocked failure."
-            )
+            raise pymongo.errors.OperationFailure("Failed to write all the chunks. Mocked failure.")
         orig_check_written(collection, symbol, version)
 
     symbol = "sym/{}/{}/{}/{}".format(write_cfg, read_cfg, append_cfg, reread_cfg)
@@ -2324,9 +1972,7 @@ def test_fwpointers_mixed_scenarios(
     to_write = mydf[: len(mydf) // 2]
     to_append = mydf[len(mydf) // 2 :]
 
-    with patch(
-        "arctic.store._ndarray_store.NdarrayStore.check_written"
-    ) as mock_check_written:
+    with patch("arctic.store._ndarray_store.NdarrayStore.check_written") as mock_check_written:
         mock_check_written.side_effect = _mock_check_written
 
         # Patch safely the check_written static method to always fail once and trigger mongo_retry for better coverage
@@ -2383,9 +2029,7 @@ def test_fwpointers_writemetadata_enabled_disabled(library):
         library.append(symbol=symbol, data=to_write_b, prune_previous_version=False)
         assert_frame_equal(mydf, library.read(symbol=symbol).data)
 
-    last_v = library._versions.find_one(
-        {"symbol": symbol}, sort=[("version", pymongo.DESCENDING)]
-    )
+    last_v = library._versions.find_one({"symbol": symbol}, sort=[("version", pymongo.DESCENDING)])
     assert len(last_v.get(FW_POINTERS_REFS_KEY)) == 2
 
     with FwPointersCtx(FwPointersCfg.ENABLED):
@@ -2433,11 +2077,7 @@ def test_version_arctic_version(arctic):
         library = arctic[lib_name]
         for i in range(3):
             vs.ARCTIC_VERSION_NUMERICAL = i
-            library.write(
-                symbol=symbol,
-                data="hello world {}".format(i),
-                prune_previous_version=False,
-            )
+            library.write(symbol=symbol, data="hello world {}".format(i), prune_previous_version=False)
         assert library.get_arctic_version(symbol) == 2
         assert library.get_arctic_version(symbol, as_of=1) == 0
     finally:
@@ -2460,9 +2100,7 @@ def test_prune_mixed_fwpointer_configs(library):
         library.append(symbol, to_write_c, prune_previous_version=False)
 
     assert_frame_equal(to_write_a, library.read(symbol, as_of=1).data)
-    assert_frame_equal(
-        pd.concat((to_write_a, to_write_b)), library.read(symbol, as_of=2).data
-    )
+    assert_frame_equal(pd.concat((to_write_a, to_write_b)), library.read(symbol, as_of=2).data)
     assert_frame_equal(mydf, library.read(symbol).data)
 
     library._prune_previous_versions(symbol, keep_mins=0)

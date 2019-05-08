@@ -42,12 +42,7 @@ def test_list_symbols_as_of():
 
     expected_pipeline = [
         {"$sort": {"symbol": 1, "start_time": -1}},
-        {
-            "$match": {
-                "symbol": {"$regex": "^"},
-                "start_time": {"$lte": dt.datetime(2018, 5, 11)},
-            }
-        },
+        {"$match": {"symbol": {"$regex": "^"}, "start_time": {"$lte": dt.datetime(2018, 5, 11)}}},
         {"$group": {"_id": "$symbol", "metadata": {"$first": "$metadata"}}},
         {"$project": {"_id": 0, "symbol": "$_id"}},
     ]
@@ -62,12 +57,7 @@ def test_list_symbols_as_of_regex():
 
     expected_pipeline = [
         {"$sort": {"symbol": 1, "start_time": -1}},
-        {
-            "$match": {
-                "symbol": {"$regex": "test.*"},
-                "start_time": {"$lte": dt.datetime(2018, 5, 11)},
-            }
-        },
+        {"$match": {"symbol": {"$regex": "test.*"}, "start_time": {"$lte": dt.datetime(2018, 5, 11)}}},
         {"$group": {"_id": "$symbol", "metadata": {"$first": "$metadata"}}},
         {"$project": {"_id": 0, "symbol": "$_id"}},
     ]
@@ -97,18 +87,11 @@ def test_list_symbols_all_options():
 
     expected_pipeline = [
         {"$sort": {"symbol": 1, "start_time": -1}},
-        {
-            "$match": {
-                "symbol": {"$regex": "test.*"},
-                "start_time": {"$lte": dt.datetime(2018, 5, 11)},
-            }
-        },
+        {"$match": {"symbol": {"$regex": "test.*"}, "start_time": {"$lte": dt.datetime(2018, 5, 11)}}},
         {"$group": {"_id": "$symbol", "metadata": {"$first": "$metadata"}}},
         {"$match": {"metadata.foo": "bar"}},
         {"$project": {"_id": 0, "symbol": "$_id"}},
     ]
 
-    MetadataStore.list_symbols(
-        ms, regex="test.*", as_of=dt.datetime(2018, 5, 11), foo="bar"
-    )
+    MetadataStore.list_symbols(ms, regex="test.*", as_of=dt.datetime(2018, 5, 11), foo="bar")
     ms.aggregate.assert_called_once_with(expected_pipeline)

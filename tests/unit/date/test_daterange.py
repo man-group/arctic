@@ -5,26 +5,12 @@ from datetime import datetime as dt
 import pytest
 import six
 
-from arctic.date import (
-    DateRange,
-    string_to_daterange,
-    CLOSED_CLOSED,
-    CLOSED_OPEN,
-    OPEN_CLOSED,
-    OPEN_OPEN,
-)
+from arctic.date import DateRange, string_to_daterange, CLOSED_CLOSED, CLOSED_OPEN, OPEN_CLOSED, OPEN_OPEN
 
 test_ranges_for_bounding = {
     "unbounded": (DateRange(), None, None, True, None, None),
     "unbounded_right": (DateRange("20110101"), dt(2011, 1, 1), None, True, True, None),
-    "unbounded_left": (
-        DateRange(None, "20111231"),
-        None,
-        dt(2011, 12, 31),
-        True,
-        None,
-        True,
-    ),
+    "unbounded_left": (DateRange(None, "20111231"), None, dt(2011, 12, 31), True, None, True),
     "closed_by_default": (
         DateRange("20110101", "20111231"),
         dt(2011, 1, 1),
@@ -66,9 +52,7 @@ test_ranges_for_bounding = {
         False,
     ),
 }
-test_ranges_for_bounding = sorted(
-    six.iteritems(test_ranges_for_bounding), key=operator.itemgetter(1)
-)
+test_ranges_for_bounding = sorted(six.iteritems(test_ranges_for_bounding), key=operator.itemgetter(1))
 
 
 def eq_nan(*args):
@@ -82,9 +66,7 @@ def eq_nan(*args):
     [i[1] for i in test_ranges_for_bounding],
     ids=[i[0] for i in test_ranges_for_bounding],
 )
-def test_daterange_bounding(
-    dt_range, start, end, is_unbounded, start_in_range, end_in_range
-):
+def test_daterange_bounding(dt_range, start, end, is_unbounded, start_in_range, end_in_range):
     assert eq_nan(start, dt_range.start)
     assert eq_nan(end, dt_range.end)
     assert dt_range.unbounded is is_unbounded
@@ -181,11 +163,7 @@ def test_as_dates():
             dr = DateRange(start, end)
             dad = dr.as_dates()
             if dr.start:
-                assert (
-                    dad.start == dr.start.date()
-                    if isinstance(dr.start, dt)
-                    else dr.start
-                )
+                assert dad.start == dr.start.date() if isinstance(dr.start, dt) else dr.start
             else:
                 assert not dad.start
             if dr.end:
@@ -209,26 +187,10 @@ STRING_DR_TESTS = [
     ("201101011030", DR2, DateRange(DR2.start.date(), DR2.end.date())),
     ("-201101011030", DR4, DateRange(None, DR2.start.date())),
     ("201101011030-", DR5, DateRange(DR2.start.date())),
-    (
-        "(20110101-20110102)",
-        DR6,
-        DateRange(DR6.start.date(), DR6.end.date(), DR6.interval),
-    ),
-    (
-        "(20110101-20110102]",
-        DR6,
-        DateRange(DR6.start.date(), DR6.end.date(), DR6.interval),
-    ),
-    (
-        "[20110101-20110102)",
-        DR6,
-        DateRange(DR6.start.date(), DR6.end.date(), DR6.interval),
-    ),
-    (
-        "[20110101-20110102]",
-        DR1,
-        DateRange(DR1.start.date(), DR1.end.date(), DR1.interval),
-    ),
+    ("(20110101-20110102)", DR6, DateRange(DR6.start.date(), DR6.end.date(), DR6.interval)),
+    ("(20110101-20110102]", DR6, DateRange(DR6.start.date(), DR6.end.date(), DR6.interval)),
+    ("[20110101-20110102)", DR6, DateRange(DR6.start.date(), DR6.end.date(), DR6.interval)),
+    ("[20110101-20110102]", DR1, DateRange(DR1.start.date(), DR1.end.date(), DR1.interval)),
 ]
 
 
@@ -241,33 +203,15 @@ def test_string_to_daterange(instr, expected_ts, expected_dt):
 def test_string_to_daterange_raises():
     with pytest.raises(ValueError) as e:
         string_to_daterange("20120101-20130101-20140101")
-    assert (
-        str(e.value)
-        == "Too many dates in input string [20120101-20130101-20140101] with delimiter (-)"
-    )
+    assert str(e.value) == "Too many dates in input string [20120101-20130101-20140101] with delimiter (-)"
 
 
 QUERY_TESTS = [
-    (
-        DateRange("20110101", "20110102"),
-        {"$gte": dt(2011, 1, 1), "$lte": dt(2011, 1, 2)},
-    ),
-    (
-        DateRange("20110101", "20110102", OPEN_OPEN),
-        {"$gt": dt(2011, 1, 1), "$lt": dt(2011, 1, 2)},
-    ),
-    (
-        DateRange("20110101", "20110102", OPEN_CLOSED),
-        {"$gt": dt(2011, 1, 1), "$lte": dt(2011, 1, 2)},
-    ),
-    (
-        DateRange("20110101", "20110102", CLOSED_OPEN),
-        {"$gte": dt(2011, 1, 1), "$lt": dt(2011, 1, 2)},
-    ),
-    (
-        DateRange("20110101", "20110102"),
-        {"$gte": dt(2011, 1, 1), "$lte": dt(2011, 1, 2)},
-    ),
+    (DateRange("20110101", "20110102"), {"$gte": dt(2011, 1, 1), "$lte": dt(2011, 1, 2)}),
+    (DateRange("20110101", "20110102", OPEN_OPEN), {"$gt": dt(2011, 1, 1), "$lt": dt(2011, 1, 2)}),
+    (DateRange("20110101", "20110102", OPEN_CLOSED), {"$gt": dt(2011, 1, 1), "$lte": dt(2011, 1, 2)}),
+    (DateRange("20110101", "20110102", CLOSED_OPEN), {"$gte": dt(2011, 1, 1), "$lt": dt(2011, 1, 2)}),
+    (DateRange("20110101", "20110102"), {"$gte": dt(2011, 1, 1), "$lte": dt(2011, 1, 2)}),
     (DateRange("20110101", None), {"$gte": dt(2011, 1, 1)}),
     (DateRange(None, "20110102"), {"$lte": dt(2011, 1, 2)}),
     (DateRange(), {}),
@@ -281,18 +225,9 @@ def test_mongo_query(date_range, expected):
 
 QUERY_TESTS_DB = [
     (DateRange("20110101", "20110102"), (">=", dt(2011, 1, 1), "<=", dt(2011, 1, 2))),
-    (
-        DateRange("20110101", "20110102", OPEN_OPEN),
-        (">", dt(2011, 1, 1), "<", dt(2011, 1, 2)),
-    ),
-    (
-        DateRange("20110101", "20110102", OPEN_CLOSED),
-        (">", dt(2011, 1, 1), "<=", dt(2011, 1, 2)),
-    ),
-    (
-        DateRange("20110101", "20110102", CLOSED_OPEN),
-        (">=", dt(2011, 1, 1), "<", dt(2011, 1, 2)),
-    ),
+    (DateRange("20110101", "20110102", OPEN_OPEN), (">", dt(2011, 1, 1), "<", dt(2011, 1, 2))),
+    (DateRange("20110101", "20110102", OPEN_CLOSED), (">", dt(2011, 1, 1), "<=", dt(2011, 1, 2))),
+    (DateRange("20110101", "20110102", CLOSED_OPEN), (">=", dt(2011, 1, 1), "<", dt(2011, 1, 2))),
     (DateRange("20110101", "20110102"), (">=", dt(2011, 1, 1), "<=", dt(2011, 1, 2))),
     (DateRange("20110101", None), (">=", dt(2011, 1, 1), "<=", None)),
     (DateRange(None, "20110102"), (">=", None, "<=", dt(2011, 1, 2))),
@@ -305,37 +240,23 @@ def test_get_date_bounds(date_range, expected):
     assert date_range.get_date_bounds() == expected
 
 
-@pytest.mark.parametrize(
-    ["dr"], [(DR1,), (DR2,), (DR3,), (DR4,), (DR5,), (DR6,), (DR7,)]
-)
+@pytest.mark.parametrize(["dr"], [(DR1,), (DR2,), (DR3,), (DR4,), (DR5,), (DR6,), (DR7,)])
 def test_intersection_with_self(dr):
     assert dr == dr.intersection(dr)
 
 
 def test_intersection_returns_inner_boundaries():
     # #start:
-    assert DateRange("20110103").intersection(DateRange("20110102")).start == dt(
-        2011, 1, 3
-    )
-    assert DateRange("20110102").intersection(DateRange("20110103")).start == dt(
-        2011, 1, 3
-    )
+    assert DateRange("20110103").intersection(DateRange("20110102")).start == dt(2011, 1, 3)
+    assert DateRange("20110102").intersection(DateRange("20110103")).start == dt(2011, 1, 3)
     assert DateRange(None).intersection(DateRange("20110103")).start == dt(2011, 1, 3)
     assert DateRange("20110103").intersection(DateRange(None)).start == dt(2011, 1, 3)
 
     # #end:
-    assert DateRange(None, "20110103").intersection(
-        DateRange(None, "20110102")
-    ).end == dt(2011, 1, 2)
-    assert DateRange(None, "20110102").intersection(
-        DateRange(None, "20110103")
-    ).end == dt(2011, 1, 2)
-    assert DateRange(None, None).intersection(DateRange(None, "20110103")).end == dt(
-        2011, 1, 3
-    )
-    assert DateRange(None, "20110103").intersection(DateRange(None, None)).end == dt(
-        2011, 1, 3
-    )
+    assert DateRange(None, "20110103").intersection(DateRange(None, "20110102")).end == dt(2011, 1, 2)
+    assert DateRange(None, "20110102").intersection(DateRange(None, "20110103")).end == dt(2011, 1, 2)
+    assert DateRange(None, None).intersection(DateRange(None, "20110103")).end == dt(2011, 1, 3)
+    assert DateRange(None, "20110103").intersection(DateRange(None, None)).end == dt(2011, 1, 3)
 
 
 def test_intersection_preserves_boundaries():
@@ -369,16 +290,10 @@ def test_intersection_preserves_boundaries():
 def test_intersection_contains():
     # assert ((d in dr1) & (d in dr2)) == (d in (dr1 & dr2)) for any interval combination
     start, end = dt(2018, 1, 1), dt(2018, 1, 2)
-    date_ranges = [
-        DateRange(start, end, interval) for interval in CLOSED_CLOSED.__class__
-    ]
+    date_ranges = [DateRange(start, end, interval) for interval in CLOSED_CLOSED.__class__]
 
     def equal_contains(date, dr1, dr2):
         return ((date in dr1) and (date in dr2)) == (date in dr1.intersection(dr2))
 
-    assert all(
-        equal_contains(start, dr1, dr2) for dr1 in date_ranges for dr2 in date_ranges
-    )
-    assert all(
-        equal_contains(end, dr1, dr2) for dr1 in date_ranges for dr2 in date_ranges
-    )
+    assert all(equal_contains(start, dr1, dr2) for dr1 in date_ranges for dr2 in date_ranges)
+    assert all(equal_contains(end, dr1, dr2) for dr1 in date_ranges for dr2 in date_ranges)

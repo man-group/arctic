@@ -9,9 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class Cache:
-    def __init__(
-        self, client, cache_expiry=3600, cache_db=CACHE_DB, cache_col=CACHE_COLL
-    ):
+    def __init__(self, client, cache_expiry=3600, cache_db=CACHE_DB, cache_col=CACHE_COLL):
         self._client = client
         self._cachedb = client[cache_db]
         self._cachecol = None
@@ -22,8 +20,7 @@ class Cache:
                 )
         except OperationFailure as op:
             logging.debug(
-                "This is fine if you are not admin. The collection should already be created for you: %s",
-                op,
+                "This is fine if you are not admin. The collection should already be created for you: %s", op
             )
 
         self._cachecol = self._cachedb[cache_col]
@@ -44,8 +41,7 @@ class Cache:
             # Check that there is data in cache and it's not stale.
             if coll_data and (
                 newer_than_secs == -1
-                or datetime.utcnow()
-                < coll_data["date"] + timedelta(seconds=newer_than_secs)
+                or datetime.utcnow() < coll_data["date"] + timedelta(seconds=newer_than_secs)
             ):
                 return coll_data["data"]
         except OperationFailure as op:
@@ -61,15 +57,10 @@ class Cache:
     def set(self, key, data):
         try:
             self._cachecol.update_one(
-                {"type": key},
-                {"$set": {"type": key, "date": datetime.utcnow(), "data": data}},
-                upsert=True,
+                {"type": key}, {"$set": {"type": key, "date": datetime.utcnow(), "data": data}}, upsert=True
             )
         except OperationFailure as op:
-            logging.debug(
-                "This operation is to be run with admin permissions. Should be fine: %s",
-                op,
-            )
+            logging.debug("This operation is to be run with admin permissions. Should be fine: %s", op)
 
     def append(self, key, append_data):
         try:

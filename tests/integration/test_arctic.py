@@ -39,9 +39,7 @@ def test_re_authenticate_on_arctic_reset(mongo_host, library_name):
     from collections import namedtuple
 
     Cred = namedtuple("Cred", "user, password")
-    with patch("arctic.arctic.authenticate") as auth_mock, patch(
-        "arctic.arctic.get_auth"
-    ) as get_auth_mock:
+    with patch("arctic.arctic.authenticate") as auth_mock, patch("arctic.arctic.get_auth") as get_auth_mock:
         auth_mock.return_value = True
         get_auth_mock.return_value = Cred(user="a_username", password="a_passwd")
         arctic = Arctic(mongo_host=mongo_host)
@@ -114,11 +112,7 @@ def test_indexes(arctic):
     }
     snapshots = c.arctic.library.snapshots.index_information()
     assert snapshots == {
-        u"_id_": {
-            u"key": [(u"_id", 1)],
-            u"ns": u"arctic.library.snapshots",
-            u"v": index_version,
-        },
+        u"_id_": {u"key": [(u"_id", 1)], u"ns": u"arctic.library.snapshots", u"v": index_version},
         u"name_1": {
             u"background": True,
             u"key": [(u"name", 1)],
@@ -129,11 +123,7 @@ def test_indexes(arctic):
     }
     versions = c.arctic.library.versions.index_information()
     assert versions == {
-        u"_id_": {
-            u"key": [(u"_id", 1)],
-            u"ns": u"arctic.library.versions",
-            u"v": index_version,
-        },
+        u"_id_": {u"key": [(u"_id", 1)], u"ns": u"arctic.library.versions", u"v": index_version},
         u"symbol_1__id_-1": {
             u"background": True,
             u"key": [(u"symbol", 1), (u"_id", -1)],
@@ -150,11 +140,7 @@ def test_indexes(arctic):
     }
     version_nums = c.arctic.library.version_nums.index_information()
     assert version_nums == {
-        u"_id_": {
-            u"key": [(u"_id", 1)],
-            u"ns": u"arctic.library.version_nums",
-            u"v": index_version,
-        },
+        u"_id_": {u"key": [(u"_id", 1)], u"ns": u"arctic.library.version_nums", u"v": index_version},
         u"symbol_1": {
             u"background": True,
             u"key": [(u"symbol", 1)],
@@ -262,9 +248,7 @@ def test_library_exists_no_auth(arctic):
     with patch("arctic.arctic.ArcticLibraryBinding") as AB:
         AB.return_value = MagicMock(
             get_library_type=MagicMock(
-                side_effect=OperationFailure(
-                    "not authorized on arctic to execute command"
-                )
+                side_effect=OperationFailure("not authorized on arctic to execute command")
             )
         )
         assert arctic.library_exists("test")
@@ -279,16 +263,10 @@ def test_list_libraries_cached(arctic):
         arctic.initialize_library(lib)
 
     # Cached data should have been appended to cache.
-    assert (
-        sorted(libs)
-        == sorted(arctic.list_libraries())
-        == sorted(arctic._list_libraries())
-    )
+    assert sorted(libs) == sorted(arctic.list_libraries()) == sorted(arctic._list_libraries())
 
     # Should default to uncached list_libraries if cache is empty.
-    with patch(
-        "arctic.arctic.Arctic._list_libraries", return_value=libs
-    ) as uncached_list_libraries:
+    with patch("arctic.arctic.Arctic._list_libraries", return_value=libs) as uncached_list_libraries:
         # Empty cache manually.
         arctic._conn.meta_db.cache.remove({})
         assert arctic._list_libraries_cached() == libs
@@ -299,9 +277,7 @@ def test_list_libraries_cached(arctic):
     assert sorted(arctic._cache.get("list_libraries")) == sorted(libs)
 
     # Should fetch it from cache the second time.
-    with patch(
-        "arctic.arctic.Arctic._list_libraries", return_value=libs
-    ) as uncached_list_libraries:
+    with patch("arctic.arctic.Arctic._list_libraries", return_value=libs) as uncached_list_libraries:
         assert arctic._list_libraries_cached() == libs
         uncached_list_libraries.assert_not_called()
 
@@ -333,9 +309,7 @@ def test_cache_does_not_return_stale_data(arctic):
     time.sleep(0.2)
 
     # Should call uncached list_libraries if the data is stale according to caller.
-    with patch(
-        "arctic.arctic.Arctic._list_libraries", return_value=libs
-    ) as uncached_list_libraries:
+    with patch("arctic.arctic.Arctic._list_libraries", return_value=libs) as uncached_list_libraries:
         assert arctic._list_libraries_cached(newer_than_secs=0.1) == libs
         uncached_list_libraries.assert_called()
 
@@ -361,9 +335,4 @@ def test_deleting_library_removes_it_from_cache(arctic):
 
     arctic.delete_library("test1")
 
-    assert (
-        arctic._list_libraries_cached()
-        == arctic._list_libraries()
-        == arctic.list_libraries()
-        == ["test2"]
-    )
+    assert arctic._list_libraries_cached() == arctic._list_libraries() == arctic.list_libraries() == ["test2"]

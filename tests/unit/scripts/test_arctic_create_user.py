@@ -5,9 +5,7 @@ from ...util import run_as_main
 
 
 def test_main_minimal():
-    with patch(
-        "arctic.scripts.arctic_create_user.logger", autospec=True
-    ) as logger, patch(
+    with patch("arctic.scripts.arctic_create_user.logger", autospec=True) as logger, patch(
         "arctic.scripts.arctic_create_user.MongoClient", autospec=True
     ) as MC, patch(
         "arctic.scripts.arctic_create_user.get_mongodb_uri", autospec=True
@@ -28,13 +26,9 @@ def test_main_minimal():
 
 
 def test_main_with_db():
-    with patch(
-        "arctic.scripts.arctic_create_user.MongoClient", autospec=True
-    ) as MC, patch(
+    with patch("arctic.scripts.arctic_create_user.MongoClient", autospec=True) as MC, patch(
         "arctic.scripts.arctic_create_user.get_mongodb_uri", autospec=True
-    ) as get_mongodb_uri, patch(
-        "arctic.scripts.arctic_create_user.do_db_auth", autospec=True
-    ) as do_db_auth:
+    ) as get_mongodb_uri, patch("arctic.scripts.arctic_create_user.do_db_auth", autospec=True) as do_db_auth:
         run_as_main(main, "--host", "some_host", "--db", "some_db", "jblackburn")
     get_mongodb_uri.assert_called_once_with("some_host")
     MC.assert_called_once_with(get_mongodb_uri.return_value)
@@ -45,16 +39,10 @@ def test_main_with_db():
 
 
 def test_main_with_db_write():
-    with patch(
-        "arctic.scripts.arctic_create_user.MongoClient", autospec=True
-    ) as MC, patch(
+    with patch("arctic.scripts.arctic_create_user.MongoClient", autospec=True) as MC, patch(
         "arctic.scripts.arctic_create_user.get_mongodb_uri", autospec=True
-    ) as get_mongodb_uri, patch(
-        "arctic.scripts.arctic_create_user.do_db_auth", autospec=True
-    ) as do_db_auth:
-        run_as_main(
-            main, "--host", "some_host", "--db", "some_db", "--write", "jblackburn"
-        )
+    ) as get_mongodb_uri, patch("arctic.scripts.arctic_create_user.do_db_auth", autospec=True) as do_db_auth:
+        run_as_main(main, "--host", "some_host", "--db", "some_db", "--write", "jblackburn")
     get_mongodb_uri.assert_called_once_with("some_host")
     MC.assert_called_once_with(get_mongodb_uri.return_value)
     assert do_db_auth.call_args_list == [call("some_host", MC.return_value, "some_db")]
@@ -64,16 +52,12 @@ def test_main_with_db_write():
 
 
 def test_no_auth():
-    with patch(
-        "arctic.scripts.arctic_create_user.logger", autospec=True
-    ) as logger, patch(
+    with patch("arctic.scripts.arctic_create_user.logger", autospec=True) as logger, patch(
         "arctic.scripts.arctic_create_user.MongoClient", autospec=True
     ) as MC, patch(
         "arctic.scripts.arctic_create_user.get_mongodb_uri", autospec=True
     ) as get_mongodb_uri, patch(
-        "arctic.scripts.arctic_create_user.do_db_auth",
-        autospec=True,
-        return_value=False,
+        "arctic.scripts.arctic_create_user.do_db_auth", autospec=True, return_value=False
     ) as do_db_auth:
         run_as_main(main, "--host", "some_host", "jblackburn")
     assert logger.error.call_args_list == [

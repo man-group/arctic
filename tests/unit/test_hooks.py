@@ -29,6 +29,4 @@ def test_get_auth_hook():
     auth_resolver = Mock()
     register_get_auth_hook(auth_resolver)
     get_auth(sentinel.host, sentinel.app_name, sentinel.database_name)
-    assert auth_resolver.call_args_list == [
-        call(sentinel.host, sentinel.app_name, sentinel.database_name)
-    ]
+    assert auth_resolver.call_args_list == [call(sentinel.host, sentinel.app_name, sentinel.database_name)]

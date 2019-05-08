@@ -20,14 +20,8 @@ def main():
     """
 
     parser = argparse.ArgumentParser(usage=usage)
-    parser.add_argument(
-        "--host",
-        default="localhost",
-        help="Hostname, or clustername. Default: localhost",
-    )
-    parser.add_argument(
-        "--db", default=None, help="Database to add user on. Default: mongoose_<user>"
-    )
+    parser.add_argument("--host", default="localhost", help="Hostname, or clustername. Default: localhost")
+    parser.add_argument("--db", default=None, help="Database to add user on. Default: mongoose_<user>")
     parser.add_argument("--password", default=None, help="Password. Default: random")
     parser.add_argument(
         "--write",
@@ -42,9 +36,7 @@ def main():
     c = MongoClient(get_mongodb_uri(args.host))
 
     if not do_db_auth(args.host, c, args.db if args.db else "admin"):
-        logger.error(
-            "Failed to authenticate to '%s'. Check your admin password!" % (args.host)
-        )
+        logger.error("Failed to authenticate to '%s'. Check your admin password!" % (args.host))
         return
 
     for user in args.users:
@@ -66,9 +58,7 @@ def main():
                 user=user, permission="WRITE" if write_access else "READ", db=db
             )
         )
-        logger.info(
-            "User creds: {db}/{user}/{password}".format(user=user, db=db, password=p)
-        )
+        logger.info("User creds: {db}/{user}/{password}".format(user=user, db=db, password=p))
 
 
 if __name__ == "__main__":

@@ -15,22 +15,13 @@ def main():
     setup_logging()
 
     parser = argparse.ArgumentParser(usage=usage)
+    parser.add_argument("--host", default="localhost", help="Hostname, or clustername. Default: localhost")
     parser.add_argument(
-        "--host",
-        default="localhost",
-        help="Hostname, or clustername. Default: localhost",
-    )
-    parser.add_argument(
-        "--library",
-        nargs="+",
-        required=True,
-        help="The name of the library. e.g. 'arctic_jblackburn.lib'",
+        "--library", nargs="+", required=True, help="The name of the library. e.g. 'arctic_jblackburn.lib'"
     )
     parser.add_argument("-v", action="store_true", help="Verbose mode")
     parser.add_argument(
-        "-f",
-        action="store_true",
-        help="Force ; Cleanup any problems found. (Default is dry-run.)",
+        "-f", action="store_true", help="Force ; Cleanup any problems found. (Default is dry-run.)"
     )
     parser.add_argument("-n", action="store_true", help="No FSCK ; just print stats.)")
 
@@ -74,9 +65,7 @@ def main():
             "Versions: %10.2fMB Change(+/-) %.2fMB"
             % (
                 final_stats["versions"]["size"] / 1024.0 / 1024.0,
-                (final_stats["versions"]["size"] - orig_stats["versions"]["size"])
-                / 1024.0
-                / 1024.0,
+                (final_stats["versions"]["size"] - orig_stats["versions"]["size"]) / 1024.0 / 1024.0,
             )
         )
         logger.info(
@@ -91,9 +80,7 @@ def main():
             "Chunks: %12.2fMB Change(+/-) %6.2fMB"
             % (
                 final_stats["chunks"]["size"] / 1024.0 / 1024.0,
-                (final_stats["chunks"]["size"] - orig_stats["chunks"]["size"])
-                / 1024.0
-                / 1024.0,
+                (final_stats["chunks"]["size"] - orig_stats["chunks"]["size"]) / 1024.0 / 1024.0,
             )
         )
         logger.info("----------------------------")

@@ -20,9 +20,7 @@ def test_mktz():
     d = dt(2012, 2, 2, tzinfo=tz)
     assert d.tzname() == "UTC"
     d = dt(2012, 7, 2, tzinfo=tz)
-    assert (
-        d.tzname() == "UTC"
-    )  # --------replace_empty_timezones_with_default -----------------
+    assert d.tzname() == "UTC"  # --------replace_empty_timezones_with_default -----------------
 
 
 def test_mktz_noarg():

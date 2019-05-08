@@ -30,9 +30,7 @@ def test_get_arctic_connection_strings():
             get_arctic_lib("foo.sheep@127.0.0.1:123")
 
 
-@pytest.mark.parametrize(
-    ["string"], [("donkey",), ("donkey:ride@blackpool",), ("donkey:ride",)]
-)
+@pytest.mark.parametrize(["string"], [("donkey",), ("donkey:ride@blackpool",), ("donkey:ride",)])
 def test_get_arctic_malformed_connection_strings(string):
     with pytest.raises(ValueError):
         get_arctic_lib(string)

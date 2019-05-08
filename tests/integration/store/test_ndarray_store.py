@@ -15,9 +15,7 @@ from tests.integration.store.test_version_store import _query, FwPointersCtx
 register_versioned_storage(NdarrayStore)
 
 
-def test_write_new_column_name_to_arctic_1_40_data(
-    ndarray_store_with_uncompressed_write
-):
+def test_write_new_column_name_to_arctic_1_40_data(ndarray_store_with_uncompressed_write):
     store = ndarray_store_with_uncompressed_write["store"]
     symbol = ndarray_store_with_uncompressed_write["symbol"]
 
@@ -39,9 +37,7 @@ def test_save_read_simple_ndarray(library):
 def test_read_simple_ndarray_from_secondary(library_secondary, library_name):
     ndarr = np.ones(1000)
     library_secondary.write("MYARR", ndarr)
-    with patch(
-        "pymongo.message.query", side_effect=_query(True, library_name)
-    ) as query, patch(
+    with patch("pymongo.message.query", side_effect=_query(True, library_name)) as query, patch(
         "pymongo.server_description.ServerDescription.server_type", SERVER_TYPE.Mongos
     ):
         saved_arr = library_secondary.read("MYARR").data
@@ -50,8 +46,7 @@ def test_read_simple_ndarray_from_secondary(library_secondary, library_name):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_save_read_big_1darray(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -62,8 +57,7 @@ def test_save_read_big_1darray(library, fw_pointers_cfg):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_save_and_resave_reuses_chunks(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -90,25 +84,17 @@ def test_save_and_resave_reuses_chunks(library, fw_pointers_cfg):
 
             if fw_pointers_cfg in (FwPointersCfg.DISABLED, FwPointersCfg.HYBRID):
                 # We hit the update (rather than upsert) code path
-                assert (
-                    mongo_count(library._collection, filter={"parent": {"$size": 2}})
-                    == 7
-                )
+                assert mongo_count(library._collection, filter={"parent": {"$size": 2}}) == 7
 
             if fw_pointers_cfg in (FwPointersCfg.HYBRID, FwPointersCfg.ENABLED):
                 assert (
-                    len(
-                        library._versions.find_one({"symbol": "MYARR", "version": 2})[
-                            FW_POINTERS_REFS_KEY
-                        ]
-                    )
+                    len(library._versions.find_one({"symbol": "MYARR", "version": 2})[FW_POINTERS_REFS_KEY])
                     == 9
                 )
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_save_read_big_2darray(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
@@ -141,8 +127,7 @@ def test_save_read_ndarray(library):
 
 
 @pytest.mark.parametrize(
-    "fw_pointers_cfg",
-    [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+    "fw_pointers_cfg", [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
 )
 def test_multiple_write(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):

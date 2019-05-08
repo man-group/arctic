@@ -27,9 +27,7 @@ def test_checksum():
 
 
 def test_checksum_handles_p3strs_and_binary():
-    digest = checksum(
-        "test_my_market_data_$ymB0l", {"key1": u"unicode", "key2": b"binary_data"}
-    )
+    digest = checksum("test_my_market_data_$ymB0l", {"key1": u"unicode", "key2": b"binary_data"})
     expected = b"4O11 ;<A@C1.0W(JRB1.?D[ZEN!8"
     assert binascii.b2a_uu(digest).strip() == expected
 
@@ -39,8 +37,6 @@ def test_version_base_or_id():
         version_base_or_id({})
     assert version_base_or_id({"_id": sentinel._id}) == sentinel._id
     assert (
-        version_base_or_id(
-            {"_id": sentinel._id, "base_version_id": sentinel.base_version_id}
-        )
+        version_base_or_id({"_id": sentinel._id, "base_version_id": sentinel.base_version_id})
         == sentinel.base_version_id
     )

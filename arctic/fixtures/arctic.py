@@ -61,28 +61,19 @@ def multicolumn_store_with_uncompressed_write(mongo_server):
             {
                 "parent": [bson.ObjectId("5ad0dc065c911d1188b512d8")],
                 "data": bson.Binary(
-                    b"\x11\x00\x00\x002x\x01\x00\x01\x00\x80\x02\x00\x00\x00\x00\x00\x00\x00",
-                    0,
+                    b"\x11\x00\x00\x002x\x01\x00\x01\x00\x80\x02\x00\x00\x00\x00\x00\x00\x00", 0
                 ),
                 "symbol": "pandas",
-                "sha": bson.Binary(
-                    b"\xaa\\`\x0e\xc2D-\xc1_\xf7\xfd\x12\xfa\xd2\x17\x05`\x00\x98\xe2",
-                    0,
-                ),
+                "sha": bson.Binary(b"\xaa\\`\x0e\xc2D-\xc1_\xf7\xfd\x12\xfa\xd2\x17\x05`\x00\x98\xe2", 0),
                 "compressed": True,
                 "_id": bson.ObjectId("5ad0dc067934ecad404070be"),
                 "segment": 0,
             },
             {
                 "parent": [bson.ObjectId("5ad0dc065c911d1188b512d8")],
-                "data": bson.Binary(
-                    b"y\x03\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00",
-                    0,
-                ),
+                "data": bson.Binary(b"y\x03\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00", 0),
                 "symbol": "pandas",
-                "sha": bson.Binary(
-                    b"\xfe=WQ\xb5\xfdL\xb7\xcavd\x85o\x04]\x04\xdb\xa8]3", 0
-                ),
+                "sha": bson.Binary(b"\xfe=WQ\xb5\xfdL\xb7\xcavd\x85o\x04]\x04\xdb\xa8]3", 0),
                 "compressed": False,
                 "_id": bson.ObjectId("5ad0dc077934ecad404070bf"),
                 "segment": 1,
@@ -90,38 +81,28 @@ def multicolumn_store_with_uncompressed_write(mongo_server):
         ]
     )
     db.TEST.ARCTIC.update_one(
-        {"_id": "ARCTIC_META"},
-        {"$set": {"_id": "ARCTIC_META", "TYPE": "VersionStore", "QUOTA": 10737418240}},
+        {"_id": "ARCTIC_META"}, {"$set": {"_id": "ARCTIC_META", "TYPE": "VersionStore", "QUOTA": 10737418240}}
     )
     db.TEST.version_nums.insert_one(
-        {
-            "symbol": "pandas",
-            "_id": bson.ObjectId("5ad0dc067934ecad404070bd"),
-            "version": 2,
-        }
+        {"symbol": "pandas", "_id": bson.ObjectId("5ad0dc067934ecad404070bd"), "version": 2}
     )
     db.TEST.versions.insert_many(
         [
             {
                 "append_count": 0,
-                "dtype_metadata": {
-                    "index": ["index"],
-                    "columns": ["('a', 'a')", "('w', 'v')"],
-                },
+                "dtype_metadata": {"index": ["index"], "columns": ["('a', 'a')", "('w', 'v')"]},
                 "segment_count": 1,
                 "dtype": "[('index', 'S1'), (\"('a', 'a')\", '<i8'), (\"('w', 'v')\", '<i8')]",
                 "symbol": "pandas",
                 "up_to": 1,
                 "metadata": None,
                 "sha": bson.Binary(
-                    b"\xf2\x15h\x9d\x925\x95\xa5\x0e\x95J\xc4x\xfc\xfc\xd5\x80\xe0\x1d\xef",
-                    0,
+                    b"\xf2\x15h\x9d\x925\x95\xa5\x0e\x95J\xc4x\xfc\xfc\xd5\x80\xe0\x1d\xef", 0
                 ),
                 "shape": [-1],
                 "version": 1,
                 "base_sha": bson.Binary(
-                    b"\xf2\x15h\x9d\x925\x95\xa5\x0e\x95J\xc4x\xfc\xfc\xd5\x80\xe0\x1d\xef",
-                    0,
+                    b"\xf2\x15h\x9d\x925\x95\xa5\x0e\x95J\xc4x\xfc\xfc\xd5\x80\xe0\x1d\xef", 0
                 ),
                 "_id": bson.ObjectId("5ad0dc065c911d1188b512d8"),
                 "type": "pandasdf",
@@ -129,14 +110,9 @@ def multicolumn_store_with_uncompressed_write(mongo_server):
             },
             {
                 "append_count": 1,
-                "dtype_metadata": {
-                    "index": ["index"],
-                    "columns": ["('a', 'a')", "('w', 'v')"],
-                },
+                "dtype_metadata": {"index": ["index"], "columns": ["('a', 'a')", "('w', 'v')"]},
                 "segment_count": 2,
-                "sha": bson.Binary(
-                    b"1\x83[ZO\xec\x080D\x80f\xe4@\xe4\xd3\x94yG\xe2\x08", 0
-                ),
+                "sha": bson.Binary(b"1\x83[ZO\xec\x080D\x80f\xe4@\xe4\xd3\x94yG\xe2\x08", 0),
                 "dtype": "[('index', 'S1'), (\"('a', 'a')\", '<i8'), (\"('w', 'v')\", '<i8')]",
                 "symbol": "pandas",
                 "up_to": 2,
@@ -145,8 +121,7 @@ def multicolumn_store_with_uncompressed_write(mongo_server):
                 "shape": [-1],
                 "version": 2,
                 "base_sha": bson.Binary(
-                    b"\xf2\x15h\x9d\x925\x95\xa5\x0e\x95J\xc4x\xfc\xfc\xd5\x80\xe0\x1d\xef",
-                    0,
+                    b"\xf2\x15h\x9d\x925\x95\xa5\x0e\x95J\xc4x\xfc\xfc\xd5\x80\xe0\x1d\xef", 0
                 ),
                 "_id": bson.ObjectId("5ad0dc075c911d1188b512d9"),
                 "type": "pandasdf",
@@ -202,15 +177,10 @@ def ndarray_store_with_uncompressed_write(mongo_server):
         ]
     )
     db.TEST.ARCTIC.update_one(
-        {"_id": "ARCTIC_META"},
-        {"$set": {"_id": "ARCTIC_META", "TYPE": "VersionStore", "QUOTA": 10737418240}},
+        {"_id": "ARCTIC_META"}, {"$set": {"_id": "ARCTIC_META", "TYPE": "VersionStore", "QUOTA": 10737418240}}
     )
     db.TEST.versions_nums.insert_one(
-        {
-            "_id": bson.ObjectId("5ad0742ca0949de6727cf993"),
-            "symbol": "MYARR",
-            "version": 2,
-        }
+        {"_id": bson.ObjectId("5ad0742ca0949de6727cf993"), "symbol": "MYARR", "version": 2}
     )
     db.TEST.versions.insert_many(
         [
@@ -226,9 +196,7 @@ def ndarray_store_with_uncompressed_write(mongo_server):
                 "sha": bson.Binary(base64.b64decode("Bf5AV1MWbxJVWefJrFWGVPEHx+k="), 0),
                 "shape": [-1],
                 "version": 1,
-                "base_sha": bson.Binary(
-                    base64.b64decode("Bf5AV1MWbxJVWefJrFWGVPEHx+k="), 0
-                ),
+                "base_sha": bson.Binary(base64.b64decode("Bf5AV1MWbxJVWefJrFWGVPEHx+k="), 0),
                 "type": "ndarray",
                 "metadata": None,
             },
@@ -245,9 +213,7 @@ def ndarray_store_with_uncompressed_write(mongo_server):
                 "sha": bson.Binary(base64.b64decode("Ax7oBxVFw1/9wKog2gfOLjbOVD8="), 0),
                 "shape": [-1],
                 "version": 2,
-                "base_sha": bson.Binary(
-                    base64.b64decode("Bf5AV1MWbxJVWefJrFWGVPEHx+k="), 0
-                ),
+                "base_sha": bson.Binary(base64.b64decode("Bf5AV1MWbxJVWefJrFWGVPEHx+k="), 0),
                 "type": "ndarray",
                 "metadata": None,
             },

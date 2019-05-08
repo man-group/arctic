@@ -22,25 +22,16 @@ def main():
     setup_logging()
 
     parser = argparse.ArgumentParser(usage=usage)
-    parser.add_argument(
-        "--host",
-        default="localhost",
-        help="Hostname, or clustername. Default: localhost",
-    )
-    parser.add_argument(
-        "--library", help="The name of the library. e.g. 'arctic_jblackburn.lib'"
-    )
+    parser.add_argument("--host", default="localhost", help="Hostname, or clustername. Default: localhost")
+    parser.add_argument("--library", help="The name of the library. e.g. 'arctic_jblackburn.lib'")
     parser.add_argument(
         "--type",
         default=VERSION_STORE,
         choices=sorted(LIBRARY_TYPES.keys()),
-        help="The type of the library, as defined in "
-        "arctic.py. Default: %s" % VERSION_STORE,
+        help="The type of the library, as defined in " "arctic.py. Default: %s" % VERSION_STORE,
     )
     parser.add_argument(
-        "--quota",
-        default=10,
-        help="Quota for the library in GB. A quota of 0 is unlimited." "Default: 10",
+        "--quota", default=10, help="Quota for the library in GB. A quota of 0 is unlimited." "Default: 10"
     )
     parser.add_argument(
         "--hashed",

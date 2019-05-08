@@ -38,9 +38,7 @@ some_object = {"thing": sentinel.val}
         )
     ],
 )
-def test_cleanup_orphaned_chunks(
-    mongo_host, library, data, dry_run, fw_pointers_config
-):
+def test_cleanup_orphaned_chunks(mongo_host, library, data, dry_run, fw_pointers_config):
     """
     Check that we do / don't cleanup chunks based on the dry-run
     """
@@ -110,9 +108,7 @@ def test_cleanup_noop(mongo_host, library, data, dry_run, fw_pointers_config):
         )
     ],
 )
-def test_cleanup_orphaned_chunks_ignores_recent(
-    mongo_host, library, data, dry_run, fw_pointers_config
-):
+def test_cleanup_orphaned_chunks_ignores_recent(mongo_host, library, data, dry_run, fw_pointers_config):
     """
     We don't cleanup any chunks in the range of today.  That's just asking for trouble
     """
@@ -137,14 +133,11 @@ def test_cleanup_orphaned_chunks_ignores_recent(
     [
         (x, y)
         for (x, y) in itertools.product(
-            [some_object, ts],
-            [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED],
+            [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED]
         )
     ],
 )
-def test_cleanup_orphaned_chunk_doesnt_break_versions(
-    mongo_host, library, data, fw_pointers_config
-):
+def test_cleanup_orphaned_chunk_doesnt_break_versions(mongo_host, library, data, fw_pointers_config):
     """
     Check that a chunk pointed to by more than one version, aren't inadvertently cleared
     """
@@ -180,9 +173,7 @@ def test_cleanup_orphaned_chunk_doesnt_break_versions(
         )
     ],
 )
-def test_cleanup_orphaned_snapshots(
-    mongo_host, library, data, dry_run, fw_pointers_config
-):
+def test_cleanup_orphaned_snapshots(mongo_host, library, data, dry_run, fw_pointers_config):
     """
     Check that we do / don't cleanup chunks based on the dry-run
     """
@@ -225,9 +216,7 @@ def test_cleanup_orphaned_snapshots(
         )
     ],
 )
-def test_cleanup_orphaned_snapshots_nop(
-    mongo_host, library, data, dry_run, fw_pointers_config
-):
+def test_cleanup_orphaned_snapshots_nop(mongo_host, library, data, dry_run, fw_pointers_config):
     """
     Check that we do / don't cleanup chunks based on the dry-run
     """
@@ -267,9 +256,7 @@ def test_cleanup_orphaned_snapshots_nop(
         )
     ],
 )
-def test_dont_cleanup_recent_orphaned_snapshots(
-    mongo_host, library, data, dry_run, fw_pointers_config
-):
+def test_dont_cleanup_recent_orphaned_snapshots(mongo_host, library, data, dry_run, fw_pointers_config):
     """
     Check that we do / don't cleanup chunks based on the dry-run
     """

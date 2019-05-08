@@ -18,29 +18,19 @@ from arctic.store.version_store import VersionStore, VersionedItem
 
 
 def test_delete_version_version_not_found():
-    with patch(
-        "arctic.store.version_store.VersionStore.__init__",
-        return_value=None,
-        autospec=True,
-    ):
+    with patch("arctic.store.version_store.VersionStore.__init__", return_value=None, autospec=True):
         with patch("arctic.store.version_store.logger") as logger:
             vs = version_store.VersionStore(sentinel.connection)
             vs._versions = MagicMock()
-            with patch.object(
-                vs._versions, "find_one", return_value=None, autospec=True
-            ):
+            with patch.object(vs._versions, "find_one", return_value=None, autospec=True):
                 vs._delete_version(sentinel.symbol, sentinel.version)
-    logger.error.assert_called_once_with(
-        "Can't delete sentinel.symbol:sentinel.version as not found in DB"
-    )
+    logger.error.assert_called_once_with("Can't delete sentinel.symbol:sentinel.version as not found in DB")
 
 
 def test_list_versions_localTime():
     # Object ID's are stored in UTC. We need to ensure that the returned times
     # for versions are in the local  TimeZone
-    vs = create_autospec(
-        VersionStore, instance=True, _versions=Mock(), _snapshots=Mock()
-    )
+    vs = create_autospec(VersionStore, instance=True, _versions=Mock(), _snapshots=Mock())
     mocked_snap_resp = [{"_id": "abcde", "name": "snap"}]
     vs._snapshots.find.return_value = mocked_snap_resp
     vs._snapshots.find_one.return_value = mocked_snap_resp
@@ -67,9 +57,7 @@ def test_list_versions_localTime():
 
 
 def test_list_versions_no_snapshot():
-    vs = create_autospec(
-        VersionStore, instance=True, _versions=Mock(), _snapshots=Mock()
-    )
+    vs = create_autospec(VersionStore, instance=True, _versions=Mock(), _snapshots=Mock())
     vs._snapshots.find.return_value = []
     vs._snapshots.find_one.return_value = []
     date = dt(2013, 4, 1, 9, 0)
@@ -118,11 +106,7 @@ def test_get_version_allow_secondary_True():
     vs._read_preference.return_value = sentinel.read_preference
     vs._find_snapshots.return_value = "snap"
     vs._versions.find.return_value = [
-        {
-            "_id": bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0)),
-            "symbol": "s",
-            "version": 10,
-        }
+        {"_id": bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0)), "symbol": "s", "version": 10}
     ]
 
     VersionStore.read(vs, "symbol")
@@ -146,11 +130,7 @@ def test_get_version_allow_secondary_user_override_False():
     vs._read_preference.return_value = sentinel.read_preference
     vs._find_snapshots.return_value = "snap"
     vs._versions.find.return_value = [
-        {
-            "_id": bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0)),
-            "symbol": "s",
-            "version": 10,
-        }
+        {"_id": bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0)), "symbol": "s", "version": 10}
     ]
 
     VersionStore.read(vs, "symbol", allow_secondary=False)
@@ -171,19 +151,13 @@ def test_get_version_allow_secondary_user_override_False():
 
 def test_read_as_of_LondonTime():
     # When we do a read, with naive as_of, that as_of is treated in London Time.
-    vs = create_autospec(
-        VersionStore, instance=True, _versions=Mock(), _allow_secondary=False
-    )
+    vs = create_autospec(VersionStore, instance=True, _versions=Mock(), _allow_secondary=False)
     VersionStore._read_metadata(vs, "symbol", dt(2013, 4, 1, 9, 0))
     versions = vs._versions.with_options.return_value
     versions.find_one.assert_called_once_with(
         {
             "symbol": "symbol",
-            "_id": {
-                "$lt": bson.ObjectId.from_datetime(
-                    dt(2013, 4, 1, 9, 0, tzinfo=mktz()) + dtd(seconds=1)
-                )
-            },
+            "_id": {"$lt": bson.ObjectId.from_datetime(dt(2013, 4, 1, 9, 0, tzinfo=mktz()) + dtd(seconds=1))},
         },
         sort=[("symbol", pymongo.DESCENDING), ("version", pymongo.DESCENDING)],
     )
@@ -191,12 +165,8 @@ def test_read_as_of_LondonTime():
 
 def test_read_as_of_NotNaive():
     # When we do a read, with naive as_of, that as_of is treated in London Time.
-    vs = create_autospec(
-        VersionStore, instance=True, _versions=Mock(), _allow_secondary=False
-    )
-    VersionStore._read_metadata(
-        vs, "symbol", dt(2013, 4, 1, 9, 0, tzinfo=mktz("Europe/Paris"))
-    )
+    vs = create_autospec(VersionStore, instance=True, _versions=Mock(), _allow_secondary=False)
+    VersionStore._read_metadata(vs, "symbol", dt(2013, 4, 1, 9, 0, tzinfo=mktz("Europe/Paris")))
     versions = vs._versions.with_options.return_value
     versions.find_one.assert_called_once_with(
         {
@@ -213,9 +183,7 @@ def test_read_as_of_NotNaive():
 
 def test_read_metadata_no_asof():
     # When we do a read, with naive as_of, that as_of is treated in London Time.
-    vs = create_autospec(
-        VersionStore, instance=True, _versions=Mock(), _allow_secondary=False
-    )
+    vs = create_autospec(VersionStore, instance=True, _versions=Mock(), _allow_secondary=False)
     VersionStore._read_metadata(vs, sentinel.symbol)
     versions = vs._versions.with_options.return_value
     assert versions.find_one.call_args_list == [
@@ -244,15 +212,9 @@ def test_write_check_quota():
 def test_initialize_library():
     arctic_lib = create_autospec(ArcticLibraryBinding)
     arctic_lib.arctic = create_autospec(Arctic, _allow_secondary=False)
-    with patch(
-        "arctic.store.version_store.enable_sharding", autospec=True
-    ) as enable_sharding:
-        arctic_lib.get_top_level_collection.return_value.database.create_collection.__name__ = (
-            "some_name"
-        )
-        arctic_lib.get_top_level_collection.return_value.database.collection_names.__name__ = (
-            "some_name"
-        )
+    with patch("arctic.store.version_store.enable_sharding", autospec=True) as enable_sharding:
+        arctic_lib.get_top_level_collection.return_value.database.create_collection.__name__ = "some_name"
+        arctic_lib.get_top_level_collection.return_value.database.collection_names.__name__ = "some_name"
         arctic_lib.get_top_level_collection.__name__ = "get_top_level_collection"
         arctic_lib.get_top_level_collection.return_value.database.list_collection_names.__name__ = (
             "list_collection_names"
@@ -290,9 +252,7 @@ def test_prune_previous_versions_0_timeout():
     with patch("arctic.store.version_store.dt") as dt:
         dt.utcnow.return_value = datetime.datetime(2013, 10, 1)
         VersionStore._find_prunable_version_ids(self, sentinel.symbol, keep_mins=0)
-    assert self._versions.with_options.call_args_list == [
-        call(read_preference=ReadPreference.PRIMARY)
-    ]
+    assert self._versions.with_options.call_args_list == [call(read_preference=ReadPreference.PRIMARY)]
     assert self._versions.with_options.return_value.find.call_args_list == [
         call(
             {
@@ -347,25 +307,19 @@ def test_read_handles_operation_failure():
 
 
 def test_read_reports_random_errors():
-    self = create_autospec(
-        VersionStore, _versions=Mock(), _arctic_lib=Mock(), _allow_secondary=True
-    )
+    self = create_autospec(VersionStore, _versions=Mock(), _arctic_lib=Mock(), _allow_secondary=True)
     self._collection = create_autospec(Collection)
     self._do_read.__name__ = "name"  # feh: mongo_retry decorator cares about this
     self._do_read.side_effect = Exception("bad")
     with pytest.raises(Exception) as e:
         with patch("arctic.store.version_store.log_exception") as le:
-            VersionStore.read(
-                self, sentinel.symbol, sentinel.as_of, sentinel.from_version
-            )
+            VersionStore.read(self, sentinel.symbol, sentinel.as_of, sentinel.from_version)
     assert "bad" in str(e)
     assert le.call_count == 1
 
 
 def test_snapshot():
-    vs = create_autospec(
-        VersionStore, _snapshots=Mock(), _collection=Mock(), _versions=Mock()
-    )
+    vs = create_autospec(VersionStore, _snapshots=Mock(), _collection=Mock(), _versions=Mock())
     vs._snapshots.find_one.return_value = False
     vs._versions.update_one.__name__ = "name"
     vs._snapshots.insert_one.__name__ = "name"
@@ -436,23 +390,17 @@ MOCK_OBJID = ObjectId("5a2ffdf817f7041a4ff1aaaa")
 
 
 def _create_mock_versionstore():
-    vs = create_autospec(
-        VersionStore, _arctic_lib=Mock(), _version_nums=Mock(), _versions=Mock()
-    )
+    vs = create_autospec(VersionStore, _arctic_lib=Mock(), _version_nums=Mock(), _versions=Mock())
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
     vs._arctic_lib.get_name.return_value = TEST_LIB
     vs._read_metadata.return_value = TPL_VERSION
-    vs._version_nums.find_one_and_update.return_value = {
-        "version": TPL_VERSION["version"] + 1
-    }
+    vs._version_nums.find_one_and_update.return_value = {"version": TPL_VERSION["version"] + 1}
     vs._version_nums.find_one.return_value = {"version": TPL_VERSION["version"] + 1}
     vs._versions.find_one.return_value = TPL_VERSION
     vs._add_new_version_using_reference.side_effect = lambda *args: VersionStore._add_new_version_using_reference(
         vs, *args
     )
-    vs._last_version_seqnum = lambda version: VersionStore._last_version_seqnum(
-        vs, version
-    )
+    vs._last_version_seqnum = lambda version: VersionStore._last_version_seqnum(vs, version)
     vs.write.return_value = VersionedItem(
         symbol=TEST_SYMBOL,
         library=vs._arctic_lib.get_name(),
@@ -469,19 +417,13 @@ def test_write_metadata_no_previous_data():
     vs._read_metadata.side_effect = NoDataFoundException("no data found")
 
     assert (
-        VersionStore.write_metadata(
-            vs, symbol=TEST_SYMBOL, metadata=META_TO_WRITE, my_custom_arg="hello"
-        )
+        VersionStore.write_metadata(vs, symbol=TEST_SYMBOL, metadata=META_TO_WRITE, my_custom_arg="hello")
         == vs.write.return_value
     )
     assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL)]
     assert vs.write.call_args_list == [
         call(
-            TEST_SYMBOL,
-            data=None,
-            metadata=META_TO_WRITE,
-            prune_previous_version=True,
-            my_custom_arg="hello",
+            TEST_SYMBOL, data=None, metadata=META_TO_WRITE, prune_previous_version=True, my_custom_arg="hello"
         )
     ]
 
@@ -491,11 +433,7 @@ def test_write_metadata_with_previous_data():
 
     expected_new_version = TPL_VERSION.copy()
     expected_new_version.update(
-        {
-            "_id": MOCK_OBJID,
-            "version": TPL_VERSION["version"] + 1,
-            "metadata": META_TO_WRITE,
-        }
+        {"_id": MOCK_OBJID, "version": TPL_VERSION["version"] + 1, "metadata": META_TO_WRITE}
     )
 
     expected_ret_val = VersionedItem(
@@ -512,9 +450,7 @@ def test_write_metadata_with_previous_data():
     ) as mock_retry:
         mock_objId.return_value = MOCK_OBJID
         mock_retry.side_effect = lambda f: f
-        assert expected_ret_val == VersionStore.write_metadata(
-            vs, symbol=TEST_SYMBOL, metadata=META_TO_WRITE
-        )
+        assert expected_ret_val == VersionStore.write_metadata(vs, symbol=TEST_SYMBOL, metadata=META_TO_WRITE)
         assert vs._versions.insert_one.call_args_list == [call(expected_new_version)]
         assert vs._versions.delete_one.called is False
         assert vs.write.called is False
@@ -524,9 +460,7 @@ def test_write_empty_metadata():
     vs = _create_mock_versionstore()
 
     expected_new_version = TPL_VERSION.copy()
-    expected_new_version.update(
-        {"_id": MOCK_OBJID, "version": TPL_VERSION["version"] + 1, "metadata": None}
-    )
+    expected_new_version.update({"_id": MOCK_OBJID, "version": TPL_VERSION["version"] + 1, "metadata": None})
 
     expected_ret_val = VersionedItem(
         symbol=TEST_SYMBOL,
@@ -542,9 +476,7 @@ def test_write_empty_metadata():
     ) as mock_retry:
         mock_objId.return_value = MOCK_OBJID
         mock_retry.side_effect = lambda f: f
-        assert expected_ret_val == VersionStore.write_metadata(
-            vs, symbol=TEST_SYMBOL, metadata=None
-        )
+        assert expected_ret_val == VersionStore.write_metadata(vs, symbol=TEST_SYMBOL, metadata=None)
         assert vs._versions.insert_one.call_args_list == [call(expected_new_version)]
         assert vs._versions.delete_one.called is False
         assert vs.write.called is False
@@ -572,9 +504,7 @@ def test_restore_version():
     vs = _create_mock_versionstore()
 
     LASTEST_VERSION = dict(
-        TPL_VERSION,
-        version=TPL_VERSION["version"] + 1,
-        metadata={"something": "different"},
+        TPL_VERSION, version=TPL_VERSION["version"] + 1, metadata={"something": "different"}
     )
     last_item = VersionedItem(
         symbol=TEST_SYMBOL,
@@ -604,28 +534,14 @@ def test_restore_version():
         mock_objId.return_value = MOCK_OBJID
         mock_retry.side_effect = lambda f: f
         ret_item = VersionStore.restore_version(
-            vs,
-            symbol=TEST_SYMBOL,
-            as_of=LASTEST_VERSION["version"],
-            prune_previous_version=True,
+            vs, symbol=TEST_SYMBOL, as_of=LASTEST_VERSION["version"], prune_previous_version=True
         )
         assert ret_item == new_item
-        assert vs._read_metadata.call_args_list == [
-            call(TEST_SYMBOL, as_of=LASTEST_VERSION["version"])
-        ]
-        assert vs._version_nums.find_one.call_args_list == [
-            call({"symbol": TEST_SYMBOL})
-        ]
-        assert vs.read.call_args_list == [
-            call(TEST_SYMBOL, as_of=LASTEST_VERSION["version"])
-        ]
+        assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL, as_of=LASTEST_VERSION["version"])]
+        assert vs._version_nums.find_one.call_args_list == [call({"symbol": TEST_SYMBOL})]
+        assert vs.read.call_args_list == [call(TEST_SYMBOL, as_of=LASTEST_VERSION["version"])]
         assert vs.write.call_args_list == [
-            call(
-                TEST_SYMBOL,
-                data=last_item.data,
-                metadata=last_item.metadata,
-                prune_previous_version=True,
-            )
+            call(TEST_SYMBOL, data=last_item.data, metadata=last_item.metadata, prune_previous_version=True)
         ]
 
 
@@ -636,14 +552,9 @@ def test_restore_version_data_missing_symbol():
         mock_retry.side_effect = lambda f: f
         with pytest.raises(NoDataFoundException):
             VersionStore.restore_version(
-                vs,
-                symbol=TEST_SYMBOL,
-                as_of=TPL_VERSION["version"],
-                prune_previous_version=True,
+                vs, symbol=TEST_SYMBOL, as_of=TPL_VERSION["version"], prune_previous_version=True
             )
-    assert vs._read_metadata.call_args_list == [
-        call(TEST_SYMBOL, as_of=TPL_VERSION["version"])
-    ]
+    assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL, as_of=TPL_VERSION["version"])]
     assert vs._versions.insert_one.called is False
 
 
@@ -660,20 +571,13 @@ def test_restore_last_version():
         mock_retry.side_effect = lambda f: f
 
         ret_item = VersionStore.restore_version(
-            vs,
-            symbol=TEST_SYMBOL,
-            as_of=TPL_VERSION["version"],
-            prune_previous_version=True,
+            vs, symbol=TEST_SYMBOL, as_of=TPL_VERSION["version"], prune_previous_version=True
         )
 
         assert ret_item.version == TPL_VERSION["version"]
         assert ret_item.metadata == TPL_VERSION.get("metadata")
-        assert vs._read_metadata.call_args_list == [
-            call(TEST_SYMBOL, as_of=TPL_VERSION["version"])
-        ]
-        assert vs._version_nums.find_one.call_args_list == [
-            call({"symbol": TEST_SYMBOL})
-        ]
+        assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL, as_of=TPL_VERSION["version"])]
+        assert vs._version_nums.find_one.call_args_list == [call({"symbol": TEST_SYMBOL})]
         assert not vs.read.called
         assert not vs.write.called
 
@@ -686,9 +590,7 @@ def test_write_error_clean_retry():
         instance=True,
         _collection=Mock(),
         _version_nums=Mock(find_one_and_update=Mock(return_value={"version": 1})),
-        _versions=Mock(
-            insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")
-        ),
+        _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")),
         _arctic_lib=create_autospec(
             ArcticLibraryBinding, arctic=create_autospec(Arctic, mongo_host="some_host")
         ),
@@ -710,9 +612,7 @@ def test_write_insert_version_duplicatekey():
         instance=True,
         _collection=Mock(),
         _version_nums=Mock(find_one_and_update=Mock(return_value={"version": 1})),
-        _versions=Mock(
-            insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")
-        ),
+        _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")),
         _arctic_lib=create_autospec(
             ArcticLibraryBinding, arctic=create_autospec(Arctic, mongo_host="some_host")
         ),
@@ -735,9 +635,7 @@ def test_write_insert_version_operror():
         instance=True,
         _collection=Mock(),
         _version_nums=Mock(find_one_and_update=Mock(return_value={"version": 1})),
-        _versions=Mock(
-            insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")
-        ),
+        _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")),
         _arctic_lib=create_autospec(
             ArcticLibraryBinding, arctic=create_autospec(Arctic, mongo_host="some_host")
         ),
@@ -763,9 +661,7 @@ def test_append_error_clean_retry():
         instance=True,
         _collection=Mock(),
         _version_nums=Mock(
-            find_one_and_update=Mock(
-                return_value={"version": previous_version["version"] + 1}
-            )
+            find_one_and_update=Mock(return_value={"version": previous_version["version"] + 1})
         ),
         _versions=Mock(
             insert_one=Mock(__name__="insert_one"),
@@ -778,9 +674,7 @@ def test_append_error_clean_retry():
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
     vs._collection.database.connection.nodes = []
     vs._read_handler.return_value = read_handler
-    VersionStore.append(
-        vs, "sym", [1, 2, 3], prune_previous_version=False, upsert=False
-    )
+    VersionStore.append(vs, "sym", [1, 2, 3], prune_previous_version=False, upsert=False)
     assert vs._version_nums.find_one_and_update.call_count == 2
     assert vs._versions.find_one.call_count == 2
     assert read_handler.append.call_count == 2
@@ -796,9 +690,7 @@ def test_append_insert_version_duplicatekey():
         instance=True,
         _collection=Mock(),
         _version_nums=Mock(
-            find_one_and_update=Mock(
-                return_value={"version": previous_version["version"] + 1}
-            )
+            find_one_and_update=Mock(return_value={"version": previous_version["version"] + 1})
         ),
         _versions=Mock(
             insert_one=Mock(__name__="insert_one"),
@@ -812,9 +704,7 @@ def test_append_insert_version_duplicatekey():
     vs._versions.insert_one.side_effect = [DuplicateKeyError("dup key error"), None]
     vs._collection.database.connection.nodes = []
     vs._read_handler.return_value = read_handler
-    VersionStore.append(
-        vs, "sym", [1, 2, 3], prune_previous_version=False, upsert=False
-    )
+    VersionStore.append(vs, "sym", [1, 2, 3], prune_previous_version=False, upsert=False)
     assert vs._version_nums.find_one_and_update.call_count == 2
     assert vs._versions.find_one.call_count == 2
     assert read_handler.append.call_count == 2
@@ -830,9 +720,7 @@ def test_append_insert_version_operror():
         instance=True,
         _collection=Mock(),
         _version_nums=Mock(
-            find_one_and_update=Mock(
-                return_value={"version": previous_version["version"] + 1}
-            )
+            find_one_and_update=Mock(return_value={"version": previous_version["version"] + 1})
         ),
         _versions=Mock(
             insert_one=Mock(__name__="insert_one"),
@@ -846,9 +734,7 @@ def test_append_insert_version_operror():
     vs._versions.insert_one.side_effect = [OperationFailure("mongo op error"), None]
     vs._collection.database.connection.nodes = []
     vs._read_handler.return_value = read_handler
-    VersionStore.append(
-        vs, "sym", [1, 2, 3], prune_previous_version=False, upsert=False
-    )
+    VersionStore.append(vs, "sym", [1, 2, 3], prune_previous_version=False, upsert=False)
     assert vs._version_nums.find_one_and_update.call_count == 1
     assert vs._versions.find_one.call_count == 1
     assert read_handler.append.call_count == 1

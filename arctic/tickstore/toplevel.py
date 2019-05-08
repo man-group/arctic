@@ -56,14 +56,10 @@ class TopLevelTickStore(object):
         name = self.get_name()
         db_name, tick_type = name.split(".", 1)
         regex = re.compile(PATTERN % (db_name, tick_type))
-        libraries = [
-            lib for lib in self._arctic_lib.arctic.list_libraries() if regex.search(lib)
-        ]
+        libraries = [lib for lib in self._arctic_lib.arctic.list_libraries() if regex.search(lib)]
         for lib in libraries:
             year = int(YEAR_REGEX.search(lib).group())
-            date_range = DateRange(
-                dt(year, 1, 1), dt(year + 1, 1, 1) - timedelta(milliseconds=1)
-            )
+            date_range = DateRange(dt(year, 1, 1), dt(year + 1, 1, 1) - timedelta(milliseconds=1))
             self.add(date_range, lib)
 
     def __init__(self, arctic_lib):
@@ -114,9 +110,7 @@ class TopLevelTickStore(object):
         ), "Date range should fall on UTC day boundaries {}".format(date_range)
         # check that the date range does not overlap
         library_metadata = self._get_library_metadata(date_range)
-        if len(library_metadata) > 1 or (
-            len(library_metadata) == 1 and library_metadata[0] != library_name
-        ):
+        if len(library_metadata) > 1 or (len(library_metadata) == 1 and library_metadata[0] != library_name):
             raise OverlappingDataException(
                 """There are libraries that overlap with the date range:
 library: {}
@@ -125,9 +119,7 @@ overlapping libraries: {}""".format(
                 )
             )
         self._collection.update_one(
-            {"library_name": library_name},
-            {"$set": {"start": start, "end": end}},
-            upsert=True,
+            {"library_name": library_name}, {"$set": {"start": start, "end": end}}, upsert=True
         )
 
     def read(self, symbol, date_range, columns=None, include_images=False):
@@ -136,18 +128,13 @@ overlapping libraries: {}""".format(
         for l in libraries:
             try:
                 df = l.library.read(
-                    symbol,
-                    l.date_range.intersection(date_range),
-                    columns,
-                    include_images=include_images,
+                    symbol, l.date_range.intersection(date_range), columns, include_images=include_images
                 )
                 dfs.append(df)
             except NoDataFoundException as e:
                 continue
         if len(dfs) == 0:
-            raise NoDataFoundException(
-                "No Data found for {} in range: {}".format(symbol, date_range)
-            )
+            raise NoDataFoundException("No Data found for {} in range: {}".format(symbol, date_range))
         return pd.concat(dfs)
 
     def write(self, symbol, data):
@@ -167,17 +154,13 @@ overlapping libraries: {}""".format(
         cursor = self._collection.find()
         for res in cursor:
             library = self._arctic_lib.arctic[res["library_name"]]
-            dslice = self._slice(
-                data, to_dt(res["start"], mktz("UTC")), to_dt(res["end"], mktz("UTC"))
-            )
+            dslice = self._slice(data, to_dt(res["start"], mktz("UTC")), to_dt(res["end"], mktz("UTC")))
             if len(dslice) != 0:
                 library.write(symbol, dslice)
 
     def list_symbols(self, date_range):
         libraries = self._get_libraries(date_range)
-        return sorted(
-            list(set(itertools.chain(*[l.library.list_symbols() for l in libraries])))
-        )
+        return sorted(list(set(itertools.chain(*[l.library.list_symbols() for l in libraries]))))
 
     def get_name(self):
         name = self._arctic_lib.get_name()
@@ -189,9 +172,7 @@ overlapping libraries: {}""".format(
         libraries = self._get_library_metadata(date_range)
 
         rtn = [
-            TickStoreLibrary(
-                self._arctic_lib.arctic[library.library], library.date_range
-            )
+            TickStoreLibrary(self._arctic_lib.arctic[library.library], library.date_range)
             for library in libraries
         ]
 
@@ -209,17 +190,14 @@ overlapping libraries: {}""".format(
             try:
                 rtn.append(
                     TickStoreLibrary(
-                        self._arctic_lib.arctic[current_lib],
-                        DateRange(current_start, None, OPEN_OPEN),
+                        self._arctic_lib.arctic[current_lib], DateRange(current_start, None, OPEN_OPEN)
                     )
                 )
             except LibraryNotFoundException:
                 pass  # No '_current', move on.
 
         if not rtn:
-            raise NoDataFoundException(
-                "No underlying libraries exist for the given date range"
-            )
+            raise NoDataFoundException("No underlying libraries exist for the given date range")
         return rtn
 
     def _slice(self, data, start, end):
@@ -231,9 +209,7 @@ overlapping libraries: {}""".format(
         elif isinstance(data, pd.DataFrame):
             return data[start:end]
         else:
-            raise UnhandledDtypeException(
-                "Can't persist type %s to tickstore" % type(data)
-            )
+            raise UnhandledDtypeException("Can't persist type %s to tickstore" % type(data))
 
     def _get_library_metadata(self, date_range):
         """
@@ -245,22 +221,14 @@ overlapping libraries: {}""".format(
         if date_range is None:
             raise Exception("A date range must be provided")
         if not (date_range.start and date_range.end):
-            raise Exception(
-                "The date range {0} must contain a start and end date".format(
-                    date_range
-                )
-            )
+            raise Exception("The date range {0} must contain a start and end date".format(date_range))
 
         start = (
             date_range.start
             if date_range.start.tzinfo is not None
             else date_range.start.replace(tzinfo=mktz())
         )
-        end = (
-            date_range.end
-            if date_range.end.tzinfo is not None
-            else date_range.end.replace(tzinfo=mktz())
-        )
+        end = date_range.end if date_range.end.tzinfo is not None else date_range.end.replace(tzinfo=mktz())
         query = {
             "$or": [
                 {"start": {"$lte": start}, "end": {"$gte": start}},
@@ -270,28 +238,18 @@ overlapping libraries: {}""".format(
         }
 
         cursor = self._collection.find(
-            query,
-            projection={"library_name": 1, "start": 1, "end": 1},
-            sort=[("start", pymongo.ASCENDING)],
+            query, projection={"library_name": 1, "start": 1, "end": 1}, sort=[("start", pymongo.ASCENDING)]
         )
 
         results = []
         for res in cursor:
             start = res["start"]
             if date_range.start.tzinfo is not None and start.tzinfo is None:
-                start = start.replace(tzinfo=mktz("UTC")).astimezone(
-                    tz=date_range.start.tzinfo
-                )
+                start = start.replace(tzinfo=mktz("UTC")).astimezone(tz=date_range.start.tzinfo)
 
             end = res["end"]
             if date_range.end.tzinfo is not None and end.tzinfo is None:
-                end = end.replace(tzinfo=mktz("UTC")).astimezone(
-                    tz=date_range.end.tzinfo
-                )
+                end = end.replace(tzinfo=mktz("UTC")).astimezone(tz=date_range.end.tzinfo)
 
-            results.append(
-                TickStoreLibrary(
-                    res["library_name"], DateRange(start, end, CLOSED_CLOSED)
-                )
-            )
+            results.append(TickStoreLibrary(res["library_name"], DateRange(start, end, CLOSED_CLOSED)))
         return results

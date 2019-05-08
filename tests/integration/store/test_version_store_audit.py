@@ -107,20 +107,8 @@ def test_audit_writes(library):
 
     audit_log = library.read_audit_log(symbol)
     assert audit_log == [
-        {
-            u"new_v": 2,
-            u"symbol": u"TS1",
-            u"message": u"l2",
-            u"user": u"u2",
-            u"orig_v": 1,
-        },
-        {
-            u"new_v": 1,
-            u"symbol": u"TS1",
-            u"message": u"l1",
-            u"user": u"u1",
-            u"orig_v": 0,
-        },
+        {u"new_v": 2, u"symbol": u"TS1", u"message": u"l2", u"user": u"u2", u"orig_v": 1},
+        {u"new_v": 1, u"symbol": u"TS1", u"message": u"l1", u"user": u"u1", u"orig_v": 0},
     ]
     assert_frame_equal(ts1, library.read(symbol, audit_log[0]["orig_v"]).data)
     assert_frame_equal(ts2, library.read(symbol, audit_log[0]["new_v"]).data)
@@ -135,29 +123,14 @@ def test_metadata_changes_writes(library):
 
     audit_log = library.read_audit_log(symbol)
     assert audit_log == [
-        {
-            u"new_v": 2,
-            u"symbol": u"TS1",
-            u"message": u"l2",
-            u"user": u"u2",
-            u"orig_v": 1,
-        },
-        {
-            u"new_v": 1,
-            u"symbol": u"TS1",
-            u"message": u"l1",
-            u"user": u"u1",
-            u"orig_v": 0,
-        },
+        {u"new_v": 2, u"symbol": u"TS1", u"message": u"l2", u"user": u"u2", u"orig_v": 1},
+        {u"new_v": 1, u"symbol": u"TS1", u"message": u"l1", u"user": u"u1", u"orig_v": 0},
     ]
     assert_frame_equal(ts1, library.read(symbol, audit_log[0]["orig_v"]).data)
     assert_frame_equal(ts1, library.read(symbol, audit_log[0]["new_v"]).data)
 
     assert library.read(symbol, audit_log[0]["orig_v"]).metadata == {"original": "data"}
-    assert library.read(symbol, audit_log[0]["new_v"]).metadata == {
-        "some": "data",
-        "original": "data",
-    }
+    assert library.read(symbol, audit_log[0]["new_v"]).metadata == {"some": "data", "original": "data"}
 
 
 def test_audit_read(library):
@@ -176,110 +149,38 @@ def test_audit_read(library):
     audit_log = library.read_audit_log()
 
     assert audit_log == [
-        {
-            u"new_v": 1,
-            u"symbol": u"TS2",
-            u"message": u"l2",
-            u"user": u"u2",
-            u"orig_v": 0,
-        },
-        {
-            u"new_v": 2,
-            u"symbol": u"TS1",
-            u"message": u"l2",
-            u"user": u"u2",
-            u"orig_v": 1,
-        },
-        {
-            u"new_v": 1,
-            u"symbol": u"TS1",
-            u"message": u"l1",
-            u"user": u"u1",
-            u"orig_v": 0,
-        },
-        {
-            u"new_v": 1,
-            u"symbol": u"TS3",
-            u"message": u"foo",
-            u"user": u"u3",
-            u"orig_v": 0,
-        },
+        {u"new_v": 1, u"symbol": u"TS2", u"message": u"l2", u"user": u"u2", u"orig_v": 0},
+        {u"new_v": 2, u"symbol": u"TS1", u"message": u"l2", u"user": u"u2", u"orig_v": 1},
+        {u"new_v": 1, u"symbol": u"TS1", u"message": u"l1", u"user": u"u1", u"orig_v": 0},
+        {u"new_v": 1, u"symbol": u"TS3", u"message": u"foo", u"user": u"u3", u"orig_v": 0},
     ]
 
     l2_audit_log = library.read_audit_log(message="l2")
 
     assert l2_audit_log == [
-        {
-            u"new_v": 1,
-            u"symbol": u"TS2",
-            u"message": u"l2",
-            u"user": u"u2",
-            u"orig_v": 0,
-        },
-        {
-            u"new_v": 2,
-            u"symbol": u"TS1",
-            u"message": u"l2",
-            u"user": u"u2",
-            u"orig_v": 1,
-        },
+        {u"new_v": 1, u"symbol": u"TS2", u"message": u"l2", u"user": u"u2", u"orig_v": 0},
+        {u"new_v": 2, u"symbol": u"TS1", u"message": u"l2", u"user": u"u2", u"orig_v": 1},
     ]
 
     symbol_audit_log = library.read_audit_log(symbol=symbol)
 
     assert symbol_audit_log == [
-        {
-            u"new_v": 2,
-            u"symbol": u"TS1",
-            u"message": u"l2",
-            u"user": u"u2",
-            u"orig_v": 1,
-        },
-        {
-            u"new_v": 1,
-            u"symbol": u"TS1",
-            u"message": u"l1",
-            u"user": u"u1",
-            u"orig_v": 0,
-        },
+        {u"new_v": 2, u"symbol": u"TS1", u"message": u"l2", u"user": u"u2", u"orig_v": 1},
+        {u"new_v": 1, u"symbol": u"TS1", u"message": u"l1", u"user": u"u1", u"orig_v": 0},
     ]
 
     symbols_audit_log = library.read_audit_log(symbol=[symbol, symbol2])
 
     assert symbols_audit_log == [
-        {
-            u"new_v": 1,
-            u"symbol": u"TS2",
-            u"message": u"l2",
-            u"user": u"u2",
-            u"orig_v": 0,
-        },
-        {
-            u"new_v": 2,
-            u"symbol": u"TS1",
-            u"message": u"l2",
-            u"user": u"u2",
-            u"orig_v": 1,
-        },
-        {
-            u"new_v": 1,
-            u"symbol": u"TS1",
-            u"message": u"l1",
-            u"user": u"u1",
-            u"orig_v": 0,
-        },
+        {u"new_v": 1, u"symbol": u"TS2", u"message": u"l2", u"user": u"u2", u"orig_v": 0},
+        {u"new_v": 2, u"symbol": u"TS1", u"message": u"l2", u"user": u"u2", u"orig_v": 1},
+        {u"new_v": 1, u"symbol": u"TS1", u"message": u"l1", u"user": u"u1", u"orig_v": 0},
     ]
 
     symbol_message_audit_log = library.read_audit_log(symbol=symbol, message="l2")
 
     assert symbol_message_audit_log == [
-        {
-            u"new_v": 2,
-            u"symbol": u"TS1",
-            u"message": u"l2",
-            u"user": u"u2",
-            u"orig_v": 1,
-        }
+        {u"new_v": 2, u"symbol": u"TS1", u"message": u"l2", u"user": u"u2", u"orig_v": 1}
     ]
 
 

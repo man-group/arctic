@@ -40,9 +40,7 @@ FAST_CHECK_DF_SERIALIZABLE = bool(os.environ.get("FAST_CHECK_DF_SERIALIZABLE"))
 # This enum provides all the available modes of operation for Forward pointers
 class FwPointersCfg(Enum):
     ENABLED = 0  # use only forward pointers, don't update segment parent references
-    DISABLED = (
-        1
-    )  # operate in legacy mode, update segment parent references, don't add forward pointers
+    DISABLED = 1  # operate in legacy mode, update segment parent references, don't add forward pointers
     HYBRID = (
         2
     )  # maintain both forward pointers and parent references in segments; for reads prefer fw pointers
@@ -55,17 +53,11 @@ FW_POINTERS_REFS_KEY = "SEGMENT_SHAS"
 FW_POINTERS_CONFIG_KEY = "FW_POINTERS_CONFIG"
 
 # This variable has effect only in Hybrid mode, and controls whether forward and legacy pointers are cross-verified
-ARCTIC_FORWARD_POINTERS_RECONCILE = bool(
-    os.environ.get("ARCTIC_FORWARD_POINTERS_RECONCILE")
-)
+ARCTIC_FORWARD_POINTERS_RECONCILE = bool(os.environ.get("ARCTIC_FORWARD_POINTERS_RECONCILE"))
 try:
     # Controls the mode of operation for FW pointers, has effect on any new versions created
     ARCTIC_FORWARD_POINTERS_CFG = FwPointersCfg[
-        (
-            os.environ.get(
-                "ARCTIC_FORWARD_POINTERS_CFG", FwPointersCfg.DISABLED.name
-            ).upper()
-        )
+        (os.environ.get("ARCTIC_FORWARD_POINTERS_CFG", FwPointersCfg.DISABLED.name).upper())
     ]
 except Exception:
     logger.exception(

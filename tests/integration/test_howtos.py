@@ -9,10 +9,7 @@ HOWTO_DIR = os.path.realpath(
 
 
 @pytest.mark.parametrize(
-    "howto",
-    sorted(
-        [x.split("/")[-1] for x in glob.glob(os.path.join(HOWTO_DIR, "how_to_*.py"))]
-    ),
+    "howto", sorted([x.split("/")[-1] for x in glob.glob(os.path.join(HOWTO_DIR, "how_to_*.py"))])
 )
 def test_howto(howto, mongo_host):
     exec(open(HOWTO_DIR + "/" + howto).read(), {"mongo_host": mongo_host})

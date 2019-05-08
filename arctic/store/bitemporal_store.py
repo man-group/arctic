@@ -6,9 +6,7 @@ import pandas as pd
 from arctic.date._mktz import mktz
 from arctic.multi_index import groupby_asof
 
-BitemporalItem = namedtuple(
-    "BitemporalItem", "symbol, library, data, metadata, last_updated"
-)
+BitemporalItem = namedtuple("BitemporalItem", "symbol, library, data, metadata, last_updated")
 
 
 class BitemporalStore(object):
@@ -65,12 +63,7 @@ class BitemporalStore(object):
             return BitemporalItem(
                 symbol=symbol,
                 library=self._store._arctic_lib.get_name(),
-                data=groupby_asof(
-                    item.data,
-                    as_of=as_of,
-                    dt_col=index_names,
-                    asof_col=self.observe_column,
-                ),
+                data=groupby_asof(item.data, as_of=as_of, dt_col=index_names, asof_col=self.observe_column),
                 metadata=item.metadata,
                 last_updated=last_updated,
             )
@@ -117,11 +110,6 @@ class BitemporalStore(object):
     def _add_observe_dt_index(self, df, as_of):
         index_names = list(df.index.names)
         index_names.append(self.observe_column)
-        index = [
-            x + (as_of,) if df.index.nlevels > 1 else (x, as_of)
-            for x in df.index.tolist()
-        ]
-        df = df.set_index(
-            pd.MultiIndex.from_tuples(index, names=index_names), inplace=False
-        )
+        index = [x + (as_of,) if df.index.nlevels > 1 else (x, as_of) for x in df.index.tolist()]
+        df = df.set_index(pd.MultiIndex.from_tuples(index, names=index_names), inplace=False)
         return df

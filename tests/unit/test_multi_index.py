@@ -14,18 +14,14 @@ from tests.util import multi_index_df_from_arrs
 def get_bitemporal_test_data():
     # Create an index of 8 sample dates, 2 rows per date
     sample_dates = pd.date_range("1/1/2014", periods=4, freq="D")
-    sample_dates = pd.DatetimeIndex(
-        data=sorted(itertools.chain(sample_dates, sample_dates))
-    )
+    sample_dates = pd.DatetimeIndex(data=sorted(itertools.chain(sample_dates, sample_dates)))
 
     # Create a list of insert dates. These are a year later than sample date, to show
     # that they don't necessarily have to be related
     insert_dates = pd.date_range("1/1/2015", periods=8, freq="D")
 
     # Build the bitemporal index
-    index = pd.MultiIndex.from_arrays(
-        [sample_dates, insert_dates], names=["sample_dt", "observed_dt"]
-    )
+    index = pd.MultiIndex.from_arrays([sample_dates, insert_dates], names=["sample_dt", "observed_dt"])
 
     # Create the dataframe with a couple of column, each value incrementing by 0.1 on the successive updates so
     # we can tell them apart
@@ -117,8 +113,7 @@ def test_fancy_group_by_multi_index():
                 "2012-10-09 17:06:11.040",
                 "2012-11-08 17:06:11.040",
             ],
-            ["SPAM Index", "EGG Index", "SPAM Index", "SPAM Index"]
-            + ["EGG Index", "SPAM Index"] * 2,
+            ["SPAM Index", "EGG Index", "SPAM Index", "SPAM Index"] + ["EGG Index", "SPAM Index"] * 2,
             ["2015-01-01"] * 3 + ["2015-01-05"] + ["2015-01-01"] * 4,
         ],
         data_dict={"near": [1.0, 1.6, 2.0, 4.2, 2.1, 2.5, 2.6, 3.0]},
@@ -141,10 +136,7 @@ def test_fancy_group_by_multi_index():
         data_dict={"near": [1.6, 1.0, 2.1, 4.2, 2.6, 2.5, 3.0]},
     )
 
-    assert_frame_equal(
-        expected_ts,
-        groupby_asof(ts, dt_col=["index 1", "index 2"], asof_col="observed_dt"),
-    )
+    assert_frame_equal(expected_ts, groupby_asof(ts, dt_col=["index 1", "index 2"], asof_col="observed_dt"))
 
 
 # --------- Min/Max using numeric index ----------- #
@@ -208,9 +200,7 @@ def test__within_numeric_last():
 
 def get_datetime_index_test_data():
     sample_dates = pd.DatetimeIndex(
-        4 * [dt("1/1/2014 21:30")]
-        + 4 * [dt("2/1/2014 21:30")]
-        + 4 * [dt("3/1/2014 21:30")]
+        4 * [dt("1/1/2014 21:30")] + 4 * [dt("2/1/2014 21:30")] + 4 * [dt("3/1/2014 21:30")]
     )
     observed_dates = [
         dt("1/1/2014 22:00"),
@@ -226,9 +216,7 @@ def get_datetime_index_test_data():
         dt("4/1/2014 00:00"),
         dt("3/1/2015 21:30"),
     ]
-    index = pd.MultiIndex.from_arrays(
-        [sample_dates, observed_dates], names=["sample_dt", "observed_dt"]
-    )
+    index = pd.MultiIndex.from_arrays([sample_dates, observed_dates], names=["sample_dt", "observed_dt"])
 
     prices = np.arange(24).reshape(12, 2) * 10
     df = pd.DataFrame(prices, index=index, columns=["OPEN", "CLOSE"])

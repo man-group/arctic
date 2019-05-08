@@ -16,9 +16,7 @@ if sys.version_info > (3,):
 Ranges = {"()": OPEN_OPEN, "(]": OPEN_CLOSED, "[)": CLOSED_OPEN, "[]": CLOSED_CLOSED}
 
 
-def string_to_daterange(
-    str_range, delimiter="-", as_dates=False, interval=CLOSED_CLOSED
-):
+def string_to_daterange(str_range, delimiter="-", as_dates=False, interval=CLOSED_CLOSED):
     """
     Convert a string to a DateRange type. If you put only one date, it generates the
     relevant range for just that date or datetime till 24 hours later. You can optionally
@@ -60,17 +58,12 @@ def string_to_daterange(
     """
     num_dates = str_range.count(delimiter) + 1
     if num_dates > 2:
-        raise ValueError(
-            "Too many dates in input string [%s] with delimiter (%s)"
-            % (str_range, delimiter)
-        )
+        raise ValueError("Too many dates in input string [%s] with delimiter (%s)" % (str_range, delimiter))
 
     # Allow the user to use the [date-date), etc. range syntax to specify the interval.
     range_mode = Ranges.get(str_range[0] + str_range[-1], None)
     if range_mode:
-        return string_to_daterange(
-            str_range[1:-1], delimiter, as_dates, interval=range_mode
-        )
+        return string_to_daterange(str_range[1:-1], delimiter, as_dates, interval=range_mode)
 
     if as_dates:
         parse_dt = lambda s: parse(s).date() if s else None
@@ -178,9 +171,7 @@ def utc_dt_to_local_dt(dtm):
     """Convert a UTC datetime to datetime in local timezone"""
     utc_zone = mktz("UTC")
     if dtm.tzinfo is not None and dtm.tzinfo != utc_zone:
-        raise ValueError(
-            "Expected dtm without tzinfo or with UTC, not %r" % (dtm.tzinfo)
-        )
+        raise ValueError("Expected dtm without tzinfo or with UTC, not %r" % (dtm.tzinfo))
 
     if dtm.tzinfo is None:
         dtm = dtm.replace(tzinfo=utc_zone)

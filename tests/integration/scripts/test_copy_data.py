@@ -55,17 +55,7 @@ def test_copy_data_no_force(arctic, mongo_host):
     src_host = "arctic_" + src + "@" + mongo_host
     dest_host = "arctic_" + dest + "@" + mongo_host
     with patch("arctic.scripts.arctic_copy_data.logger") as logger:
-        run_as_main(
-            mcd.main,
-            "--src",
-            src_host,
-            "--dest",
-            dest_host,
-            "--log",
-            "CR101",
-            "some_ts",
-            "some_ts1",
-        )
+        run_as_main(mcd.main, "--src", src_host, "--dest", dest_host, "--log", "CR101", "some_ts", "some_ts1")
 
     assert_frame_equal(ts, arctic[dest].read("some_ts").data)
     assert_frame_equal(ts1, arctic[dest].read("some_ts1").data)
@@ -115,9 +105,7 @@ def test_copy_data_force(arctic, mongo_host):
         call("Copying data from %s -> %s" % (src_host, dest_host)),
         call("Copying: 2 symbols"),
     ]
-    assert logger.warn.call_args_list == [
-        call("Symbol: some_ts already exists in destination, OVERWRITING")
-    ]
+    assert logger.warn.call_args_list == [call("Symbol: some_ts already exists in destination, OVERWRITING")]
     assert arctic[dest].read_audit_log("some_ts1")[0]["message"] == "CR101"
 
 
@@ -174,17 +162,7 @@ def test_copy_data_wild(arctic, mongo_host):
     src_host = "arctic_" + src + "@" + mongo_host
     dest_host = "arctic_" + dest + "@" + mongo_host
     with patch("arctic.scripts.arctic_copy_data.logger") as logger:
-        run_as_main(
-            mcd.main,
-            "--src",
-            src_host,
-            "--dest",
-            dest_host,
-            "--log",
-            "CR101",
-            ".*_a_.*",
-            ".*_b_.*",
-        )
+        run_as_main(mcd.main, "--src", src_host, "--dest", dest_host, "--log", "CR101", ".*_a_.*", ".*_b_.*")
 
     assert_frame_equal(ts, arctic[dest].read("some_a_ts").data)
     assert_frame_equal(ts1, arctic[dest].read("some_a_ts1").data)
@@ -204,21 +182,10 @@ def test_copy_data_doesnt_exist(arctic, mongo_host):
     src_host = src + "@" + mongo_host
     dest_host = dest + "@" + mongo_host
     with patch("arctic.scripts.arctic_copy_data.logger") as logger:
-        run_as_main(
-            mcd.main,
-            "--src",
-            src_host,
-            "--dest",
-            dest_host,
-            "--log",
-            "CR101",
-            "some_ts",
-        )
+        run_as_main(mcd.main, "--src", src_host, "--dest", dest_host, "--log", "CR101", "some_ts")
 
     assert logger.info.call_args_list == [
         call("Copying data from %s -> %s" % (src_host, dest_host)),
         call("Copying: 0 symbols"),
     ]
-    assert logger.warn.call_args_list == [
-        call("No symbols found that matched those provided.")
-    ]
+    assert logger.warn.call_args_list == [call("No symbols found that matched those provided.")]

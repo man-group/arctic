@@ -48,11 +48,7 @@ try:
 
     lz4_compressHC = lambda _str: lz4_compress(_str, mode="high_compression")
 except ImportError as e:
-    from lz4 import (
-        compress as lz4_compress,
-        compressHC as lz4_compressHC,
-        decompress as lz4_decompress,
-    )
+    from lz4 import compress as lz4_compress, compressHC as lz4_compressHC, decompress as lz4_decompress
 
 
 logger = logging.getLogger(__name__)
@@ -124,14 +120,10 @@ class TickStore(object):
     @mongo_retry
     def _ensure_index(self):
         collection = self._collection
-        collection.create_index(
-            [(SYMBOL, pymongo.ASCENDING), (START, pymongo.ASCENDING)], background=True
-        )
+        collection.create_index([(SYMBOL, pymongo.ASCENDING), (START, pymongo.ASCENDING)], background=True)
         collection.create_index([(START, pymongo.ASCENDING)], background=True)
 
-        self._metadata.create_index(
-            [(SYMBOL, pymongo.ASCENDING)], background=True, unique=True
-        )
+        self._metadata.create_index([(SYMBOL, pymongo.ASCENDING)], background=True, unique=True)
 
     def __init__(self, arctic_lib, chunk_size=100000):
         """
@@ -247,9 +239,7 @@ class TickStore(object):
                         {"s": candidate["start"], "sy": candidate["_id"]}, {"e": 1}
                     )
                     if chunk["e"].replace(tzinfo=mktz("UTC")) >= start:
-                        start_range["$gte"] = candidate["start"].replace(
-                            tzinfo=mktz("UTC")
-                        )
+                        start_range["$gte"] = candidate["start"].replace(tzinfo=mktz("UTC"))
                         break
             except StopIteration:
                 pass
@@ -260,9 +250,7 @@ class TickStore(object):
             assert date_range.end.tzinfo
             last_dt = date_range.end
         else:
-            logger.info(
-                "No end provided.  Loading a month for: {}:{}".format(symbol, first_dt)
-            )
+            logger.info("No end provided.  Loading a month for: {}:{}".format(symbol, first_dt))
             if not first_dt:
                 first_doc = self._collection.find_one(
                     self._symbol_query(symbol),
@@ -294,9 +282,7 @@ class TickStore(object):
     def _read_preference(self, allow_secondary):
         """ Return the mongo read preference given an 'allow_secondary' argument
         """
-        allow_secondary = (
-            self._allow_secondary if allow_secondary is None else allow_secondary
-        )
+        allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
         return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
 
     def read(
@@ -350,24 +336,13 @@ class TickStore(object):
             column_set.update([c for c in columns if c != "SYMBOL"])
         else:
             projection = dict(
-                [
-                    (SYMBOL, 1),
-                    (INDEX, 1),
-                    (START, 1),
-                    (VERSION, 1),
-                    (COLUMNS, 1),
-                    (IMAGE_DOC, 1),
-                ]
+                [(SYMBOL, 1), (INDEX, 1), (START, 1), (VERSION, 1), (COLUMNS, 1), (IMAGE_DOC, 1)]
             )
 
         column_dtypes = {}
         ticks_read = 0
-        data_coll = self._collection.with_options(
-            read_preference=self._read_preference(allow_secondary)
-        )
-        for b in data_coll.find(query, projection=projection).sort(
-            [(START, pymongo.ASCENDING)]
-        ):
+        data_coll = self._collection.with_options(read_preference=self._read_preference(allow_secondary))
+        for b in data_coll.find(query, projection=projection).sort([(START, pymongo.ASCENDING)]):
             data = self._read_bucket(
                 b,
                 column_set,
@@ -387,9 +362,7 @@ class TickStore(object):
                 break
 
         if not rtn:
-            raise NoDataFoundException(
-                "No Data found for {} in range: {}".format(symbol, date_range)
-            )
+            raise NoDataFoundException("No Data found for {} in range: {}".format(symbol, date_range))
         rtn = self._pad_and_fix_dtypes(rtn, column_dtypes)
 
         index = pd.to_datetime(np.concatenate(rtn[INDEX]), utc=True, unit="ms")
@@ -478,32 +451,24 @@ class TickStore(object):
                 dtype = np.dtype("f8")
             column_dtypes[c] = np.promote_types(column_dtypes.get(c, dtype), dtype)
 
-    def _prepend_image(
-        self, document, im, rtn_length, column_dtypes, column_set, columns
-    ):
+    def _prepend_image(self, document, im, rtn_length, column_dtypes, column_set, columns):
         image = im[IMAGE]
         first_dt = im[IMAGE_TIME]
         if not first_dt.tzinfo:
             first_dt = first_dt.replace(tzinfo=mktz("UTC"))
-        document[INDEX] = np.insert(
-            document[INDEX], 0, np.uint64(datetime_to_ms(first_dt))
-        )
+        document[INDEX] = np.insert(document[INDEX], 0, np.uint64(datetime_to_ms(first_dt)))
         for field in image:
             if field == INDEX:
                 continue
             if columns and field not in columns:
                 continue
             if field not in document or document[field] is None:
-                col_dtype = np.dtype(
-                    str if isinstance(image[field], string_types) else "f8"
-                )
+                col_dtype = np.dtype(str if isinstance(image[field], string_types) else "f8")
                 document[field] = self._empty(rtn_length, dtype=col_dtype)
                 column_dtypes[field] = col_dtype
                 column_set.add(field)
             val = image[field]
-            document[field] = np.insert(
-                document[field], 0, document[field].dtype.type(val)
-            )
+            document[field] = np.insert(document[field], 0, document[field].dtype.type(val))
         # Now insert rows for fields in document that are not in the image
         for field in set(document).difference(set(image)):
             if field == INDEX:
@@ -511,21 +476,15 @@ class TickStore(object):
             logger.debug("Field %s is missing from image!" % field)
             if document[field] is not None:
                 val = np.nan
-                document[field] = np.insert(
-                    document[field], 0, document[field].dtype.type(val)
-                )
+                document[field] = np.insert(document[field], 0, document[field].dtype.type(val))
         return document
 
-    def _read_bucket(
-        self, doc, column_set, column_dtypes, include_symbol, include_images, columns
-    ):
+    def _read_bucket(self, doc, column_set, column_dtypes, include_symbol, include_images, columns):
         rtn = {}
         if doc[VERSION] != 3:
             raise ArcticException("Unhandled document version: %s" % doc[VERSION])
         # np.cumsum copies the read-only array created with frombuffer
-        rtn[INDEX] = np.cumsum(
-            np.frombuffer(lz4_decompress(doc[INDEX]), dtype="uint64")
-        )
+        rtn[INDEX] = np.cumsum(np.frombuffer(lz4_decompress(doc[INDEX]), dtype="uint64"))
         doc_length = len(rtn[INDEX])
         column_set.update(doc[COLUMNS].keys())
 
@@ -553,24 +512,20 @@ class TickStore(object):
                 dtype = np.dtype(coldata[DTYPE])
                 # values ends up being copied by pandas before being returned to the user. However, we
                 # copy it into a bytearray here for safety.
-                values = np.frombuffer(
-                    bytearray(lz4_decompress(coldata[DATA])), dtype=dtype
-                )
+                values = np.frombuffer(bytearray(lz4_decompress(coldata[DATA])), dtype=dtype)
                 self._set_or_promote_dtype(column_dtypes, c, dtype)
                 rtn[c] = self._empty(rtn_length, dtype=column_dtypes[c])
                 # unpackbits will make a copy of the read-only array created by frombuffer
-                rowmask = np.unpackbits(
-                    np.frombuffer(lz4_decompress(coldata[ROWMASK]), dtype="uint8")
-                )[:doc_length].astype("bool")
+                rowmask = np.unpackbits(np.frombuffer(lz4_decompress(coldata[ROWMASK]), dtype="uint8"))[
+                    :doc_length
+                ].astype("bool")
                 rowmask = rowmask[union_mask]
                 rtn[c][rowmask] = values
             except KeyError:
                 rtn[c] = None
 
         if include_images and doc.get(IMAGE_DOC, {}).get(IMAGE, {}):
-            rtn = self._prepend_image(
-                rtn, doc[IMAGE_DOC], rtn_length, column_dtypes, column_set, columns
-            )
+            rtn = self._prepend_image(rtn, doc[IMAGE_DOC], rtn_length, column_dtypes, column_set, columns)
         return rtn
 
     def _empty(self, length, dtype):
@@ -598,9 +553,7 @@ class TickStore(object):
             if sharding:
                 res["sharding"].update(sharding)
             res["sharding"]["collections"] = list(
-                conn.config.collections.find(
-                    {"_id": {"$regex": "^" + db.name + r"\..*"}}
-                )
+                conn.config.collections.find({"_id": {"$regex": "^" + db.name + r"\..*"}})
             )
         except OperationFailure:
             # Access denied
@@ -667,9 +620,7 @@ class TickStore(object):
             end = data.index[-1].to_pydatetime()
             pandas = True
         else:
-            raise UnhandledDtypeException(
-                "Can't persist type %s to tickstore" % type(data)
-            )
+            raise UnhandledDtypeException("Can't persist type %s to tickstore" % type(data))
         self._assert_nonoverlapping_data(symbol, to_dt(start), to_dt(end))
 
         if pandas:
@@ -679,9 +630,7 @@ class TickStore(object):
         self._write(buckets)
 
         if metadata:
-            self._metadata.replace_one(
-                {SYMBOL: symbol}, {SYMBOL: symbol, META: metadata}, upsert=True
-            )
+            self._metadata.replace_one({SYMBOL: symbol}, {SYMBOL: symbol, META: metadata}, upsert=True)
 
     def _write(self, buckets):
         start = dt.now()
@@ -703,9 +652,7 @@ class TickStore(object):
     def _to_buckets(self, x, symbol, initial_image):
         rtn = []
         for i in range(0, len(x), self._chunk_size):
-            bucket, initial_image = TickStore._to_bucket(
-                x[i : i + self._chunk_size], symbol, initial_image
-            )
+            bucket, initial_image = TickStore._to_bucket(x[i : i + self._chunk_size], symbol, initial_image)
             rtn.append(bucket)
         return rtn
 
@@ -742,11 +689,7 @@ class TickStore(object):
         elif array.dtype.kind == "f":
             array = array.astype("<f8")
         elif array.dtype.kind in ("O", "U", "S"):
-            if array.dtype.kind == "O" and infer_dtype(array) not in [
-                "unicode",
-                "string",
-                "bytes",
-            ]:
+            if array.dtype.kind == "O" and infer_dtype(array) not in ["unicode", "string", "bytes"]:
                 # `string` in python2 and `bytes` in python3
                 raise UnhandledDtypeException("Casting object column to string failed")
             try:
@@ -755,13 +698,10 @@ class TickStore(object):
                 # `UnicodeDecodeError` in python2 and `SystemError` in python3
                 array = np.array([s.decode("utf-8") for s in array])
             except:
-                raise UnhandledDtypeException(
-                    "Only unicode and utf8 strings are supported."
-                )
+                raise UnhandledDtypeException("Only unicode and utf8 strings are supported.")
         else:
             raise UnhandledDtypeException(
-                "Unsupported dtype '%s' - only int64, float64 and U are supported"
-                % array.dtype
+                "Unsupported dtype '%s' - only int64, float64 and U are supported" % array.dtype
             )
         # Everything is little endian in tickstore
         if array.dtype.byteorder != "<":
@@ -780,12 +720,7 @@ class TickStore(object):
 
     @staticmethod
     def _pandas_to_bucket(df, symbol, initial_image):
-        rtn = {
-            SYMBOL: symbol,
-            VERSION: CHUNK_VERSION_NUMBER,
-            COLUMNS: {},
-            COUNT: len(df),
-        }
+        rtn = {SYMBOL: symbol, VERSION: CHUNK_VERSION_NUMBER, COLUMNS: {}, COUNT: len(df)}
         end = to_dt(df.index[-1].to_pydatetime())
         if initial_image:
             if "index" in initial_image:
@@ -802,9 +737,7 @@ class TickStore(object):
         rtn[START] = start
 
         logger.warning("NB treating all values as 'exists' - no longer sparse")
-        rowmask = Binary(
-            lz4_compressHC(np.packbits(np.ones(len(df), dtype="uint8")).tostring())
-        )
+        rowmask = Binary(lz4_compressHC(np.packbits(np.ones(len(df), dtype="uint8")).tostring()))
 
         index_name = df.index.names[0] or "index"
         recs = df.to_records(convert_datetime64=False)
@@ -821,9 +754,7 @@ class TickStore(object):
                 np.concatenate(
                     (
                         [recs[index_name][0].astype("datetime64[ms]").view("uint64")],
-                        np.diff(
-                            recs[index_name].astype("datetime64[ms]").view("uint64")
-                        ),
+                        np.diff(recs[index_name].astype("datetime64[ms]").view("uint64")),
                     )
                 ).tostring()
             )
@@ -832,12 +763,7 @@ class TickStore(object):
 
     @staticmethod
     def _to_bucket(ticks, symbol, initial_image):
-        rtn = {
-            SYMBOL: symbol,
-            VERSION: CHUNK_VERSION_NUMBER,
-            COLUMNS: {},
-            COUNT: len(ticks),
-        }
+        rtn = {SYMBOL: symbol, VERSION: CHUNK_VERSION_NUMBER, COLUMNS: {}, COUNT: len(ticks)}
         data = {}
         rowmask = {}
         start = to_dt(ticks[0]["index"])
@@ -854,8 +780,7 @@ class TickStore(object):
                         v = TickStore._to_ms(v)
                         if data[k][-1] > v:
                             raise UnorderedDataException(
-                                "Timestamps out-of-order: %s > %s"
-                                % (ms_to_datetime(data[k][-1]), t)
+                                "Timestamps out-of-order: %s > %s" % (ms_to_datetime(data[k][-1]), t)
                             )
                     data[k].append(v)
                 except KeyError:
@@ -865,10 +790,7 @@ class TickStore(object):
                     data[k] = [v]
 
         rowmask = dict(
-            [
-                (k, Binary(lz4_compressHC(np.packbits(v).tostring())))
-                for k, v in iteritems(rowmask)
-            ]
+            [(k, Binary(lz4_compressHC(np.packbits(v).tostring()))) for k, v in iteritems(rowmask)]
         )
         for k, v in iteritems(data):
             if k != "index":
@@ -884,17 +806,14 @@ class TickStore(object):
             image_start = initial_image.get("index", start)
             if image_start > start:
                 raise UnorderedDataException(
-                    "Image timestamp is after first tick: %s > %s"
-                    % (image_start, start)
+                    "Image timestamp is after first tick: %s > %s" % (image_start, start)
                 )
             start = min(start, image_start)
             rtn[IMAGE_DOC] = {IMAGE_TIME: image_start, IMAGE: initial_image}
         rtn[END] = end
         rtn[START] = start
         rtn[INDEX] = Binary(
-            lz4_compressHC(
-                np.concatenate(([data["index"][0]], np.diff(data["index"]))).tostring()
-            )
+            lz4_compressHC(np.concatenate(([data["index"][0]], np.diff(data["index"]))).tostring())
         )
         return rtn, final_image
 
@@ -908,9 +827,7 @@ class TickStore(object):
             symbol name for the item
         """
         res = self._collection.find_one(
-            {SYMBOL: symbol},
-            projection={ID: 0, END: 1},
-            sort=[(START, pymongo.DESCENDING)],
+            {SYMBOL: symbol}, projection={ID: 0, END: 1}, sort=[(START, pymongo.DESCENDING)]
         )
         if res is None:
             raise NoDataFoundException("No Data found for {}".format(symbol))
@@ -926,9 +843,7 @@ class TickStore(object):
             symbol name for the item
         """
         res = self._collection.find_one(
-            {SYMBOL: symbol},
-            projection={ID: 0, START: 1},
-            sort=[(START, pymongo.ASCENDING)],
+            {SYMBOL: symbol}, projection={ID: 0, START: 1}, sort=[(START, pymongo.ASCENDING)]
         )
         if res is None:
             raise NoDataFoundException("No Data found for {}".format(symbol))

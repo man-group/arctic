@@ -41,12 +41,7 @@ def _corrupt_with_append_only(library, library_name):
         raise Exception("test")
 
     large_ts = create_test_data(
-        size=2000,
-        cols=100,
-        index=True,
-        multiindex=False,
-        random_data=True,
-        random_ids=True,
+        size=2000, cols=100, index=True, multiindex=False, random_data=True, random_ids=True
     )
     library.write(symbol, large_ts[0:1000])  # v1
     library.snapshot("snap_write_a")
@@ -63,9 +58,7 @@ def _corrupt_with_append_only(library, library_name):
         pass
     library._insert_version = orig_insert_version
 
-    library.write_metadata(
-        symbol, {"hello": "there"}
-    )  # , prune_previous_version=False)
+    library.write_metadata(symbol, {"hello": "there"})  # , prune_previous_version=False)
 
     # Appending subsequently overlapping and non-SHA-matching data cause data corruption
     library.append(symbol, large_ts[1018:1030])  # , prune_previous_version=False)
@@ -80,12 +73,7 @@ def _corrupt_with_append_only(library, library_name):
 
 def test_no_corruption_restore_append_overlapping(library, library_name):
     large_ts = create_test_data(
-        size=3000,
-        cols=100,
-        index=True,
-        multiindex=False,
-        random_data=True,
-        random_ids=True,
+        size=3000, cols=100, index=True, multiindex=False, random_data=True, random_ids=True
     )
     rows_per_append = 100
 
@@ -106,12 +94,7 @@ def test_no_corruption_restore_append_overlapping(library, library_name):
 
 def test_no_corruption_restore_writemeta_append(library, library_name):
     large_ts = create_test_data(
-        size=2000,
-        cols=100,
-        index=True,
-        multiindex=False,
-        random_data=True,
-        random_ids=True,
+        size=2000, cols=100, index=True, multiindex=False, random_data=True, random_ids=True
     )
     rows_per_append = 100
 
@@ -143,12 +126,7 @@ def test_no_corruption_restore_writemeta_append(library, library_name):
 
 def test_no_corruption_restore_append_non_overlapping_tstamps(library, library_name):
     large_ts = create_test_data(
-        size=2000,
-        cols=100,
-        index=True,
-        multiindex=False,
-        random_data=True,
-        random_ids=True,
+        size=2000, cols=100, index=True, multiindex=False, random_data=True, random_ids=True
     )
 
     # Append with 50 small uncompressed segments (no new base yet)
@@ -179,12 +157,7 @@ def test_no_corruption_restore_append_non_overlapping_tstamps(library, library_n
 
 def test_restore_append_overlapping_corrupts_old(library, library_name):
     large_ts = create_test_data(
-        size=2000,
-        cols=100,
-        index=True,
-        multiindex=False,
-        random_data=True,
-        random_ids=True,
+        size=2000, cols=100, index=True, multiindex=False, random_data=True, random_ids=True
     )
     library.write(symbol, large_ts[0:1000])
     library.snapshot("snap_write_a")
@@ -204,12 +177,7 @@ def test_restore_append_overlapping_corrupts_old(library, library_name):
 
 def test_restore_append_overlapping_corrupts_last(library, library_name):
     large_ts = create_test_data(
-        size=2000,
-        cols=100,
-        index=True,
-        multiindex=False,
-        random_data=True,
-        random_ids=True,
+        size=2000, cols=100, index=True, multiindex=False, random_data=True, random_ids=True
     )
     library.write(symbol, large_ts[0:1000])
     library.snapshot("snap_write_a")
@@ -233,12 +201,7 @@ def test_restore_append_overlapping_corrupts_last(library, library_name):
 )
 def test_append_fail_after_delete_noupsert(library, library_name):
     large_ts = create_test_data(
-        size=2000,
-        cols=100,
-        index=True,
-        multiindex=False,
-        random_data=True,
-        random_ids=True,
+        size=2000, cols=100, index=True, multiindex=False, random_data=True, random_ids=True
     )
     library.write(symbol, large_ts[0:1000])  # v1
     library.snapshot("snap_a")
@@ -281,14 +244,7 @@ def test_append_with_corrupt_check(library, library_name):
 
 
 def test_fast_check_corruption(library, library_name):
-    ts = create_test_data(
-        size=100,
-        cols=100,
-        index=True,
-        multiindex=False,
-        random_data=True,
-        random_ids=True,
-    )
+    ts = create_test_data(size=100, cols=100, index=True, multiindex=False, random_data=True, random_ids=True)
     library.write(symbol, ts[0:10])  # v1
 
     assert not vsu.fast_is_corrupted(library, symbol, input_v=1)
@@ -317,14 +273,7 @@ def test_fast_is_safe_to_append(library, library_name):
         segment["sha"] = Binary(sha.digest())
         segment.pop("_id")
 
-    ts = create_test_data(
-        size=100,
-        cols=100,
-        index=True,
-        multiindex=False,
-        random_data=True,
-        random_ids=True,
-    )
+    ts = create_test_data(size=100, cols=100, index=True, multiindex=False, random_data=True, random_ids=True)
     library.write(symbol, ts[0:10])  # v1
     assert vsu.is_safe_to_append(library, symbol, input_v=1)
 

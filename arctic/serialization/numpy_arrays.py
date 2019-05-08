@@ -149,12 +149,7 @@ class FrameConverter(object):
             if col not in doc[METADATA][LENGTHS]:
                 d = [np.nan]
             else:
-                d = decompress(
-                    doc[DATA][
-                        doc[METADATA][LENGTHS][col][0] : doc[METADATA][LENGTHS][col][1]
-                        + 1
-                    ]
-                )
+                d = decompress(doc[DATA][doc[METADATA][LENGTHS][col][0] : doc[METADATA][LENGTHS][col][1] + 1])
                 # d is ready-only but that's not an issue since DataFrame will copy the data anyway.
                 d = np.frombuffer(d, doc[METADATA][DTYPE][col])
 
@@ -181,9 +176,7 @@ class FrametoArraySerializer(Serializer):
         else:
             dtype = "dataframe"
 
-        if (len(df.index.names) > 1 and None in df.index.names) or None in list(
-            df.columns.values
-        ):
+        if (len(df.index.names) > 1 and None in df.index.names) or None in list(df.columns.values):
             raise Exception("All columns and indexes must be named")
 
         if df.index.names != [None]:
@@ -228,10 +221,7 @@ class FrametoArraySerializer(Serializer):
         if not isinstance(data, list):
             df = self.converter.objify(data, columns)
         else:
-            df = pd.concat(
-                [self.converter.objify(d, columns) for d in data],
-                ignore_index=not index,
-            )
+            df = pd.concat([self.converter.objify(d, columns) for d in data], ignore_index=not index)
 
         if index:
             df = df.set_index(meta[INDEX])

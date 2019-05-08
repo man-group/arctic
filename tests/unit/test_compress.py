@@ -6,9 +6,7 @@ import pytest
 import arctic._compression as c
 
 
-@pytest.mark.parametrize(
-    "compress", [c.compress, c.compressHC], ids=("arctic", "arcticHC")
-)
+@pytest.mark.parametrize("compress", [c.compress, c.compressHC], ids=("arctic", "arcticHC"))
 def test_roundtrip(compress):
     _str = b"hello world"
     cstr = compress(_str)

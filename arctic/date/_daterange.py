@@ -2,13 +2,7 @@ import datetime
 
 from six import string_types
 
-from ._generalslice import (
-    OPEN_OPEN,
-    CLOSED_CLOSED,
-    OPEN_CLOSED,
-    CLOSED_OPEN,
-    GeneralSlice,
-)
+from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN, GeneralSlice
 from ._parse import parse
 
 INTERVAL_LOOKUP = {
@@ -79,8 +73,7 @@ class DateRange(GeneralSlice):
         if _is_dt_type(self.start) and _is_dt_type(self.end):
             if self.start > self.end:
                 raise ValueError(
-                    "start date (%s) cannot be greater than end date (%s)!"
-                    % (self.start, self.end)
+                    "start date (%s) cannot be greater than end date (%s)!" % (self.start, self.end)
                 )
 
     @property
@@ -123,11 +116,7 @@ class DateRange(GeneralSlice):
             else max(self.start, other.start)
         )
         new_end = (
-            self.end
-            if other.end is None
-            else other.end
-            if self.end is None
-            else min(self.end, other.end)
+            self.end if other.end is None else other.end if self.end is None else min(self.end, other.end)
         )
 
         interval = INTERVAL_LOOKUP[(startopen, endopen)]
@@ -139,15 +128,9 @@ class DateRange(GeneralSlice):
         Create a new DateRange with the datetimes converted to dates and changing to CLOSED/CLOSED.
         """
         new_start = (
-            self.start.date()
-            if self.start and isinstance(self.start, datetime.datetime)
-            else self.start
+            self.start.date() if self.start and isinstance(self.start, datetime.datetime) else self.start
         )
-        new_end = (
-            self.end.date()
-            if self.end and isinstance(self.end, datetime.datetime)
-            else self.end
-        )
+        new_end = self.end.date() if self.end and isinstance(self.end, datetime.datetime) else self.end
         return DateRange(new_start, new_end, CLOSED_CLOSED)
 
     def mongo_query(self):
@@ -200,21 +183,13 @@ class DateRange(GeneralSlice):
 
     def __contains__(self, d):
         if self.interval == CLOSED_CLOSED:
-            return (self.start is None or d >= self.start) and (
-                self.end is None or d <= self.end
-            )
+            return (self.start is None or d >= self.start) and (self.end is None or d <= self.end)
         elif self.interval == CLOSED_OPEN:
-            return (self.start is None or d >= self.start) and (
-                self.end is None or d < self.end
-            )
+            return (self.start is None or d >= self.start) and (self.end is None or d < self.end)
         elif self.interval == OPEN_CLOSED:
-            return (self.start is None or d > self.start) and (
-                self.end is None or d <= self.end
-            )
+            return (self.start is None or d > self.start) and (self.end is None or d <= self.end)
 
-        return (self.start is None or d > self.start) and (
-            self.end is None or d < self.end
-        )
+        return (self.start is None or d > self.start) and (self.end is None or d < self.end)
 
     def __repr__(self):
         return "DateRange(start=%r, end=%r)" % (self.start, self.end)

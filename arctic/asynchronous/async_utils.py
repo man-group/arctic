@@ -44,9 +44,7 @@ class AsyncRequest(object):
     def execution_duration(self):
         if None in (self.start_time, self.end_time):
             raise RequestDurationException(
-                "{} can't provide an execution_duration {}.".format(
-                    self, (self.start_time, self.end_time)
-                )
+                "{} can't provide an execution_duration {}.".format(self, (self.start_time, self.end_time))
             )
         return self.end_time - self.start_time
 
@@ -54,9 +52,7 @@ class AsyncRequest(object):
     def schedule_delay(self):
         if None in (self.start_time, self.create_time):
             raise RequestDurationException(
-                "{} can't provide a schedule_delay {}.".format(
-                    self, (self.start_time, self.create_time)
-                )
+                "{} can't provide a schedule_delay {}.".format(self, (self.start_time, self.create_time))
             )
         return self.start_time - self.create_time
 
@@ -64,17 +60,11 @@ class AsyncRequest(object):
     def total_time(self):
         if None in (self.end_time, self.create_time):
             raise RequestDurationException(
-                "{} can't provide a total_time {}.".format(
-                    self, (self.end_time, self.create_time)
-                )
+                "{} can't provide a total_time {}.".format(self, (self.end_time, self.create_time))
             )
         return self.end_time - self.create_time
 
     def __str__(self):
         return "Request id:{} library:{}, symbol:{} fun:{}, kind:{}".format(
-            self.id,
-            self.library,
-            self.symbol,
-            getattr(self.fun, "__name__", None),
-            self.kind,
+            self.id, self.library, self.symbol, getattr(self.fun, "__name__", None), self.kind
         )

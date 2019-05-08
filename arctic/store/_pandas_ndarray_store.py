@@ -45,25 +45,17 @@ class PandasStore(NdarrayStore):
             new_segments = np.array(new_segments, dtype="i8")
             last_rows = recarr[new_segments - start]
             # create numpy index
-            index = np.core.records.fromarrays(
-                [last_rows[idx_col]] + [new_segments], dtype=INDEX_DTYPE
-            )
+            index = np.core.records.fromarrays([last_rows[idx_col]] + [new_segments], dtype=INDEX_DTYPE)
             # append to existing index if exists
             if existing_index:
                 # existing_index_arr is read-only but it's never written to
-                existing_index_arr = np.frombuffer(
-                    decompress(existing_index), dtype=INDEX_DTYPE
-                )
+                existing_index_arr = np.frombuffer(decompress(existing_index), dtype=INDEX_DTYPE)
                 if start > 0:
-                    existing_index_arr = existing_index_arr[
-                        existing_index_arr["index"] < start
-                    ]
+                    existing_index_arr = existing_index_arr[existing_index_arr["index"] < start]
                 index = np.concatenate((existing_index_arr, index))
             return Binary(compress(index.tostring()))
         elif existing_index:
-            raise ArcticException(
-                "Could not find datetime64 index in item but existing data contains one"
-            )
+            raise ArcticException("Could not find datetime64 index in item but existing data contains one")
         return None
 
     def _datetime64_index(self, recarr):
@@ -84,9 +76,7 @@ class PandasStore(NdarrayStore):
         we need to take care in choosing the correct chunks. """
         if date_range and "segment_index" in version:
             # index is read-only but it's never written to
-            index = np.frombuffer(
-                decompress(version["segment_index"]), dtype=INDEX_DTYPE
-            )
+            index = np.frombuffer(decompress(version["segment_index"]), dtype=INDEX_DTYPE)
             dtcol = self._datetime64_index(index)
             if dtcol and len(index):
                 dts = index[dtcol]
@@ -110,22 +100,9 @@ class PandasStore(NdarrayStore):
             return recarr[mask.values.astype(bool)]
         return recarr
 
-    def read(
-        self,
-        arctic_lib,
-        version,
-        symbol,
-        read_preference=None,
-        date_range=None,
-        **kwargs
-    ):
+    def read(self, arctic_lib, version, symbol, read_preference=None, date_range=None, **kwargs):
         item = super(PandasStore, self).read(
-            arctic_lib,
-            version,
-            symbol,
-            read_preference,
-            date_range=date_range,
-            **kwargs
+            arctic_lib, version, symbol, read_preference, date_range=date_range, **kwargs
         )
         if date_range:
             item = self._daterange(item, date_range)
@@ -175,17 +152,13 @@ class PandasSeriesStore(PandasStore):
         if self.can_write_type(data):
             # Series has always a single-column
             if data.dtype is NP_OBJECT_DTYPE or data.index.dtype is NP_OBJECT_DTYPE:
-                return self.SERIALIZER.can_convert_to_records_without_objects(
-                    data, symbol
-                )
+                return self.SERIALIZER.can_convert_to_records_without_objects(data, symbol)
             return True
         return False
 
     def write(self, arctic_lib, version, symbol, item, previous_version):
         item, md = self.SERIALIZER.serialize(item)
-        super(PandasSeriesStore, self).write(
-            arctic_lib, version, symbol, item, previous_version, dtype=md
-        )
+        super(PandasSeriesStore, self).write(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
     def append(self, arctic_lib, version, symbol, item, previous_version, **kwargs):
         item, md = self.SERIALIZER.serialize(item)
@@ -197,9 +170,7 @@ class PandasSeriesStore(PandasStore):
         return super(PandasSeriesStore, self).read_options()
 
     def read(self, arctic_lib, version, symbol, **kwargs):
-        item = super(PandasSeriesStore, self).read(
-            arctic_lib, version, symbol, **kwargs
-        )
+        item = super(PandasSeriesStore, self).read(arctic_lib, version, symbol, **kwargs)
         return self.SERIALIZER.deserialize(item)
 
 
@@ -213,21 +184,14 @@ class PandasDataFrameStore(PandasStore):
 
     def can_write(self, version, symbol, data):
         if self.can_write_type(data):
-            if (
-                NP_OBJECT_DTYPE in data.dtypes.values
-                or data.index.dtype is NP_OBJECT_DTYPE
-            ):
-                return self.SERIALIZER.can_convert_to_records_without_objects(
-                    data, symbol
-                )
+            if NP_OBJECT_DTYPE in data.dtypes.values or data.index.dtype is NP_OBJECT_DTYPE:
+                return self.SERIALIZER.can_convert_to_records_without_objects(data, symbol)
             return True
         return False
 
     def write(self, arctic_lib, version, symbol, item, previous_version):
         item, md = self.SERIALIZER.serialize(item)
-        super(PandasDataFrameStore, self).write(
-            arctic_lib, version, symbol, item, previous_version, dtype=md
-        )
+        super(PandasDataFrameStore, self).write(arctic_lib, version, symbol, item, previous_version, dtype=md)
 
     def append(self, arctic_lib, version, symbol, item, previous_version, **kwargs):
         item, md = self.SERIALIZER.serialize(item)
@@ -236,9 +200,7 @@ class PandasDataFrameStore(PandasStore):
         )
 
     def read(self, arctic_lib, version, symbol, **kwargs):
-        item = super(PandasDataFrameStore, self).read(
-            arctic_lib, version, symbol, **kwargs
-        )
+        item = super(PandasDataFrameStore, self).read(arctic_lib, version, symbol, **kwargs)
         return self.SERIALIZER.deserialize(item)
 
     def read_options(self):
@@ -258,9 +220,7 @@ class PandasPanelStore(PandasDataFrameStore):
             if NP_OBJECT_DTYPE in frame.dtypes.values or (
                 hasattr(data, "index") and data.index.dtype is NP_OBJECT_DTYPE
             ):
-                return self.SERIALIZER.can_convert_to_records_without_objects(
-                    frame, symbol
-                )
+                return self.SERIALIZER.can_convert_to_records_without_objects(frame, symbol)
             return True
         return False
 
@@ -278,9 +238,7 @@ class PandasPanelStore(PandasDataFrameStore):
             item = DataFrame(item.stack())
         elif item.columns.dtype != np.dtype("object"):
             raise ValueError("Cannot support non-object dtypes for columns")
-        super(PandasPanelStore, self).write(
-            arctic_lib, version, symbol, item, previous_version
-        )
+        super(PandasPanelStore, self).write(arctic_lib, version, symbol, item, previous_version)
 
     def read(self, arctic_lib, version, symbol, **kwargs):
         item = super(PandasPanelStore, self).read(arctic_lib, version, symbol, **kwargs)

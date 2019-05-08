@@ -45,16 +45,11 @@ def _promote_struct_dtypes(dtype1, dtype2):
         return np.promote_types(type1, type2)
 
     return np.dtype(
-        [
-            (n, _promote(dtype1.fields[n][0], dtype2.fields.get(n, (None,))[0]))
-            for n in dtype1.names
-        ]
+        [(n, _promote(dtype1.fields[n][0], dtype2.fields.get(n, (None,))[0])) for n in dtype1.names]
     )
 
 
-def _attempt_update_unchanged(
-    symbol, unchanged_segment_ids, collection, version, previous_version
-):
+def _attempt_update_unchanged(symbol, unchanged_segment_ids, collection, version, previous_version):
     if not unchanged_segment_ids or not collection or not version:
         return
 
@@ -76,11 +71,7 @@ def _attempt_update_unchanged(
         return
     # update_many is tricky sometimes wrt matched_count across replicas when balancer runs. Check based on _id.
     unchanged_ids = set([x["_id"] for x in unchanged_segment_ids])
-    spec = {
-        "symbol": symbol,
-        "parent": parent_id,
-        "segment": {"$lte": unchanged_segment_ids[-1]["segment"]},
-    }
+    spec = {"symbol": symbol, "parent": parent_id, "segment": {"$lte": unchanged_segment_ids[-1]["segment"]}}
     matched_segments_ids = set([x["_id"] for x in collection.find(spec)])
     if unchanged_ids != matched_segments_ids:
         logger.error(
@@ -90,10 +81,7 @@ def _attempt_update_unchanged(
         )
         raise DataIntegrityException(
             "Symbol: {}:{} update_many updated {} segments instead of {}".format(
-                symbol,
-                previous_version["version"],
-                result.matched_count,
-                len(unchanged_segment_ids),
+                symbol, previous_version["version"], result.matched_count, len(unchanged_segment_ids)
             )
         )
 
@@ -128,12 +116,8 @@ def _resize_with_dtype(arr, dtype):
 
         # missing float columns should default to nan rather than zero
         _is_float_type = lambda _dtype: _dtype.type in (np.float32, np.float64)
-        _is_void_float_type = lambda _dtype: _dtype.type == np.void and _is_float_type(
-            _dtype.subdtype[0]
-        )
-        _is_float_or_void_float_type = lambda _dtype: _is_float_type(
-            _dtype
-        ) or _is_void_float_type(_dtype)
+        _is_void_float_type = lambda _dtype: _dtype.type == np.void and _is_float_type(_dtype.subdtype[0])
+        _is_float_or_void_float_type = lambda _dtype: _is_float_type(_dtype) or _is_void_float_type(_dtype)
         _is_float = lambda column: _is_float_or_void_float_type(dtype.fields[column][0])
         for new_column in filter(_is_float, new_columns - old_columns):
             new_arr[new_column] = np.nan
@@ -148,9 +132,7 @@ def set_corruption_check_on_append(enable):
     CHECK_CORRUPTION_ON_APPEND = bool(enable)
 
 
-def _update_fw_pointers(
-    collection, symbol, version, previous_version, is_append, shas_to_add=None
-):
+def _update_fw_pointers(collection, symbol, version, previous_version, is_append, shas_to_add=None):
     """
     This function will decide whether to update the version document with forward pointers to segments.
     It detects cases where no prior writes/appends have been performed with FW pointers, and extracts the segment IDs.
@@ -209,10 +191,7 @@ def _spec_fw_pointers_aware(symbol, version, from_index=None, to_index=None):
     This method updates the find query filter spec used to read the segment for a version.
     It chooses whether to query via forward pointers or not based on the version details and current mode of operation.
     """
-    spec = {
-        "symbol": symbol,
-        "segment": {"$lt": version["up_to"] if to_index is None else to_index},
-    }
+    spec = {"symbol": symbol, "segment": {"$lt": version["up_to"] if to_index is None else to_index}}
     if from_index is not None:
         spec["segment"]["$gte"] = from_index
 
@@ -246,10 +225,7 @@ def _spec_fw_pointers_aware(symbol, version, from_index=None, to_index=None):
     # The code below shouldn't really be reached.
     raise DataIntegrityException(
         "Unhandled FW pointers configuration ({}: {}/{}/{})".format(
-            version.get("symbol"),
-            version.get("_id"),
-            version.get("version"),
-            v_fw_config,
+            version.get("symbol"), version.get("_id"), version.get("version"), v_fw_config
         )
     )
 
@@ -265,8 +241,7 @@ def _fw_pointers_convert_append_to_write(previous_version):
     prev_fw_config = get_fwptr_config(previous_version)
     # Convert to a full-write, which force-updates all segments with parent references.
     return (
-        prev_fw_config is FwPointersCfg.ENABLED
-        and ARCTIC_FORWARD_POINTERS_CFG is not FwPointersCfg.ENABLED
+        prev_fw_config is FwPointersCfg.ENABLED and ARCTIC_FORWARD_POINTERS_CFG is not FwPointersCfg.ENABLED
     )
 
 
@@ -345,9 +320,7 @@ class NdarrayStore(object):
             collection.create_index([("symbol", pymongo.HASHED)], background=True)
             # We keep it only for its uniqueness
             collection.create_index(
-                [("symbol", pymongo.ASCENDING), ("sha", pymongo.ASCENDING)],
-                unique=True,
-                background=True,
+                [("symbol", pymongo.ASCENDING), ("sha", pymongo.ASCENDING)], unique=True, background=True
             )
             # TODO: When/if we remove the segments->versions pointers implementation and keep only the forward pointers,
             #       we can remove the 'parent' from the index.
@@ -362,11 +335,7 @@ class NdarrayStore(object):
             )
             # Used for efficient SHA-based read queries that have index ranges
             collection.create_index(
-                [
-                    ("symbol", pymongo.ASCENDING),
-                    ("sha", pymongo.ASCENDING),
-                    ("segment", pymongo.ASCENDING),
-                ],
+                [("symbol", pymongo.ASCENDING), ("sha", pymongo.ASCENDING), ("segment", pymongo.ASCENDING)],
                 unique=True,
                 background=True,
             )
@@ -473,16 +442,7 @@ class NdarrayStore(object):
         rtn = np.dtype(rtn, metadata=dict(dtype.metadata or {}))
         return rtn
 
-    def append(
-        self,
-        arctic_lib,
-        version,
-        symbol,
-        item,
-        previous_version,
-        dtype=None,
-        dirty_append=True,
-    ):
+    def append(self, arctic_lib, version, symbol, item, previous_version, dtype=None, dirty_append=True):
         collection = arctic_lib.get_top_level_collection()
         if previous_version.get("shape", [-1]) != [-1] + list(item.shape)[1:]:
             raise UnhandledDtypeException()
@@ -490,9 +450,7 @@ class NdarrayStore(object):
         if not dtype:
             dtype = item.dtype
 
-        if (self._dtype(previous_version["dtype"]).fields is None) != (
-            dtype.fields is None
-        ):
+        if (self._dtype(previous_version["dtype"]).fields is None) != (dtype.fields is None):
             raise ValueError("type changes to or from structured array not supported")
 
         if previous_version["up_to"] == 0:
@@ -509,13 +467,8 @@ class NdarrayStore(object):
         if version[FW_POINTERS_CONFIG_KEY] != FwPointersCfg.DISABLED.name:
             version[FW_POINTERS_REFS_KEY] = list()
 
-        if str(dtype) != previous_version[
-            "dtype"
-        ] or _fw_pointers_convert_append_to_write(previous_version):
-            logger.debug(
-                "Converting %s from %s to %s"
-                % (symbol, previous_version["dtype"], str(dtype))
-            )
+        if str(dtype) != previous_version["dtype"] or _fw_pointers_convert_append_to_write(previous_version):
+            logger.debug("Converting %s from %s to %s" % (symbol, previous_version["dtype"], str(dtype)))
             if item.dtype.hasobject:
                 raise UnhandledDtypeException()
             version["dtype"] = str(dtype)
@@ -524,9 +477,7 @@ class NdarrayStore(object):
             # This function will drop columns read from the previous version if they are not found in the
             # new append. However, the promote_types will raise an exception in that case and this code
             # will not be reached.
-            old_arr = _resize_with_dtype(
-                self._do_read(collection, previous_version, symbol), dtype
-            )
+            old_arr = _resize_with_dtype(self._do_read(collection, previous_version, symbol), dtype)
 
             item = np.concatenate([old_arr, item])
             version["up_to"] = len(item)
@@ -548,21 +499,13 @@ class NdarrayStore(object):
             ):
                 logging.warning(
                     "Found mismatched segments for {} (version={}). "
-                    "Converting append to concat and rewrite".format(
-                        symbol, previous_version["version"]
-                    )
+                    "Converting append to concat and rewrite".format(symbol, previous_version["version"])
                 )
-                dirty_append = (
-                    True
-                )  # force a concat and re-write (use new base version id)
+                dirty_append = True  # force a concat and re-write (use new base version id)
 
-            self._do_append(
-                collection, version, symbol, item, previous_version, dirty_append
-            )
+            self._do_append(collection, version, symbol, item, previous_version, dirty_append)
 
-    def _do_append(
-        self, collection, version, symbol, item, previous_version, dirty_append
-    ):
+    def _do_append(self, collection, version, symbol, item, previous_version, dirty_append):
         data = item.tostring()
         # Compatibility with Arctic 1.22.0 that didn't write base_sha into the version document
         version["base_sha"] = previous_version.get("base_sha", Binary(b""))
@@ -586,11 +529,7 @@ class NdarrayStore(object):
             version["base_version_id"] = version_base_or_id(previous_version)
 
             if len(item) > 0:
-                segment = {
-                    "data": Binary(data),
-                    "compressed": False,
-                    "segment": version["up_to"] - 1,
-                }
+                segment = {"data": Binary(data), "compressed": False, "segment": version["up_to"] - 1}
                 sha = checksum(symbol, segment)
                 try:
                     # TODO: We could have a common handling with conditional spec-construction for the update spec.
@@ -598,19 +537,14 @@ class NdarrayStore(object):
                     if ARCTIC_FORWARD_POINTERS_CFG is FwPointersCfg.DISABLED:
                         collection.update_one(
                             {"symbol": symbol, "sha": sha},
-                            {
-                                "$set": segment,
-                                "$addToSet": {"parent": version["base_version_id"]},
-                            },
+                            {"$set": segment, "$addToSet": {"parent": version["base_version_id"]}},
                             upsert=True,
                         )
                     else:
                         set_spec = {"$set": segment}
 
                         if ARCTIC_FORWARD_POINTERS_CFG is FwPointersCfg.HYBRID:
-                            set_spec["$addToSet"] = {
-                                "parent": version["base_version_id"]
-                            }
+                            set_spec["$addToSet"] = {"parent": version["base_version_id"]}
                         else:  # FwPointersCfg.ENABLED
                             # We only keep for the records the ID of the version which created the segment.
                             # We also need the uniqueness of the parent field for the (symbol, parent, segment) index,
@@ -618,16 +552,9 @@ class NdarrayStore(object):
                             # which raises DuplicateKeyError if we don't have a unique (symbol, parent, segment).
                             set_spec["$addToSet"] = {"parent": version["_id"]}
 
-                        collection.update_one(
-                            {"symbol": symbol, "sha": sha}, set_spec, upsert=True
-                        )
+                        collection.update_one({"symbol": symbol, "sha": sha}, set_spec, upsert=True)
                         _update_fw_pointers(
-                            collection,
-                            symbol,
-                            version,
-                            previous_version,
-                            is_append=True,
-                            shas_to_add=(sha,),
+                            collection, symbol, version, previous_version, is_append=True, shas_to_add=(sha,)
                         )
                 except DuplicateKeyError:
                     """If we get a duplicate key error here, this segment has the same symbol/parent/segment
@@ -635,9 +562,7 @@ class NdarrayStore(object):
                        If we concat_and_rewrite here, new chunks will have a different parent id (the _id of this version doc)
                        ...so we can safely write them.
                        """
-                    self._concat_and_rewrite(
-                        collection, version, symbol, item, previous_version
-                    )
+                    self._concat_and_rewrite(collection, version, symbol, item, previous_version)
                     return
 
                 if "segment_index" in previous_version:
@@ -649,18 +574,13 @@ class NdarrayStore(object):
                     )
                     if segment_index:
                         version["segment_index"] = segment_index
-                logger.debug(
-                    "Appended segment %d for parent %s"
-                    % (segment["segment"], version["_id"])
-                )
+                logger.debug("Appended segment %d for parent %s" % (segment["segment"], version["_id"]))
             else:
                 if "segment_index" in previous_version:
                     version["segment_index"] = previous_version["segment_index"]
 
         else:  # Too much data has been appended now, so rewrite (and compress/chunk).
-            self._concat_and_rewrite(
-                collection, version, symbol, item, previous_version
-            )
+            self._concat_and_rewrite(collection, version, symbol, item, previous_version)
 
     def _concat_and_rewrite(self, collection, version, symbol, item, previous_version):
 
@@ -673,9 +593,7 @@ class NdarrayStore(object):
         # The unchanged segments are the compressed ones (apart from the last compressed)
         unchanged_segments = []
         for segment in sorted(
-            collection.find(
-                spec, projection={"_id": 1, "segment": 1, "compressed": 1, "sha": 1}
-            ),
+            collection.find(spec, projection={"_id": 1, "segment": 1, "compressed": 1, "sha": 1}),
             key=itemgetter("segment"),
         ):
             # We want to stop iterating when we find the first uncompressed chunks
@@ -687,18 +605,13 @@ class NdarrayStore(object):
             unchanged_segments.append(segment)
 
         # Found all the chunks which aren't part of an append
-        if (
-            len(unchanged_segments)
-            < previous_version["segment_count"] - previous_version["append_count"] - 1
-        ):
+        if len(unchanged_segments) < previous_version["segment_count"] - previous_version["append_count"] - 1:
             raise DataIntegrityException(
                 "Symbol: %s:%s expected %s segments but found %s"
                 % (
                     symbol,
                     previous_version["version"],
-                    previous_version["segment_count"]
-                    - previous_version["append_count"]
-                    - 1,
+                    previous_version["segment_count"] - previous_version["append_count"] - 1,
                     len(unchanged_segments),
                 )
             )
@@ -706,33 +619,20 @@ class NdarrayStore(object):
             read_index_range[0] = unchanged_segments[-1]["segment"] + 1
 
         # Only read back the section that needs to be compressed here (index_range=...)
-        old_arr = self._do_read(
-            collection, previous_version, symbol, index_range=read_index_range
-        )
+        old_arr = self._do_read(collection, previous_version, symbol, index_range=read_index_range)
         if len(item) == 0:
             logger.debug("Rewrite and compress/chunk item %s, rewrote old_arr" % symbol)
             self._do_write(
-                collection,
-                version,
-                symbol,
-                old_arr,
-                previous_version,
-                segment_offset=read_index_range[0],
+                collection, version, symbol, old_arr, previous_version, segment_offset=read_index_range[0]
             )
         elif len(old_arr) == 0:
             logger.debug("Rewrite and compress/chunk item %s, wrote item" % symbol)
             self._do_write(
-                collection,
-                version,
-                symbol,
-                item,
-                previous_version,
-                segment_offset=read_index_range[0],
+                collection, version, symbol, item, previous_version, segment_offset=read_index_range[0]
             )
         else:
             logger.debug(
-                "Rewrite and compress/chunk %s, np.concatenate %s to %s"
-                % (symbol, item.dtype, old_arr.dtype)
+                "Rewrite and compress/chunk %s, np.concatenate %s to %s" % (symbol, item.dtype, old_arr.dtype)
             )
             self._do_write(
                 collection,
@@ -744,9 +644,7 @@ class NdarrayStore(object):
             )
         if unchanged_segments:
             if version.get(FW_POINTERS_CONFIG_KEY) != FwPointersCfg.ENABLED.name:
-                _attempt_update_unchanged(
-                    symbol, unchanged_segments, collection, version, previous_version
-                )
+                _attempt_update_unchanged(symbol, unchanged_segments, collection, version, previous_version)
             version["segment_count"] += len(unchanged_segments)
             _update_fw_pointers(
                 collection,
@@ -754,8 +652,7 @@ class NdarrayStore(object):
                 version,
                 previous_version,
                 is_append=False,
-                shas_to_add=version.get(FW_POINTERS_REFS_KEY, [])
-                + [s["sha"] for s in unchanged_segments],
+                shas_to_add=version.get(FW_POINTERS_REFS_KEY, []) + [s["sha"] for s in unchanged_segments],
             )
             self.check_written(collection, symbol, version)
 
@@ -829,8 +726,7 @@ class NdarrayStore(object):
             if (
                 "sha" in previous_version
                 and previous_version["dtype"] == version["dtype"]
-                and self.checksum(item[: previous_version["up_to"]])
-                == previous_version["sha"]
+                and self.checksum(item[: previous_version["up_to"]]) == previous_version["sha"]
             ):
                 # The first n rows are identical to the previous version, so just append.
                 # Do a 'dirty' append (i.e. concat & start from a new base version) for safety
@@ -847,9 +743,7 @@ class NdarrayStore(object):
         version["base_sha"] = version["sha"]
         self._do_write(collection, version, symbol, item, previous_version)
 
-    def _do_write(
-        self, collection, version, symbol, item, previous_version, segment_offset=0
-    ):
+    def _do_write(self, collection, version, symbol, item, previous_version, segment_offset=0):
 
         row_size = int(item.dtype.itemsize * np.prod(item.shape[1:]))
 
@@ -859,10 +753,7 @@ class NdarrayStore(object):
         symbol_all_previous_shas, version_shas = set(), set()
         if previous_version:
             symbol_all_previous_shas.update(
-                Binary(x["sha"])
-                for x in collection.find(
-                    {"symbol": symbol}, projection={"sha": 1, "_id": 0}
-                )
+                Binary(x["sha"]) for x in collection.find({"symbol": symbol}, projection={"sha": 1, "_id": 0})
             )
 
         length = len(item)
@@ -876,10 +767,7 @@ class NdarrayStore(object):
 
         # Compress
         idxs = xrange(int(np.ceil(float(length) / rows_per_chunk)))
-        chunks = [
-            (item[i * rows_per_chunk : (i + 1) * rows_per_chunk]).tostring()
-            for i in idxs
-        ]
+        chunks = [(item[i * rows_per_chunk : (i + 1) * rows_per_chunk]).tostring() for i in idxs]
         compressed_chunks = compress_array(chunks)
 
         # Write
@@ -888,8 +776,7 @@ class NdarrayStore(object):
             segment = {
                 "data": Binary(chunk),
                 "compressed": True,
-                "segment": min((i + 1) * rows_per_chunk - 1, length - 1)
-                + segment_offset,
+                "segment": min((i + 1) * rows_per_chunk - 1, length - 1) + segment_offset,
             }
             segment_index.append(segment["segment"])
             sha = checksum(symbol, segment)
@@ -906,11 +793,7 @@ class NdarrayStore(object):
                         )
                     )
                 else:
-                    bulk.append(
-                        pymongo.UpdateOne(
-                            segment_spec, {"$addToSet": {"parent": version["_id"]}}
-                        )
-                    )
+                    bulk.append(pymongo.UpdateOne(segment_spec, {"$addToSet": {"parent": version["_id"]}}))
             else:
                 version_shas.add(sha)
 
@@ -935,10 +818,7 @@ class NdarrayStore(object):
             collection.bulk_write(bulk, ordered=False)
 
         segment_index = self._segment_index(
-            item,
-            existing_index=existing_index,
-            start=segment_offset,
-            new_segments=segment_index,
+            item, existing_index=existing_index, start=segment_offset, new_segments=segment_index
         )
         if segment_index:
             version["segment_index"] = segment_index
@@ -947,12 +827,7 @@ class NdarrayStore(object):
         version["append_count"] = 0
 
         _update_fw_pointers(
-            collection,
-            symbol,
-            version,
-            previous_version,
-            is_append=False,
-            shas_to_add=version_shas,
+            collection, symbol, version, previous_version, is_append=False, shas_to_add=version_shas
         )
 
         self.check_written(collection, symbol, version)

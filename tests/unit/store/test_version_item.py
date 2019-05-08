@@ -23,11 +23,7 @@ def test_versioned_item_str():
 
 def test_versioned_item_default_host():
     item = VersionedItem(
-        symbol="sym",
-        library="ONEMINUTE",
-        data=[1, 2, 3],
-        version=1.0,
-        metadata={"metadata": "foo"},
+        symbol="sym", library="ONEMINUTE", data=[1, 2, 3], version=1.0, metadata={"metadata": "foo"}
     )
 
     expected_item = VersionedItem(
@@ -43,24 +39,11 @@ def test_versioned_item_default_host():
 
 
 def test_versioned_item_str_handles_none():
-    item = VersionedItem(
-        symbol=None, library=None, data=None, version=None, metadata=None, host=None
-    )
+    item = VersionedItem(symbol=None, library=None, data=None, version=None, metadata=None, host=None)
 
     assert str(item)
 
 
 def test_versioned_item_metadata_dict():
-    item = VersionedItem(
-        symbol="test",
-        library="test_lib",
-        data=None,
-        version=1.2,
-        metadata=None,
-        host=None,
-    )
-    assert item.metadata_dict() == {
-        "symbol": "test",
-        "library": "test_lib",
-        "version": 1.2,
-    }
+    item = VersionedItem(symbol="test", library="test_lib", data=None, version=1.2, metadata=None, host=None)
+    assert item.metadata_dict() == {"symbol": "test", "library": "test_lib", "version": 1.2}

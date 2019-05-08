@@ -15,9 +15,7 @@ from ..exceptions import UnsupportedPickleStoreVersion
 _MAGIC_CHUNKED = "__chunked__"
 _MAGIC_CHUNKEDV2 = "__chunked__V2"
 _CHUNK_SIZE = 15 * 1024 * 1024  # 15MB
-_MAX_BSON_ENCODE = (
-    256 * 1024
-)  # 256K - don't fill up the version document with encoded bson
+_MAX_BSON_ENCODE = 256 * 1024  # 256K - don't fill up the version document with encoded bson
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +36,7 @@ class PickleStore(object):
                 data = b"".join(
                     decompress(x["data"])
                     for x in sorted(
-                        collection.find(
-                            {"symbol": symbol, "parent": version_base_or_id(version)}
-                        ),
+                        collection.find({"symbol": symbol, "parent": version_base_or_id(version)}),
                         key=itemgetter("segment"),
                     )
                 )
@@ -49,9 +45,7 @@ class PickleStore(object):
                 data = b"".join(
                     x["data"]
                     for x in sorted(
-                        collection.find(
-                            {"symbol": symbol, "parent": version_base_or_id(version)}
-                        ),
+                        collection.find({"symbol": symbol, "parent": version_base_or_id(version)}),
                         key=itemgetter("segment"),
                     )
                 )

@@ -67,9 +67,7 @@ def test_daterange_closedclosed_None():
 
 def test_daterange_closedclosed():
     date_range = DateRange(
-        dt(2013, 1, 1, tzinfo=mktz("Europe/London")),
-        dt(2014, 2, 1, tzinfo=mktz("Europe/London")),
-        OPEN_OPEN,
+        dt(2013, 1, 1, tzinfo=mktz("Europe/London")), dt(2014, 2, 1, tzinfo=mktz("Europe/London")), OPEN_OPEN
     )
     expected = DateRange(
         dt(2013, 1, 1, 0, 0, 0, 1000, tzinfo=mktz("Europe/London")),
@@ -109,9 +107,7 @@ def test_to_dt_dt_no_tz_default():
 
 
 def test_to_dt_dt_tz():
-    assert to_dt(dt(1970, 1, 1, tzinfo=mktz("UTC"))) == dt(
-        1970, 1, 1, tzinfo=mktz("UTC")
-    )
+    assert to_dt(dt(1970, 1, 1, tzinfo=mktz("UTC"))) == dt(1970, 1, 1, tzinfo=mktz("UTC"))
 
 
 def test_to_dt_dt_tz_default():

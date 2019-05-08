@@ -52,9 +52,7 @@ class LazySingletonTasksCoordinator(ABC):
         # Lazy init
         with cls._SINGLETON_LOCK:
             if cls._instance is None:
-                cls._instance = cls(
-                    ARCTIC_ASYNC_NWORKERS if pool_size is None else pool_size
-                )
+                cls._instance = cls(ARCTIC_ASYNC_NWORKERS if pool_size is None else pool_size)
         return cls._instance
 
     @property
@@ -81,17 +79,11 @@ class LazySingletonTasksCoordinator(ABC):
     def __init__(self, pool_size):
         # Only allow creation via get_instance
         if not type(self)._SINGLETON_LOCK._is_owned():
-            raise AsyncArcticException(
-                "{} is a singleton, can't create a new instance".format(type(self))
-            )
+            raise AsyncArcticException("{} is a singleton, can't create a new instance".format(type(self)))
 
         pool_size = int(pool_size)
         if pool_size < 1:
-            raise ValueError(
-                "{} can't be instantiated with a pool_size of {}".format(
-                    type(self), pool_size
-                )
-            )
+            raise ValueError("{} can't be instantiated with a pool_size of {}".format(type(self), pool_size))
 
         # Enforce the singleton pattern
         with type(self)._SINGLETON_LOCK:
@@ -124,16 +116,12 @@ class LazySingletonTasksCoordinator(ABC):
                 fut.cancel()
 
     @staticmethod
-    def wait_tasks(
-        futures, timeout=None, return_when=ALL_COMPLETED, raise_exceptions=True
-    ):
+    def wait_tasks(futures, timeout=None, return_when=ALL_COMPLETED, raise_exceptions=True):
         running_futures = [fut for fut in futures if not fut.done()]
         done, _ = wait(running_futures, timeout=timeout, return_when=return_when)
         if raise_exceptions:
             [
-                f.result()
-                for f in done
-                if not f.cancelled() and f.exception() is not None
+                f.result() for f in done if not f.cancelled() and f.exception() is not None
             ]  # raises the exception
 
     @staticmethod
@@ -147,10 +135,7 @@ class LazySingletonTasksCoordinator(ABC):
                 # Used when we want to keep both raise the exception and wait for all tasks to finish
                 kill_switch_ev.set()
                 LazySingletonTasksCoordinator.wait_tasks(
-                    futures,
-                    return_when=ALL_COMPLETED,
-                    raise_exceptions=False,
-                    timeout=timeout,
+                    futures, return_when=ALL_COMPLETED, raise_exceptions=False, timeout=timeout
                 )
             raise e
 
@@ -168,22 +153,16 @@ class LazySingletonTasksCoordinator(ABC):
                 )
 
             if is_looping:
-                new_future = self._workers_pool.submit(
-                    _looping_task, shutdown_flag, fun, *args, **kwargs
-                )
+                new_future = self._workers_pool.submit(_looping_task, shutdown_flag, fun, *args, **kwargs)
             else:
                 new_future = self._workers_pool.submit(_exec_task, fun, *args, **kwargs)
-            self.alive_tasks = {
-                k: v for k, v in iteritems(self.alive_tasks) if not v[0].done()
-            }
+            self.alive_tasks = {k: v for k, v in iteritems(self.alive_tasks) if not v[0].done()}
             self.alive_tasks[new_id] = (new_future, shutdown_flag)
         return new_id, new_future
 
     def total_alive_tasks(self):
         with type(self)._POOL_LOCK:
-            self.alive_tasks = {
-                k: v for k, v in iteritems(self.alive_tasks) if not v[0].done()
-            }
+            self.alive_tasks = {k: v for k, v in iteritems(self.alive_tasks) if not v[0].done()}
             total = len(self.alive_tasks)
         return total
 

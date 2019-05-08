@@ -9,15 +9,9 @@ from arctic.store.bson_store import BSONStore
 def test_enable_sharding():
     arctic_lib = create_autospec(ArcticLibraryBinding)
     arctic_lib.arctic = create_autospec(Arctic)
-    with patch(
-        "arctic.store.bson_store.enable_sharding", autospec=True
-    ) as enable_sharding:
-        arctic_lib.get_top_level_collection.return_value.database.create_collection.__name__ = (
-            "some_name"
-        )
-        arctic_lib.get_top_level_collection.return_value.database.collection_names.__name__ = (
-            "some_name"
-        )
+    with patch("arctic.store.bson_store.enable_sharding", autospec=True) as enable_sharding:
+        arctic_lib.get_top_level_collection.return_value.database.create_collection.__name__ = "some_name"
+        arctic_lib.get_top_level_collection.return_value.database.collection_names.__name__ = "some_name"
         bsons = BSONStore(arctic_lib)
         bsons.enable_sharding()
         # Check we always set the sharding to be hashed.
@@ -88,9 +82,7 @@ def test_replace_one():
 
     assert arctic_lib.check_quota.call_count == 1
     assert collection.replace_one.call_count == 1
-    assert collection.replace_one.call_args_list == [
-        call(sentinel.filter, sentinel.replacement)
-    ]
+    assert collection.replace_one.call_args_list == [call(sentinel.filter, sentinel.replacement)]
 
 
 def test_update_one():
@@ -103,9 +95,7 @@ def test_update_one():
 
     assert arctic_lib.check_quota.call_count == 1
     assert collection.update_one.call_count == 1
-    assert collection.update_one.call_args_list == [
-        call(sentinel.filter, sentinel.replacement)
-    ]
+    assert collection.update_one.call_args_list == [call(sentinel.filter, sentinel.replacement)]
 
 
 def test_update_many():
@@ -118,9 +108,7 @@ def test_update_many():
 
     assert arctic_lib.check_quota.call_count == 1
     assert collection.update_many.call_count == 1
-    assert collection.update_many.call_args_list == [
-        call(sentinel.filter, sentinel.replacements)
-    ]
+    assert collection.update_many.call_args_list == [call(sentinel.filter, sentinel.replacements)]
 
 
 def test_find_one_and_replace():
@@ -133,9 +121,7 @@ def test_find_one_and_replace():
 
     assert arctic_lib.check_quota.call_count == 1
     assert collection.find_one_and_replace.call_count == 1
-    assert collection.find_one_and_replace.call_args_list == [
-        call(sentinel.filter, sentinel.replacement)
-    ]
+    assert collection.find_one_and_replace.call_args_list == [call(sentinel.filter, sentinel.replacement)]
 
 
 def test_find_one_and_update():
@@ -148,9 +134,7 @@ def test_find_one_and_update():
 
     assert arctic_lib.check_quota.call_count == 1
     assert collection.find_one_and_update.call_count == 1
-    assert collection.find_one_and_update.call_args_list == [
-        call(sentinel.filter, sentinel.update)
-    ]
+    assert collection.find_one_and_update.call_args_list == [call(sentinel.filter, sentinel.update)]
 
 
 def test_find_one_and_delete():
@@ -192,9 +176,7 @@ def test_delete_one():
 
 def test_count():
     arctic_lib = create_autospec(ArcticLibraryBinding, instance=True)
-    collection = create_autospec(
-        Collection, instance=True, count=Mock(), count_documents=Mock()
-    )
+    collection = create_autospec(Collection, instance=True, count=Mock(), count_documents=Mock())
     arctic_lib.get_top_level_collection.return_value = collection
 
     bsons = BSONStore(arctic_lib)
@@ -236,9 +218,7 @@ def test_create_index():
     arctic_lib.get_top_level_collection.return_value = collection
 
     bsons = BSONStore(arctic_lib)
-    bsons.create_index(
-        [(sentinel.path1, sentinel.order1), (sentinel.path2, sentinel.path2)]
-    )
+    bsons.create_index([(sentinel.path1, sentinel.order1), (sentinel.path2, sentinel.path2)])
 
     assert collection.create_index.call_count == 1
     assert collection.create_index.call_args_list == [

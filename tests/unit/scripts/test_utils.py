@@ -9,9 +9,7 @@ def test_do_db_auth():
     user_creds = Mock()
     connection = MagicMock()
     with patch("arctic.scripts.utils.logger", autospec=True) as logger, patch(
-        "arctic.scripts.utils.get_auth",
-        autospec=True,
-        side_effect=[admin_creds, user_creds],
+        "arctic.scripts.utils.get_auth", autospec=True, side_effect=[admin_creds, user_creds]
     ) as get_auth:
         assert do_db_auth("hostname", connection, "arctic_user")
 
@@ -19,9 +17,7 @@ def test_do_db_auth():
         call("hostname", "admin", "admin"),
         call("hostname", "arctic", "arctic_user"),
     ]
-    connection.admin.authenticate.assert_called_once_with(
-        admin_creds.user, admin_creds.password
-    )
+    connection.admin.authenticate.assert_called_once_with(admin_creds.user, admin_creds.password)
     # Must also ensure that we auth against the user's db too ; the user
     # may well have read-only access to the admin database, but not to their user_db!
     connection.__getitem__.assert_called_once_with("arctic_user")
@@ -47,9 +43,7 @@ def test_do_db_auth_no_admin():
         call("hostname", "admin", "admin"),
         call("hostname", "arctic", "arctic_user"),
     ]
-    connection["arctic_user"].authenticate.assert_called_once_with(
-        user_creds.user, user_creds.password
-    )
+    connection["arctic_user"].authenticate.assert_called_once_with(user_creds.user, user_creds.password)
 
 
 def test_do_db_auth_no_user_creds():
@@ -66,8 +60,7 @@ def test_do_db_auth_no_user_creds():
         call("hostname", "arctic", "arctic_user"),
     ]
     logger.error.assert_called_once_with(
-        "Failed to authenticate to db 'arctic_user' on 'hostname',"
-        " using user credentials"
+        "Failed to authenticate to db 'arctic_user' on 'hostname'," " using user credentials"
     )
 
 
@@ -84,8 +77,7 @@ def test_do_db_auth_no_admin_user_creds_fails():
         call("hostname", "arctic", "arctic_user"),
     ]
     logger.error.assert_called_once_with(
-        "You need credentials for db 'arctic_user' on 'hostname',"
-        " or admin credentials"
+        "You need credentials for db 'arctic_user' on 'hostname'," " or admin credentials"
     )
 
 
@@ -101,9 +93,7 @@ def test_do_db_auth_admin_user_creds_fails():
         call("hostname", "admin", "admin"),
         call("hostname", "arctic", "arctic_user"),
     ]
-    logger.error.assert_called_once_with(
-        "Failed to authenticate to '%s' as Admin. Giving up." % ("hostname")
-    )
+    logger.error.assert_called_once_with("Failed to authenticate to '%s' as Admin. Giving up." % ("hostname"))
 
 
 def test_do_db_auth_role():
@@ -112,9 +102,7 @@ def test_do_db_auth_role():
     user_creds = Mock()
     connection = MagicMock()
     with patch("arctic.scripts.utils.logger", autospec=True) as logger, patch(
-        "arctic.scripts.utils.get_auth",
-        autospec=True,
-        side_effect=[admin_creds, user_creds],
+        "arctic.scripts.utils.get_auth", autospec=True, side_effect=[admin_creds, user_creds]
     ) as get_auth:
         assert do_db_auth("hostname", connection, "arctic_user")
 
@@ -122,9 +110,7 @@ def test_do_db_auth_role():
         call("hostname", "admin", "admin"),
         call("hostname", "arctic", "arctic_user"),
     ]
-    connection.admin.authenticate.assert_called_once_with(
-        admin_creds.user, admin_creds.password
-    )
+    connection.admin.authenticate.assert_called_once_with(admin_creds.user, admin_creds.password)
     # Must also ensure that we auth against the user's db too ; the user
     # may well have read-only access to the admin database, but not to their user_db!
     connection.__getitem__.assert_called_once_with("arctic_user")

@@ -13,6 +13,4 @@ def test_are_equals_not_df():
 def test_enable_sharding_hashed():
     m = MagicMock(Arctic, autospec=True)
     enable_sharding(m, "test", hashed=True)
-    m._conn.admin.command.assert_called_with(
-        "shardCollection", ANY, key={"symbol": "hashed"}
-    )
+    m._conn.admin.command.assert_called_with("shardCollection", ANY, key={"symbol": "hashed"})

@@ -46,17 +46,7 @@ class ArcticTransaction(object):
     starting timeseries.
     """
 
-    def __init__(
-        self,
-        version_store,
-        symbol,
-        user,
-        log,
-        modify_timeseries=None,
-        audit=True,
-        *args,
-        **kwargs
-    ):
+    def __init__(self, version_store, symbol, user, log, modify_timeseries=None, audit=True, *args, **kwargs):
         """
         Parameters
         ----------
@@ -95,39 +85,25 @@ class ArcticTransaction(object):
         self._audit = audit
         logger.info(
             "MT: {}@{}: [{}] {}: {}".format(
-                _get_host(version_store).get("l"),
-                _get_host(version_store).get("mhost"),
-                user,
-                log,
-                symbol,
+                _get_host(version_store).get("l"), _get_host(version_store).get("mhost"), user, log, symbol
             )
         )
         try:
             self.base_ts = self._version_store.read(self._symbol, *args, **kwargs)
         except NoDataFoundException:
             versions = [
-                x["version"]
-                for x in self._version_store.list_versions(
-                    self._symbol, latest_only=True
-                )
+                x["version"] for x in self._version_store.list_versions(self._symbol, latest_only=True)
             ]
             versions.append(0)
             self.base_ts = VersionedItem(
-                symbol=self._symbol,
-                library=None,
-                version=versions[0],
-                metadata=None,
-                data=None,
-                host=None,
+                symbol=self._symbol, library=None, version=versions[0], metadata=None, data=None, host=None
             )
         except OperationFailure:
             # TODO: Current errors in mongo "Incorrect Number of Segments Returned"
             # This workaround should be removed once underlying problem is resolved.
             self.base_ts = self._version_store.read_metadata(symbol=self._symbol)
 
-        if modify_timeseries is not None and not are_equals(
-            modify_timeseries, self.base_ts.data
-        ):
+        if modify_timeseries is not None and not are_equals(modify_timeseries, self.base_ts.data):
             raise ConcurrentModificationException()
         self._do_write = False
 
@@ -173,9 +149,7 @@ class ArcticTransaction(object):
     def __exit__(self, *args, **kwargs):
         if self._do_write:
             written_ver = self._write()
-            versions = [
-                x["version"] for x in self._version_store.list_versions(self._symbol)
-            ]
+            versions = [x["version"] for x in self._version_store.list_versions(self._symbol)]
             versions.append(0)
             versions.reverse()
             base_offset = versions.index(self.base_ts.version)

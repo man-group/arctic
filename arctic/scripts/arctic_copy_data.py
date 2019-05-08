@@ -23,22 +23,14 @@ def copy_symbols_helper(src, dest, log, force, splice):
                 existing_data = dest.has_symbol(symbol)
                 if existing_data:
                     if force:
-                        logger.warn(
-                            "Symbol: %s already exists in destination, OVERWRITING"
-                            % symbol
-                        )
+                        logger.warn("Symbol: %s already exists in destination, OVERWRITING" % symbol)
                     elif splice:
-                        logger.warn(
-                            "Symbol: %s already exists in destination, splicing in new data"
-                            % symbol
-                        )
+                        logger.warn("Symbol: %s already exists in destination, splicing in new data" % symbol)
                     else:
                         logger.warn(
                             "Symbol: {} already exists in {}@{}, use --force to overwrite or --splice to join "
                             "with existing data".format(
-                                symbol,
-                                _get_host(dest).get("l"),
-                                _get_host(dest).get("mhost"),
+                                symbol, _get_host(dest).get("l"), _get_host(dest).get("mhost")
                             )
                         )
                         continue
@@ -49,18 +41,10 @@ def copy_symbols_helper(src, dest, log, force, splice):
                 if existing_data and splice:
                     original_data = dest.read(symbol).data
                     preserve_start = to_pandas_closed_closed(
-                        DateRange(
-                            None,
-                            new_data.index[0].to_pydatetime(),
-                            interval=CLOSED_OPEN,
-                        )
+                        DateRange(None, new_data.index[0].to_pydatetime(), interval=CLOSED_OPEN)
                     ).end
                     preserve_end = to_pandas_closed_closed(
-                        DateRange(
-                            new_data.index[-1].to_pydatetime(),
-                            None,
-                            interval=OPEN_CLOSED,
-                        )
+                        DateRange(new_data.index[-1].to_pydatetime(), None, interval=OPEN_CLOSED)
                     ).start
                     if not original_data.index.tz:
                         # No timezone on the original, should we even allow this?
@@ -84,18 +68,11 @@ def main():
     """
     setup_logging()
     p = argparse.ArgumentParser(usage=usage)
-    p.add_argument(
-        "--src", required=True, help="Source MongoDB like: library@hostname:port"
-    )
-    p.add_argument(
-        "--dest", required=True, help="Destination MongoDB like: library@hostname:port"
-    )
+    p.add_argument("--src", required=True, help="Source MongoDB like: library@hostname:port")
+    p.add_argument("--dest", required=True, help="Destination MongoDB like: library@hostname:port")
     p.add_argument("--log", required=True, help="Data CR")
     p.add_argument(
-        "--force",
-        default=False,
-        action="store_true",
-        help="Force overwrite of existing data for symbol.",
+        "--force", default=False, action="store_true", help="Force overwrite of existing data for symbol."
     )
     p.add_argument(
         "--splice",
@@ -103,15 +80,8 @@ def main():
         action="store_true",
         help="Keep existing data before and after the new data.",
     )
-    p.add_argument(
-        "--parallel", default=1, type=int, help="Number of imports to run in parallel."
-    )
-    p.add_argument(
-        "symbols",
-        nargs="+",
-        type=str,
-        help="List of symbol regexes to copy from source to dest.",
-    )
+    p.add_argument("--parallel", default=1, type=int, help="Number of imports to run in parallel.")
+    p.add_argument("symbols", nargs="+", type=str, help="List of symbol regexes to copy from source to dest.")
 
     opts = p.parse_args()
 
@@ -141,8 +111,7 @@ def main():
         chunk_size = len(required_symbols) / opts.parallel
         chunk_size = max(chunk_size, 1)
         chunks = [
-            required_symbols[offs : offs + chunk_size]
-            for offs in range(0, len(required_symbols), chunk_size)
+            required_symbols[offs : offs + chunk_size] for offs in range(0, len(required_symbols), chunk_size)
         ]
         assert sum(len(x) for x in chunks) == len(required_symbols)
         pool.apply(copy_symbol, chunks)
