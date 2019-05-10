@@ -3,13 +3,16 @@ from datetime import datetime, timedelta
 
 from pymongo.errors import OperationFailure
 
-from ._config import CACHE_COLL, CACHE_DB
-
 logger = logging.getLogger(__name__)
+
+CACHE_COLL = 'cache'
+CACHE_DB = 'meta_db'
+CACHE_SETTINGS = 'cache_settings'
+DEFAULT_CACHE_EXPIRY = 3600
 
 
 class Cache:
-    def __init__(self, client, cache_expiry=3600, cache_db=CACHE_DB, cache_col=CACHE_COLL):
+    def __init__(self, client, cache_expiry=DEFAULT_CACHE_EXPIRY, cache_db=CACHE_DB, cache_col=CACHE_COLL):
         self._client = client
         self._cachedb = client[cache_db]
         self._cachecol = None
@@ -17,15 +20,51 @@ class Cache:
             if cache_col not in self._cachedb.list_collection_names():
                 self._cachedb.create_collection(cache_col).create_index("date", expireAfterSeconds=cache_expiry)
         except OperationFailure as op:
-            logging.debug("This is fine if you are not admin. The collection should already be created for you: %s", op)
+            logging.info("This is fine if you are not admin. The collection should already be created for you: %s", op)
 
         self._cachecol = self._cachedb[cache_col]
 
-    def get(self, key, newer_than_secs=-1):
+    def _get_cache_settings(self):
+        try:
+            return self._cachedb[CACHE_SETTINGS].find_one()
+        except OperationFailure as op:
+            logging.debug("Cannot access %s in db: %s. Error: %s" % (CACHE_SETTINGS, CACHE_DB, op))
+        return None
+
+    def set_caching_state(self, enabled):
+        """
+        Used to enable or disable the caching globally
+        :return:
+        """
+        if not isinstance(enabled, bool):
+            logging.error("Enabled should be a boolean type.")
+            return
+
+        if CACHE_SETTINGS not in self._cachedb.list_collection_names():
+            logging.info("Creating %s collection for cache settings" % CACHE_SETTINGS)
+            self._cachedb[CACHE_SETTINGS].insert_one({
+                'enabled': enabled,
+                'cache_expiry': DEFAULT_CACHE_EXPIRY
+            })
+        else:
+            self._cachedb[CACHE_SETTINGS].update_one({}, {'$set': {'enabled': enabled}})
+            logging.info("Caching set to: %s" % enabled)
+
+    def _is_not_expired(self, cached_data, newer_than_secs):
+        # Use the expiry period in the settings (or the default) if not overriden by the function argument.
+        if newer_than_secs:
+            expiry_period = newer_than_secs
+        else:
+            cache_settings = self._get_cache_settings()
+            expiry_period = cache_settings['cache_expiry'] if cache_settings else DEFAULT_CACHE_EXPIRY
+
+        return datetime.utcnow() < cached_data['date'] + timedelta(seconds=expiry_period)
+
+    def get(self, key, newer_than_secs=None):
         """
 
         :param key: Key for the dataset. eg. list_libraries.
-        :param newer_than_secs: -1 to indicate use cache if available. Used to indicate what level of staleness
+        :param newer_than_secs: None to indicate use cache if available. Used to indicate what level of staleness
         in seconds is tolerable.
         :return: None unless if there is non stale data present in the cache.
         """
@@ -33,13 +72,10 @@ class Cache:
             if not self._cachecol:
                 # Collection not created or no permissions to read from it.
                 return None
-            coll_data = self._cachecol.find_one({"type": key})
+            cached_data = self._cachecol.find_one({"type": key})
             # Check that there is data in cache and it's not stale.
-            if coll_data and (
-                    newer_than_secs == -1 or
-                    datetime.utcnow() < coll_data['date'] + timedelta(seconds=newer_than_secs)
-            ):
-                return coll_data['data']
+            if cached_data and self._is_not_expired(cached_data, newer_than_secs):
+                return cached_data['data']
         except OperationFailure as op:
             logging.warning("Could not read from cache due to: %s. Ask your admin to give read permissions on %s:%s",
                             op, CACHE_DB, CACHE_COLL)
@@ -83,3 +119,10 @@ class Cache:
         # This op is not atomic, but given the rarity of renaming a lib, it should not cause issues.
         self.delete_item_from_key(key, old)
         self.append(key, new)
+
+    def is_caching_enabled(self):
+        # Caching is enabled unless explicitly disabled.
+        cache_settings = self._get_cache_settings()
+        if cache_settings and not cache_settings['enabled']:
+            return False
+        return True
