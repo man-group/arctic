@@ -8,6 +8,11 @@ logger = logging.getLogger(__name__)
 CACHE_COLL = 'cache'
 CACHE_DB = 'meta_db'
 CACHE_SETTINGS = 'cache_settings'
+"""
+Sample cache_settings collection entry:
+meta_db.cache_settings.insertOne({"enabled": true, "cache_expiry": 600})
+meta_db.cache_settings.find(): { "_id" : ObjectId("5cd5388b9fddfbe6e968f11b"), "enabled" : false, "cache_expiry" : 600 }
+"""
 DEFAULT_CACHE_EXPIRY = 3600
 
 
