@@ -7,11 +7,12 @@ logger = logging.getLogger(__name__)
 
 CACHE_COLL = 'cache'
 CACHE_DB = 'meta_db'
-CACHE_SETTINGS = 'cache_settings'
+CACHE_SETTINGS = 'settings'
+CACHE_SETTINGS_KEY = 'cache'
 """
 Sample cache_settings collection entry:
-meta_db.cache_settings.insertOne({"enabled": true, "cache_expiry": 600})
-meta_db.cache_settings.find(): { "_id" : ObjectId("5cd5388b9fddfbe6e968f11b"), "enabled" : false, "cache_expiry" : 600 }
+meta_db.cache_settings.insertOne({"type": "cache", "enabled": true, "cache_expiry": 600})
+meta_db.cache_settings.find(): { "_id" : ObjectId("5cd5388b9fddfbe6e968f11b"), "type": "cache", "enabled" : false, "cache_expiry" : 600 }
 """
 DEFAULT_CACHE_EXPIRY = 3600
 
@@ -31,7 +32,7 @@ class Cache:
 
     def _get_cache_settings(self):
         try:
-            return self._cachedb[CACHE_SETTINGS].find_one()
+            return self._cachedb[CACHE_SETTINGS].find_one({'type': CACHE_SETTINGS_KEY})
         except OperationFailure as op:
             logging.debug("Cannot access %s in db: %s. Error: %s" % (CACHE_SETTINGS, CACHE_DB, op))
         return None
@@ -48,11 +49,12 @@ class Cache:
         if CACHE_SETTINGS not in self._cachedb.list_collection_names():
             logging.info("Creating %s collection for cache settings" % CACHE_SETTINGS)
             self._cachedb[CACHE_SETTINGS].insert_one({
+                'type': CACHE_SETTINGS_KEY,
                 'enabled': enabled,
                 'cache_expiry': DEFAULT_CACHE_EXPIRY
             })
         else:
-            self._cachedb[CACHE_SETTINGS].update_one({}, {'$set': {'enabled': enabled}})
+            self._cachedb[CACHE_SETTINGS].update_one({'type': CACHE_SETTINGS_KEY}, {'$set': {'enabled': enabled}})
             logging.info("Caching set to: %s" % enabled)
 
     def _is_not_expired(self, cached_data, newer_than_secs):
