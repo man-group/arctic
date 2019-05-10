@@ -19,6 +19,7 @@ from arctic._cache import Cache
 def test_arctic_lazy_init():
     with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True) as mc, \
         patch('arctic.arctic.mongo_retry', side_effect=lambda x: x, autospec=True), \
+        patch('arctic._cache.Cache._is_not_expired', return_value=True), \
         patch('arctic.arctic.get_auth', autospec=True) as ga:
             store = Arctic('cluster')
             assert not mc.called
@@ -30,6 +31,7 @@ def test_arctic_lazy_init():
 def test_arctic_lazy_init_ssl_true():
     with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True) as mc, \
             patch('arctic.arctic.mongo_retry', side_effect=lambda x: x, autospec=True), \
+            patch('arctic._cache.Cache._is_not_expired', return_value=True), \
             patch('arctic.arctic.get_auth', autospec=True) as ga:
         store = Arctic('cluster', ssl=True)
         assert not mc.called
@@ -48,6 +50,7 @@ def test_arctic_lazy_init_ssl_true():
 def test_connection_passed_warning_raised():
     with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True), \
          patch('arctic.arctic.mongo_retry', side_effect=lambda x: x, autospec=True), \
+         patch('arctic._cache.Cache._is_not_expired', return_value=True), \
          patch('arctic.arctic.get_auth', autospec=True), \
          patch('arctic.arctic.logger') as lg:
         magic_mock = MagicMock(nodes={("host", "port")})
@@ -62,7 +65,8 @@ def test_connection_passed_warning_raised():
 def test_arctic_auth():
     with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True), \
         patch('arctic.arctic.mongo_retry', autospec=True), \
-        patch('arctic.arctic.get_auth', autospec=True) as ga:
+         patch('arctic._cache.Cache._is_not_expired', return_value=True), \
+         patch('arctic.arctic.get_auth', autospec=True) as ga:
             ga.return_value = Credential('db', 'admin_user', 'admin_pass')
             store = Arctic('cluster')
             # do something to trigger lazy arctic init
@@ -86,7 +90,8 @@ def test_arctic_auth():
 def test_arctic_auth_custom_app_name():
     with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True), \
         patch('arctic.arctic.mongo_retry', autospec=True), \
-        patch('arctic.arctic.get_auth', autospec=True) as ga:
+         patch('arctic._cache.Cache._is_not_expired', return_value=True), \
+         patch('arctic.arctic.get_auth', autospec=True) as ga:
             ga.return_value = Credential('db', 'admin_user', 'admin_pass')
             store = Arctic('cluster', app_name=sentinel.app_name)
             # do something to trigger lazy arctic init
@@ -108,7 +113,8 @@ def test_arctic_auth_custom_app_name():
 def test_arctic_connect_hostname():
     with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True) as mc, \
          patch('arctic.arctic.mongo_retry', autospec=True) as ar, \
-         patch('arctic.arctic.get_mongodb_uri', autospec=True) as gmu:
+            patch('arctic._cache.Cache._is_not_expired', return_value=True), \
+            patch('arctic.arctic.get_mongodb_uri', autospec=True) as gmu:
                 store = Arctic('hostname', socketTimeoutMS=sentinel.socket_timeout,
                                          connectTimeoutMS=sentinel.connect_timeout,
                                          serverSelectionTimeoutMS=sentinel.select_timeout)
@@ -124,6 +130,7 @@ def test_arctic_connect_with_environment_name():
     with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True) as mc, \
          patch('arctic.arctic.mongo_retry', autospec=True) as ar, \
          patch('arctic.arctic.get_auth', autospec=True), \
+         patch('arctic._cache.Cache._is_not_expired', return_value=True), \
          patch('arctic.arctic.get_mongodb_uri') as gmfe:
             store = Arctic('live', socketTimeoutMS=sentinel.socket_timeout,
                                  connectTimeoutMS=sentinel.connect_timeout,
@@ -453,7 +460,8 @@ def test__conn_auth_issue():
 
 def test_reset():
     c = MagicMock()
-    with patch('pymongo.MongoClient', return_value=c, autospec=True) as mc:
+    with patch('pymongo.MongoClient', return_value=c, autospec=True) as mc, \
+            patch('arctic._cache.Cache._is_not_expired', return_value=True):
                 store = Arctic('hostname')
                 # do something to trigger lazy arctic init
                 store.list_libraries()
