@@ -8,7 +8,6 @@ from pymongo.errors import OperationFailure, AutoReconnect
 from six import string_types
 
 from ._cache import Cache
-from ._config import ENABLE_CACHE
 from ._util import indent
 from .auth import authenticate, get_auth
 from .chunkstore import chunkstore
@@ -190,13 +189,20 @@ class Arctic(object):
     def __setstate__(self, state):
         return Arctic.__init__(self, **state)
 
-    def list_libraries(self, newer_than_secs=-1):
+    def is_caching_enabled(self):
+        """
+        Allows people to enable or disable caching for list_libraries globally.
+        """
+        _ = self._conn  # Ensures the connection exists and cache is initialized with it.
+        return self._cache.is_caching_enabled()
+
+    def list_libraries(self, newer_than_secs=None):
         """
         Returns
         -------
         list of Arctic library names
         """
-        return self._list_libraries_cached(newer_than_secs) if ENABLE_CACHE else self._list_libraries()
+        return self._list_libraries_cached(newer_than_secs) if self.is_caching_enabled() else self._list_libraries()
 
     @mongo_retry
     def _list_libraries(self):
@@ -213,7 +219,7 @@ class Arctic(object):
         return libs
 
     # Better to be pessimistic here and not retry.
-    def _list_libraries_cached(self, newer_than_secs=-1):
+    def _list_libraries_cached(self, newer_than_secs=None):
         """
         Returns
         -------
@@ -222,11 +228,14 @@ class Arctic(object):
         """
         _ = self._conn  # Ensures the connection exists and cache is initialized with it.
         cache_data = self._cache.get('list_libraries', newer_than_secs)
-        if cache_data:
-            logger.debug('Library names are in cache.')
-            return cache_data
+        if not cache_data:
+            # Try to refresh the cache.
+            logging.debug("Cache has expired data, fetching from slow path and reloading cache.")
+            libs = self._list_libraries()
+            self._cache.set('list_libraries', libs)
+            return libs
 
-        return self._list_libraries()
+        return cache_data
 
     def reload_cache(self):
         _ = self._conn  # Ensures the connection exists and cache is initialized with it.

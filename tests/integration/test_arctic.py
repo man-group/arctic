@@ -315,3 +315,29 @@ def test_deleting_library_removes_it_from_cache(arctic):
     arctic.delete_library('test1')
 
     assert arctic._list_libraries_cached() == arctic._list_libraries() == arctic.list_libraries() == ['test2']
+
+
+def test_disable_cache_by_settings(arctic):
+    lib = 'test1'
+    arctic.initialize_library(lib)
+
+    # Should be enabled by default
+    assert arctic._list_libraries_cached() == arctic._list_libraries()
+
+    arctic._cache.set_caching_state(enabled=False)
+
+    # Should not return cached results now.
+    with patch('arctic.arctic.Arctic._list_libraries', return_value=[lib]) as uncached_list_libraries:
+        with patch('arctic.arctic.Arctic._list_libraries_cached', return_value=[lib]) as cached_list_libraries:
+            arctic.list_libraries()
+            uncached_list_libraries.assert_called()
+            cached_list_libraries.assert_not_called()
+
+    arctic._cache.set_caching_state(enabled=True)
+
+    # Should used cached data again.
+    with patch('arctic.arctic.Arctic._list_libraries', return_value=[lib]) as uncached_list_libraries_e:
+        with patch('arctic.arctic.Arctic._list_libraries_cached', return_value=[lib]) as cached_list_libraries_e:
+            arctic.list_libraries()
+            uncached_list_libraries_e.assert_not_called()
+            cached_list_libraries_e.assert_called()

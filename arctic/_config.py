@@ -95,13 +95,6 @@ ARCTIC_ASYNC_NWORKERS = os.environ.get('ARCTIC_ASYNC_NWORKERS', 4)
 
 
 # -------------------------------
-# Flag used for indicating caching levels. For now just for list_libraries.
-# -------------------------------
-ENABLE_CACHE = not bool(os.environ.get('DISABLE_CACHE'))
-CACHE_COLL = 'cache'
-CACHE_DB = 'meta_db'
-
-# -------------------------------
 # Flag used to convert byte column/index/column names to unicode when read back.
 # -------------------------------
 FORCE_BYTES_TO_UNICODE = bool(os.environ.get('FORCE_BYTES_TO_UNICODE'))
