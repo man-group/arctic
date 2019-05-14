@@ -127,9 +127,12 @@ class Cache:
         self.delete_item_from_key(key, old)
         self.append(key, new)
 
-    def is_caching_enabled(self):
-        # Caching is enabled unless explicitly disabled.
+    def is_caching_enabled(self, cache_enabled_in_env):
         cache_settings = self._get_cache_settings()
+        # Caching is enabled unless explicitly disabled. Can be disabled either by an env variable or config in mongo.
         if cache_settings and not cache_settings['enabled']:
+            return False
+        # Disabling from Mongo Setting take precedence over this env variable
+        if not cache_enabled_in_env:
             return False
         return True

@@ -8,6 +8,7 @@ from pymongo.errors import OperationFailure, AutoReconnect
 from six import string_types
 
 from ._cache import Cache
+from ._config import ENABLE_CACHE
 from ._util import indent
 from .auth import authenticate, get_auth
 from .chunkstore import chunkstore
@@ -194,7 +195,7 @@ class Arctic(object):
         Allows people to enable or disable caching for list_libraries globally.
         """
         _ = self._conn  # Ensures the connection exists and cache is initialized with it.
-        return self._cache.is_caching_enabled()
+        return self._cache.is_caching_enabled(ENABLE_CACHE)
 
     def list_libraries(self, newer_than_secs=None):
         """
