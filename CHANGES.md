@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.79.2
+  * Feature: Allow list_library caching to be tunable via a settings collection.
+
 ### 1.79.1 (2019-05-03)
   * Bugfix: Pandas convert multiindexes to unicode if flag set.
 
