@@ -40,6 +40,6 @@ def mktz(zone=None):
         tz.zone = zone
         for p in dateutil.tz.TZPATHS:
             if zone.startswith(p):
-                tz.zone = zone[len(p) + 1:]
+                tz.zone = zone[len(p) + 1 :]
                 break
     return tz

@@ -18,15 +18,26 @@ DEFAULT_CACHE_EXPIRY = 3600
 
 
 class Cache:
-    def __init__(self, client, cache_expiry=DEFAULT_CACHE_EXPIRY, cache_db=CACHE_DB, cache_col=CACHE_COLL):
+    def __init__(
+        self,
+        client,
+        cache_expiry=DEFAULT_CACHE_EXPIRY,
+        cache_db=CACHE_DB,
+        cache_col=CACHE_COLL,
+    ):
         self._client = client
         self._cachedb = client[cache_db]
         self._cachecol = None
         try:
             if cache_col not in self._cachedb.list_collection_names():
-                self._cachedb.create_collection(cache_col).create_index("date", expireAfterSeconds=cache_expiry)
+                self._cachedb.create_collection(cache_col).create_index(
+                    "date", expireAfterSeconds=cache_expiry
+                )
         except OperationFailure as op:
-            logging.info("This is fine if you are not admin. The collection should already be created for you: %s", op)
+            logging.info(
+                "This is fine if you are not admin. The collection should already be created for you: %s",
+                op,
+            )
 
         self._cachecol = self._cachedb[cache_col]
 
@@ -34,7 +45,9 @@ class Cache:
         try:
             return self._cachedb[CACHE_SETTINGS].find_one({'type': CACHE_SETTINGS_KEY})
         except OperationFailure as op:
-            logging.debug("Cannot access %s in db: %s. Error: %s" % (CACHE_SETTINGS, CACHE_DB, op))
+            logging.debug(
+                "Cannot access %s in db: %s. Error: %s" % (CACHE_SETTINGS, CACHE_DB, op)
+            )
         return None
 
     def set_caching_state(self, enabled):
@@ -48,13 +61,17 @@ class Cache:
 
         if CACHE_SETTINGS not in self._cachedb.list_collection_names():
             logging.info("Creating %s collection for cache settings" % CACHE_SETTINGS)
-            self._cachedb[CACHE_SETTINGS].insert_one({
-                'type': CACHE_SETTINGS_KEY,
-                'enabled': enabled,
-                'cache_expiry': DEFAULT_CACHE_EXPIRY
-            })
+            self._cachedb[CACHE_SETTINGS].insert_one(
+                {
+                    'type': CACHE_SETTINGS_KEY,
+                    'enabled': enabled,
+                    'cache_expiry': DEFAULT_CACHE_EXPIRY,
+                }
+            )
         else:
-            self._cachedb[CACHE_SETTINGS].update_one({'type': CACHE_SETTINGS_KEY}, {'$set': {'enabled': enabled}})
+            self._cachedb[CACHE_SETTINGS].update_one(
+                {'type': CACHE_SETTINGS_KEY}, {'$set': {'enabled': enabled}}
+            )
             logging.info("Caching set to: %s" % enabled)
 
     def _is_not_expired(self, cached_data, newer_than_secs):
@@ -63,9 +80,15 @@ class Cache:
             expiry_period = newer_than_secs
         else:
             cache_settings = self._get_cache_settings()
-            expiry_period = cache_settings['cache_expiry'] if cache_settings else DEFAULT_CACHE_EXPIRY
+            expiry_period = (
+                cache_settings['cache_expiry']
+                if cache_settings
+                else DEFAULT_CACHE_EXPIRY
+            )
 
-        return datetime.utcnow() < cached_data['date'] + timedelta(seconds=expiry_period)
+        return datetime.utcnow() < cached_data['date'] + timedelta(
+            seconds=expiry_period
+        )
 
     def get(self, key, newer_than_secs=None):
         """
@@ -84,8 +107,12 @@ class Cache:
             if cached_data and self._is_not_expired(cached_data, newer_than_secs):
                 return cached_data['data']
         except OperationFailure as op:
-            logging.warning("Could not read from cache due to: %s. Ask your admin to give read permissions on %s:%s",
-                            op, CACHE_DB, CACHE_COLL)
+            logging.warning(
+                "Could not read from cache due to: %s. Ask your admin to give read permissions on %s:%s",
+                op,
+                CACHE_DB,
+                CACHE_COLL,
+            )
 
         return None
 
@@ -94,10 +121,13 @@ class Cache:
             self._cachecol.update_one(
                 {"type": key},
                 {"$set": {"type": key, "date": datetime.utcnow(), "data": data}},
-                upsert=True
+                upsert=True,
             )
         except OperationFailure as op:
-            logging.debug("This operation is to be run with admin permissions. Should be fine: %s", op)
+            logging.debug(
+                "This operation is to be run with admin permissions. Should be fine: %s",
+                op,
+            )
 
     def append(self, key, append_data):
         try:
@@ -106,19 +136,16 @@ class Cache:
                 {
                     # Add to set will not add the same library again to the list unlike set.
                     '$addToSet': {'data': append_data},
-                    '$setOnInsert': {'type': key, 'date': datetime.utcnow()}
+                    '$setOnInsert': {'type': key, 'date': datetime.utcnow()},
                 },
-                upsert=True
+                upsert=True,
             )
         except OperationFailure as op:
             logging.debug("Admin is required to append to the cache: %s", op)
 
     def delete_item_from_key(self, key, item):
         try:
-            self._cachecol.update(
-                {'type': key},
-                {"$pull": {"data": item}}
-            )
+            self._cachecol.update({'type': key}, {"$pull": {"data": item}})
         except OperationFailure as op:
             logging.debug("Admin is required to remove from cache: %s", op)
 

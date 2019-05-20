@@ -49,7 +49,9 @@ def _to_primitive(arr, string_max_len=None, forced_dtype=None):
 def _multi_index_to_records(index, empty_index):
     # array of tuples to numpy cols. copy copy copy
     if not empty_index:
-        ix_vals = list(map(np.array, [index.get_level_values(i) for i in range(index.nlevels)]))
+        ix_vals = list(
+            map(np.array, [index.get_level_values(i) for i in range(index.nlevels)])
+        )
     else:
         # empty multi index has no size, create empty arrays for recarry.
         ix_vals = [np.array([]) for n in index.names]
@@ -59,20 +61,26 @@ def _multi_index_to_records(index, empty_index):
         if n is None:
             index_names[i] = 'level_%d' % count
             count += 1
-            log.info("Level in MultiIndex has no name, defaulting to %s" % index_names[i])
-    index_tz = [get_timezone(i.tz) if isinstance(i, DatetimeIndex) else None for i in index.levels]
+            log.info(
+                "Level in MultiIndex has no name, defaulting to %s" % index_names[i]
+            )
+    index_tz = [
+        get_timezone(i.tz) if isinstance(i, DatetimeIndex) else None
+        for i in index.levels
+    ]
     return ix_vals, index_names, index_tz
 
 
 class PandasSerializer(object):
-
     def _index_to_records(self, df):
         metadata = {}
         index = df.index
         index_tz = None
 
         if isinstance(index, MultiIndex):
-            ix_vals, index_names, index_tz = _multi_index_to_records(index, len(df) == 0)
+            ix_vals, index_names, index_tz = _multi_index_to_records(
+                index, len(df) == 0
+            )
         else:
             ix_vals = [index.values]
             index_names = list(index.names)
@@ -94,7 +102,9 @@ class PandasSerializer(object):
         if len(index) == 1:
             rtn = Index(np.copy(recarr[str(index[0])]), name=index[0])
             if isinstance(rtn, DatetimeIndex) and 'index_tz' in recarr.dtype.metadata:
-                rtn = rtn.tz_localize('UTC').tz_convert(recarr.dtype.metadata['index_tz'])
+                rtn = rtn.tz_localize('UTC').tz_convert(
+                    recarr.dtype.metadata['index_tz']
+                )
         else:
             level_arrays = []
             index_tz = recarr.dtype.metadata.get('index_tz', [])
@@ -138,13 +148,24 @@ class PandasSerializer(object):
 
         arrays = []
         for arr, name in zip(ix_vals + column_vals, index_names + columns):
-            arrays.append(_to_primitive(arr, string_max_len,
-                                        forced_dtype=None if forced_dtype is None else forced_dtype[name]))
+            arrays.append(
+                _to_primitive(
+                    arr,
+                    string_max_len,
+                    forced_dtype=None if forced_dtype is None else forced_dtype[name],
+                )
+            )
 
         if forced_dtype is None:
-            dtype = np.dtype([(str(x), v.dtype) if len(v.shape) == 1 else (str(x), v.dtype, v.shape[1])
-                              for x, v in zip(names, arrays)],
-                             metadata=metadata)
+            dtype = np.dtype(
+                [
+                    (str(x), v.dtype)
+                    if len(v.shape) == 1
+                    else (str(x), v.dtype, v.shape[1])
+                    for x, v in zip(names, arrays)
+                ],
+                metadata=metadata,
+            )
         else:
             dtype = forced_dtype
 
@@ -177,11 +198,15 @@ class PandasSerializer(object):
         index_has_object = df.index.dtype is NP_OBJECT_DTYPE
         fields_with_object = [f for f in df.columns if f_dtypes[f] is NP_OBJECT_DTYPE]
         if df.empty or (not index_has_object and not fields_with_object):
-            arr, _ = self._to_records(df.iloc[:10])  # only first few rows for performance
+            arr, _ = self._to_records(
+                df.iloc[:10]
+            )  # only first few rows for performance
             return arr, {}
         # If only the Index has Objects, choose a small slice (two columns if possible,
         # to avoid switching from a DataFrame to a Series)
-        df_objects_only = df[fields_with_object if fields_with_object else df.columns[:2]]
+        df_objects_only = df[
+            fields_with_object if fields_with_object else df.columns[:2]
+        ]
         # Let any exceptions bubble up from here
         arr, dtype = self._to_records(df_objects_only)
         return arr, {f: dtype[f] for f in dtype.names}
@@ -196,16 +221,23 @@ class PandasSerializer(object):
                 arr, _ = self._to_records(df)
         except Exception as e:
             # This exception will also occur when we try to write the object so we fall-back to saving using Pickle
-            log.warning('Pandas dataframe %s caused exception "%s" when attempting to convert to records. '
-                        'Saving as Blob.' % (symbol, repr(e)))
+            log.warning(
+                'Pandas dataframe %s caused exception "%s" when attempting to convert to records. '
+                'Saving as Blob.' % (symbol, repr(e))
+            )
             return False
         else:
             if arr.dtype.hasobject:
-                log.warning('Pandas dataframe %s contains Objects, saving as Blob' % symbol)
+                log.warning(
+                    'Pandas dataframe %s contains Objects, saving as Blob' % symbol
+                )
                 # Fall-back to saving using Pickle
                 return False
             elif any([len(x[0].shape) for x in arr.dtype.fields.values()]):
-                log.warning('Pandas dataframe %s contains >1 dimensional arrays, saving as Blob' % symbol)
+                log.warning(
+                    'Pandas dataframe %s contains >1 dimensional arrays, saving as Blob'
+                    % symbol
+                )
                 return False
             else:
                 return True
@@ -257,12 +289,16 @@ class DataFrameSerializer(PandasSerializer):
 
     def deserialize(self, item, force_bytes_to_unicode=False):
         index = self._index_from_records(item)
-        column_fields = [x for x in item.dtype.names if x not in item.dtype.metadata['index']]
+        column_fields = [
+            x for x in item.dtype.names if x not in item.dtype.metadata['index']
+        ]
         multi_column = item.dtype.metadata.get('multi_column')
         if len(item) == 0:
             rdata = item[column_fields] if len(column_fields) > 0 else None
             if multi_column is not None:
-                columns = MultiIndex.from_arrays(multi_column["values"], names=multi_column["names"])
+                columns = MultiIndex.from_arrays(
+                    multi_column["values"], names=multi_column["names"]
+                )
                 return DataFrame(rdata, index=index, columns=columns)
             else:
                 return DataFrame(rdata, index=index)
@@ -271,7 +307,9 @@ class DataFrameSerializer(PandasSerializer):
         df = DataFrame(data=item[column_fields], index=index, columns=columns)
 
         if multi_column is not None:
-            df.columns = MultiIndex.from_arrays(multi_column["values"], names=multi_column["names"])
+            df.columns = MultiIndex.from_arrays(
+                multi_column["values"], names=multi_column["names"]
+            )
 
         if force_bytes_to_unicode:
             # This is needed due to 'str' type in py2 when read back in py3 is 'bytes' which breaks the workflow

@@ -3,7 +3,6 @@ END = 'e'
 
 
 class Chunker(object):
-
     def to_chunks(self, data, **kwargs):
         """
         Chunks data. keyword args passed in from write API

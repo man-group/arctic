@@ -50,6 +50,7 @@ def _get_arctic(instance, **kwargs):
         # Create the instance. Note that Arctic now connects
         # lazily so this doesn't connect until on creation.
         from .arctic import Arctic
+
         arctic = Arctic(instance, **kwargs)
         arctic_cache[key] = arctic
     return arctic

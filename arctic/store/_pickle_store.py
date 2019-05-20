@@ -16,41 +16,56 @@ from ..exceptions import UnsupportedPickleStoreVersion
 _MAGIC_CHUNKED = '__chunked__'
 _MAGIC_CHUNKEDV2 = '__chunked__V2'
 _CHUNK_SIZE = 15 * 1024 * 1024  # 15MB
-_MAX_BSON_ENCODE = 256 * 1024  # 256K - don't fill up the version document with encoded bson
+_MAX_BSON_ENCODE = (
+    256 * 1024
+)  # 256K - don't fill up the version document with encoded bson
 
 logger = logging.getLogger(__name__)
 
 
 class PickleStore(object):
-
     @classmethod
     def initialize_library(cls, *args, **kwargs):
         pass
 
     def get_info(self, _version):
-        return {
-            'type': 'blob',
-            'handler': self.__class__.__name__,
-        }
+        return {'type': 'blob', 'handler': self.__class__.__name__}
 
     def read(self, mongoose_lib, version, symbol, **kwargs):
         blob = version.get("blob")
         if blob is not None:
             if blob == _MAGIC_CHUNKEDV2:
                 collection = mongoose_lib.get_top_level_collection()
-                data = b''.join(decompress(x['data']) for x in sorted(
-                    collection.find({'symbol': symbol, 'parent': version_base_or_id(version)}),
-                    key=itemgetter('segment')))
+                data = b''.join(
+                    decompress(x['data'])
+                    for x in sorted(
+                        collection.find(
+                            {'symbol': symbol, 'parent': version_base_or_id(version)}
+                        ),
+                        key=itemgetter('segment'),
+                    )
+                )
             elif blob == _MAGIC_CHUNKED:
                 collection = mongoose_lib.get_top_level_collection()
-                data = b''.join(x['data'] for x in sorted(
-                    collection.find({'symbol': symbol, 'parent': version_base_or_id(version)}),
-                    key=itemgetter('segment')))
+                data = b''.join(
+                    x['data']
+                    for x in sorted(
+                        collection.find(
+                            {'symbol': symbol, 'parent': version_base_or_id(version)}
+                        ),
+                        key=itemgetter('segment'),
+                    )
+                )
                 data = decompress(data)
             else:
-                if blob[:len(_MAGIC_CHUNKED)] == _MAGIC_CHUNKED:
-                    logger.error("Data was written by unsupported version of pickle store for symbol %s. Upgrade Arctic and try again" % symbol)
-                    raise UnsupportedPickleStoreVersion("Data was written by unsupported version of pickle store")
+                if blob[: len(_MAGIC_CHUNKED)] == _MAGIC_CHUNKED:
+                    logger.error(
+                        "Data was written by unsupported version of pickle store for symbol %s. Upgrade Arctic and try again"
+                        % symbol
+                    )
+                    raise UnsupportedPickleStoreVersion(
+                        "Data was written by unsupported version of pickle store"
+                    )
                 try:
                     data = decompress(blob)
                 except:
@@ -67,7 +82,9 @@ class PickleStore(object):
                     # Using encoding='latin1' is required for unpickling NumPy arrays and instances of datetime, date
                     # and time pickled by Python 2: https://docs.python.org/3/library/pickle.html#pickle.load
                     logger.info("Could not Unpickle with ascii, Using latin1.")
-                    encoding = kwargs.get('encoding', 'latin_1')  # Check if someone has manually specified encoding.
+                    encoding = kwargs.get(
+                        'encoding', 'latin_1'
+                    )  # Check if someone has manually specified encoding.
                     return pickle_compat_load(io.BytesIO(data), encoding=encoding)
         return version['data']
 
@@ -91,13 +108,20 @@ class PickleStore(object):
         version['blob'] = _MAGIC_CHUNKEDV2
         pickled = cPickle.dumps(item, protocol=cPickle.HIGHEST_PROTOCOL)
 
-        data = compress_array([pickled[i * _CHUNK_SIZE: (i + 1) * _CHUNK_SIZE] for i in xrange(int(len(pickled) / _CHUNK_SIZE + 1))])
+        data = compress_array(
+            [
+                pickled[i * _CHUNK_SIZE : (i + 1) * _CHUNK_SIZE]
+                for i in xrange(int(len(pickled) / _CHUNK_SIZE + 1))
+            ]
+        )
 
         for seg, d in enumerate(data):
             segment = {'data': Binary(d)}
             segment['segment'] = seg
             seg += 1
             sha = checksum(symbol, segment)
-            collection.update_one({'symbol': symbol, 'sha': sha},
-                                  {'$set': segment, '$addToSet': {'parent': version['_id']}},
-                                  upsert=True)
+            collection.update_one(
+                {'symbol': symbol, 'sha': sha},
+                {'$set': segment, '$addToSet': {'parent': version['_id']}},
+                upsert=True,
+            )

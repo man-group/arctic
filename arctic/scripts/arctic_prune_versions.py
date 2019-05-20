@@ -32,10 +32,22 @@ def main():
     setup_logging()
 
     parser = optparse.OptionParser(usage=usage)
-    parser.add_option("--host", default='localhost', help="Hostname, or clustername. Default: localhost")
-    parser.add_option("--library", help="The name of the library. e.g. 'arctic_jblackburn.library'")
-    parser.add_option("--symbols", help="The symbols to prune - comma separated (default all)")
-    parser.add_option("--keep-mins", default=10, help="Ensure there's a version at least keep-mins old. Default:10")
+    parser.add_option(
+        "--host",
+        default='localhost',
+        help="Hostname, or clustername. Default: localhost",
+    )
+    parser.add_option(
+        "--library", help="The name of the library. e.g. 'arctic_jblackburn.library'"
+    )
+    parser.add_option(
+        "--symbols", help="The symbols to prune - comma separated (default all)"
+    )
+    parser.add_option(
+        "--keep-mins",
+        default=10,
+        help="Ensure there's a version at least keep-mins old. Default:10",
+    )
 
     (opts, _) = parser.parse_args()
 

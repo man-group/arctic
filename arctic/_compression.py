@@ -3,13 +3,24 @@ from multiprocessing.pool import ThreadPool
 
 try:
     from lz4.block import compress as lz4_compress, decompress as lz4_decompress
+
     lz4_compressHC = lambda _str: lz4_compress(_str, mode='high_compression')
 except ImportError as e:
-    from lz4 import compress as lz4_compress, compressHC as lz4_compressHC, decompress as lz4_decompress
+    from lz4 import (
+        compress as lz4_compress,
+        compressHC as lz4_compressHC,
+        decompress as lz4_decompress,
+    )
 
 # ENABLE_PARALLEL mutated in global_scope. Do not remove.
-from ._config import ENABLE_PARALLEL, LZ4_HIGH_COMPRESSION, LZ4_WORKERS, LZ4_N_PARALLEL, LZ4_MINSZ_PARALLEL, \
-    BENCHMARK_MODE  # noqa # pylint: disable=unused-import
+from ._config import (
+    ENABLE_PARALLEL,
+    LZ4_HIGH_COMPRESSION,
+    LZ4_WORKERS,
+    LZ4_N_PARALLEL,
+    LZ4_MINSZ_PARALLEL,
+    BENCHMARK_MODE,
+)  # noqa # pylint: disable=unused-import
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +39,11 @@ def enable_parallel_lz4(mode):
     """
     global ENABLE_PARALLEL
     ENABLE_PARALLEL = bool(mode)
-    logger.info("Setting parallelisation mode to {}".format("multi-threaded" if mode else "single-threaded"))
+    logger.info(
+        "Setting parallelisation mode to {}".format(
+            "multi-threaded" if mode else "single-threaded"
+        )
+    )
 
 
 def set_compression_pool_size(pool_size):
@@ -47,7 +62,9 @@ def set_compression_pool_size(pool_size):
     """
     pool_size = int(pool_size)
     if pool_size < 1:
-        raise ValueError("The compression thread pool size cannot be of size {}".format(pool_size))
+        raise ValueError(
+            "The compression thread pool size cannot be of size {}".format(pool_size)
+        )
 
     global _compress_thread_pool
     if _compress_thread_pool is not None:

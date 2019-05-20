@@ -20,7 +20,11 @@ def main():
     setup_logging()
 
     parser = optparse.OptionParser(usage=usage)
-    parser.add_option("--host", default='localhost', help="Hostname, or clustername. Default: localhost")
+    parser.add_option(
+        "--host",
+        default='localhost',
+        help="Hostname, or clustername. Default: localhost",
+    )
 
     (opts, args) = parser.parse_args()
 

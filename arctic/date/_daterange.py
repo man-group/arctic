@@ -2,14 +2,21 @@ import datetime
 
 from six import string_types
 
-from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN, GeneralSlice
+from ._generalslice import (
+    OPEN_OPEN,
+    CLOSED_CLOSED,
+    OPEN_CLOSED,
+    CLOSED_OPEN,
+    GeneralSlice,
+)
 from ._parse import parse
 
-INTERVAL_LOOKUP = {(True, True): OPEN_OPEN,
-                   (False, False): CLOSED_CLOSED,
-                   (True, False): OPEN_CLOSED,
-                   (False, True): CLOSED_OPEN
-                   }
+INTERVAL_LOOKUP = {
+    (True, True): OPEN_OPEN,
+    (False, False): CLOSED_CLOSED,
+    (True, False): OPEN_CLOSED,
+    (False, True): CLOSED_OPEN,
+}
 
 
 class DateRange(GeneralSlice):
@@ -48,8 +55,8 @@ class DateRange(GeneralSlice):
                CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN or OPEN_OPEN.
                **Default is CLOSED_CLOSED**.
     """
-    def __init__(self, start=None, end=None, interval=CLOSED_CLOSED):
 
+    def __init__(self, start=None, end=None, interval=CLOSED_CLOSED):
         def _is_dt_type(x):
             return isinstance(x, (datetime.datetime, datetime.date))
 
@@ -65,12 +72,16 @@ class DateRange(GeneralSlice):
             else:
                 raise TypeError('unsupported type for %s: %s' % (desc, type(value)))
 
-        super(DateRange, self).__init__(_compute_bound(start, "start"), _compute_bound(end, "end"), 1, interval)
+        super(DateRange, self).__init__(
+            _compute_bound(start, "start"), _compute_bound(end, "end"), 1, interval
+        )
 
         if _is_dt_type(self.start) and _is_dt_type(self.end):
             if self.start > self.end:
-                raise ValueError('start date (%s) cannot be greater than end date (%s)!'
-                                 % (self.start, self.end))
+                raise ValueError(
+                    'start date (%s) cannot be greater than end date (%s)!'
+                    % (self.start, self.end)
+                )
 
     @property
     def unbounded(self):
@@ -81,23 +92,43 @@ class DateRange(GeneralSlice):
         """
         Create a new DateRange representing the maximal range enclosed by this range and other
         """
-        startopen = other.startopen if self.start is None \
-            else self.startopen if other.start is None \
-            else other.startopen if self.start < other.start \
-            else self.startopen if self.start > other.start \
+        startopen = (
+            other.startopen
+            if self.start is None
+            else self.startopen
+            if other.start is None
+            else other.startopen
+            if self.start < other.start
+            else self.startopen
+            if self.start > other.start
             else (self.startopen or other.startopen)
-        endopen = other.endopen if self.end is None \
-            else self.endopen if other.end is None \
-            else other.endopen if self.end > other.end \
-            else self.endopen if self.end < other.end \
+        )
+        endopen = (
+            other.endopen
+            if self.end is None
+            else self.endopen
+            if other.end is None
+            else other.endopen
+            if self.end > other.end
+            else self.endopen
+            if self.end < other.end
             else (self.endopen or other.endopen)
+        )
 
-        new_start = self.start if other.start is None \
-            else other.start if self.start is None \
+        new_start = (
+            self.start
+            if other.start is None
+            else other.start
+            if self.start is None
             else max(self.start, other.start)
-        new_end = self.end if other.end is None \
-            else other.end if self.end is None \
+        )
+        new_end = (
+            self.end
+            if other.end is None
+            else other.end
+            if self.end is None
             else min(self.end, other.end)
+        )
 
         interval = INTERVAL_LOOKUP[(startopen, endopen)]
 
@@ -107,8 +138,16 @@ class DateRange(GeneralSlice):
         """
         Create a new DateRange with the datetimes converted to dates and changing to CLOSED/CLOSED.
         """
-        new_start = self.start.date() if self.start and isinstance(self.start, datetime.datetime) else self.start
-        new_end = self.end.date() if self.end and isinstance(self.end, datetime.datetime) else self.end
+        new_start = (
+            self.start.date()
+            if self.start and isinstance(self.start, datetime.datetime)
+            else self.start
+        )
+        new_end = (
+            self.end.date()
+            if self.end and isinstance(self.end, datetime.datetime)
+            else self.end
+        )
         return DateRange(new_start, new_end, CLOSED_CLOSED)
 
     def mongo_query(self):
@@ -117,8 +156,12 @@ class DateRange(GeneralSlice):
         datetimes in queries, so we should make this handle the case where start/end are
         datetime.date and extend accordingly (being careful about the interval logic).
         """
-        comps = {OPEN_CLOSED: ('t', 'te'), OPEN_OPEN: ('t', 't'),
-                 CLOSED_OPEN: ('te', 't'), CLOSED_CLOSED: ('te', 'te')}
+        comps = {
+            OPEN_CLOSED: ('t', 'te'),
+            OPEN_OPEN: ('t', 't'),
+            CLOSED_OPEN: ('te', 't'),
+            CLOSED_CLOSED: ('te', 'te'),
+        }
         query = {}
         comp = comps[self.interval]
         if self.start:
@@ -157,13 +200,21 @@ class DateRange(GeneralSlice):
 
     def __contains__(self, d):
         if self.interval == CLOSED_CLOSED:
-            return (self.start is None or d >= self.start) and (self.end is None or d <= self.end)
+            return (self.start is None or d >= self.start) and (
+                self.end is None or d <= self.end
+            )
         elif self.interval == CLOSED_OPEN:
-            return (self.start is None or d >= self.start) and (self.end is None or d < self.end)
+            return (self.start is None or d >= self.start) and (
+                self.end is None or d < self.end
+            )
         elif self.interval == OPEN_CLOSED:
-            return (self.start is None or d > self.start) and (self.end is None or d <= self.end)
+            return (self.start is None or d > self.start) and (
+                self.end is None or d <= self.end
+            )
 
-        return (self.start is None or d > self.start) and (self.end is None or d < self.end)
+        return (self.start is None or d > self.start) and (
+            self.end is None or d < self.end
+        )
 
     def __repr__(self):
         return 'DateRange(start=%r, end=%r)' % (self.start, self.end)
