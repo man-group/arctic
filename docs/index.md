@@ -6,13 +6,13 @@ Arctic is a timeseries / dataframe database that sits atop MongoDB. Arctic suppo
 
 Some of the reasons to use Arctic are:-
 
-a) Serializes a number of data types eg. Pandas DataFrames, Numpy arrays, Python objects via pickling etc. so you don't have to handle different datatypes manually.
-b) Uses LZ4 compression by default on the client side to get big savings on network / disk. 
-c) Allows you to version different stages of an object and snapshot the state (In some ways similar to git), and allows you to freely experiment and then just revert back the snapshot. 
-d) Does the Chunking (breaking a Dataframe to smaller parts) for you. 
-e) Adds a concept of Users and per User Libraries which can build on Mongo's auth. 
-f) Has different types of Stores, each with it's own benefits. Eg. Versionstore allows you to version and snapshot stuff, TickStore is for storage and highly efficient retrieval of streaming data, ChunkStore allows you to chunk and efficiently retrieve ranges of chunks. If nothing suits you, feel free to use vanilla Mongo commands with BSONStore.
-h) Restricts data access to Mongo and thus prevents ad hoc queries on unindexed / unsharded collections
+* Serializes a number of data types eg. Pandas DataFrames, Numpy arrays, Python objects via pickling etc. so you don't have to handle different datatypes manually. 
+* Uses LZ4 compression by default on the client side to get big savings on network / disk.  
+* Allows you to version different stages of an object and snapshot the state (In some ways similar to git), and allows you to freely experiment and then just revert back the snapshot. 
+* Does the Chunking (breaking a Dataframe to smaller part* for you. 
+* Adds a concept of Users and per User Libraries which can build on Mongo's auth. 
+* Has different types of Stores, each with it's own benefits. Eg. Versionstore allows you to version and snapshot stuff, TickStore is for storage and highly efficient retrieval of streaming data, ChunkStore allows you to chunk and efficiently retrieve ranges of chunks. If nothing suits you, feel free to use vanilla Mongo commands with BSONStore.
+* Restricts data access to Mongo and thus prevents ad hoc queries on unindexed / unsharded collections
 
 Head over to the FAQs and James's presentation given below for more details. 
 
