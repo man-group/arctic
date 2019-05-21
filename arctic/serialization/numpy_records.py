@@ -301,8 +301,8 @@ class DataFrameSerializer(PandasSerializer):
                 if type(df.index[0]) == bytes:
                     df.index = df.index.astype('unicode')
 
-            if type(df.columns[0]) == bytes:
-                df.columns = df.index.astype('unicode')
+            if not df.columns.empty and type(df.columns[0]) == bytes:
+                df.columns = df.columns.astype('unicode')
 
         return df
 
