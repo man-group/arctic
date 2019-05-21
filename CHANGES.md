@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.79.2
+### 1.79.2 (2019-05-21)
   * Feature: Allow list_library caching to be tunable via a settings collection.
   * Bugfix: #777: Handle empty columns in dataframes
 
