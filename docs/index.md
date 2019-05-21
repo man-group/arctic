@@ -2,6 +2,22 @@
 
 Arctic is a timeseries / dataframe database that sits atop MongoDB. Arctic supports serialization of a number of datatypes for storage in the mongo document model.
 
+## Why use Arctic? 
+
+Some of the reasons to use Arctic are:-
+
+* Serializes a number of data types eg. Pandas DataFrames, Numpy arrays, Python objects via pickling etc. so you don't have to handle different datatypes manually. 
+* Uses LZ4 compression by default on the client side to get big savings on network / disk.  
+* Allows you to version different stages of an object and snapshot the state (In some ways similar to git), and allows you to freely experiment and then just revert back the snapshot. [VersionStore only] 
+* Does the chunking (breaking a Dataframe to smaller part* for you. 
+* Adds a concept of Users and per User Libraries which can build on Mongo's auth. 
+* Has different types of Stores, each with it's own benefits. Eg. Versionstore allows you to version and snapshot stuff, TickStore is for storage and highly efficient retrieval of streaming data, ChunkStore allows you to chunk and efficiently retrieve ranges of chunks. If nothing suits you, feel free to use vanilla Mongo commands with BSONStore.
+* Restricts data access to Mongo and thus prevents ad hoc queries on unindexed / unsharded collections
+
+Head over to the FAQs and James's presentation given below for more details. 
+
+## Basic Operations
+
 Arctic provides a [wrapper](../arctic/arctic.py) for handling connections to Mongo. The `Arctic` class is what actually connects to Arctic.
 
 ```
@@ -58,11 +74,7 @@ Other basic methods:
 
 * `library.list_symbols()`
     - Does what you might expect - lists all the symbols in the given library
-      ```
-      >>> lib.list_symbols()
-
-      ['US_EQUITIES', 'EUR_EQUITIES', ...]
-      ```
+```['US_EQUITIES', 'EUR_EQUITIES', ...]```
 * `arctic.get_quota(library_name)`, `arctic.set_quota(library_name, quota_in_bytes)`
    - Arctic internally sets quotas on libraries so they do not consume too much space.    You can check and set quotas with these two methods. Note these operate on the       `Arctic` object, not on libraries
 
