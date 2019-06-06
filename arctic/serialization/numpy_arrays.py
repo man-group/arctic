@@ -120,7 +120,7 @@ class FrameConverter(object):
             except Exception as e:
                 typ = infer_dtype(df[c], skipna=False)
                 msg = "Column '{}' type is {}".format(str(c), typ)
-                logging.info(msg)
+                logging.warning(msg)
                 raise e
 
         arrays = compress_array(arrays)
