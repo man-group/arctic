@@ -26,7 +26,7 @@ class Cache:
             if cache_col not in self._cachedb.list_collection_names():
                 self._cachedb.create_collection(cache_col).create_index("date", expireAfterSeconds=cache_expiry)
         except OperationFailure as op:
-            logging.info("This is fine if you are not admin. The collection should already be created for you: %s", op)
+            logging.debug("This is fine if you are not admin. The collection should already be created for you: %s", op)
 
         self._cachecol = self._cachedb[cache_col]
 
