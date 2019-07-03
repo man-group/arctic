@@ -15,6 +15,13 @@ def test_save_read_bson(library):
     assert blob == saved_blob
 
 
+def test_save_read_bson_with_dots(library):
+    """ Check we can write dicts with keys like 'a.b' """
+    blob = {'foo.bar': {'baz': 1}}
+    library.write('BLOB', blob)
+    saved_blob = library.read('BLOB').data
+    assert blob == saved_blob
+
 '''
 Run test at your own discretion. Takes > 60 secs
 def test_save_read_MASSIVE(library):

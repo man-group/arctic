@@ -157,7 +157,7 @@ def test_write_check_quota():
     vs = create_autospec(VersionStore, instance=True,
                      _collection=Mock(),
                      _version_nums=Mock(find_one_and_update=Mock(return_value={'version': 1})),
-                     _versions=Mock(insert_one=lambda x: None),
+                     _versions=Mock(insert=lambda x, *args, **kwargs: None),
                      _arctic_lib=create_autospec(ArcticLibraryBinding,
                                                  arctic=create_autospec(Arctic, mongo_host='some_host')))
     vs._collection.database.connection.nodes = []
@@ -364,7 +364,7 @@ def test_write_metadata_with_previous_data():
         mock_objId.return_value = MOCK_OBJID
         mock_retry.side_effect = lambda f: f
         assert expected_ret_val == VersionStore.write_metadata(vs, symbol=TEST_SYMBOL, metadata=META_TO_WRITE)
-        assert vs._versions.insert_one.call_args_list == [call(expected_new_version)]
+        assert vs._versions.insert.call_args_list == [call(expected_new_version, check_keys=False)]
         assert vs._versions.delete_one.called is False
         assert vs.write.called is False
 
@@ -389,27 +389,27 @@ def test_write_empty_metadata():
         mock_objId.return_value = MOCK_OBJID
         mock_retry.side_effect = lambda f: f
         assert expected_ret_val == VersionStore.write_metadata(vs, symbol=TEST_SYMBOL, metadata=None)
-        assert vs._versions.insert_one.call_args_list == [call(expected_new_version)]
+        assert vs._versions.insert.call_args_list == [call(expected_new_version, check_keys=False)]
         assert vs._versions.delete_one.called is False
         assert vs.write.called is False
 
 
 def test_write_metadata_insert_version_dupkeyerror():
     vs = _create_mock_versionstore()
-    vs._versions.insert_one.__name__ = 'insert_one'
-    vs._versions.insert_one.side_effect = [DuplicateKeyError('dup key error'), None]
+    vs._versions.insert.__name__ = 'insert'
+    vs._versions.insert.side_effect = [DuplicateKeyError('dup key error'), None]
     VersionStore.write_metadata(vs, symbol=TEST_SYMBOL, metadata=META_TO_WRITE)
     assert vs._version_nums.find_one_and_update.call_count == 2
-    assert vs._versions.insert_one.call_count == 2
+    assert vs._versions.insert.call_count == 2
 
 
 def test_write_metadata_insert_version_opfailure():
     vs = _create_mock_versionstore()
-    vs._versions.insert_one.__name__ = 'insert_one'
-    vs._versions.insert_one.side_effect = [OperationFailure('op failure'), None]
+    vs._versions.insert.__name__ = 'insert'
+    vs._versions.insert.side_effect = [OperationFailure('op failure'), None]
     VersionStore.write_metadata(vs, symbol=TEST_SYMBOL, metadata=META_TO_WRITE)
     assert vs._version_nums.find_one_and_update.call_count == 1
-    assert vs._versions.insert_one.call_count == 2
+    assert vs._versions.insert.call_count == 2
 
 
 def test_restore_version():
@@ -449,7 +449,7 @@ def test_restore_version_data_missing_symbol():
             VersionStore.restore_version(vs, symbol=TEST_SYMBOL,
                                          as_of=TPL_VERSION['version'], prune_previous_version=True)
     assert vs._read_metadata.call_args_list == [call(TEST_SYMBOL, as_of=TPL_VERSION['version'])]
-    assert vs._versions.insert_one.called is False
+    assert vs._versions.insert.called is False
 
 
 def test_restore_last_version():
@@ -480,7 +480,7 @@ def test_write_error_clean_retry():
     vs = create_autospec(VersionStore, instance=True,
                          _collection=Mock(),
                          _version_nums=Mock(find_one_and_update=Mock(return_value={'version': 1})),
-                         _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")),
+                         _versions=Mock(insert=Mock(__name__="insert"), find_one=Mock(__name__="find_one")),
                          _arctic_lib=create_autospec(ArcticLibraryBinding,
                                                      arctic=create_autospec(Arctic, mongo_host='some_host')))
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
@@ -490,7 +490,7 @@ def test_write_error_clean_retry():
     assert vs._version_nums.find_one_and_update.call_count == 2
     assert vs._versions.find_one.call_count == 2
     assert write_handler.write.call_count == 2
-    assert vs._versions.insert_one.call_count == 1
+    assert vs._versions.insert.call_count == 1
 
 
 def test_write_insert_version_duplicatekey():
@@ -498,18 +498,18 @@ def test_write_insert_version_duplicatekey():
     vs = create_autospec(VersionStore, instance=True,
                          _collection=Mock(),
                          _version_nums=Mock(find_one_and_update=Mock(return_value={'version': 1})),
-                         _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")),
+                         _versions=Mock(insert=Mock(__name__="insert"), find_one=Mock(__name__="find_one")),
                          _arctic_lib=create_autospec(ArcticLibraryBinding,
                                                      arctic=create_autospec(Arctic, mongo_host='some_host')))
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
-    vs._versions.insert_one.side_effect = [DuplicateKeyError("dup key error"), None]
+    vs._versions.insert.side_effect = [DuplicateKeyError("dup key error"), None]
     vs._collection.database.connection.nodes = []
     vs._write_handler.return_value = write_handler
     VersionStore.write(vs, 'sym', sentinel.data, prune_previous_version=False)
     assert vs._version_nums.find_one_and_update.call_count == 2
     assert vs._versions.find_one.call_count == 2
     assert write_handler.write.call_count == 2
-    assert vs._versions.insert_one.call_count == 2
+    assert vs._versions.insert.call_count == 2
 
 
 def test_write_insert_version_operror():
@@ -517,18 +517,18 @@ def test_write_insert_version_operror():
     vs = create_autospec(VersionStore, instance=True,
                          _collection=Mock(),
                          _version_nums=Mock(find_one_and_update=Mock(return_value={'version': 1})),
-                         _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one")),
+                         _versions=Mock(insert=Mock(__name__="insert"), find_one=Mock(__name__="find_one")),
                          _arctic_lib=create_autospec(ArcticLibraryBinding,
                                                      arctic=create_autospec(Arctic, mongo_host='some_host')))
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
-    vs._versions.insert_one.side_effect = [OperationFailure("mongo op error"), None]
+    vs._versions.insert.side_effect = [OperationFailure("mongo op error"), None]
     vs._collection.database.connection.nodes = []
     vs._write_handler.return_value = write_handler
     VersionStore.write(vs, 'sym', sentinel.data, prune_previous_version=False)
     assert vs._version_nums.find_one_and_update.call_count == 1
     assert vs._versions.find_one.call_count == 1
     assert write_handler.write.call_count == 1
-    assert vs._versions.insert_one.call_count == 2
+    assert vs._versions.insert.call_count == 2
 
 
 def test_append_error_clean_retry():
@@ -539,7 +539,7 @@ def test_append_error_clean_retry():
     vs = create_autospec(VersionStore, instance=True,
                          _collection=Mock(),
                          _version_nums=Mock(find_one_and_update=Mock(return_value={'version': previous_version['version']+1})),
-                         _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one", return_value=previous_version)),
+                         _versions=Mock(insert=Mock(__name__="insert"), find_one=Mock(__name__="find_one", return_value=previous_version)),
                          _arctic_lib=create_autospec(ArcticLibraryBinding,
                                                      arctic=create_autospec(Arctic, mongo_host='some_host')))
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
@@ -549,7 +549,7 @@ def test_append_error_clean_retry():
     assert vs._version_nums.find_one_and_update.call_count == 2
     assert vs._versions.find_one.call_count == 2
     assert read_handler.append.call_count == 2
-    assert vs._versions.insert_one.call_count == 1
+    assert vs._versions.insert.call_count == 1
 
 
 def test_append_insert_version_duplicatekey():
@@ -559,18 +559,18 @@ def test_append_insert_version_duplicatekey():
     vs = create_autospec(VersionStore, instance=True,
                          _collection=Mock(),
                          _version_nums=Mock(find_one_and_update=Mock(return_value={'version': previous_version['version']+1})),
-                         _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one", return_value=previous_version)),
+                         _versions=Mock(insert=Mock(__name__="insert"), find_one=Mock(__name__="find_one", return_value=previous_version)),
                          _arctic_lib=create_autospec(ArcticLibraryBinding,
                                                      arctic=create_autospec(Arctic, mongo_host='some_host')))
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
-    vs._versions.insert_one.side_effect = [DuplicateKeyError("dup key error"), None]
+    vs._versions.insert.side_effect = [DuplicateKeyError("dup key error"), None]
     vs._collection.database.connection.nodes = []
     vs._read_handler.return_value = read_handler
     VersionStore.append(vs, 'sym', [1, 2, 3], prune_previous_version=False, upsert=False)
     assert vs._version_nums.find_one_and_update.call_count == 2
     assert vs._versions.find_one.call_count == 2
     assert read_handler.append.call_count == 2
-    assert vs._versions.insert_one.call_count == 2
+    assert vs._versions.insert.call_count == 2
 
 def test_append_insert_version_operror():
     read_handler = Mock(append=Mock(__name__=""))
@@ -579,15 +579,15 @@ def test_append_insert_version_operror():
     vs = create_autospec(VersionStore, instance=True,
                          _collection=Mock(),
                          _version_nums=Mock(find_one_and_update=Mock(return_value={'version': previous_version['version']+1})),
-                         _versions=Mock(insert_one=Mock(__name__="insert_one"), find_one=Mock(__name__="find_one", return_value=previous_version)),
+                         _versions=Mock(insert=Mock(__name__="insert"), find_one=Mock(__name__="find_one", return_value=previous_version)),
                          _arctic_lib=create_autospec(ArcticLibraryBinding,
                                                      arctic=create_autospec(Arctic, mongo_host='some_host')))
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
-    vs._versions.insert_one.side_effect = [OperationFailure("mongo op error"), None]
+    vs._versions.insert.side_effect = [OperationFailure("mongo op error"), None]
     vs._collection.database.connection.nodes = []
     vs._read_handler.return_value = read_handler
     VersionStore.append(vs, 'sym', [1, 2, 3], prune_previous_version=False, upsert=False)
     assert vs._version_nums.find_one_and_update.call_count == 1
     assert vs._versions.find_one.call_count == 1
     assert read_handler.append.call_count == 1
-    assert vs._versions.insert_one.call_count == 2
+    assert vs._versions.insert.call_count == 2

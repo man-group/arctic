@@ -526,7 +526,7 @@ class VersionStore(object):
             # upon intermittent Mongo errors
             # If, however, we get a DuplicateKeyError, suppress it and raise OperationFailure, so that the method-scoped
             # mongo_retry re-tries and creates a new version, to overcome the issue.
-            mongo_retry(self._versions.insert_one)(version)
+            mongo_retry(self._versions.insert)(version, check_keys=False)
         except DuplicateKeyError as err:
             logger.exception(err)
             raise OperationFailure("A version with the same _id exists, force a clean retry")
