@@ -664,19 +664,19 @@ def test_read_chunk_range(chunkstore_lib):
 def test_read_data_doesnt_exist(chunkstore_lib):
     with pytest.raises(NoDataFoundException) as e:
         chunkstore_lib.read('some_data')
-    assert('No data found' in str(e))
+    assert('No data found' in str(e.value))
 
 
 def test_invalid_type(chunkstore_lib):
     with pytest.raises(Exception) as e:
         chunkstore_lib.write('some_data', str("Cannot write a string"), 'D')
-    assert('Can only chunk DataFrames' in str(e))
+    assert('Can only chunk DataFrames' in str(e.value))
 
 
 def test_append_no_data(chunkstore_lib):
     with pytest.raises(NoDataFoundException) as e:
         chunkstore_lib.append('some_data', DataFrame())
-    assert('Symbol does not exist.' in str(e))
+    assert('Symbol does not exist.' in str(e.value))
 
 
 def test_append_upsert(chunkstore_lib):
@@ -849,11 +849,11 @@ def test_rename(chunkstore_lib):
 
     with pytest.raises(Exception) as e:
         chunkstore_lib.rename('new_name', 'new_name')
-    assert('already exists' in str(e))
+    assert('already exists' in str(e.value))
 
     with pytest.raises(NoDataFoundException) as e:
         chunkstore_lib.rename('doesnt_exist', 'temp')
-    assert('No data found for doesnt_exist' in str(e))
+    assert('No data found for doesnt_exist' in str(e.value))
 
     assert('test' not in chunkstore_lib.list_symbols())
 
@@ -1012,7 +1012,7 @@ def test_unnamed_colums(chunkstore_lib):
                    )
     with pytest.raises(Exception) as e:
         chunkstore_lib.write('test_df', df, chunk_size='D')
-    assert('must be named' in str(e))
+    assert('must be named' in str(e.value))
 
     df = DataFrame(data={None: [1, 2, 3]},
                    index=MultiIndex.from_tuples([(dt(2016, 1, 1), 1),
@@ -1022,7 +1022,7 @@ def test_unnamed_colums(chunkstore_lib):
                    )
     with pytest.raises(Exception) as e:
         chunkstore_lib.write('test_df', df, chunk_size='D')
-    assert('must be named' in str(e))
+    assert('must be named' in str(e.value))
 
 
 def test_quarterly_data(chunkstore_lib):

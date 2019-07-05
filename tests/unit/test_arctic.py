@@ -182,7 +182,7 @@ def test_register_library_type():
 
     with pytest.raises(ArcticException) as e:
         register_library_type("new_dummy_type", DummyType)
-    assert "ArcticException: Library new_dummy_type already registered" in str(e)
+    assert "Library new_dummy_type already registered" in str(e.value)
 
 
 def test_set_quota():
@@ -301,7 +301,7 @@ def test_check_quota_exceeded():
                                                                              }))
     with pytest.raises(QuotaExceededException) as e:
         ArcticLibraryBinding.check_quota(self)
-    assert "Quota Exceeded: arctic_db.lib 1.000 / 1 GB used" in str(e)
+    assert "Quota Exceeded: arctic_db.lib 1.000 / 1 GB used" in str(e.value)
 
 
 def test_initialize_library():
@@ -336,7 +336,7 @@ def test_initialize_library_too_many_ns():
     assert self._conn.__getitem__.call_args_list == [call(sentinel.db_name),
                                                      call(sentinel.db_name)]
     assert lib_type.initialize_library.call_count == 0
-    assert 'Too many namespaces 5001, not creating: sentinel.lib_name' in str(e)
+    assert 'Too many namespaces 5001, not creating: sentinel.lib_name' in str(e.value)
 
 
 def test_initialize_library_with_list_coll_names():
@@ -391,7 +391,7 @@ def test_get_library_not_initialized():
          patch('arctic.arctic.ArcticLibraryBinding', autospec=True) as ML:
         ML.return_value.get_library_type.return_value = None
         Arctic.get_library(self, sentinel.lib_name)
-    assert "Library %s was not correctly initialized in %s." % (sentinel.lib_name, self) in str(e)
+    assert "Library %s was not correctly initialized in %s." % (sentinel.lib_name, self) in str(e.value)
 
 
 def test_get_library_auth_issue():
@@ -401,7 +401,7 @@ def test_get_library_auth_issue():
          patch('arctic.arctic.ArcticLibraryBinding', autospec=True) as ML:
         ML.return_value.get_library_type.side_effect = OperationFailure('database error: not authorized for query on arctic_marketdata.index.ARCTIC')
         Arctic.get_library(self, sentinel.lib_name)
-    assert "Library %s was not correctly initialized in %s." % (sentinel.lib_name, self) in str(e)
+    assert "Library %s was not correctly initialized in %s." % (sentinel.lib_name, self) in str(e.value)
 
 
 def test_get_library_not_registered():
@@ -413,7 +413,7 @@ def test_get_library_not_registered():
         Arctic.get_library(self, sentinel.lib_name)
     assert ("Couldn't load LibraryType '%s' for '%s' (has the class been registered?)" %
             (sentinel.lib_type, sentinel.lib_name)
-            )in str(e)
+            )in str(e.value)
 
 
 def test_mongo_host_get_set():

@@ -100,7 +100,7 @@ def test_all_other_exceptions_logged():
         foo = mongo_retry(foo)
         with pytest.raises(Exception) as e:
             foo()
-    assert "Unexpected Error" in str(e)
+    assert "Unexpected Error" in str(e.value)
     assert le.call_count == 1
     assert le.call_args[0][0] == "foo"
 
@@ -112,7 +112,7 @@ def test_other_exceptions_not_logged_outside_of_arctic():
             raise Exception("Unexpected Error")
         with pytest.raises(Exception) as e:
             foo()
-    assert "Unexpected Error" in str(e)
+    assert "Unexpected Error" in str(e.value)
     assert le.call_count == 0
 
 
@@ -125,7 +125,7 @@ def test_auth_failure_no_retry():
             raise error
         with pytest.raises(OperationFailure) as e:
             foo()
-    assert 'OperationFailure: unauthorized for db:arctic_jblackburn' in str(e)
+    assert 'OperationFailure: unauthorized for db:arctic_jblackburn' in str(e.value)
     assert le.call_count == 1
 
 
@@ -137,7 +137,7 @@ def test_duplicate_key_failure_no_retry():
             raise error
         with pytest.raises(OperationFailure) as e:
             foo()
-    assert 'duplicate key' in str(e)
+    assert 'duplicate key' in str(e.value)
     assert le.call_count == 1
 
 
@@ -149,7 +149,7 @@ def test_ServerSelectionTimeoutError_no_retry():
             raise error
         with pytest.raises(ServerSelectionTimeoutError) as e:
             foo()
-    assert 'some error' in str(e)
+    assert 'some error' in str(e.value)
     assert le.call_count == 1
 
 

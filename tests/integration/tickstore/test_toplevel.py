@@ -45,7 +45,7 @@ def test_should_raise_exceptions_if_no_libraries_are_found_in_the_date_range_whe
                                            'library_name': 'FEED_2010.LEVEL1'})
     with pytest.raises(NoDataFoundException) as e:
         toplevel_tickstore.read('blah', DateRange(start=dt(2012, 1, 1), end=dt(2012, 3, 1)))
-    assert "No underlying libraries exist for the given date range" in str(e)
+    assert "No underlying libraries exist for the given date range" in str(e.value)
 
 
 def test_should_return_data_when_date_range_falls_in_a_single_underlying_library(toplevel_tickstore, arctic):
@@ -118,7 +118,7 @@ def test_should_raise_exception_if_library_does_not_exist(toplevel_tickstore):
     with pytest.raises(LibraryNotFoundException) as e:
         toplevel_tickstore.add(DateRange(start=dt(2010, 1, 1), end=dt(2010, 12, 31, 23, 59, 59, 999000)), 'FEED_2010.LEVEL1')
         assert toplevel_tickstore._collection.find_one({'library_name': 'FEED_2010.LEVEL1'})
-    assert "Library FEED_2010.LEVEL1 was not correctly initialized" in str(e)
+    assert "Library FEED_2010.LEVEL1 was not correctly initialized" in str(e.value)
 
 
 def test_should_raise_exception_if_date_range_for_library_overlaps_with_existing_libraries(toplevel_tickstore, arctic):
@@ -127,7 +127,7 @@ def test_should_raise_exception_if_date_range_for_library_overlaps_with_existing
     with pytest.raises(OverlappingDataException) as e:
         toplevel_tickstore.add(DateRange(start=dt(2010, 6, 1), end=dt(2010, 12, 31, 23, 59, 59, 999000)), 'FEED_2010a.LEVEL1')
         assert toplevel_tickstore._collection.find_one({'library_name': 'FEED_2010.LEVEL1'})
-    assert "There are libraries that overlap with the date range:" in str(e)
+    assert "There are libraries that overlap with the date range:" in str(e.value)
 
 
 def test_should_successfully_do_a_roundtrip_write_and_read_spanning_multiple_underlying_libraries(toplevel_tickstore, arctic):
