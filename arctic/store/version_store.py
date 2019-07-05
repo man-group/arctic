@@ -606,8 +606,12 @@ class VersionStore(object):
 
         if prune_previous_version and previous_version:
             # Does not allow prune to remove the base of the new version
-            self._prune_previous_versions(symbol, keep_version=version.get('base_version_id'),
-                                          new_version_shas=version.get(FW_POINTERS_REFS_KEY))
+            self._prune_previous_versions(
+                symbol,
+                keep_version=version.get('base_version_id'),
+                new_version_shas=version.get(FW_POINTERS_REFS_KEY),
+                keep_mins=kwargs.get('keep_mins', 120)
+            )
 
         # Insert the new version into the version DB
         version['version'] = next_ver
@@ -658,7 +662,11 @@ class VersionStore(object):
         handler.write(self._arctic_lib, version, symbol, data, previous_version, **kwargs)
 
         if prune_previous_version and previous_version:
-            self._prune_previous_versions(symbol, new_version_shas=version.get(FW_POINTERS_REFS_KEY))
+            self._prune_previous_versions(
+                symbol,
+                keep_mins=kwargs.get('keep_mins', 120),
+                new_version_shas=version.get(FW_POINTERS_REFS_KEY)
+            )
 
         # Insert the new version into the version DB
         self._insert_version(version)
