@@ -24,7 +24,7 @@ def test_raise_exception_if_daterange_is_not_provided():
     store = TopLevelTickStore(Mock())
     with pytest.raises(Exception) as e:
         store._get_library_metadata(None)
-    assert "A date range must be provided" in str(e)
+    assert "A date range must be provided" in str(e.value)
 
 
 def test_raise_exception_if_date_range_does_not_contain_start_date():
@@ -32,7 +32,7 @@ def test_raise_exception_if_date_range_does_not_contain_start_date():
     dr = DateRange(start=None, end=dt(2011, 1, 1))
     with pytest.raises(Exception) as e:
         store._get_library_metadata(dr)
-    assert "The date range {0} must contain a start and end date".format(dr) in str(e)
+    assert "The date range {0} must contain a start and end date".format(dr) in str(e.value)
 
 
 def test_raise_exception_if_date_range_does_not_contain_end_date():
@@ -40,7 +40,7 @@ def test_raise_exception_if_date_range_does_not_contain_end_date():
     dr = DateRange(start=dt(2011, 1, 1), end=None)
     with pytest.raises(Exception) as e:
         store._get_library_metadata(dr)
-    assert "The date range {0} must contain a start and end date".format(dr) in str(e)
+    assert "The date range {0} must contain a start and end date".format(dr) in str(e.value)
 
 
 def test_raise_exception_if_date_range_does_not_contain_start_and_end_date():
@@ -48,7 +48,7 @@ def test_raise_exception_if_date_range_does_not_contain_start_and_end_date():
     dr = DateRange(start=None, end=None)
     with pytest.raises(Exception) as e:
         store._get_library_metadata(dr)
-    assert "The date range {0} must contain a start and end date".format(dr) in str(e)
+    assert "The date range {0} must contain a start and end date".format(dr) in str(e.value)
 
 
 def test_raise_exception_and_log_an_error_if_an_invalid_library_name_is_added():
@@ -66,7 +66,7 @@ def test_raise_exception_if_date_range_overlaps():
     self._get_library_metadata.return_value = [TickStoreLibrary('lib1', None), ]
     with pytest.raises(OverlappingDataException) as e:
         TopLevelTickStore.add(self, DateRange(start=dt(2010, 1, 1), end=dt(2011, 1, 1, 23, 59, 59, 999000)), "blah")
-    assert "There are libraries that overlap with the date range:" in str(e)
+    assert "There are libraries that overlap with the date range:" in str(e.value)
 
 
 @pytest.mark.parametrize(('start', 'end', 'expected_start', 'expected_end'),
@@ -103,7 +103,7 @@ def test_raise_error_add_library_is_called_with_a_date_range_not_on_day_boundari
         self = create_autospec(TopLevelTickStore, _arctic_lib=MagicMock(), _collection=MagicMock())
         self._get_library_metadata.return_value = []
         TopLevelTickStore.add(self, DateRange(start=start, end=end), "blah")
-    assert "Date range should fall on UTC day boundaries" in str(e)
+    assert "Date range should fall on UTC day boundaries" in str(e.value)
 
 
 @pytest.mark.parametrize(('start', 'end', 'expected_start_index', 'expected_end_index'),
@@ -179,4 +179,4 @@ def test_slice_raises():
     m = TopLevelTickStore(Mock())
     with pytest.raises(UnhandledDtypeException) as e:
         m._slice("abc", 1, 2)
-    assert("Can't persist type" in str(e))
+    assert("Can't persist type" in str(e.value))

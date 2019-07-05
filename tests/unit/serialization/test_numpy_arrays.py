@@ -91,7 +91,7 @@ def test_multi_column_fail():
 
     with pytest.raises(Exception) as e:
         n.deserialize(a, columns=['A', 'B'])
-    assert('Duplicate' in str(e))
+    assert('Duplicate' in str(e.value))
 
 
 def test_dataframe_writable_after_objify():

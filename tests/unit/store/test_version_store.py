@@ -245,7 +245,7 @@ def test_read_reports_random_errors():
     with pytest.raises(Exception) as e:
         with patch('arctic.store.version_store.log_exception') as le:
             VersionStore.read(self, sentinel.symbol, sentinel.as_of, sentinel.from_version)
-    assert 'bad' in str(e)
+    assert 'bad' in str(e.value)
     assert le.call_count == 1
 
 

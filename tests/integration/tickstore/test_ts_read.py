@@ -701,4 +701,4 @@ def test_objects_fail(tickstore_lib):
 
     with pytest.raises(Exception) as e:
         tickstore_lib.write('test', df)
-    assert('Casting object column to string failed' in str(e))
+    assert('Casting object column to string failed' in str(e.value))

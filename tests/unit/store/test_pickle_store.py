@@ -171,4 +171,4 @@ def test_pickle_store_future_version():
     ps = PickleStore()
     with pytest.raises(UnsupportedPickleStoreVersion) as e:
         ps.read(arctic_lib, version, sentinel.symbol)
-    assert('unsupported version of pickle store' in str(e))
+    assert('unsupported version of pickle store' in str(e.value))

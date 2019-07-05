@@ -191,7 +191,7 @@ def test_lib_rename(arctic):
     assert(l.read('test_data').data == 'abc')
     with pytest.raises(LibraryNotFoundException) as e:
         l = arctic['test']
-    assert('Library test' in str(e))
+    assert('Library test' in str(e.value))
     assert('test' not in arctic.list_libraries())
 
 
@@ -202,7 +202,7 @@ def test_lib_rename_namespace(arctic):
 
     with pytest.raises(ValueError) as e:
         arctic.rename_library('namespace.test', 'new_namespace.test')
-    assert('Collection can only be renamed in the same database' in str(e))
+    assert('Collection can only be renamed in the same database' in str(e.value))
 
     arctic.rename_library('namespace.test', 'namespace.newlib')
     l = arctic['namespace.newlib']
@@ -210,7 +210,7 @@ def test_lib_rename_namespace(arctic):
 
     with pytest.raises(LibraryNotFoundException) as e:
         l = arctic['namespace.test']
-    assert('Library namespace.test' in str(e))
+    assert('Library namespace.test' in str(e.value))
     assert('namespace.test' not in arctic.list_libraries())
 
 
