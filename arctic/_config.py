@@ -103,3 +103,10 @@ FORCE_BYTES_TO_UNICODE = bool(os.environ.get('FORCE_BYTES_TO_UNICODE'))
 # Flag used for indicating caching levels. For now just for list_libraries.
 # -------------------------------
 ENABLE_CACHE = not bool(os.environ.get('ARCTIC_DISABLE_CACHE'))
+
+# -------------------------------
+# Currently we try to bson encode if the data is less than a given size and store it in
+# the version collection, but pickling might be preferable if we have characters that don't
+# play well with the bson encoder or if you always want your data in the data collection.
+# -------------------------------
+SKIP_BSON_ENCODE_PICKLE_STORE = bool(os.environ.get('SKIP_BSON_ENCODE_PICKLE_STORE'))
