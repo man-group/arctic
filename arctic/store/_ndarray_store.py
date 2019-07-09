@@ -8,15 +8,10 @@ from bson.binary import Binary
 from pymongo.errors import OperationFailure, DuplicateKeyError, BulkWriteError
 from six.moves import xrange
 
-from arctic._util import mongo_count
-from ..decorators import mongo_retry
-from ..exceptions import UnhandledDtypeException, DataIntegrityException
 from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
 from .._compression import compress_array, decompress
 # CHECK_CORRUPTION_ON_APPEND used in global scope, do not remove.
-from .._config import CHECK_CORRUPTION_ON_APPEND, FW_POINTERS_CONFIG_KEY, FW_POINTERS_REFS_KEY, \
-    ARCTIC_FORWARD_POINTERS_CFG, ARCTIC_FORWARD_POINTERS_RECONCILE, FwPointersCfg
-from .._util import mongo_count, get_fwptr_config
+from .._util import mongo_count
 from ..decorators import mongo_retry
 from ..exceptions import UnhandledDtypeException, DataIntegrityException
 

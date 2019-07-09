@@ -17,7 +17,7 @@ from pymongo.server_type import SERVER_TYPE
 
 import arctic
 from arctic import VERSION_STORE, PandasDataFrameStore, PandasSeriesStore
-from arctic._util import mongo_count, get_fwptr_config
+from arctic._util import mongo_count
 from arctic.date import DateRange
 from arctic.date._mktz import mktz
 from arctic.exceptions import NoDataFoundException, DuplicateSnapshotException, ArcticException

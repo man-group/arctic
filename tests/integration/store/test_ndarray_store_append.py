@@ -1,6 +1,4 @@
 import numpy as np
-from numpy.testing import assert_equal
-import numpy as np
 import pytest
 from numpy.testing import assert_equal
 
