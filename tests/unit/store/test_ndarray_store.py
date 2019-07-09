@@ -106,12 +106,13 @@ def test_concat_and_rewrite_checks_written():
     symbol = sentinel.symbol
     item = []
 
-    collection.find.return_value = [{'_id': sentinel.id, 'segment': 47, 'compressed': True, 'sha': 'abc0'},
-                                    {'_id': sentinel.id_2, 'segment': 48, 'compressed': True, 'sha': 'abc1'},
+    collection.find.return_value = [{'_id': sentinel.id,
+                                     'segment': 47, 'compressed': True},
+                                    {'_id': sentinel.id_2, 'segment': 48, 'compressed': True},
                                     # 3 appended items
-                                    {'_id': sentinel.id_3, 'segment': 49, 'compressed': False, 'sha': 'abc2'},
-                                    {'_id': sentinel.id_4, 'segment': 50, 'compressed': False, 'sha': 'abc3'},
-                                    {'_id': sentinel.id_5, 'segment': 51, 'compressed': False, 'sha': 'abc4'}]
+                                    {'_id': sentinel.id_3, 'segment': 49, 'compressed': False},
+                                    {'_id': sentinel.id_4, 'segment': 50, 'compressed': False},
+                                    {'_id': sentinel.id_5, 'segment': 51, 'compressed': False}]
     collection.update_many.return_value = create_autospec(UpdateResult, matched_count=1)
     NdarrayStore._concat_and_rewrite(self, collection, version, symbol, item, previous_version)
     assert self.check_written.call_count == 1

@@ -10,11 +10,11 @@ from pymongo import ReadPreference
 from pymongo.collection import Collection
 from pymongo.errors import OperationFailure, DuplicateKeyError
 
-from arctic.arctic import ArcticLibraryBinding, Arctic
 from arctic.date import mktz
-from arctic.exceptions import DuplicateSnapshotException, NoDataFoundException
 from arctic.store import version_store
 from arctic.store.version_store import VersionStore, VersionedItem
+from arctic.arctic import ArcticLibraryBinding, Arctic
+from arctic.exceptions import ConcurrentModificationException, DuplicateSnapshotException, NoDataFoundException
 
 
 def test_delete_version_version_not_found():
@@ -207,8 +207,7 @@ def test_prune_previous_versions_0_timeout():
                                                         '_id': {'$lt': bson.ObjectId('524a10810000000000000000')}},
                                                        sort=[('version', -1)],
                                                        skip=1,
-                                                       projection={'FW_POINTERS_CONFIG': 1, '_id': 1, 'SEGMENT_SHAS': 1}
-                                                       )]
+                                                       projection=['_id'])]
 
 
 def test_read_handles_operation_failure():

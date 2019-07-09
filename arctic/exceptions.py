@@ -40,10 +40,8 @@ class DataIntegrityException(ArcticException):
     """
     pass
 
-
 class ArcticSerializationException(ArcticException):
     pass
-
 
 class ConcurrentModificationException(DataIntegrityException):
     pass

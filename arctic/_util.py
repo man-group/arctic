@@ -15,10 +15,6 @@ NP_OBJECT_DTYPE = np.dtype('O')
 _use_new_count_api = None
 
 
-def get_fwptr_config(version):
-    return FwPointersCfg[version.get(FW_POINTERS_CONFIG_KEY, FwPointersCfg.DISABLED.name)]
-
-
 def _detect_new_count_api():
     try:
         mongo_v = [int(v) for v in pymongo.version.split('.')]
