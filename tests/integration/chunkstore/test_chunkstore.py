@@ -833,10 +833,13 @@ def test_read_column_subset(chunkstore_lib):
                                                 names=['date', 'id'])
                    )
     cols = ['prev_close', 'volume']
-    chunkstore_lib.write('test', df, chunk_size='D')
+    chunkstore_lib.write('test', df, chunk_size='Y')
     r = chunkstore_lib.read('test', columns=cols)
     assert cols == ['prev_close', 'volume']
     assert_frame_equal(r, df[cols])
+
+    assert_frame_equal(df[cols], next(chunkstore_lib.iterator('test', columns=cols)))
+    assert_frame_equal(df[cols], next(chunkstore_lib.reverse_iterator('test', columns=cols)))
 
 
 def test_rename(chunkstore_lib):

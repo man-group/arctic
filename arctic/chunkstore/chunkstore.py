@@ -661,7 +661,7 @@ class ChunkStore(object):
                                        sort=[(START, pymongo.ASCENDING if not reverse else pymongo.DESCENDING)]):
             yield (c.chunk_to_str(x[START]), c.chunk_to_str(x[END]))
 
-    def iterator(self, symbol, chunk_range=None):
+    def iterator(self, symbol, chunk_range=None, **kwargs):
         """
         Returns a generator that accesses each chunk in ascending order
 
@@ -683,9 +683,9 @@ class ChunkStore(object):
         c = CHUNKER_MAP[sym[CHUNKER]]
 
         for chunk in list(self.get_chunk_ranges(symbol, chunk_range=chunk_range)):
-            yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]))
+            yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]), **kwargs)
 
-    def reverse_iterator(self, symbol, chunk_range=None):
+    def reverse_iterator(self, symbol, chunk_range=None, **kwargs):
         """
         Returns a generator that accesses each chunk in descending order
 
@@ -707,7 +707,7 @@ class ChunkStore(object):
         c = CHUNKER_MAP[sym[CHUNKER]]
 
         for chunk in list(self.get_chunk_ranges(symbol, chunk_range=chunk_range, reverse=True)):
-            yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]))
+            yield self.read(symbol, chunk_range=c.to_range(chunk[0], chunk[1]), **kwargs)
 
     def stats(self):
         """
