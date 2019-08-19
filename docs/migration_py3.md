@@ -4,7 +4,7 @@ The aim of this document is to help with possible migration issues with Arctic w
 
 ## Trying to store numpy types with bson
 
-Currently if you try and store (say) a numpy integer in BSONSTore you will get an encoding failure:  
+Currently if you try and store (say) a numpy integer in BSONStore you will get an encoding failure:  
 `In [14]:  lib.insert_one({'a': np.int64(1)})`
 
 ```python
@@ -25,12 +25,12 @@ the parameters to insert / update functions in BSONStore or wherever there is a 
 
 This could be because the default protocol for pickling in py3 is 4 which is not supported in py2 (max supported in python2 = 2).
 
-## Having str column values / index names nad column names when read back in py3 is now bytes
+## Strings in column/index names are converted to bytes in py3
 
 As mentioned here: https://github.com/manahl/arctic/blob/master/arctic/serialization/numpy_records.py#L277 this can
-break the workflow of people migrating and you should be using unicode in py2 to avoid running into this or us
-`from __future__ import unicode_literals` to always use them by default.
+break the workflow of people migrating and you should be using unicode in py2 to avoid running into this or you can use
+`from __future__ import unicode_literals` to always use unicode instead of bytes by default in py2.
 
-If you hit this issue, a workaround is to set: https://github.com/manahl/arctic/blob/master/arctic/_config.py#L92
+If you hit this issue, a workaround is to set: [FORCE_BYTES_TO_UNICODE](https://github.com/manahl/arctic/blob/master/arctic/_config.py#L92)
 which will explicitly convert stuff to unicode, but keep in mind it's not very efficient and is basically doing
 a linear conversion. 
