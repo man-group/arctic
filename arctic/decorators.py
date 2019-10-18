@@ -3,7 +3,8 @@ import sys
 from functools import wraps
 from time import sleep
 
-from pymongo.errors import AutoReconnect, OperationFailure, DuplicateKeyError, ServerSelectionTimeoutError
+from pymongo.errors import (AutoReconnect, OperationFailure, DuplicateKeyError, ServerSelectionTimeoutError,
+                            BulkWriteError)
 
 from .hooks import log_exception as _log_exception
 
@@ -47,7 +48,7 @@ def mongo_retry(f):
             while True:
                 try:
                     return f(*args, **kwargs)
-                except (DuplicateKeyError, ServerSelectionTimeoutError) as e:
+                except (DuplicateKeyError, ServerSelectionTimeoutError, BulkWriteError) as e:
                     # Re-raise errors that won't go away.
                     _handle_error(f, e, _retry_count, **_get_host(args))
                     raise
