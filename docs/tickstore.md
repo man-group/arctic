@@ -3,13 +3,13 @@
 As the name suggests, tickstore is used for storing stream of ticks from
 financial exchanges. For example, this could be the bid/offers to an exchange.
 
-It's designed for read heavy loads and realtime, continous ticks of data and you are
+It's designed for read heavy loads and realtime, continuous ticks of data and you are
 expected to do the batching on your side, generally done with a message queue
 like kafka / redis queue etc.
 
 ## Reading and Writing data with Tickstore
 
-Sample tick:  
+Sample tick:
 
 ```python
     sample_ticks = [
@@ -38,7 +38,7 @@ Sample tick:
             'index': 1185141600600
         }
     ]
-   
+
 ```
 
 ### Writing and reading to tickstore
@@ -64,7 +64,7 @@ Another example with datetime index with tz_info
 
 * Storing billions of ticks in a compressed way with fast querying by date ranges.
 * Customizable chunk sizes. The default is 100k, which should fit easily in a single mongo doc for fast reads.
-* Structured to work with financial tick data stored on a per symbol basis. Generally used with kafka / redis queue or 
+* Structured to work with financial tick data stored on a per symbol basis. Generally used with kafka / redis queue or
 some sort of message broker for streaming data.
- 
+
 See [James's talk](https://vimeo.com/showcase/3660528/video/145842301) for more details

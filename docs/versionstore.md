@@ -3,7 +3,7 @@
 
 (note: current doc is based on arctic-1.68.0)
 
-VersionStore serializes and stores Pandas objects, numpy arrays as well as other python types in MongoDB. Objects are `versioned` and new versions are created when a `symbol` is modified. 
+VersionStore serializes and stores Pandas objects, numpy arrays as well as other python types in MongoDB. Objects are `versioned` and new versions are created when a `symbol` is modified.
 
 
 # Reading and Writing Data with VersionStore
@@ -22,7 +22,7 @@ At this point you have an empty VersionStore library. You do not need to specify
 
 `symbol` is the name that is used to store/retrieve the data in Arctic. `data` is the data to be stored in MongoDB. `metadata` is optional user defined metadata. It must be a `dict`. `prune_previous_versions` will prune/remove previous versions of the data (provided they have not been included in a snapshot). `kwargs` are passed on to the individual write handler. There are write handlers for different data types.
 
-`write` is designed to write and replace data. If you write symbol `test` with one dataset and write it again with another, the original data will be replace with a new version of the data. 
+`write` is designed to write and replace data. If you write symbol `test` with one dataset and write it again with another, the original data will be replace with a new version of the data.
 
 
 ```
@@ -40,7 +40,7 @@ VersionedItem(symbol=test,library=arctic.vstore,data=<class 'NoneType'>,version=
 
 >>> lib.read('test').data
                data
-date       id      
+date       id
 2016-01-01 1      1
 2016-01-02 1      2
 2016-01-03 1      3
@@ -57,7 +57,7 @@ VersionedItem(symbol=test,library=arctic.vstore,data=<class 'NoneType'>,version=
 
 >>> lib.read('test').data
                data
-date       id      
+date       id
 2016-01-01 1    100
 2016-01-02 1    200
 2016-01-03 1    300
@@ -91,14 +91,14 @@ symbol, as_of=None, date_range=None, from_version=None, allow_secondary=None, **
 ```
 >>> lib.read('test').data
                data
-date       id      
+date       id
 2016-01-01 1    100
 2016-01-02 1    200
 2016-01-03 1    300
 
 >>> lib.read('test', as_of=1).data
-               
-date       id  data    
+
+date       id  data
 2016-01-01 1      1
 2016-01-02 1      2
 2016-01-03 1      3
@@ -106,13 +106,13 @@ date       id  data
 
 >>> from arctic.date import DateRange
 >>> lib.read('test', date_range=DateRange('2016-01-01', '2016-01-01')).data
-               
-date       id  data    
+
+date       id  data
 2016-01-01 1    100
 
 ```
 
-DateRange's only apply to pandas DataFrames, and the dataframe must have a datetime index present. 
+DateRange's only apply to pandas DataFrames, and the dataframe must have a datetime index present.
 
 Another way to write data is with the [`append`](https://github.com/manahl/arctic/blob/master/arctic/store/version_store.py#L473) method. `append` takes the following arguments:
 
@@ -127,12 +127,12 @@ symbol, data, metadata=None, prune_previous_version=True, upsert=True, **kwargs
 >>> lib.append('new', df, upsert=False)
 ~/arctic/arctic/store/version_store.py in append(self, symbol, data, metadata, prune_previous_version, upsert, **kwargs)
     505             return self.write(symbol=symbol, data=data, prune_previous_version=prune_previous_version, metadata=metadata)
-    506 
+    506
 --> 507         assert previous_version is not None
     508         dirty_append = False
-    509 
+    509
 
-AssertionError: 
+AssertionError:
 
 
 >>> lib.append('new', df, upsert=True)
@@ -162,7 +162,7 @@ def has_symbol(self, symbol, as_of=None)
 
 for `list_symbols`, `all_symbols` if set to `true` will return all symbols, from all snapshots, even if the symbol has been deleted in the current version (but is saved in a snapshot). `snapshot` allows you to list symbols under a specified `snapshot`. `regex` allows you to supply a regular expression to further restrict the list of symbols returned from the query. Arctic uses MongoDB's `$regex` functionality. Mongo supports PERL syntax regex; more information is available [here](https://docs.mongodb.com/manual/reference/operator/query/regex/)
 
-`has_symbol` returns `True` or `False` based on wheter the symbol exists or not. You can restrict this check to a specific `version` via `as_of`. 
+`has_symbol` returns `True` or `False` based on whether the symbol exists or not. You can restrict this check to a specific `version` via `as_of`.
 
 
 ```
@@ -182,7 +182,7 @@ False
 
 ```
 
-`read_metadata` and `write_metadata` allow you to read/set the user defined metadata directly for a given symbol. 
+`read_metadata` and `write_metadata` allow you to read/set the user defined metadata directly for a given symbol.
 
 
 ```
@@ -204,7 +204,7 @@ VersionedItem(symbol=test2,library=arctic.vstore,data=<class 'NoneType'>,version
 
 ```
 
->>> lib.list_versions('test') 
+>>> lib.list_versions('test')
 [{'symbol': 'test',
   'version': 3,
   'deleted': False,
@@ -222,12 +222,12 @@ VersionedItem(symbol=test,library=arctic.vstore,data=<class 'NoneType'>,version=
 
 >>> lib.read('test').data
                data
-date       id      
+date       id
 2016-01-01 1    100
 2016-01-02 1    200
 2016-01-03 1    300
 
->>> lib.list_versions('test') 
+>>> lib.list_versions('test')
 [{'symbol': 'test',
   'version': 4,
   'deleted': False,
@@ -246,7 +246,7 @@ date       id
 
 ```
 
-Using `restore_version` did not delete the latest version, it simply created a new version with the data referenced by the user supplied version. 
+Using `restore_version` did not delete the latest version, it simply created a new version with the data referenced by the user supplied version.
 
 
 
@@ -264,7 +264,7 @@ VersionStore allows you to create a snapshot of data and assign it a name. Data 
 snap_name, metadata=None, skip_symbols=None, versions=None
 ```
 
-`snap_name` is the name of the snap shot being created. `metadata` allows you to supply user defined metadata to the snapshot. `skip_symbols` allows you to exclude symbols from the snapshot. `versions` allows you to specify specific versions to incliude in the snapshot. 
+`snap_name` is the name of the snap shot being created. `metadata` allows you to supply user defined metadata to the snapshot. `skip_symbols` allows you to exclude symbols from the snapshot. `versions` allows you to specify specific versions to include in the snapshot.
 
 `delete_snapshot` and `list_snapshot` function similarly to `delete` and `list_versions` respectively. `list_snapshots` returns a dictionary of `snapshot` names that map to the `metadata` for the snapshot.
 
@@ -297,7 +297,7 @@ snap_name, metadata=None, skip_symbols=None, versions=None
     455         metadata = _version.get('metadata', None)
     456         if metadata is not None and metadata.get('deleted', False) is True:
 --> 457             raise NoDataFoundException("No data found for %s in library %s" % (symbol, self._arctic_lib.get_name()))
-    458 
+    458
     459         return _version
 
 NoDataFoundException: No data found for test in library arctic.vstore
@@ -306,9 +306,9 @@ NoDataFoundException: No data found for test in library arctic.vstore
 >>> lib.read('test', as_of='backup')
 VersionedItem(symbol=test,library=arctic.vstore,data=<class 'pandas.core.frame.DataFrame'>,version=4,metadata=None,host=127.0.0.1)
 
->>> lib.read('test', as_of='backup').data 
+>>> lib.read('test', as_of='backup').data
                data
-date       id      
+date       id
 2016-01-01 1    100
 2016-01-02 1    200
 2016-01-03 1    300
