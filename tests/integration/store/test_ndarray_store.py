@@ -6,11 +6,10 @@ import pytest
 from mock import patch
 from pymongo.server_type import SERVER_TYPE
 
-from arctic._config import FwPointersCfg, FW_POINTERS_REFS_KEY
 from arctic._util import mongo_count
 from arctic.store._ndarray_store import NdarrayStore
 from arctic.store.version_store import register_versioned_storage
-from tests.integration.store.test_version_store import _query, FwPointersCtx
+from tests.integration.store.test_version_store import _query
 
 register_versioned_storage(NdarrayStore)
 
@@ -44,54 +43,44 @@ def test_read_simple_ndarray_from_secondary(library_secondary, library_name):
     assert np.all(ndarr == saved_arr)
 
 
-@pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
-def test_save_read_big_1darray(library, fw_pointers_cfg):
-    with FwPointersCtx(fw_pointers_cfg):
-        ndarr = np.random.rand(5326, 6020).ravel()
+def test_save_read_big_1darray(library):
+    ndarr = np.random.rand(5326, 6020).ravel()
+    library.write('MYARR', ndarr)
+    saved_arr = library.read('MYARR').data
+    assert np.all(ndarr == saved_arr)
+
+
+def test_save_and_resave_reuses_chunks(library):
+    with patch('arctic.store._ndarray_store._CHUNK_SIZE', 1000):
+        ndarr = np.random.rand(1024)
+        library.write('MYARR', ndarr)
+        saved_arr = library.read('MYARR').data
+        assert np.all(ndarr == saved_arr)
+        orig_chunks = mongo_count(library._collection)
+        assert orig_chunks == 9
+
+        # Concatenate more values
+        ndarr = np.concatenate([ndarr, np.random.rand(10)])
+        # And change the original values - we're not a simple append
+        ndarr[0] = ndarr[1] = ndarr[2] = 0
         library.write('MYARR', ndarr)
         saved_arr = library.read('MYARR').data
         assert np.all(ndarr == saved_arr)
 
+        # Should contain the original chunks, but not double the number
+        # of chunks
+        new_chunks = mongo_count(library._collection)
+        assert new_chunks == 11
 
-@pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
-def test_save_and_resave_reuses_chunks(library, fw_pointers_cfg):
-    with FwPointersCtx(fw_pointers_cfg):
-        with patch('arctic.store._ndarray_store._CHUNK_SIZE', 1000):
-            ndarr = np.random.rand(1024)
-            library.write('MYARR', ndarr)
-            saved_arr = library.read('MYARR').data
-            assert np.all(ndarr == saved_arr)
-            orig_chunks = mongo_count(library._collection)
-            assert orig_chunks == 9
-
-            # Concatenate more values
-            ndarr = np.concatenate([ndarr, np.random.rand(10)])
-            # And change the original values - we're not a simple append
-            ndarr[0] = ndarr[1] = ndarr[2] = 0
-            library.write('MYARR', ndarr)
-            saved_arr = library.read('MYARR').data
-            assert np.all(ndarr == saved_arr)
-
-            # Should contain the original chunks, but not double the number
-            # of chunks
-            new_chunks = mongo_count(library._collection)
-            assert new_chunks == 11
-
-            if fw_pointers_cfg in (FwPointersCfg.DISABLED, FwPointersCfg.HYBRID):
-                # We hit the update (rather than upsert) code path
-                assert mongo_count(library._collection, filter={'parent': {'$size': 2}}) == 7
-
-            if fw_pointers_cfg in (FwPointersCfg.HYBRID, FwPointersCfg.ENABLED):
-                assert len(library._versions.find_one({'symbol': 'MYARR', 'version': 2})[FW_POINTERS_REFS_KEY]) == 9
+        # We hit the update (rather than upsert) code path
+        assert mongo_count(library._collection, filter={'parent': {'$size': 2}}) == 7
 
 
-@pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
-def test_save_read_big_2darray(library, fw_pointers_cfg):
-    with FwPointersCtx(fw_pointers_cfg):
-        ndarr = np.random.rand(5326, 6020)
-        library.write('MYARR', ndarr)
-        saved_arr = library.read('MYARR').data
-        assert np.all(ndarr == saved_arr)
+def test_save_read_big_2darray(library):
+    ndarr = np.random.rand(5326, 6020)
+    library.write('MYARR', ndarr)
+    saved_arr = library.read('MYARR').data
+    assert np.all(ndarr == saved_arr)
 
 
 def test_get_info_bson_object(library):
@@ -116,22 +105,20 @@ def test_save_read_ndarray(library):
     assert np.all(ndarr == saved_arr)
 
 
-@pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
-def test_multiple_write(library, fw_pointers_cfg):
-    with FwPointersCtx(fw_pointers_cfg):
-        ndarr = np.empty(1000, dtype=[('abc', 'int64')])
-        foo = np.empty(900, dtype=[('abc', 'int64')])
-        library.write('MYARR', foo)
-        v1 = library.read('MYARR').version
-        library.write('MYARR', ndarr[:900])
-        v2 = library.read('MYARR').version
-        library.append('MYARR', ndarr[-100:])
-        v3 = library.read('MYARR').version
+def test_multiple_write(library):
+    ndarr = np.empty(1000, dtype=[('abc', 'int64')])
+    foo = np.empty(900, dtype=[('abc', 'int64')])
+    library.write('MYARR', foo)
+    v1 = library.read('MYARR').version
+    library.write('MYARR', ndarr[:900])
+    v2 = library.read('MYARR').version
+    library.append('MYARR', ndarr[-100:])
+    v3 = library.read('MYARR').version
 
-        assert np.all(ndarr == library.read('MYARR').data)
-        assert np.all(ndarr == library.read('MYARR', as_of=v3).data)
-        assert np.all(foo == library.read('MYARR', as_of=v1).data)
-        assert np.all(ndarr[:900] == library.read('MYARR', as_of=v2).data)
+    assert np.all(ndarr == library.read('MYARR').data)
+    assert np.all(ndarr == library.read('MYARR', as_of=v3).data)
+    assert np.all(foo == library.read('MYARR', as_of=v1).data)
+    assert np.all(ndarr[:900] == library.read('MYARR', as_of=v2).data)
 
 
 def test_cant_write_objects():

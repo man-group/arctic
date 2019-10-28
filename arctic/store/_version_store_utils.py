@@ -11,8 +11,7 @@ from bson import Binary
 from pandas.compat import pickle_compat
 from pymongo.errors import OperationFailure
 
-from arctic._config import FW_POINTERS_REFS_KEY, FW_POINTERS_CONFIG_KEY, FwPointersCfg
-from arctic._util import mongo_count, get_fwptr_config
+from arctic._util import mongo_count
 
 
 def _split_arrs(array_2d, slices):
@@ -47,28 +46,15 @@ def checksum(symbol, doc):
     return Binary(sha.digest())
 
 
-def get_symbol_alive_shas(symbol, versions_coll):
-    return set(Binary(x) for x in versions_coll.distinct(FW_POINTERS_REFS_KEY, {'symbol': symbol}))
+def cleanup(arctic_lib, symbol, version_ids):
+    """
+    Helper method for cleaning up chunks from a version store
+    """
+    collection = arctic_lib.get_top_level_collection()
 
-
-def _cleanup_fw_pointers(collection, symbol, version_ids, versions_coll, shas_to_delete, do_clean=True):
-    shas_to_delete = set(shas_to_delete) if shas_to_delete else set()
-
-    if not version_ids or not shas_to_delete:
-        return shas_to_delete
-
-    symbol_alive_shas = get_symbol_alive_shas(symbol, versions_coll)
-
-    # This is the set of shas which are not referenced by any FW pointers
-    shas_safe_to_delete = shas_to_delete - symbol_alive_shas
-
-    if do_clean and shas_safe_to_delete:
-        collection.delete_many({'symbol': symbol, 'sha': {'$in': list(shas_safe_to_delete)}})
-
-    return shas_safe_to_delete
-
-
-def _cleanup_parent_pointers(collection, symbol, version_ids):
+    # Remove any chunks which contain just the parents, at the outset
+    # We do this here, because $pullALL will make an empty array: []
+    # and the index which contains the parents field will fail the unique constraint.
     for v in version_ids:
         # Remove all documents which only contain the parent
         collection.delete_many({'symbol': symbol,
@@ -81,56 +67,6 @@ def _cleanup_parent_pointers(collection, symbol, version_ids):
     # Now remove all chunks which aren't parented - this is unlikely, as they will
     # have been removed by the above
     collection.delete_one({'symbol': symbol, 'parent': []})
-
-
-def _cleanup_mixed(symbol, collection, version_ids, versions_coll):
-    # Pull the deleted version IDs from the the parents field
-    collection.update_many({'symbol': symbol, 'parent': {'$in': version_ids}}, {'$pullAll': {'parent': version_ids}})
-
-    # All-inclusive set of segments which are pointed by at least one version (SHA fw pointers)
-    symbol_alive_shas = get_symbol_alive_shas(symbol, versions_coll)
-
-    spec = {'symbol': symbol, 'parent': []}
-    if symbol_alive_shas:
-        # This query unfortunately, while it hits the index (symbol, sha) to find the documents, in order to filter
-        # the documents by "parent: []" it fetches at server side, and pollutes the cache of WiredTiger
-        # TODO: add a new index for segments collection: (symbol, sha, parent)
-        spec['sha'] = {'$nin': list(symbol_alive_shas)}
-    collection.delete_many(spec)
-
-
-def _get_symbol_pointer_cfgs(symbol, versions_coll):
-    return set(get_fwptr_config(v)
-               for v in versions_coll.find({'symbol': symbol}, projection={FW_POINTERS_CONFIG_KEY: 1}))
-
-
-def cleanup(arctic_lib, symbol, version_ids, versions_coll, shas_to_delete=None, pointers_cfgs=None):
-    """
-    Helper method for cleaning up chunks from a version store
-    """
-    pointers_cfgs = set(pointers_cfgs) if pointers_cfgs else set()
-    collection = arctic_lib.get_top_level_collection()
-    version_ids = list(version_ids)
-
-    # Iterate versions to check if they are created only with fw pointers, parent pointers (old), or mixed
-    # Keep in mind that the version is not yet inserted.
-    all_symbol_pointers_cfgs = _get_symbol_pointer_cfgs(symbol, versions_coll)
-    all_symbol_pointers_cfgs.update(pointers_cfgs)
-
-    # All the versions of the symbol have been created with old arctic or with disabled forward pointers.
-    # Preserves backwards compatibility and regression for old pointers implementation.
-    if all_symbol_pointers_cfgs == {FwPointersCfg.DISABLED} or not all_symbol_pointers_cfgs:
-        _cleanup_parent_pointers(collection, symbol, version_ids)
-        return
-
-    # All the versions of the symbol we wish to delete have been created with forward pointers
-    if FwPointersCfg.DISABLED not in all_symbol_pointers_cfgs:
-        _cleanup_fw_pointers(collection, symbol, version_ids, versions_coll,
-                             shas_to_delete=shas_to_delete, do_clean=True)
-        return
-
-    # Reaching here means the symbol has versions with mixed forward pointers and legacy/parent pointer configurations
-    _cleanup_mixed(symbol, collection, version_ids, versions_coll)
 
 
 def version_base_or_id(version):
