@@ -135,7 +135,7 @@ def test_read_item_read_preference_SECONDARY(library_secondary, library_name):
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
-def test_query_falls_back_to_primary(library_secondary, library_name, fw_pointers_cfg):
+def _test_query_falls_back_to_primary(library_secondary, library_name, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         allow_secondary = [True]
         def _query(options, *args, **kwargs):
