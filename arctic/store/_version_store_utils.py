@@ -143,7 +143,7 @@ def _define_compat_pickle_load():
     """
     if pd.__version__.startswith("0.14"):
         return pickle.load
-    return functools.partial(pickle_compat.load, compat=True)
+    return pickle_compat.load
 
 
 def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
