@@ -102,3 +102,9 @@ ENABLE_CACHE = not bool(os.environ.get('ARCTIC_DISABLE_CACHE'))
 # play well with the bson encoder or if you always want your data in the data collection.
 # -------------------------------
 SKIP_BSON_ENCODE_PICKLE_STORE = bool(os.environ.get('SKIP_BSON_ENCODE_PICKLE_STORE'))
+
+# -------------------------------
+# Maximum size up to which the input will be bson encoded and stored in the version doc instead of being pickled in
+# the version store. For very large input (> 10 MB) we ignore this option and fall back to using pickle.
+# -------------------------------
+MAX_BSON_ENCODE = os.environ.get('MAX_BSON_ENCODE', 256 * 1024)  # 256 KB
