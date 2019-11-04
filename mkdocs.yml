@@ -28,3 +28,4 @@ pages:
   - Releasing: 'releasing.md'
   - Users: 'users.md'
   - FAQ: 'faq.md'
+  - Python3 Migration Guide: 'migration_py3.md'
