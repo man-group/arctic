@@ -1,3 +1,4 @@
+import six
 import logging
 
 import numpy as np
@@ -227,10 +228,32 @@ class SeriesSerializer(PandasSerializer):
         column_vals = [s.values]
         return columns, column_vals, None
 
-    def deserialize(self, item, _force_bytes_to_unicode=False):
+    def deserialize(self, item, force_bytes_to_unicode=False):
         index = self._index_from_records(item)
         name = item.dtype.names[-1]
-        return Series.from_array(item[name], index=index, name=name)
+        data = item[name]
+
+        if force_bytes_to_unicode:
+            if six.PY2 and isinstance(name, (bytes, str)):
+                name = name.decode('utf-8')
+
+            if len(data) and isinstance(data[0], bytes):
+                data = data.astype('unicode')
+
+            if isinstance(index, MultiIndex):
+                unicode_indexes = []
+                # MultiIndex requires a conversion at each level.
+                for level in range(len(index.levels)):
+                    _index = index.get_level_values(level)
+                    if isinstance(_index[0], bytes):
+                        _index = _index.astype('unicode')
+                    unicode_indexes.append(_index)
+                index = unicode_indexes
+            else:
+                if len(index) and type(index[0]) == bytes:
+                    index = index.astype('unicode')
+
+        return Series.from_array(data, index=index, name=name)
 
     def serialize(self, item, string_max_len=None, forced_dtype=None):
         return self._to_records(item, string_max_len, forced_dtype)

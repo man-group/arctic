@@ -170,7 +170,9 @@ class PandasSeriesStore(PandasStore):
 
     def read(self, arctic_lib, version, symbol, **kwargs):
         item = super(PandasSeriesStore, self).read(arctic_lib, version, symbol, **kwargs)
-        return self.SERIALIZER.deserialize(item)
+        # Try to check if force_bytes_to_unicode is set in kwargs else use the config value (which defaults to False)
+        force_bytes_to_unicode = kwargs.get('force_bytes_to_unicode', FORCE_BYTES_TO_UNICODE)
+        return self.SERIALIZER.deserialize(item, force_bytes_to_unicode=force_bytes_to_unicode)
 
 
 class PandasDataFrameStore(PandasStore):
