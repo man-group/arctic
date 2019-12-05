@@ -1,5 +1,11 @@
 ## Changelog
 
+### 1.79.3 
+  * Feature: #831: Support FORCE_BYTES_TO_UNICODE with pd.Series
+  * Feature: #825: Make max bson encode size configurable
+  * Bugfix: #823: Don't retry on bulkwrite errors
+  * Bugfix: #809: Keep caching disabled by default 
+
 ### 1.79.2 (2019-05-21)
   * Feature: Allow list_library caching to be tunable via a settings collection.
   * Bugfix: #777: Handle empty columns in dataframes
