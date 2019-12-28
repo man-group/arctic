@@ -1,7 +1,11 @@
 ## Changelog
 
 ### 1.79.3 (2019-12-6)
-  *
+  * Bugfix: #832 Bytes to unicode for pd.Series
+  * Feature: #825 Max BSON size configurable
+  * Bugfix: #823 Don't retry bulk write errors
+  * Feature: #802 kwargs passed through to iterators in chunkstore
+
 ### 1.79.2 (2019-05-21)
   * Feature: Allow list_library caching to be tunable via a settings collection.
   * Bugfix: #777: Handle empty columns in dataframes
