@@ -253,7 +253,7 @@ class SeriesSerializer(PandasSerializer):
                 if len(index) and type(index[0]) == bytes:
                     index = index.astype('unicode')
 
-        return Series.from_array(data, index=index, name=name)
+        return Series(data, index=index, name=name)
 
     def serialize(self, item, string_max_len=None, forced_dtype=None):
         return self._to_records(item, string_max_len, forced_dtype)
