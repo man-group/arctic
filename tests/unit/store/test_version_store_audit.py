@@ -155,7 +155,7 @@ def test_ArcticTransaction_does_write_when_new_data_is_None():
     vs.list_versions.return_value = [{'version': 1}, {'version': 2}]
 
     with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
-        cwb.write(sentinel.symbol, None, metadata{1: 2})
+        cwb.write(sentinel.symbol, None, metadata={1: 2})
 
     assert not vs._delete_version.called
     assert vs.write.call_args_list == [call(sentinel.symbol, None, prune_previous_version=True, metadata={1: 2})]
