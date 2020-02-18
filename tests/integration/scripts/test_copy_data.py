@@ -163,4 +163,5 @@ def test_copy_empty_data(arctic, mongo_host, source_ts):
                                           call('Copying: 1 symbols')]
     assert logger.warn.call_args_list == [call('Symbol: some_ts already exists in destination, splicing in new data')]
 
-    assert arctic[dest].read_audit_log('some_ts')[0]['message'] == 'CR101'
+    # As the destination data is unchanged, no writing takes place and the audit log is empty.
+    assert len(arctic[dest].read_audit_log('some_ts')) == 0
