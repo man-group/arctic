@@ -1,4 +1,8 @@
 """
+Copyright (C) 2020 Man Group
+For a list of authors, see README.md; for the license, see file LICENSE in project root directory.
+"""
+"""
 Utilities to resolve a string to Mongo host, or a Arctic library.
 """
 import logging

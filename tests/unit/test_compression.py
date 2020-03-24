@@ -1,3 +1,7 @@
+"""
+Copyright (C) 2020 Man Group
+For a list of authors, see README.md; for the license, see file LICENSE in project root directory.
+"""
 from mock import patch, Mock
 
 from arctic._compression import compress, compress_array, decompress, decompress_array, enable_parallel_lz4

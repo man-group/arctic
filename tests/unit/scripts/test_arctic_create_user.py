@@ -1,3 +1,7 @@
+"""
+Copyright (C) 2020 Man Group
+For a list of authors, see README.md; for the license, see file LICENSE in project root directory.
+"""
 from mock import patch, call, ANY
 
 from arctic.scripts.arctic_create_user import main
