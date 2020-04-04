@@ -706,7 +706,7 @@ class TickStore(object):
         rowmask = Binary(lz4_compressHC(np.packbits(np.ones(len(df), dtype='uint8')).tostring()))
 
         index_name = df.index.names[0] or "index"
-        recs = df.to_records(convert_datetime64=False)
+        recs = df.to_records()
         for col in df:
             array = TickStore._ensure_supported_dtypes(recs[col])
             col_data = {
