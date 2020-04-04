@@ -257,7 +257,7 @@ def test_list_libraries_cached(arctic):
 
     # Should fetch it from cache the second time.
     with patch('arctic.arctic.Arctic._list_libraries', return_value=libs) as uncached_list_libraries:
-        assert arctic._list_libraries_cached() == libs
+        assert sorted(arctic._list_libraries_cached()) == sorted(libs)
         uncached_list_libraries.assert_not_called()
 
 
@@ -299,7 +299,7 @@ def test_renaming_returns_new_name_in_cache(arctic):
     for lib in libs:
         arctic.initialize_library(lib)
 
-    assert arctic._list_libraries_cached() == arctic._list_libraries()
+    assert sorted(arctic._list_libraries_cached()) == sorted(arctic._list_libraries())
 
     arctic.rename_library('test1', 'test3')
 
