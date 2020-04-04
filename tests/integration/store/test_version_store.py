@@ -111,6 +111,7 @@ def test_store_item_new_version(library, library_name):
         assert mongo_count(coll.versions) == 2
 
 
+@pytest.mark.xfail(reason="mongo/pymongo codepaths have changed, query no longer called for this")
 def test_store_item_read_preference(library_secondary, library_name):
     with patch('arctic.arctic.ArcticLibraryBinding.check_quota'), \
          patch('pymongo.message.query', side_effect=_query(False, library_name)) as query, \
@@ -125,6 +126,7 @@ def test_store_item_read_preference(library_secondary, library_name):
     assert query.call_count > 0
 
 
+@pytest.mark.xfail(reason="mongo/pymongo codepaths have changed, query no longer called for this")
 def test_read_item_read_preference_SECONDARY(library_secondary, library_name):
     # write an item
     library_secondary.write(symbol, ts1)
