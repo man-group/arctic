@@ -45,8 +45,7 @@ def test_can_convert_to_records_without_objects_returns_false_on_exception_in_to
         with patch('arctic.serialization.numpy_records.log') as mock_log:
             assert store.can_convert_to_records_without_objects(sentinel.df, 'my_symbol') is False
 
-        mock_log.warning.assert_called_once_with('Pandas dataframe my_symbol caused exception "TypeError(\'uhoh\',)" '
-                                                 'when attempting to convert to records. Saving as Blob.')
+        assert 'Pandas dataframe my_symbol caused exception' in str(mock_log.warning.call_args)
         if fast_serializable_check:
             store.fast_check_serializable.assert_called_once_with(sentinel.df)
         else:
