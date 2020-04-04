@@ -176,14 +176,14 @@ def test_save_read_empty_dataframe(library):
 
 
 def test_save_read_pandas_dataframe2(library):
-    df = DataFrame(data=[1, 2, 3], index=DatetimeIndex(start='1/1/2011', periods=3, freq='H'))
+    df = DataFrame(data=[1, 2, 3], index=pd.date_range(start='1/1/2011', periods=3, freq='H'))
     library.write('pandas', df)
     saved_df = library.read('pandas').data
     assert np.all(df.values == saved_df.values)
 
 
 def test_save_read_pandas_dataframe_strings(library):
-    df = DataFrame(data=['a', 'b', 'c'], index=DatetimeIndex(start='1/1/2011', periods=3, freq='H'))
+    df = DataFrame(data=['a', 'b', 'c'], index=pd.date_range(start='1/1/2011', periods=3, freq='H'))
     library.write('pandas', df)
     saved_df = library.read('pandas').data
     assert np.all(df.values == saved_df.values)
@@ -322,8 +322,8 @@ def test_save_read_multi_index_and_multi_columns_dataframe(library):
 
 
 def test_append_pandas_dataframe(library):
-    df = DataFrame(data=[1, 2, 3], index=DatetimeIndex(start='1/1/2011', periods=3, freq='H'))
-    df2 = DataFrame(data=[4, 5, 6], index=DatetimeIndex(start='2/1/2011', periods=3, freq='H'))
+    df = DataFrame(data=[1, 2, 3], index=pd.date_range(start='1/1/2011', periods=3, freq='H'))
+    df2 = DataFrame(data=[4, 5, 6], index=pd.date_range(start='2/1/2011', periods=3, freq='H'))
     library.write('pandas', df)
     library.append('pandas', df2)
     saved_df = library.read('pandas').data
@@ -340,7 +340,7 @@ def test_empty_dataframe_multindex(library):
 
 
 def test_dataframe_append_empty(library):
-    df = DataFrame(data=[1, 2, 3], index=DatetimeIndex(start='1/1/2011', periods=3, freq='H'))
+    df = DataFrame(data=[1, 2, 3], index=pd.date_range(start='1/1/2011', periods=3, freq='H'))
     df2 = DataFrame(data=[], index=[])
     library.write('pandas', df)
     library.append('pandas', df2)
@@ -350,7 +350,7 @@ def test_dataframe_append_empty(library):
 
 def test_empy_dataframe_append(library):
     df = DataFrame(data=[], index=[])
-    df2 = DataFrame(data=[1, 2, 3], index=DatetimeIndex(start='1/1/2011', periods=3, freq='H'))
+    df2 = DataFrame(data=[1, 2, 3], index=pd.date_range(start='1/1/2011', periods=3, freq='H'))
     library.write('pandas', df)
     library.append('pandas', df2)
     saved_df = library.read('pandas').data
