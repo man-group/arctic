@@ -400,15 +400,15 @@ def test_dataframe_append_should_promote_string_column(library):
     data = np.zeros((2,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a10')])
     data[:] = [(1, 2., 'Hello'), (2, 3., "World")]
     df = DataFrame(data, index=DatetimeIndex(np.array([dt(2013, 1, 1),
-                                                       dt(2013, 1, 2)]).astype('datetime64[ns]'), name=[u'DATETIME']))
+                                                       dt(2013, 1, 2)]).astype('datetime64[ns]'), name='DATETIME'))
     data2 = np.zeros((1,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a30')])
     data2[:] = [(3, 4., 'Hello World - Good Morning')]
-    df2 = DataFrame(data2, index=DatetimeIndex(np.array([dt(2013, 1, 3)]).astype('datetime64[ns]'), name=[u'DATETIME']))
+    df2 = DataFrame(data2, index=DatetimeIndex(np.array([dt(2013, 1, 3)]).astype('datetime64[ns]'), name='DATETIME'))
     expected_data = np.zeros((3,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a30')])
     expected_data[:] = [(1, 2., 'Hello'), (2, 3., "World"), (3, 4., 'Hello World - Good Morning')]
     expected = DataFrame(expected_data, index=DatetimeIndex(np.array([dt(2013, 1, 1),
                                                                        dt(2013, 1, 2),
-                                                                       dt(2013, 1, 3)]).astype('datetime64[ns]'), name=[u'DATETIME']))
+                                                                       dt(2013, 1, 3)]).astype('datetime64[ns]'), name='DATETIME'))
 
     library.write('pandas', df)
     library.append('pandas', df2)
@@ -421,15 +421,15 @@ def test_dataframe_append_should_add_new_column(library):
     data = np.zeros((2,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a10')])
     data[:] = [(1, 2., 'Hello'), (2, 3., "World")]
     df = DataFrame(data, index=DatetimeIndex(np.array([dt(2013, 1, 1),
-                                                       dt(2013, 1, 2)]).astype('datetime64[ns]'), name=[u'DATETIME']))
+                                                       dt(2013, 1, 2)]).astype('datetime64[ns]'), name='DATETIME'))
     data2 = np.zeros((1,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a10'), ('D', 'f4')])
     data2[:] = [(4, 5., 'Hi', 6.)]
-    df2 = DataFrame(data2, index=DatetimeIndex(np.array([dt(2013, 1, 3)]).astype('datetime64[ns]'), name=[u'DATETIME']))
+    df2 = DataFrame(data2, index=DatetimeIndex(np.array([dt(2013, 1, 3)]).astype('datetime64[ns]'), name='DATETIME'))
     expected_data = np.zeros((3,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a10'), ('D', 'f4')])
     expected_data[:] = [(1, 2., 'Hello', np.nan), (2, 3., "World", np.nan), (4, 5., 'Hi', 6.)]
     expected = DataFrame(expected_data, index=DatetimeIndex(np.array([dt(2013, 1, 1),
                                                                        dt(2013, 1, 2),
-                                                                       dt(2013, 1, 3)]).astype('datetime64[ns]'), name=[u'DATETIME']))
+                                                                       dt(2013, 1, 3)]).astype('datetime64[ns]'), name='DATETIME'))
 
     library.write('pandas', df)
     library.append('pandas', df2)
@@ -442,16 +442,16 @@ def test_dataframe_append_should_add_new_columns_and_reorder(library):
     data = np.zeros((2,), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a10')])
     data[:] = [(1, 2., 'Hello'), (2, 3., "World")]
     df = DataFrame(data, index=DatetimeIndex(np.array([dt(2013, 1, 1),
-                                                       dt(2013, 1, 2)]).astype('datetime64[ns]'), name=[u'DATETIME']))
+                                                       dt(2013, 1, 2)]).astype('datetime64[ns]'), name='DATETIME'))
     data2 = np.zeros((1,), dtype=[('C', 'a10'), ('A', 'i4'), ('E', 'a1'), ('B', 'f4'), ('D', 'f4'), ('F', 'i4')])
     data2[:] = [('Hi', 4, 'Y', 5., 6., 7)]
-    df2 = DataFrame(data2, index=DatetimeIndex(np.array([dt(2013, 1, 3)]).astype('datetime64[ns]'), name=[u'DATETIME']))
+    df2 = DataFrame(data2, index=DatetimeIndex(np.array([dt(2013, 1, 3)]).astype('datetime64[ns]'), name='DATETIME'))
     expected_data = np.zeros((3,), dtype=[('C', 'a10'), ('A', 'i4'), ('E', 'a1'),
                                           ('B', 'f4'), ('D', 'f4'), ('F', 'i4')])
     expected_data[:] = [('Hello', 1, '', 2., np.nan, 0), ("World", 2, '', 3., np.nan, 0), ('Hi', 4, 'Y', 5., 6., 7)]
     expected = DataFrame(expected_data, index=DatetimeIndex(np.array([dt(2013, 1, 1),
                                                                        dt(2013, 1, 2),
-                                                                       dt(2013, 1, 3)]).astype('datetime64[ns]'), name=[u'DATETIME']))
+                                                                       dt(2013, 1, 3)]).astype('datetime64[ns]'), name='DATETIME'))
 
     library.write('pandas', df)
     library.append('pandas', df2)
