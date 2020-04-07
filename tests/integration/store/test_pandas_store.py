@@ -137,7 +137,7 @@ def test_save_read_pandas_dataframe_with_datetimeindex_with_timezone(library):
 
 
 def test_save_read_pandas_empty_series_with_datetime_multiindex_with_timezone(library):
-    empty_index = pd.MultiIndex(levels=(pd.DatetimeIndex([], tz="America/Chicago"), pd.Index([])), codes=([], []))
+    empty_index = pd.MultiIndex(levels=(pd.DatetimeIndex([], tz="America/Chicago"), pd.Index([])))
     df = Series(data=[], index=empty_index)
     library.write('pandas', df)
     saved_df = library.read('pandas').data
