@@ -34,6 +34,7 @@ def test_save_read_simple_ndarray(library):
     assert np.all(ndarr == saved_arr)
 
 
+@pytest.mark.xfail(reason="code paths in mongo/pymongo have changed and query no longer called")
 def test_read_simple_ndarray_from_secondary(library_secondary, library_name):
     ndarr = np.ones(1000)
     library_secondary.write('MYARR', ndarr)
