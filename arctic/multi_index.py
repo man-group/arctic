@@ -113,7 +113,7 @@ def multi_index_insert_row(df, index_row, values_row):
                                   labels=[[0] for i in index_row])
     else:
         row_index = pd.MultiIndex(levels=[[i] for i in index_row],
-                                codes=[[0] for i in index_row])
+                                  codes=[[0] for i in index_row])
     row = pd.DataFrame(values_row, index=row_index, columns=df.columns)
     df = pd.concat((df, row))
     if df.index.lexsort_depth == len(index_row) and df.index[-2] < df.index[-1]:
