@@ -11,6 +11,7 @@ from pandas import to_datetime as dt
 
 from .date import mktz
 
+PD_VER = pd.__version__
 logger = logging.getLogger(__name__)
 
 
@@ -107,8 +108,12 @@ def multi_index_insert_row(df, index_row, values_row):
     """ Return a new dataframe with a row inserted for a multi-index dataframe.
         This will sort the rows according to the ordered multi-index levels.
     """
-    row_index = pd.MultiIndex(levels=[[i] for i in index_row],
-                              codes=[[0] for i in index_row])
+    if PD_VER < '0.24.0':
+        row_index = pd.MultiIndex(levels=[[i] for i in index_row],
+                                  labels=[[0] for i in index_row])
+    else:
+        row_index = pd.MultiIndex(levels=[[i] for i in index_row],
+                                codes=[[0] for i in index_row])
     row = pd.DataFrame(values_row, index=row_index, columns=df.columns)
     df = pd.concat((df, row))
     if df.index.lexsort_depth == len(index_row) and df.index[-2] < df.index[-1]:
