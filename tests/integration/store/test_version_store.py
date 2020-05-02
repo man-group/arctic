@@ -26,6 +26,7 @@ from arctic.store import _version_store_utils
 from arctic.store import version_store
 from tests.unit.serialization.serialization_test_data import _mixed_test_data
 from ...util import read_str_as_pandas
+from ..test_utils import enable_profiling_for_library
 
 ts1 = read_str_as_pandas("""         times | near
                    2012-09-08 17:06:11.040 |  1.0
@@ -1034,6 +1035,18 @@ def test_list_symbols(library, fw_pointers_cfg):
         assert 'asdf' in library.list_symbols(a=1)
         assert library.list_symbols(a={'$gt': 5}) == []
         assert library.list_symbols(b={'$gt': 5}) == ['asdf']
+
+
+def test_snapshot_no_collscan(library):
+    with enable_profiling_for_library(library) as profile_db:
+        library.write('asdf', {'foo': 'bar'}, metadata={'a': 1, 'b': 10})
+        library.snapshot('snap1')
+
+    query_plan = list(profile_db.find({'command.aggregate': {'$exists': True}}))[-1]
+
+    assert query_plan.get('docsExamined') == 0
+    assert query_plan.get('keysExamined') == 1
+    assert query_plan.get('planSummary').startswith('IXSCAN')
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
