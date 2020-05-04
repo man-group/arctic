@@ -18,7 +18,7 @@
 
 ### 1.79.4 (2020-12-01)
   * Bugfix: Update code to work with latest version of pandas
-  * Bugfix: Fix missing column handling in numpy serializer
+  * Bugfix: #855 use IXSCAN for list\_symbols which speeds up snapshotting
 
 ### 1.79.3 (2019-12-6)
   * Bugfix: #832 Bytes to unicode for pd.Series
