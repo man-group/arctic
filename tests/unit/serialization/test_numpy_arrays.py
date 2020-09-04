@@ -83,6 +83,14 @@ def test_string_cols_with_nans():
     assert(df.equals(f.objify(f.docify(df))))
 
 
+def test_objify_with_missing_columns():
+    f = FrameConverter()
+    df = pd.DataFrame(data={'one': ['a', 'b', 'c', np.NaN]})
+    res = f.objify(f.docify(df), columns=['one', 'two'])
+    assert res['one'].equals(df['one'])
+    assert all(res['two'].isnull())
+
+
 def test_multi_column_fail():
     df = pd.DataFrame(data={'A': [1, 2, 3], 'B': [2, 3, 4], 'C': [3, 4, 5]})
     df = df.set_index(['A'])

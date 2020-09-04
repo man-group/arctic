@@ -150,7 +150,7 @@ class FrameConverter(object):
             # if there is missing data in a chunk, we can default to NaN
             # and pandas will autofill the missing values to the correct length
             if col not in doc[METADATA][LENGTHS]:
-                d = [np.nan]
+                d = np.array(np.nan)
             else:
                 d = decompress(doc[DATA][doc[METADATA][LENGTHS][col][0]: doc[METADATA][LENGTHS][col][1] + 1])
                 # d is ready-only but that's not an issue since DataFrame will copy the data anyway.
