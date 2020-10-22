@@ -146,13 +146,13 @@ def _define_compat_pickle_load():
     return pickle_compat.load
 
 
-def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
+def analyze_symbol(instance, sym, from_ver, to_ver, do_reads=False):
     """
     This is a utility function to produce text output with details about the versions of a given symbol.
     It is useful for debugging corruption issues and to mark corrupted versions.
     Parameters
     ----------
-    l : `arctic.store.version_store.VersionStore`
+    instance : `arctic.store.version_store.VersionStore`
         The VersionStore instance against which the analysis will be run.
     sym : `str`
         The symbol to analyze
@@ -169,8 +169,8 @@ def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
     prev_v = None
 
     logging.info('\nVersions for {}:'.format(sym))
-    for v in l._versions.find({'symbol': sym, 'version': {'$gte': from_ver, '$lte': to_ver}},
-                              sort=[('version', pymongo.ASCENDING)]):
+    for v in instance._versions.find({'symbol': sym, 'version': {'$gte': from_ver, '$lte': to_ver}},
+                                     sort=[('version', pymongo.ASCENDING)]):
         n = v.get('version')
 
         is_deleted = v.get('metadata').get('deleted', False) if v.get('metadata') else False
@@ -179,7 +179,7 @@ def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
             matching = 0
         else:
             spec = {'symbol': sym, 'parent': v.get('base_version_id', v['_id']), 'segment': {'$lt': v.get('up_to', 0)}}
-            matching = mongo_count(l._collection, filter=spec) if not is_deleted else 0
+            matching = mongo_count(instance._collection, filter=spec) if not is_deleted else 0
 
         base_id = v.get('base_version_id')
         snaps = ['/'.join((str(x), str(x.generation_time))) for x in v.get('parent')] if v.get('parent') else None
@@ -192,7 +192,7 @@ def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
 
         prev_v_diff = 0 if not prev_v else v['version'] - prev_v['version']
 
-        corrupted = not is_deleted and (is_corrupted(l, sym, v) if do_reads else fast_is_corrupted(l, sym, v))
+        corrupted = not is_deleted and (is_corrupted(instance, sym, v) if do_reads else fast_is_corrupted(instance, sym, v))
 
         logging.info(
             "v{: <6} "
@@ -234,7 +234,7 @@ def analyze_symbol(l, sym, from_ver, to_ver, do_reads=False):
         prev_v = v
 
     logging.info('\nSegments for {}:'.format(sym))
-    for seg in l._collection.find({'symbol': sym}, sort=[('_id', pymongo.ASCENDING)]):
+    for seg in instance._collection.find({'symbol': sym}, sort=[('_id', pymongo.ASCENDING)]):
         logging.info("{: <32}  {: <7}  {: <10} {: <30}".format(
             hashlib.sha1(seg['sha']).hexdigest(),
             seg.get('segment'),
@@ -293,7 +293,7 @@ def _fast_check_corruption(collection, sym, v, check_count, check_last_segment, 
     return False
 
 
-def is_safe_to_append(l, sym, input_v):
+def is_safe_to_append(instance, sym, input_v):
     """
     This method hints whether the symbol/version are safe for appending in two ways:
     1. It verifies whether the symbol is already corrupted (fast, doesn't read the data)
@@ -301,7 +301,7 @@ def is_safe_to_append(l, sym, input_v):
        or dangling segments from a failed append.
     Parameters
     ----------
-    l : `arctic.store.version_store.VersionStore`
+    instance : `arctic.store.version_store.VersionStore`
         The VersionStore instance against which the analysis will be run.
     sym : `str`
         The symbol to test if is corrupted.
@@ -313,18 +313,18 @@ def is_safe_to_append(l, sym, input_v):
     `bool`
         True if the symbol is safe to append, False otherwise.
     """
-    input_v = l._versions.find_one({'symbol': sym, 'version': input_v}) if isinstance(input_v, int) else input_v
-    return not _fast_check_corruption(l._collection, sym, input_v,
+    input_v = instance._versions.find_one({'symbol': sym, 'version': input_v}) if isinstance(input_v, int) else input_v
+    return not _fast_check_corruption(instance._collection, sym, input_v,
                                       check_count=True, check_last_segment=True, check_append_safe=True)
 
 
-def fast_is_corrupted(l, sym, input_v):
+def fast_is_corrupted(instance, sym, input_v):
     """
     This method can be used for a fast check (not involving a read) for a corrupted version.
     Users can't trust this as may give false negatives, but it this returns True, then symbol is certainly broken (no false positives)
     Parameters
     ----------
-    l : `arctic.store.version_store.VersionStore`
+    instance : `arctic.store.version_store.VersionStore`
         The VersionStore instance against which the analysis will be run.
     sym : `str`
         The symbol to test if is corrupted.
@@ -336,19 +336,19 @@ def fast_is_corrupted(l, sym, input_v):
     `bool`
         True if the symbol is found corrupted, False otherwise.
     """
-    input_v = l._versions.find_one({'symbol': sym, 'version': input_v}) if isinstance(input_v, int) else input_v
-    return _fast_check_corruption(l._collection, sym, input_v,
+    input_v = instance._versions.find_one({'symbol': sym, 'version': input_v}) if isinstance(input_v, int) else input_v
+    return _fast_check_corruption(instance._collection, sym, input_v,
                                   check_count=True, check_last_segment=True, check_append_safe=False)
 
 
-def is_corrupted(l, sym, input_v):
+def is_corrupted(instance, sym, input_v):
     """
         This method can be used to check for a corrupted version.
         Will continue to a full read (slower) if the internally invoked fast-detection does not locate a corruption.
 
         Parameters
         ----------
-        l : `arctic.store.version_store.VersionStore`
+        instance : `arctic.store.version_store.VersionStore`
             The VersionStore instance against which the analysis will be run.
         sym : `str`
             The symbol to test if is corrupted.
@@ -361,12 +361,12 @@ def is_corrupted(l, sym, input_v):
             True if the symbol is found corrupted, False otherwise.
         """
     # If version is just a number, read the version document
-    input_v = l._versions.find_one({'symbol': sym, 'version': input_v}) if isinstance(input_v, int) else input_v
-    if not _fast_check_corruption(l._collection, sym, input_v,
+    input_v = instance._versions.find_one({'symbol': sym, 'version': input_v}) if isinstance(input_v, int) else input_v
+    if not _fast_check_corruption(instance._collection, sym, input_v,
                                   check_count=True, check_last_segment=True, check_append_safe=False):
         try:
             # Done with the fast checks, proceed to a full read if instructed
-            l.read(sym, as_of=input_v['version'])
+            instance.read(sym, as_of=input_v['version'])
             return False
         except Exception:
             pass
