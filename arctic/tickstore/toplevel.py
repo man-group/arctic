@@ -108,7 +108,7 @@ overlapping libraries: {}""".format(library_name, [lib.library for lib in librar
         for lib in libraries:
             try:
                 df = lib.library.read(symbol, lib.date_range.intersection(date_range), columns,
-                                    include_images=include_images)
+                                      include_images=include_images)
                 dfs.append(df)
             except NoDataFoundException as e:
                 continue
