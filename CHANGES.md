@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.79.4
+### 1.79.4 (2020-12-01)
   * Bugfix: Update code to work with latest version of pandas
   * Bugfix: Fix missing column handling in numpy serializer
 
