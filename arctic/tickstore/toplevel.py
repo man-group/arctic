@@ -98,17 +98,17 @@ class TopLevelTickStore(object):
         if len(library_metadata) > 1 or (len(library_metadata) == 1 and library_metadata[0] != library_name):
             raise OverlappingDataException("""There are libraries that overlap with the date range:
 library: {}
-overlapping libraries: {}""".format(library_name, [l.library for l in library_metadata]))
+overlapping libraries: {}""".format(library_name, [lib.library for lib in library_metadata]))
         self._collection.update_one({'library_name': library_name},
                                     {'$set': {'start': start, 'end': end}}, upsert=True)
 
     def read(self, symbol, date_range, columns=None, include_images=False):
         libraries = self._get_libraries(date_range)
         dfs = []
-        for l in libraries:
+        for lib in libraries:
             try:
-                df = l.library.read(symbol, l.date_range.intersection(date_range), columns,
-                                    include_images=include_images)
+                df = lib.library.read(symbol, lib.date_range.intersection(date_range), columns,
+                                      include_images=include_images)
                 dfs.append(df)
             except NoDataFoundException as e:
                 continue
@@ -139,7 +139,7 @@ overlapping libraries: {}""".format(library_name, [l.library for l in library_me
 
     def list_symbols(self, date_range):
         libraries = self._get_libraries(date_range)
-        return sorted(list(set(itertools.chain(*[l.library.list_symbols() for l in libraries]))))
+        return sorted(list(set(itertools.chain(*[lib.library.list_symbols() for lib in libraries]))))
 
     def get_name(self):
         name = self._arctic_lib.get_name()
