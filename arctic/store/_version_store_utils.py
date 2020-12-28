@@ -297,7 +297,7 @@ def is_safe_to_append(instance, sym, input_v):
     """
     This method hints whether the symbol/version are safe for appending in two ways:
     1. It verifies whether the symbol is already corrupted (fast, doesn't read the data)
-    2. It verififes that the symbol is safe to append, i.e. there are no subsequent appends,
+    2. It verifies that the symbol is safe to append, i.e. there are no subsequent appends,
        or dangling segments from a failed append.
     Parameters
     ----------
