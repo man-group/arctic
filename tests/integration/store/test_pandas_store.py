@@ -8,7 +8,11 @@ import pandas as pd
 import pytest
 from dateutil.rrule import rrule, DAILY
 from mock import Mock, patch
-from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat
+from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, date_range, concat
+try:
+    from pandas import Panel
+except ImportError:
+    pass
 from pandas.tseries.offsets import DateOffset
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from six import StringIO
