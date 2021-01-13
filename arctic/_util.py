@@ -4,9 +4,9 @@ import numpy as np
 import pymongo
 from pandas import DataFrame
 try:
-	from pandas.testing import assert_frame_equal
+    from pandas.testing import assert_frame_equal
 except ImportError:
-	from pandas.util.testing import assert_frame_equal
+    from pandas.util.testing import assert_frame_equal
 
 from ._config import FW_POINTERS_CONFIG_KEY, FwPointersCfg
 
