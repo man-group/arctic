@@ -1,7 +1,7 @@
 from datetime import datetime as dt
 
 from mock import create_autospec
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal  # FIXME: CM#005 - (deprecate pandas.util.testing)
 
 from arctic.store.bitemporal_store import BitemporalStore
 from tests.util import read_str_as_pandas

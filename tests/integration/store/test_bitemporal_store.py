@@ -7,7 +7,7 @@ from datetime import datetime as dt
 
 import pytz
 from mock import patch
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal  # FIXME: CM#005 - (deprecate pandas.util.testing)
 
 from arctic.date._mktz import mktz
 from tests.util import read_str_as_pandas, multi_index_df_from_arrs

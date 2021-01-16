@@ -3,7 +3,7 @@ from datetime import datetime as dt
 
 import pytest
 from mock import patch, MagicMock
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal  # FIXME: CM#005 - (deprecate pandas.util.testing)
 from pymongo.errors import OperationFailure
 
 from arctic.arctic import Arctic, VERSION_STORE

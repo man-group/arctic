@@ -7,8 +7,9 @@ import pandas as pd
 import pymongo
 import pytest
 from pandas import DataFrame, MultiIndex, Index, Series
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.testing import assert_frame_equal, assert_series_equal  # FIXME: CM#005 - (deprecate pandas.util.testing)
 
+from tests.util import add_idx_freq         # FIXME: CM#003 - similar to (issue #420)
 from arctic._util import mongo_count
 from arctic.chunkstore.chunkstore import START, SYMBOL
 from arctic.chunkstore.passthrough_chunker import PassthroughChunker
@@ -712,8 +713,14 @@ def test_overwrite_series(chunkstore_lib):
                   name='vals')
 
     chunkstore_lib.write('test', s)
-    chunkstore_lib.write('test', s + 1)
-    assert_series_equal(chunkstore_lib.read('test'), s + 1)
+
+    s1 = s + 1
+    chunkstore_lib.write('test', s1)
+
+    rs1 = chunkstore_lib.read('test')
+    add_idx_freq(rs1.index, "D")           # FIXME: CM#003 - similar to (issue #420)
+
+    assert_series_equal(rs1, s1)
 
 
 def test_overwrite_series_monthly(chunkstore_lib):
@@ -1034,7 +1041,9 @@ def test_quarterly_data(chunkstore_lib):
     df.index.name = 'date'
 
     chunkstore_lib.write('quarterly', df, chunk_size='Q')
-    assert_frame_equal(df, chunkstore_lib.read('quarterly'))
+    rs1 = chunkstore_lib.read('quarterly')
+    add_idx_freq(rs1.index, "D")    # FIXME: CM#003 - similar to (issue #420)
+    assert_frame_equal(df, rs1)
     assert(len(chunkstore_lib.read('quarterly', chunk_range=(None, '2016-01-05'))) == 5)
     count = 0
     for _ in chunkstore_lib._collection.find({SYMBOL: 'quarterly'}, sort=[(START, pymongo.ASCENDING)],):

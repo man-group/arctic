@@ -2,7 +2,7 @@ from datetime import datetime as dt
 
 import pytest
 import pytz
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal  # FIXME: CM#005 - (deprecate pandas.util.testing)
 
 from arctic.date import mktz, DateRange
 from arctic.exceptions import OverlappingDataException

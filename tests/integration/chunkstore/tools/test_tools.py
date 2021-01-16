@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal  # FIXME: CM#005 - (deprecate pandas.util.testing)
 
 from arctic.chunkstore.tools import segment_id_repair
 

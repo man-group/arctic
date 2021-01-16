@@ -7,8 +7,9 @@ from datetime import datetime as dt
 import numpy as np
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal  # FIXME: CM#005 - (deprecate pandas.util.testing)
 
+from tests.util import add_idx_freq     # FIXME: CM#003 - similar to (issue #420)
 from arctic.date import DateRange, CLOSED_OPEN, CLOSED_CLOSED, OPEN_OPEN, OPEN_CLOSED
 
 
@@ -72,14 +73,19 @@ def test_date_interval(chunkstore_lib):
     chunkstore_lib.write('test', df, chunk_size='D')
 
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_OPEN))
+    add_idx_freq(ret.index, "D")    # FIXME: CM#003 - similar to (issue #420)
     assert_frame_equal(ret, df[1:4])
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_OPEN))
+    add_idx_freq(ret.index, "D")    # FIXME: CM#003 - similar to (issue #420)
     assert_frame_equal(ret, df[2:4])
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_CLOSED))
+    add_idx_freq(ret.index, "D")    # FIXME: CM#003 - similar to (issue #420)
     assert_frame_equal(ret, df[2:5])
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_CLOSED))
+    add_idx_freq(ret.index, "D")    # FIXME: CM#003 - similar to (issue #420)
     assert_frame_equal(ret, df[1:5])
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), None, CLOSED_OPEN))
+    add_idx_freq(ret.index, "D")    # FIXME: CM#003 - similar to (issue #420)
     assert_frame_equal(ret, df[1:8])
 
     # test without index
@@ -162,9 +168,11 @@ def test_missing_cols(chunkstore_lib):
     df = pd.DataFrame({'A': [40, 50, 60]}, index=index2)
     chunkstore_lib.append('test', df, chunk_size='D')
 
-
-    assert_frame_equal(chunkstore_lib.read('test'), expected_df)
+    rs1 = chunkstore_lib.read('test')
+    add_idx_freq(rs1.index, "D")           # FIXME: CM#003 - similar to (issue #420)
+    assert_frame_equal(rs1, expected_df)
     df = chunkstore_lib.read('test', columns=['B'])
+    add_idx_freq(df.index, "D")            # FIXME: CM#003 - similar to (issue #420)
     assert_frame_equal(df, expected_df['B'].to_frame())
 
 

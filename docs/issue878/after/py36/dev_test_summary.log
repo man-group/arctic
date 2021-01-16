@@ -1,53 +1,105 @@
-ERROR: InvocationError for command /arctic_878/.tox/dev36/bin/python setup.py test
-84 failed, 
-1232 passed, 
-3 skipped, 
-19 xfailed, 
-1 xpassed, 
-60836 warnings in 
-4895.18s (1:21:35)
+ERROR: InvocationError for command /home/cwm/git/bb.FLXSA/quant/arctic_878/.tox/dev36/bin/python setup.py test (exited with code 1)
+30 failed
+1286 passed
+3 skipped
+19 xfailed
+1 xpassed
+60735 warnings in 
+4606.72s (1:16:46)
 
 ===============================================================================
 =================================== FAILURES ===================================
->               assert_frame_equal(item.data, mydf_a)
-E               AssertionError: (None, <Second>)
+>       assert chunk == {u'_id_': {u'key': [(u'_id', 1)], u'ns': u'arctic.library', u'v': index_version},
+                         u'symbol_1_parent_1_segment_1': {u'background': True,
+                                                          u'key': [(u'symbol', 1),
+                                                                   (u'parent', 1),
+                                                                   (u'segment', 1)],
+                                                          u'ns': u'arctic.library',
+                                                          u'unique': True,
+                                                          u'v': index_version},
+                         u'symbol_1_sha_1': {u'background': True,
+                                             u'key': [(u'symbol', 1), (u'sha', 1)],
+                                             u'ns': u'arctic.library',
+                                             u'unique': True,
+                                             u'v': index_version},
+                         u'symbol_hashed': {u'background': True,
+                                            u'key': [(u'symbol', u'hashed')],
+                                            u'ns': u'arctic.library',
+                                            u'v': index_version},
+                         u'symbol_1_sha_1_segment_1': {u'background': True,
+                                                       u'key': [(u'symbol', 1), (u'sha', 1), (u'segment', 1)],
+                                                       u'ns': u'arctic.library',
+                                                       u'unique': True,
+                                                       u'v': index_version}}
+E       AssertionError: assert {'_id_': {'ke... 'v': 2}, ...} == {'_id_': {'ke...ue, ...}, ...}
+E         Differing items:
+E         {'symbol_1_parent_1_segment_1': {'background': True, 'key': [('symbol', 1), ('parent', 1), ('segment', 1)], 'unique': True, 'v': 2}} != {'symbol_1_parent_1_segment_1': {'background': True, 'key': [('symbol', 1), ('parent', 1), ('segment', 1)], 'ns': 'arctic.library', 'unique': True, ...}}
+E         {'symbol_1_sha_1_segment_1': {'background': True, 'key': [('symbol', 1), ('sha', 1), ('segment', 1)], 'unique': True, 'v': 2}} != {'symbol_1_sha_1_segment_1': {'background': True, 'key': [('symbol', 1), ('sha', 1), ('segment', 1)], 'ns': 'arctic.library', 'unique': True,...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
 
-tests/integration/store/test_version_store.py:1382: AssertionError           x2
+tests/integration/test_arctic.py:81: AssertionError                          x1
 ===============================================================================
->               assert_frame_equal(item.data, mydf_a)
-E               AssertionError: (None, <Second>)
+>               assert mongo_count(library._collection) == 0
+E               AssertionError: assert 1 == 0
+E                +  where 1 = mongo_count(Collection(Database(MongoClient(host=['127.223.246.167:22687'], document_class=dict, tz_aware=False, connect=True), 'arctic_user'), 'library'))
+E                +    where Collection(Database(MongoClient(host=['127.223.246.167:22687'], document_class=dict, tz_aware=False, connect=True), 'arctic_user'), 'library') = <VersionStore at 0x7efe3983fb00>\n    <ArcticLibrary at 0x7efe3983f5c0, arctic_user.library>\n        <Arctic at 0x7efe3983f358, connected to MongoClient(host=['127.223.246.167:22687'], document_class=dict, tz_aware=False, connect=True)>._collection
 
-tests/integration/store/test_version_store.py:1403: AssertionError           x3
+tests/integration/scripts/test_arctic_fsck.py:53: AssertionError             x6
 ===============================================================================
->               assert_frame_equal(item.data, mydf_a)
-E               AssertionError: (None, <Second>)
+>               assert not len(library._collection.versions.find_one({})['parent'])
+E               AssertionError: assert not 1
+E                +  where 1 = len([ObjectId('600130160000000000000000')])
 
-tests/integration/store/test_version_store.py:1426: AssertionError           x3
+tests/integration/scripts/test_arctic_fsck.py:170: AssertionError            x6
 ===============================================================================
->               assert_frame_equal(item.data, mydf_a)
-E               AssertionError: (None, <Second>)
+>       assert library._versions.find_one({"symbol": "cherry"}).get("parent", []) == []
+E       AssertionError: assert [ObjectId('60...f11cbddc3ee')] == []
+E         Left contains one more item: ObjectId('60013103a67c9f11cbddc3ee')
+E         Use -v to get the full diff
 
-tests/integration/store/test_version_store.py:1446: AssertionError           x3
+tests/integration/scripts/test_prune_versions.py:63: AssertionError          x1
 ===============================================================================
->               assert_frame_equal(item.data, mydf_a)
-E               AssertionError: (None, <Second>)
+>       assert len(list(library._versions.find({"symbol": "cherry"}))) == 1
+E       AssertionError: assert 2 == 1
+E        +  where 2 = len([{'_id': ObjectId('60028291a67c9f11cbddc3f7'), 'arctic_version': 1080000, 'data': 'blob', 'metadata': None, ...}, {'_id': ObjectId('60028291a67c9f11cbddc3f6'), 'arctic_version': 1080000, 'data': 'blob', 'metadata': None, ...}])
+E        +    where [{'_id': ObjectId('60028291a67c9f11cbddc3f7'), 'arctic_version': 1080000, 'data': 'blob', 'metadata': None, ...}, {'_id': ObjectId('60028291a67c9f11cbddc3f6'), 'arctic_version': 1080000, 'data': 'blob', 'metadata': None, ...}] = list(<pymongo.cursor.Cursor object at 0x7efe395e3f98>)
+E        +      where <pymongo.cursor.Cursor object at 0x7efe395e3f98> = <bound method Collection.find of Collection(Database(MongoClient(host=['127.223.246.167:20342'], document_class=dict, tz_aware=False, connect=True), 'arctic_test'), 'TEST.versions')>({'symbol': 'cherry'})
+E        +        where <bound method Collection.find of Collection(Database(MongoClient(host=['127.223.246.167:20342'], document_class=dict, tz_aware=False, connect=True), 'arctic_test'), 'TEST.versions')> = Collection(Database(MongoClient(host=['127.223.246.167:20342'], document_class=dict, tz_aware=False, connect=True), 'arctic_test'), 'TEST.versions').find
+E        +          where Collection(Database(MongoClient(host=['127.223.246.167:20342'], document_class=dict, tz_aware=False, connect=True), 'arctic_test'), 'TEST.versions') = <VersionStore at 0x7efe396caac8>\n    <ArcticLibrary at 0x7efe396ca860, arctic_test.TEST>\n        <Arctic at 0x7efe395b9518, connected to MongoClient(host=['127.223.246.167:20342'], document_class=dict, tz_aware=False, connect=True)>._versions
 
-tests/integration/store/test_version_store.py:1465: AssertionError           x3
+tests/integration/scripts/test_prune_versions.py:76: AssertionError          x1
 ===============================================================================
->               assert_frame_equal(item.data, mydf[:15])
-E               AssertionError: (None, <Second>)
+>       saved_df = library.read('pandas').data
 
-tests/integration/store/test_version_store.py:1488: AssertionError           x3
+tests/integration/store/test_pandas_store.py:75:                             x1
 ===============================================================================
->           assert_frame_equal(mydf, read_data)
-E           AssertionError: (<Day>, None)
+arctic/store/version_store.py:369: in read
+    date_range=date_range, read_preference=read_preference, **kwargs)
+arctic/store/version_store.py:453: in _do_read
+    data = handler.read(self._arctic_lib, version, symbol, from_version=from_version, **kwargs)
+arctic/store/_pandas_ndarray_store.py:175: in read
+    return self.SERIALIZER.deserialize(item, force_bytes_to_unicode=force_bytes_to_unicode)
+arctic/serialization/numpy_records.py:233: in deserialize
+    index = self._index_from_records(item)
+arctic/serialization/numpy_records.py:99: in _index_from_records
+    rtn = rtn.tz_localize('UTC').tz_convert(recarr.dtype.metadata['index_tz'])
+.tox/dev36/lib/python3.6/site-packages/pandas/core/indexes/extension.py:78: in method
+    result = attr(self._data, *args, **kwargs)
+.tox/dev36/lib/python3.6/site-packages/pandas/core/arrays/datetimes.py:798: in tz_convert
+    tz = timezones.maybe_get_tz(tz)
+pandas/_libs/tslibs/timezones.pyx:91: in pandas._libs.tslibs.timezones.maybe_get_tz
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-tests/integration/store/test_version_store.py:1720: AssertionError           x3
+>   ???
+E   TypeError: <class 'list'>
+
+pandas/_libs/tslibs/timezones.pyx:114: TypeError                             x2
 ===============================================================================
->           assert_series_equal(myseries, read_data)
-E           AssertionError: (<Day>, None)
+>       saved_df = library.read('pandas').data
 
-tests/integration/store/test_version_store.py:1732: AssertionError           x3
+tests/integration/store/test_pandas_store.py:99:                             x1
 ===============================================================================
 >       assert_frame_equal(df, res.tz_convert(mktz('Europe/London')))
 E       AssertionError: DataFrame are different
@@ -113,7 +165,7 @@ E       (shapes (2,), (3,) mismatch)
 E        x: array([nan, nan])
 E        y: array([ 1., nan, nan])
 
-tests/integration/tickstore/test_ts_read.py:233: AssertionError              x1
+tests/integration/tickstore/test_ts_read.py:234: AssertionError              x1
 ===============================================================================
 >           assert_array_equal(df['b'].values, np.array([2.]))
 E           AssertionError: 
@@ -125,7 +177,7 @@ E           Max relative difference: 0.5
 E            x: array([3.])
 E            y: array([2.])
 
-tests/integration/tickstore/test_ts_read.py:299: AssertionError              x1
+tests/integration/tickstore/test_ts_read.py:300: AssertionError              x1
 ===============================================================================
 >       assert_array_equal(df['b'].values, np.array([2., 4.]))
 E       AssertionError: 
@@ -135,7 +187,7 @@ E       (shapes (1,), (2,) mismatch)
 E        x: array([4.])
 E        y: array([2., 4.])
 
-tests/integration/tickstore/test_ts_read.py:368: AssertionError              x1
+tests/integration/tickstore/test_ts_read.py:369: AssertionError              x1
 ===============================================================================
 >       vs._delete_version.assert_called_once_with(sentinel.symbol, 3)
 
@@ -145,6 +197,20 @@ tests/unit/store/test_version_store_audit.py:221:                            x1
 E           AssertionError: Expected '_delete_version' to be called once. Called 0 times.
 
 .eggs/mock-4.0.3-py3.6.egg/mock/mock.py:925: AssertionError                  x1
+===============================================================================
+2021-01-15 23:55:05,381 INFO arctic.store.audit MT: None@None: [sentinel.user] sentinel.log: sentinel.symbol
+Exception in thread Thread-773:
+Traceback (most recent call last):
+  File "/usr/lib/python3.6/threading.py", line 916, in _bootstrap_inner
+    self.run()
+  File "/usr/lib/python3.6/threading.py", line 864, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/cwm/git/bb.FLXSA/quant/arctic_878/tests/unit/store/test_version_store_audit.py", line 197, in losing_writer
+    with pytest.raises(ArcticTransaction):
+  File "/home/cwm/git/bb.FLXSA/quant/arctic_878/.eggs/pytest-6.2.1-py3.6.egg/_pytest/python_api.py", line 719, in raises
+    raise TypeError(msg.format(not_a))
+TypeError: expected exception must be a BaseException type, not ArcticTransaction
+                                                                             x1
 ===============================================================================
 >       assert query == {'s': {'$gte': dt(2014, 1, 1, 12, 0, tzinfo=mktz()), '$lte': dt(2014, 1, 3, 0, 0, tzinfo=mktz())}}
 E       AssertionError: assert {'s': {'$gte'...ca/Denver'))}} == {'s': {'$gte'...ca/Denver'))}}
@@ -173,10 +239,6 @@ arctic/_util.py:6
   /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/_util.py:6: FutureWarning: pandas.util.testing is deprecated. Use the functions in the public API at pandas.testing instead.
     from pandas.util.testing import assert_frame_equal
 
-tests/integration/tickstore/test_ts_read.py:9
-  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/tickstore/test_ts_read.py:9: DeprecationWarning: Importing from numpy.testing.utils is deprecated since 1.15.0, import from numpy.testing instead.
-    from numpy.testing.utils import assert_array_equal
-
 tests/integration/test_arctic.py: 4 warnings
 tests/integration/test_concurrent_append.py: 1 warning
 tests/integration/test_howtos.py: 3 warnings
@@ -186,7 +248,7 @@ tests/integration/store/test_bitemporal_store.py: 43 warnings
 tests/integration/store/test_ndarray_store.py: 37 warnings
 tests/integration/store/test_ndarray_store_append.py: 69 warnings
 tests/integration/store/test_pandas_store.py: 378 warnings
-tests/integration/store/test_version_store.py: 647 warnings
+tests/integration/store/test_version_store.py: 653 warnings
 tests/integration/store/test_version_store_audit.py: 29 warnings
 tests/integration/store/test_version_store_corruption.py: 14 warnings
   /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/store/_ndarray_store.py:600: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
@@ -200,7 +262,7 @@ tests/integration/store/test_bitemporal_store.py: 29 warnings
 tests/integration/store/test_ndarray_store.py: 828 warnings
 tests/integration/store/test_ndarray_store_append.py: 314 warnings
 tests/integration/store/test_pandas_store.py: 285 warnings
-tests/integration/store/test_version_store.py: 570 warnings
+tests/integration/store/test_version_store.py: 573 warnings
 tests/integration/store/test_version_store_audit.py: 21 warnings
 tests/integration/store/test_version_store_corruption.py: 18 warnings
   /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/store/_ndarray_store.py:657: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
@@ -211,8 +273,8 @@ tests/integration/test_howtos.py: 3 warnings
 tests/integration/scripts/test_arctic_fsck.py: 42 warnings
 tests/integration/scripts/test_copy_data.py: 21 warnings
 tests/integration/store/test_bitemporal_store.py: 29 warnings
-tests/integration/store/test_pandas_store.py: 37 warnings
-tests/integration/store/test_version_store.py: 1976 warnings
+tests/integration/store/test_pandas_store.py: 39 warnings
+tests/integration/store/test_version_store.py: 1979 warnings
 tests/integration/store/test_version_store_audit.py: 21 warnings
 tests/integration/store/test_version_store_corruption.py: 138 warnings
   /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/store/_pandas_ndarray_store.py:58: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
@@ -228,7 +290,7 @@ tests/integration/test_arctic.py::test_list_libraries_cached
     arctic._conn.meta_db.cache.remove({})
 
 tests/integration/chunkstore/test_chunkstore.py: 9982 warnings
-tests/integration/chunkstore/test_fixes.py: 91 warnings
+tests/integration/chunkstore/test_fixes.py: 107 warnings
 tests/integration/chunkstore/test_utils.py: 2 warnings
 tests/integration/chunkstore/tools/test_tools.py: 52 warnings
 tests/unit/serialization/test_numpy_arrays.py: 26 warnings
@@ -237,7 +299,7 @@ tests/unit/serialization/test_numpy_arrays.py: 26 warnings
 
 tests/integration/store/test_ndarray_store.py: 3 warnings
 tests/integration/store/test_ndarray_store_append.py: 583 warnings
-tests/integration/store/test_pandas_store.py: 19 warnings
+tests/integration/store/test_pandas_store.py: 21 warnings
 tests/integration/store/test_version_store.py: 1546 warnings
 tests/integration/store/test_version_store_corruption.py: 124 warnings
   /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/store/_ndarray_store.py:449: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
@@ -245,30 +307,10 @@ tests/integration/store/test_version_store_corruption.py: 124 warnings
 
 tests/integration/store/test_ndarray_store.py::test_save_read_large_ndarray
   /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/store/test_ndarray_store.py:146: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
-    assert len(ndarr.tostring()) > 16 * 1024 * 1024
-
-tests/integration/store/test_ndarray_store_append.py::test_append_read_large_ndarray[FwPointersCfg.DISABLED]
-tests/integration/store/test_ndarray_store_append.py::test_append_read_large_ndarray[FwPointersCfg.HYBRID]
-tests/integration/store/test_ndarray_store_append.py::test_append_read_large_ndarray[FwPointersCfg.ENABLED]
-  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/store/test_ndarray_store_append.py:112: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
-    assert len(ndarr.tostring()) > 16 * 1024 * 1024
-
-tests/integration/store/test_ndarray_store_append.py::test_save_append_read_ndarray[FwPointersCfg.DISABLED]
-tests/integration/store/test_ndarray_store_append.py::test_save_append_read_ndarray[FwPointersCfg.HYBRID]
-tests/integration/store/test_ndarray_store_append.py::test_save_append_read_ndarray[FwPointersCfg.ENABLED]
-  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/store/test_ndarray_store_append.py:138: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
-    assert len(ndarr.tostring()) > 16 * 1024 * 1024
-
-tests/integration/store/test_ndarray_store_append.py::test_save_append_read_1row_ndarray
-  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/store/test_ndarray_store_append.py:155: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
-    assert len(ndarr.tostring()) > 16 * 1024 * 1024
-
-tests/integration/store/test_ndarray_store_append.py::test_append_too_large_ndarray
-  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/store/test_ndarray_store_append.py:172: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
-    assert len(ndarr.tostring()) > 16 * 1024 * 1024
+    assert len(ndarr.tostring()) > 16 * 1024 * 1024                         # FIXME: deprecated tostring
 
 tests/integration/store/test_pandas_store.py::test_save_read_pandas_empty_series_with_datetime_multiindex_with_timezone
-  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/store/test_pandas_store.py:146: DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/store/test_pandas_store.py:147: DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
     df = Series(data=[], index=empty_index)
 
 tests/integration/store/test_pandas_store.py::test_duplicate_labels
@@ -280,7 +322,7 @@ tests/integration/store/test_pandas_store.py::test_duplicate_labels
 
 tests/integration/store/test_pickle_store.py::test_bson_large_object
   /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/store/test_pickle_store.py:53: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
-    'large_thing': np.random.rand(int(2.1 * 1024 * 1024)).tostring()}
+    'large_thing': np.random.rand(int(2.1 * 1024 * 1024)).tostring()}       # FIXME: deprecated tostring
 
 tests/integration/tickstore/test_toplevel.py: 44 warnings
 tests/integration/tickstore/test_ts_read.py: 5 warnings
@@ -335,25 +377,9 @@ tests/unit/chunkstore/test_passthrough_chunker.py::test_pass_thru
   /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/unit/chunkstore/test_passthrough_chunker.py:18: DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
     assert(p.exclude(Series([1, 2, 3]), None).equals(Series()))
 
-tests/unit/serialization/test_incremental.py: 38 warnings
-  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/unit/serialization/test_incremental.py:53: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
-    matching = expectation[0].tostring() == incr_ser_data.tostring()
-
 tests/unit/serialization/test_incremental.py: 41846 warnings
   /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/serialization/incremental.py:223: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
     chunk = chunk.tostring() if chunk is not None and get_bytes else chunk
-
-tests/unit/serialization/test_incremental.py: 19 warnings
-  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/unit/serialization/test_incremental.py:73: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
-    matching = expectation[0].tostring() == b''.join(chunk_bytes)
-
-tests/unit/serialization/test_incremental.py: 57 warnings
-  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/unit/serialization/test_incremental.py:101: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
-    matching = expectation[0].tostring() == b''.join(chunk_bytes)
-
-tests/unit/serialization/test_incremental.py: 10 warnings
-  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/unit/serialization/test_incremental.py:136: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
-    matching = expectation[0][from_idx:to_idx].tostring() == b''.join(chunk_bytes)
 
 tests/unit/serialization/test_numpy_arrays.py::test_string_cols_with_nans
 tests/unit/serialization/test_numpy_arrays.py::test_objify_with_missing_columns
@@ -377,10 +403,6 @@ Coverage XML written to file coverage.xml
 
 =========================== short test summary info ============================
 FAILED tests/integration/test_arctic.py::test_indexes - AssertionError: asser...
-FAILED tests/integration/chunkstore/test_chunkstore.py::test_overwrite_series
-FAILED tests/integration/chunkstore/test_chunkstore.py::test_quarterly_data
-FAILED tests/integration/chunkstore/test_fixes.py::test_date_interval - Asser...
-FAILED tests/integration/chunkstore/test_fixes.py::test_missing_cols - Assert...
 FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data6-FwPointersCfg.DISABLED]
 FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data7-FwPointersCfg.HYBRID]
 FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data8-FwPointersCfg.ENABLED]
@@ -397,56 +419,6 @@ FAILED tests/integration/scripts/test_prune_versions.py::test_fix_broken_snapsho
 FAILED tests/integration/scripts/test_prune_versions.py::test_keep_only_one_version
 FAILED tests/integration/store/test_pandas_store.py::test_save_read_pandas_series_with_unicode_index_name
 FAILED tests/integration/store/test_pandas_store.py::test_save_read_pandas_dataframe_with_unicode_index_name
-FAILED tests/integration/store/test_pandas_store.py::test_daterange_large_DataFrame
-FAILED tests/integration/store/test_pandas_store.py::test_daterange_large_DataFrame_middle
-FAILED tests/integration/store/test_pandas_store.py::test_daterange[df0-assert_frame_equal]
-FAILED tests/integration/store/test_pandas_store.py::test_daterange[df1-assert_series_equal]
-FAILED tests/integration/store/test_pandas_store.py::test_daterange_append - ...
-FAILED tests/integration/store/test_version_store.py::test_write_metadata[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata_followed_by_append[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata_followed_by_append[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata_followed_by_append[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata_purge_previous_versions[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata_purge_previous_versions[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata_purge_previous_versions[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata_delete_symbol[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata_delete_symbol[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata_delete_symbol[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata_snapshots[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata_snapshots[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_write_metadata_snapshots[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_restore_version[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_purging_previous_versions[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_purging_previous_versions[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_purging_previous_versions[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_non_existent_version[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_non_existent_version[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_non_existent_version[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_which_updated_only_metadata[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_which_updated_only_metadata[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_which_updated_only_metadata[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_then_snapshot[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_then_snapshot[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_then_snapshot[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_latest_snapshot_noop[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_latest_snapshot_noop[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_latest_snapshot_noop[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_latest_version_noop[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_latest_version_noop[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_latest_version_noop[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_snap_delete_symbol_restore[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_snap_delete_symbol_restore[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_restore_version_snap_delete_symbol_restore[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_can_write_tz_aware_data_df[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_can_write_tz_aware_data_df[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_can_write_tz_aware_data_df[FwPointersCfg.ENABLED]
-FAILED tests/integration/store/test_version_store.py::test_can_write_tz_aware_data_series[FwPointersCfg.DISABLED]
-FAILED tests/integration/store/test_version_store.py::test_can_write_tz_aware_data_series[FwPointersCfg.HYBRID]
-FAILED tests/integration/store/test_version_store.py::test_can_write_tz_aware_data_series[FwPointersCfg.ENABLED]
 FAILED tests/integration/tickstore/test_toplevel.py::test_should_return_data_when_date_range_falls_in_a_single_underlying_library
 FAILED tests/integration/tickstore/test_toplevel.py::test_should_return_data_when_date_range_spans_libraries
 FAILED tests/integration/tickstore/test_toplevel.py::test_should_return_data_when_date_range_spans_libraries_even_if_one_returns_nothing

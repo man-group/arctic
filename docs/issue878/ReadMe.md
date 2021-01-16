@@ -2,7 +2,7 @@
 
 The following steps were taken to address issue #878:
 
-1. previous work was done using a manually configured Python 3.6 virtual 
+1. Previous work was done using a manually configured Python 3.6 virtual 
    environment.  
 2. Some errors and warnings were thought to come from package version 
    differences in the manually configured py36 environment.
@@ -20,29 +20,29 @@ The following steps were taken to address issue #878:
 * `/before` directory logs the tox test run - before code changes.
 * `/after` directory logs the tox test run - after code changes.
 
-|  venv |             tox test run             |
+| venv  |            tox test run              |
 |:-----:|:------------------------------------:|
-| dev27 | /.tox/dev27/bin/python setup.py test |
 | dev36 | /.tox/dev36/bin/python setup.py test |
-
-### Python 2.7 (dev27) Test Pareto
-|    Status |  before |   after |
-|----------:|--------:|--------:|
-|    failed |      27 |     |
-|    passed |    1290 |     |
-|   skipped |       3 |     |
-|   xfailed |       7 |     |
-|   xpassed |      12 |     |
-|  warnings |      26 |     |
-| test time | 1:28:36 |     |
+| dev27 | /.tox/dev27/bin/python setup.py test |
 
 ### Python 3.6 (dev36) Test Pareto
-|    Status |  before |   after |
-|----------:|--------:|--------:|
-|    failed |      84 |     |
-|    passed |    1232 |     |
-|   skipped |       3 |     |
-|   xfailed |      19 |     |
-|   xpassed |       1 |     |
-|  warnings |   60836 |     |
-| test time | 1:21:35 |     |
+|    Status |  before |   after |   delta |
+|----------:|--------:|--------:|--------:|
+|    failed |      84 |      30 |     -54 |
+|    passed |    1232 |    1286 |     +54 |
+|   skipped |       3 |       3 |       0 |
+|   xfailed |      19 |      19 |       0 |
+|   xpassed |       1 |       1 |       0 |
+|  warnings |   60836 |   60735 |    -101 |
+| test time | 1:21:35 | 1:16:46 | -0:4:49 |
+
+### Python 2.7 (dev27) Test Pareto
+|    Status |  before |   after |   delta |
+|----------:|--------:|--------:|--------:|
+|    failed |      27 |      28 |      +1 |
+|    passed |    1290 |    1289 |      -1 |
+|   skipped |       3 |       3 |       0 |
+|   xfailed |       7 |       7 |       0 |
+|   xpassed |      12 |      12 |       0 |
+|  warnings |      26 |      26 |       0 |
+| test time | 1:28:36 | 1:35:23 | +0:6:47 |

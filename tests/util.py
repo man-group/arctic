@@ -72,3 +72,21 @@ def multi_index_df_from_arrs(index_headers, index_arrs, data_dict):
 
     m_index = pandas.MultiIndex.from_arrays(parsed_indexes, names=index_headers)
     return pandas.DataFrame(data_dict, index=m_index)
+
+
+# FIXME: CM#003 - similar to (issue #420)
+def add_idx_freq(idx, freq):
+    """Add a frequency attribute to idx, through inference or directly. For
+    example the `test_overwrite_series` assignment `rs1 = chunkstore_lib.read('test')`
+    does not set the `freq` field so the comparison of source to retrieved
+    fails.
+
+    Returns a copy.  If `freq` is None, it is inferred.
+    """
+
+    idx = idx.copy()
+    idx.freq = pandas.tseries.frequencies.to_offset(freq)
+    if idx.freq is None:
+        raise AttributeError('no discernible frequency found to `idx`.  Specify'
+                             ' a frequency string with `freq`.')
+    return idx

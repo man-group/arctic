@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandas import to_datetime as dt
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal  # FIXME: CM#005 - (deprecate pandas.util.testing)
 
 from arctic.multi_index import groupby_asof, fancy_group_by, insert_at
 from tests.util import multi_index_df_from_arrs

@@ -11,7 +11,7 @@ import pymongo
 import pytest
 import six
 from mock import Mock, patch
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.testing import assert_frame_equal, assert_series_equal  # FIXME: CM#005 - (deprecate pandas.util.testing)
 from pymongo.errors import OperationFailure
 from pymongo.server_type import SERVER_TYPE
 
@@ -26,6 +26,7 @@ from arctic.store import _version_store_utils
 from arctic.store import version_store
 from tests.unit.serialization.serialization_test_data import _mixed_test_data
 from ...util import read_str_as_pandas
+from tests.util import add_idx_freq     # FIXME: CM#003 - similar to (issue #420)
 
 ts1 = read_str_as_pandas("""         times | near
                    2012-09-08 17:06:11.040 |  1.0
@@ -1158,10 +1159,10 @@ def test_write_metadata(library, fw_pointers_cfg):
             assert v_doc_2.get(FW_POINTERS_REFS_KEY) == v_doc_3.get(FW_POINTERS_REFS_KEY)
 
             v = library.read(symbol)
-            assert_frame_equal(v.data, mydf_b)
+            assert v.data.equals(mydf_b)    # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert v.metadata == {'field_b': 1}
             assert library._read_metadata(symbol).get('version') == 3
-            assert_frame_equal(library.read(symbol, as_of=1).data, mydf_a)
+            assert library.read(symbol, as_of=1).data.equals(mydf_a)    # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1179,10 +1180,10 @@ def test_write_metadata_followed_by_append(library, fw_pointers_cfg):
             library._prune_previous_versions(symbol, 0)
 
             v = library.read(symbol)
-            assert_frame_equal(v.data, mydf_a.append(mydf_b))
+            assert v.data.equals(mydf_a.append(mydf_b)) # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert v.metadata == {'field_c': 1}
             assert library._read_metadata(symbol).get('version') == 3
-            assert_frame_equal(library.read(symbol, as_of=1).data, mydf_a)
+            assert library.read(symbol, as_of=1).data.equals(mydf_a)    # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1230,14 +1231,14 @@ def test_write_metadata_purge_previous_versions(library, fw_pointers_cfg):
 
                 # Assert the data
                 v = library.read(symbol)
-                assert_frame_equal(v.data, mydf_b)
+                assert v.data.equals(mydf_b)    # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
                 assert v.metadata == {'field_b': 1}
 
                 # Check if after snapshot and deleting the symbol, the data/metadata survive
                 library.snapshot('SNAP_1')
                 library.delete(symbol)
                 v = library.read(symbol, as_of='SNAP_1')
-                assert_frame_equal(v.data, mydf_b)
+                assert v.data.equals(mydf_b)    # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
                 assert library._read_metadata(symbol, as_of='SNAP_1').get('version') == 3
                 assert v.metadata == {'field_b': 1}
 
@@ -1258,7 +1259,7 @@ def test_write_metadata_delete_symbol(library, fw_pointers_cfg):
                 library.read(symbol)
 
             library.write(symbol, data=mydf_b, metadata={'field_a': 1})  # creates version 1
-            assert_frame_equal(library.read(symbol).data, mydf_b)
+            assert library.read(symbol).data.equals(mydf_b) # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1277,15 +1278,15 @@ def test_write_metadata_snapshots(library, fw_pointers_cfg):
             library._prune_previous_versions(symbol, keep_mins=0)
 
             v = library.read(symbol)
-            assert_frame_equal(v.data, mydf_b)
+            assert v.data.equals(mydf_b)    # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert v.metadata == {'field_c': 1}
 
             v = library.read(symbol, as_of='SNAP_1')
-            assert_frame_equal(v.data, mydf_a)
+            assert v.data.equals(mydf_a)    # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert v.metadata == {'field_a': 1}
 
             v = library.read(symbol, as_of='SNAP_2')
-            assert_frame_equal(v.data, mydf_a)
+            assert v.data.equals(mydf_a)    # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert v.metadata == {'field_b': 1}
 
 
@@ -1300,7 +1301,7 @@ def test_restore_version(library, fw_pointers_cfg):
             library.write(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_b)
+            assert item.data.equals(mydf_b)     # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert item.metadata == {'field_a': 2}
             assert library._read_metadata(symbol).get('version') == 2
 
@@ -1309,7 +1310,7 @@ def test_restore_version(library, fw_pointers_cfg):
             assert restore_item.metadata == {'field_a': 1}
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_a)
+            assert item.data.equals(mydf_a)     # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert item.metadata == {'field_a': 1}
             assert library._read_metadata(symbol).get('version') == 3
 
@@ -1362,7 +1363,7 @@ def test_restore_version_purging_previous_versions(library, fw_pointers_cfg):
             # library._delete_version(symbol, 1)  # delete the original version to test further the robustness/dependency
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_a)
+            assert item.data.equals(mydf_a)     # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert item.metadata == {'field_a': 1}
             assert library._read_metadata(symbol).get('version') == 3
 
@@ -1379,7 +1380,7 @@ def test_restore_version_non_existent_version(library, fw_pointers_cfg):
                 library.restore_version(symbol, as_of=3)
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_a)
+            assert item.data.equals(mydf_a)     # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert item.metadata == {'field_a': 1}
             assert item.version == 1
 
@@ -1400,7 +1401,7 @@ def test_restore_version_which_updated_only_metadata(library, fw_pointers_cfg):
             assert restore_item.metadata == {'field_b': 1}
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_a)
+            assert item.data.equals(mydf_a)     # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert item.metadata == {'field_b': 1}
             assert item.version == 4
 
@@ -1423,7 +1424,7 @@ def test_restore_version_then_snapshot(library, fw_pointers_cfg):
             library.write(symbol, data=mydf_b)  # creates version 3
 
             item = library.read(symbol, as_of='SNAP_1')
-            assert_frame_equal(item.data, mydf_a)
+            assert item.data.equals(mydf_a)     # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert item.metadata == {'field_a': 1}
             assert item.version == 3
 
@@ -1443,7 +1444,7 @@ def test_restore_version_latest_snapshot_noop(library, fw_pointers_cfg):
             assert restore_item.version == 2
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_a)
+            assert item.data.equals(mydf_a)     # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert item.metadata == {'field_b': 1}
             assert item.version == 2
 
@@ -1462,7 +1463,7 @@ def test_restore_version_latest_version_noop(library, fw_pointers_cfg):
             assert restore_item.version == 2
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_a)
+            assert item.data.equals(mydf_a)     # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert item.metadata == {'field_b': 1}
             assert item.version == 2
 
@@ -1485,7 +1486,7 @@ def test_restore_version_snap_delete_symbol_restore(library, fw_pointers_cfg):
             assert restored_item.version == 5
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf[:15])
+            assert item.data.equals(mydf[:15])      # FIXME: CM#009 - (replace assert_frame_equal with df.equals)
             assert item.metadata == {'field_a': 1}
             assert item.version == 5
 
@@ -1717,6 +1718,7 @@ def test_can_write_tz_aware_data_df(library, fw_pointers_cfg):
         # Arctic converts by default the data to UTC, convert back
         read_data.colB = read_data.colB.dt.tz_localize('UTC').dt.tz_convert(read_data.index.tzinfo)
         assert library._versions.find_one({'symbol': 'symTz'})['type'] == PandasDataFrameStore.TYPE
+        add_idx_freq(read_data.index, "D")  # FIXME: CM#003 - similar to (issue #420)
         assert_frame_equal(mydf, read_data)
 
 
@@ -1729,6 +1731,7 @@ def test_can_write_tz_aware_data_series(library, fw_pointers_cfg):
         # Arctic converts by default the data to UTC, convert back
         read_data = read_data.dt.tz_localize('UTC').dt.tz_convert(read_data.index.tzinfo)
         assert library._versions.find_one({'symbol': 'symTzSer'})['type'] == PandasSeriesStore.TYPE
+        add_idx_freq(read_data.index, "D")  # FIXME: CM#003 - similar to (issue #420)
         assert_series_equal(myseries, read_data)
 
 

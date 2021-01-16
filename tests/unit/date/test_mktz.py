@@ -6,7 +6,7 @@ from pytest import raises
 
 from arctic.date import mktz, TimezoneError
 
-DEFAULT_TIME_ZONE_NAME = tzlocal.get_localzone().zone  # 'Europe/London'
+DEFAULT_TIME_ZONE_NAME = str(tzlocal.get_localzone())  # 'Europe/London'    # FIXME: CM#001 - (str)
 
 
 def test_mktz():

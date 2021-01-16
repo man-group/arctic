@@ -1,6 +1,6 @@
 import pytest
 from mock import patch, call
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal  # FIXME: CM#005 - (deprecate pandas.util.testing)
 
 from arctic import arctic as m
 from arctic.scripts import arctic_copy_data as mcd
