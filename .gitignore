@@ -1,18 +1,26 @@
+# Runtime artifacts
 /build
-*.eggs/
-*.pyc
 /src/_compress.c
+/tmp/
+*.pyc
 *.egg
 *.so
-*.egg-info
-
-# Coverage
-htmlcov
-.coverage
-.idea
+*.sw[op]
 .cache
+
+# Coverage test artifacts
+htmlcov/
+.coverage
 coverage.xml
 junit.xml
-/tmp/
 
-*.sw[op]
+# PyCharm IDE
+/.idea/
+
+# Virtual Environments
+/.tox/
+/.venv/
+
+# Install Artifacts
+*.eggs/
+*.egg-info/
