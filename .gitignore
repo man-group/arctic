@@ -27,6 +27,7 @@ junit.xml
 *.egg-info/
 
 # Benchmark Artifacts
+/asv/
 /.asv/
 
 # Setup Scripts
