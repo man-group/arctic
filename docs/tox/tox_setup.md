@@ -49,7 +49,7 @@ $ source .venv/bin/activate
 Update the pip
 ```shell
 $ cd <root of arctic project directory>
-$ cp -i docs/issue878/get-pip.py get-pip.py
+$ cp -i docs/tox/get-pip.py get-pip.py
 (.venv) $ python get-pip.py
 (.venv) $ pip install tox
 ```
@@ -75,6 +75,7 @@ Python 3.6.12
 ~~~~~ tox ~~~~~~~
 .venv/bin/tox
 3.21.0 imported from /.venv/lib/python3.
+
 ```
 ## Run `tox`
 The initial version of [`tox.ini`](../../tox.ini) for this project is 

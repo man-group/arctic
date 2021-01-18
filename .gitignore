@@ -9,6 +9,7 @@
 .cache
 
 # Coverage test artifacts
+/.run/
 htmlcov/
 .coverage
 coverage.xml
@@ -24,3 +25,11 @@ junit.xml
 # Install Artifacts
 *.eggs/
 *.egg-info/
+
+# Benchmark Artifacts
+/.asv/
+
+# Setup Scripts
+get-pip.py
+setpath.sh
+clean_after_tox.sh
