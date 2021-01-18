@@ -54,6 +54,30 @@ $ cp -i docs/tox/get-pip.py get-pip.py
 (.venv) $ pip install tox
 ```
 
+Clone `asv`
+```shell
+(.venv) $ git clone https://github.com/airspeed-velocity/asv.git
+```
+
+> Note: If asv is added as a submodule it will break travis testing.  To remove
+> the submodule use the following:
+```shell
+# submodule install
+(.venv) $ git submodule add https://github.com/airspeed-velocity/asv.git
+
+# Remove the submodule entry from .git/config
+git submodule deinit -f asv
+
+# Remove the submodule directory from the superproject's .git/modules directory
+rm -rf .git/modules/asv
+
+# Remove the entry in .gitmodules and remove the submodule directory located at path/to/submodule
+git rm -f asv
+``` 
+
+
+
+
 ### Optional - use the `setpath.sh` script to find the `tox` virtual environment
 By doing this the `python` command will now be using the python3.6 you installed 
 in `.venv`. 
