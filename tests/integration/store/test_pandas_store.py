@@ -8,7 +8,11 @@ import pandas as pd
 import pytest
 from dateutil.rrule import rrule, DAILY
 from mock import Mock, patch
-from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, Panel, date_range, concat
+from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, date_range, concat
+try:
+    from pandas import Panel		# FIXME pull881
+except ImportError:
+    pass
 from pandas.tseries.offsets import DateOffset
 from pandas.testing import assert_frame_equal, assert_series_equal  # FIXME: CM#005 - (deprecate pandas.util.testing)
 from six import StringIO
@@ -67,10 +71,12 @@ def test_save_read_pandas_series_with_multiindex_and_name(library):
 
 
 def test_save_read_pandas_series_with_unicode_index_name(library):
+    # FIXME: CM#011 - (replace pandas Series MultiIndex with DatetimeIndex)
     df = Series(data=['A', 'BC', 'DEF'],
-                index=MultiIndex.from_tuples([(np.datetime64(dt(2013, 1, 1)),),
-                                              (np.datetime64(dt(2013, 1, 2)),),
-                                              (np.datetime64(dt(2013, 1, 3)),)], names=[u'DATETIME']))
+                index=DatetimeIndex(np.array([dt(2013, 1, 1),
+                                              dt(2013, 1, 2),
+                                              dt(2013, 1, 3)]).astype(
+                    'datetime64[ns]'), name=u'DATETIME'))
     library.write('pandas', df)
     saved_df = library.read('pandas').data
     assert np.all(df.values == saved_df.values)
@@ -91,10 +97,12 @@ def test_save_read_pandas_dataframe_with_none_values(library):
 
 
 def test_save_read_pandas_dataframe_with_unicode_index_name(library):
-    df = DataFrame(data=['A', 'BC', 'DEF'],
-                   index=MultiIndex.from_tuples([(np.datetime64(dt(2013, 1, 1)),),
-                                                 (np.datetime64(dt(2013, 1, 2)),),
-                                                 (np.datetime64(dt(2013, 1, 3)),)], names=[u'DATETIME']))
+    # FIXME: CM#011 - (replace pandas Series MultiIndex with DatetimeIndex)
+    df = Series(data=['A', 'BC', 'DEF'],
+                index=DatetimeIndex(np.array([dt(2013, 1, 1),
+                                              dt(2013, 1, 2),
+                                              dt(2013, 1, 3)]).astype(
+                    'datetime64[ns]'), name=u'DATETIME'))
     library.write('pandas', df)
     saved_df = library.read('pandas').data
     assert np.all(df.values == saved_df.values)

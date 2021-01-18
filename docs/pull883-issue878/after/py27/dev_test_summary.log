@@ -1,0 +1,664 @@
+===============================================================================
+=========================== short test summary info ============================
+ 1 tests/integration/tickstore/test_toplevel.py:65: test_should_return_data_when_date_range_falls_in_a_single_underlying_library
+ 2 tests/integration/tickstore/test_toplevel.py:83: test_should_return_data_when_date_range_spans_libraries
+ 3 tests/integration/tickstore/test_toplevel.py:101: test_should_return_data_when_date_range_spans_libraries_even_if_one_returns_nothing
+ 4 tests/integration/tickstore/test_toplevel.py:113: test_should_add_underlying_library_where_another_library_exists_in_a_non_overlapping_daterange
+ 5 tests/integration/tickstore/test_toplevel.py:197 test_should_write_top_level_with_list_of_dicts
+ 6 tests/integration/tickstore/test_toplevel.py:215 test_should_write_top_level_with_correct_timezone
+ 7 tests/integration/tickstore/test_ts_read.py:234: AssertionError test_date_range(tickstore_lib)
+ 8 tests/integration/tickstore/test_ts_read.py:300: AssertionError test_date_range_end_not_in_range
+ 9 tests/integration/tickstore/test_ts_read.py:369: AssertionError test_date_range_no_bounds(tickstore_lib)
+10 tests/unit/tickstore/test_tickstore.py:43: AssertionError test_mongo_date_range_query
+11 tests/unit/tickstore/test_tickstore.py:97: AssertionError test_tickstore_to_bucket_with_image
+12 tests/unit/tickstore/test_tickstore.py:162: AssertionError test_tickstore_pandas_to_bucket_image
+
+
+===============================================================================
+===============================================================================
+.tox/dev27/lib/python2.7/site-packages/bson/__init__.py:938: InvalidStringData
+===============================================================================
+
+    def test_should_return_data_when_date_range_falls_in_a_single_underlying_library(toplevel_tickstore, arctic):
+        arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+        tstore = arctic['FEED_2010.LEVEL1']
+        arctic.initialize_library('test_current.toplevel_tickstore', tickstore.TICK_STORE_TYPE)
+        tickstore_current = arctic['test_current.toplevel_tickstore']
+        toplevel_tickstore._collection.insert_one({'start': dt(2010, 1, 1),
+                                               'end': dt(2010, 12, 31, 23, 59, 59),
+                                               'library_name': 'FEED_2010.LEVEL1'})
+        dates = pd.date_range('20100101', periods=6, tz=mktz('Europe/London'))
+        df = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
+        tstore.write('blah', df)
+        tickstore_current.write('blah', df)
+        res = toplevel_tickstore.read('blah', DateRange(start=dt(2009, 1, 1), end=dt(2010, 1, 6)), list('ABCD'))    # FIXME: CM#012 - (read missing January 1st)
+    
+>       assert_frame_equal(df, res.tz_convert(mktz('Europe/London')))
+
+tests/integration/tickstore/test_toplevel.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.tox/dev27/lib/python2.7/site-packages/pandas/util/testing.py:1353: in assert_frame_equal
+    '{shape!r}'.format(shape=right.shape))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = 'DataFrame', message = 'DataFrame shape mismatch', left = '(6, 4)'
+right = '(5, 4)', diff = None
+
+    def raise_assert_detail(obj, message, left, right, diff=None):
+        if isinstance(left, np.ndarray):
+            left = pprint_thing(left)
+        elif is_categorical_dtype(left):
+            left = repr(left)
+        if isinstance(right, np.ndarray):
+            right = pprint_thing(right)
+        elif is_categorical_dtype(right):
+            right = repr(right)
+    
+        msg = """{obj} are different
+    
+    {message}
+    [left]:  {left}
+    [right]: {right}""".format(obj=obj, message=message, left=left, right=right)
+    
+        if diff is not None:
+            msg += "\n[diff]: {diff}".format(diff=diff)
+    
+>       raise AssertionError(msg)
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (6, 4)
+E       [right]: (5, 4)
+
+.tox/dev27/lib/python2.7/site-packages/pandas/util/testing.py:1093: AssertionError
+===============================================================================
+
+___________ test_should_return_data_when_date_range_spans_libraries ____________
+
+    def test_should_return_data_when_date_range_spans_libraries(toplevel_tickstore, arctic):
+        arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+        arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
+        tickstore_2010 = arctic['FEED_2010.LEVEL1']
+        tickstore_2011 = arctic['FEED_2011.LEVEL1']
+        toplevel_tickstore.add(DateRange(start=dt(2010, 1, 1), end=dt(2010, 12, 31, 23, 59, 59, 999000)), 'FEED_2010.LEVEL1')
+        toplevel_tickstore.add(DateRange(start=dt(2011, 1, 1), end=dt(2011, 12, 31, 23, 59, 59, 999000)), 'FEED_2011.LEVEL1')
+        dates = pd.date_range('20100101', periods=6, tz=mktz('Europe/London'))
+        df_10 = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
+        tickstore_2010.write('blah', df_10)
+        dates = pd.date_range('20110101', periods=6, tz=mktz('Europe/London'))
+        df_11 = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
+        tickstore_2011.write('blah', df_11)
+        res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 1, 2), end=dt(2011, 1, 4)), list('ABCD'))
+        expected_df = pd.concat([df_10[1:], df_11[:4]])
+>       assert_frame_equal(expected_df, res.tz_convert(mktz('Europe/London')))
+
+tests/integration/tickstore/test_toplevel.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.tox/dev27/lib/python2.7/site-packages/pandas/util/testing.py:1353: in assert_frame_equal
+    '{shape!r}'.format(shape=right.shape))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = 'DataFrame', message = 'DataFrame shape mismatch', left = '(9, 4)'
+right = '(7, 4)', diff = None
+
+    def raise_assert_detail(obj, message, left, right, diff=None):
+        if isinstance(left, np.ndarray):
+            left = pprint_thing(left)
+        elif is_categorical_dtype(left):
+            left = repr(left)
+        if isinstance(right, np.ndarray):
+            right = pprint_thing(right)
+        elif is_categorical_dtype(right):
+            right = repr(right)
+    
+        msg = """{obj} are different
+    
+    {message}
+    [left]:  {left}
+    [right]: {right}""".format(obj=obj, message=message, left=left, right=right)
+    
+        if diff is not None:
+            msg += "\n[diff]: {diff}".format(diff=diff)
+    
+>       raise AssertionError(msg)
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (9, 4)
+E       [right]: (7, 4)
+
+.tox/dev27/lib/python2.7/site-packages/pandas/util/testing.py:1093: AssertionError
+
+===============================================================================
+
+    def test_should_return_data_when_date_range_spans_libraries_even_if_one_returns_nothing(toplevel_tickstore, arctic):
+        arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+        arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
+        tickstore_2010 = arctic['FEED_2010.LEVEL1']
+        tickstore_2011 = arctic['FEED_2011.LEVEL1']
+        toplevel_tickstore.add(DateRange(start=dt(2010, 1, 1), end=dt(2010, 12, 31, 23, 59, 59, 999000)), 'FEED_2010.LEVEL1')
+        toplevel_tickstore.add(DateRange(start=dt(2011, 1, 1), end=dt(2011, 12, 31, 23, 59, 59, 999000)), 'FEED_2011.LEVEL1')
+        dates = pd.date_range('20100101', periods=6, tz=mktz('Europe/London'))
+        df_10 = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
+        tickstore_2010.write('blah', df_10)
+        dates = pd.date_range('20110201', periods=6, tz=mktz('Europe/London'))
+        df_11 = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
+        tickstore_2011.write('blah', df_11)
+        res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 1, 2), end=dt(2011, 1, 4)), list('ABCD'))
+        expected_df = df_10[1:]
+>       assert_frame_equal(expected_df, res.tz_convert(mktz('Europe/London')))
+
+tests/integration/tickstore/test_toplevel.py:101: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.tox/dev27/lib/python2.7/site-packages/pandas/util/testing.py:1353: in assert_frame_equal
+    '{shape!r}'.format(shape=right.shape))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = 'DataFrame', message = 'DataFrame shape mismatch', left = '(5, 4)'
+right = '(4, 4)', diff = None
+
+    def raise_assert_detail(obj, message, left, right, diff=None):
+        if isinstance(left, np.ndarray):
+            left = pprint_thing(left)
+        elif is_categorical_dtype(left):
+            left = repr(left)
+        if isinstance(right, np.ndarray):
+            right = pprint_thing(right)
+        elif is_categorical_dtype(right):
+            right = repr(right)
+    
+        msg = """{obj} are different
+    
+    {message}
+    [left]:  {left}
+    [right]: {right}""".format(obj=obj, message=message, left=left, right=right)
+    
+        if diff is not None:
+            msg += "\n[diff]: {diff}".format(diff=diff)
+    
+>       raise AssertionError(msg)
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (5, 4)
+E       [right]: (4, 4)
+
+.tox/dev27/lib/python2.7/site-packages/pandas/util/testing.py:1093: AssertionError
+
+===============================================================================
+
+    def test_should_add_underlying_library_where_another_library_exists_in_a_non_overlapping_daterange(toplevel_tickstore, arctic):
+        toplevel_tickstore._collection.insert_one({'library_name': 'FEED_2011.LEVEL1', 'start': dt(2011, 1, 1), 'end': dt(2011, 12, 31)})
+        arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+>       toplevel_tickstore.add(DateRange(start=dt(2010, 1, 1), end=dt(2010, 12, 31, 23, 59, 59, 999000)), 'FEED_2010.LEVEL1')
+
+tests/integration/tickstore/test_toplevel.py:113: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <arctic.tickstore.toplevel.TopLevelTickStore object at 0x7f5dad322610>
+date_range = DateRange(start=datetime.datetime(2010, 1, 1, 0, 0), end=datetime.datetime(2010, 12, 31, 23, 59, 59, 999000))
+library_name = 'FEED_2010.LEVEL1'
+
+        def add(self, date_range, library_name):
+            """
+            Adds the library with the given date range to the underlying collection of libraries used by this store.
+            The underlying libraries should not overlap as the date ranges are assumed to be CLOSED_CLOSED by this function
+            and the rest of the class.
+    
+            Arguments:
+    
+            date_range: A date range provided on the assumption that it is CLOSED_CLOSED. If for example the underlying
+            libraries were split by year, the start of the date range would be datetime.datetime(year, 1, 1) and the end
+            would be datetime.datetime(year, 12, 31, 23, 59, 59, 999000). The date range must fall on UTC day boundaries,
+            that is the start must be add midnight and the end must be 1 millisecond before midnight.
+    
+            library_name: The name of the underlying library. This must be the name of a valid Arctic library
+            """
+            # check that the library is valid
+            try:
+                self._arctic_lib.arctic[library_name]
+            except Exception as e:
+                logger.error("Could not load library")
+                raise e
+            assert date_range.start and date_range.end, "Date range should have start and end properties {}".format(date_range)
+            start = date_range.start.astimezone(mktz('UTC')) if date_range.start.tzinfo is not None else date_range.start.replace(tzinfo=mktz('UTC'))
+            end = date_range.end.astimezone(mktz('UTC')) if date_range.end.tzinfo is not None else date_range.end.replace(tzinfo=mktz('UTC'))
+            assert start.time() == time.min and end.time() == end_time_min, "Date range should fall on UTC day boundaries {}".format(date_range)
+            # check that the date range does not overlap
+            library_metadata = self._get_library_metadata(date_range)
+            if len(library_metadata) > 1 or (len(library_metadata) == 1 and library_metadata[0] != library_name):
+                raise OverlappingDataException("""There are libraries that overlap with the date range:
+    library: {}
+>   overlapping libraries: {}""".format(library_name, [lib.library for lib in library_metadata]))
+E   OverlappingDataException: There are libraries that overlap with the date range:
+E   library: FEED_2010.LEVEL1
+E   overlapping libraries: [u'FEED_2011.LEVEL1']
+
+arctic/tickstore/toplevel.py:101: OverlappingDataException
+
+===============================================================================
+
+________________ test_should_write_top_level_with_list_of_dicts ________________
+
+    def test_should_write_top_level_with_list_of_dicts(arctic):
+        arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+        arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
+        arctic.initialize_library('FEED.LEVEL1', toplevel.TICK_STORE_TYPE)
+        toplevel_tickstore = arctic['FEED.LEVEL1']
+        dates = pd.date_range('20101201', periods=57, tz=mktz('Europe/London'))
+        data = [{'index': dates[i], 'a': i} for i in range(len(dates))]
+        expected = pd.DataFrame(np.arange(57, dtype=np.float64), index=dates, columns=list('a'))
+        toplevel_tickstore.write('blah', data)
+        res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 12, 1), end=dt(2011, 2, 1)), columns=list('a'))
+>       assert_frame_equal(expected, res.tz_convert(mktz('Europe/London')))
+
+tests/integration/tickstore/test_toplevel.py:197: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.tox/dev27/lib/python2.7/site-packages/pandas/util/testing.py:1353: in assert_frame_equal
+    '{shape!r}'.format(shape=right.shape))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = 'DataFrame', message = 'DataFrame shape mismatch', left = '(57, 1)'
+right = '(55, 1)', diff = None
+
+    def raise_assert_detail(obj, message, left, right, diff=None):
+        if isinstance(left, np.ndarray):
+            left = pprint_thing(left)
+        elif is_categorical_dtype(left):
+            left = repr(left)
+        if isinstance(right, np.ndarray):
+            right = pprint_thing(right)
+        elif is_categorical_dtype(right):
+            right = repr(right)
+    
+        msg = """{obj} are different
+    
+    {message}
+    [left]:  {left}
+    [right]: {right}""".format(obj=obj, message=message, left=left, right=right)
+    
+        if diff is not None:
+            msg += "\n[diff]: {diff}".format(diff=diff)
+    
+>       raise AssertionError(msg)
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (57, 1)
+E       [right]: (55, 1)
+
+.tox/dev27/lib/python2.7/site-packages/pandas/util/testing.py:1093: AssertionError
+
+===============================================================================
+
+    def test_should_write_top_level_with_correct_timezone(arctic):
+        # Write timezone aware data and read back in UTC
+        utc = mktz('UTC')
+        arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+        arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
+        arctic.initialize_library('FEED.LEVEL1', toplevel.TICK_STORE_TYPE)
+        toplevel_tickstore = arctic['FEED.LEVEL1']
+        dates = pd.date_range('20101230220000', periods=10, tz=mktz('America/New_York'))  # 10pm New York time is 3am next day UTC
+        data = [{'index': dates[i], 'a': i} for i in range(len(dates))]
+        expected = pd.DataFrame(np.arange(len(dates), dtype=np.float64), index=dates.tz_convert(utc), columns=list('a'))
+        toplevel_tickstore.write('blah', data)
+        res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 1, 1), end=dt(2011, 12, 31)), columns=list('a')).tz_convert(utc)
+>       assert_frame_equal(expected, res)
+
+tests/integration/tickstore/test_toplevel.py:215: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+.tox/dev27/lib/python2.7/site-packages/pandas/util/testing.py:1353: in assert_frame_equal
+    '{shape!r}'.format(shape=right.shape))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+obj = 'DataFrame', message = 'DataFrame shape mismatch', left = '(10, 1)'
+right = '(9, 1)', diff = None
+
+    def raise_assert_detail(obj, message, left, right, diff=None):
+        if isinstance(left, np.ndarray):
+            left = pprint_thing(left)
+        elif is_categorical_dtype(left):
+            left = repr(left)
+        if isinstance(right, np.ndarray):
+            right = pprint_thing(right)
+        elif is_categorical_dtype(right):
+            right = repr(right)
+    
+        msg = """{obj} are different
+    
+    {message}
+    [left]:  {left}
+    [right]: {right}""".format(obj=obj, message=message, left=left, right=right)
+    
+        if diff is not None:
+            msg += "\n[diff]: {diff}".format(diff=diff)
+    
+>       raise AssertionError(msg)
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (10, 1)
+E       [right]: (9, 1)
+
+.tox/dev27/lib/python2.7/site-packages/pandas/util/testing.py:1093: AssertionError
+
+===============================================================================
+
+__________________________ test_date_range[tickstore] __________________________
+
+    def test_date_range(tickstore_lib):
+        tickstore_lib.write('SYM', DUMMY_DATA)
+        df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130103), columns=None)
+>       assert_array_equal(df['a'].values, np.array([1, np.nan, np.nan]))
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       (shapes (2,), (3,) mismatch)
+E        x: array([nan, nan])
+E        y: array([ 1., nan, nan])
+
+tests/integration/tickstore/test_ts_read.py:234: AssertionError
+
+===============================================================================
+
+_________________ test_date_range_end_not_in_range[tickstore] __________________
+
+    def test_date_range_end_not_in_range(tickstore_lib):
+        DUMMY_DATA = [
+                      {'a': 1.,
+                       'b': 2.,
+                       'index': dt(2013, 1, 1, tzinfo=mktz('Europe/London'))
+                       },
+                      {'b': 3.,
+                       'c': 4.,
+                       'index': dt(2013, 1, 2, 10, 1, tzinfo=mktz('Europe/London'))
+                       },
+                      ]
+    
+        tickstore_lib._chunk_size = 1
+        tickstore_lib.write('SYM', DUMMY_DATA)
+        with patch.object(tickstore_lib._collection, 'find', side_effect=tickstore_lib._collection.find) as f:
+            df = tickstore_lib.read('SYM', date_range=DateRange(20130101, dt(2013, 1, 2, 9, 0)), columns=None)
+>           assert_array_equal(df['b'].values, np.array([2.]))
+E           AssertionError: 
+E           Arrays are not equal
+E           
+E           Mismatched elements: 1 / 1 (100%)
+E           Max absolute difference: 1.
+E           Max relative difference: 0.5
+E            x: array([3.])
+E            y: array([2.])
+
+tests/integration/tickstore/test_ts_read.py:300: AssertionError
+
+===============================================================================
+
+_____________________ test_date_range_no_bounds[tickstore] _____________________
+
+    def test_date_range_no_bounds(tickstore_lib):
+        DUMMY_DATA = [
+                      {'a': 1.,
+                       'b': 2.,
+                       'index': dt(2013, 1, 1, tzinfo=mktz('Europe/London'))
+                       },
+                      {'a': 3.,
+                       'b': 4.,
+                       'index': dt(2013, 1, 30, tzinfo=mktz('Europe/London'))
+                       },
+                      {'b': 5.,
+                       'c': 6.,
+                       'index': dt(2013, 2, 2, 10, 1, tzinfo=mktz('Europe/London'))
+                       },
+                      ]
+    
+        tickstore_lib._chunk_size = 1
+        tickstore_lib.write('SYM', DUMMY_DATA)
+    
+        # 1) No start, no end
+        df = tickstore_lib.read('SYM', columns=None)
+        assert_array_equal(df['b'].values, np.array([2., 4.]))
+        # 1.2) Start before the real start
+        df = tickstore_lib.read('SYM', date_range=DateRange(20121231), columns=None)
+        assert_array_equal(df['b'].values, np.array([2., 4.]))
+        # 2.1) Only go one month out
+        df = tickstore_lib.read('SYM', date_range=DateRange(20130101), columns=None)
+>       assert_array_equal(df['b'].values, np.array([2., 4.]))
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       (shapes (1,), (2,) mismatch)
+E        x: array([4.])
+E        y: array([2., 4.])
+
+tests/integration/tickstore/test_ts_read.py:369: AssertionError
+
+===============================================================================
+
+_________________________ test_mongo_date_range_query __________________________
+
+    def test_mongo_date_range_query():
+        self = create_autospec(TickStore)
+        self._collection = create_autospec(Collection)
+        self._symbol_query.return_value = {"sy": {"$in" : ["s1" , "s2"]}}
+        self._collection.aggregate.return_value = iter([{"_id": "s1", "start": dt(2014, 1, 1, 0, 0, tzinfo=mktz())},
+                                                        {"_id": "s2", "start": dt(2014, 1, 1, 12, 0, tzinfo=mktz())}])
+    
+        self._collection.find_one.side_effect = [
+            {'e': dt(2014, 1, 1, 15, 0, tzinfo=mktz())},
+            {'e': dt(2014, 1, 2, 12, 0, tzinfo=mktz())}]
+    
+        query = TickStore._mongo_date_range_query(self, 'sym', DateRange(dt(2014, 1, 2, 0, 0, tzinfo=mktz()),
+                                                                         dt(2014, 1, 3, 0, 0, tzinfo=mktz())))
+    
+        assert self._collection.aggregate.call_args_list == [call([
+         {"$match": {"s": {"$lte": dt(2014, 1, 2, 0, 0, tzinfo=mktz())}, "sy": {"$in" : ["s1" , "s2"]}}},
+         {"$project": {"_id": 0, "s": 1, "sy": 1}},
+         {"$group": {"_id": "$sy", "start": {"$max": "$s"}}},
+         {"$sort": {"start": 1}}])]
+    
+        assert self._collection.find_one.call_args_list == [
+            call({'sy': 's1', 's': dt(2014, 1, 1, 0, 0, tzinfo=mktz())}, {'e': 1}),
+            call({'sy': 's2', 's': dt(2014, 1, 1, 12, 0, tzinfo=mktz())}, {'e': 1})]
+    
+>       assert query == {'s': {'$gte': dt(2014, 1, 1, 12, 0, tzinfo=mktz()), '$lte': dt(2014, 1, 3, 0, 0, tzinfo=mktz())}}
+E       AssertionError: assert {'s': {'$gte'...ca/Denver'))}} == {'s': {'$gte':...ca/Denver'))}}
+E         Differing items:
+E         {'s': {'$gte': datetime.datetime(2014, 1, 1, 12, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC')), '$lte': datetime.datetime(2014, 1, 3, 0, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/America/Denver'))}} != {'s': {'$gte': datetime.datetime(2014, 1, 1, 12, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/America/Denver')), '$lte': datetime.datetime(2014, 1, 3, 0, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/America/Denver'))}}
+E         Full diff:
+E         - {'s': {'$gte': datetime.datetime(2014, 1, 1, 12, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC')),
+E         ?                                              ...
+E         
+E         ...Full output truncated (4 lines hidden), use '-vv' to show
+
+tests/unit/tickstore/test_tickstore.py:43: AssertionError
+
+===============================================================================
+
+_____________________ test_tickstore_to_bucket_with_image ______________________
+
+    def test_tickstore_to_bucket_with_image():
+        symbol = 'SYM'
+        tz = 'UTC'
+        initial_image = {'index': dt(2014, 1, 1, 0, 0, tzinfo=mktz(tz)), 'A': 123, 'B': 54.4, 'C': 'DESC'}
+        data = [{'index': dt(2014, 1, 1, 0, 1, tzinfo=mktz(tz)), 'A': 124, 'D': 0},
+                {'index': dt(2014, 1, 1, 0, 2, tzinfo=mktz(tz)), 'A': 125, 'B': 27.2}]
+        bucket, final_image = TickStore._to_bucket(data, symbol, initial_image)
+        assert bucket[COUNT] == 2
+        assert bucket[END] == dt(2014, 1, 1, 0, 2, tzinfo=mktz(tz))
+        assert set(bucket[COLUMNS]) == set(('A', 'B', 'D'))
+        assert set(bucket[COLUMNS]['A']) == set((ROWMASK, DTYPE, DATA))
+        assert get_coldata(bucket[COLUMNS]['A']) == ([124, 125], [1, 1, 0, 0, 0, 0, 0, 0])
+        assert get_coldata(bucket[COLUMNS]['B']) == ([27.2], [0, 1, 0, 0, 0, 0, 0, 0])
+        assert get_coldata(bucket[COLUMNS]['D']) == ([0], [1, 0, 0, 0, 0, 0, 0, 0])
+        index = [dt.fromtimestamp(int(i/1000)).replace(tzinfo=mktz(tz)) for i in
+                 list(np.cumsum(np.frombuffer(decompress(bucket[INDEX]), dtype='uint64')))]
+>       assert index == [i['index'] for i in data]
+E       AssertionError: assert [datetime.dat...neinfo/UTC'))] == [datetime.date...neinfo/UTC'))]
+E         At index 0 diff: datetime.datetime(2013, 12, 31, 17, 1, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC')) != datetime.datetime(2014, 1, 1, 0, 1, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC'))
+E         Full diff:
+E         - [datetime.datetime(2013, 12, 31, 17, 1, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC')),
+E         ?                       ^  -----   ----
+E         + [datetime.datetime(2014, 1, 1, 0, 1, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC')),
+E         ?                       ^       ++++++
+E         -  datetime.datetime(2013, 12, 31, 17, 2, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC'))]...
+E         
+E         ...Full output truncated (4 lines hidden), use '-vv' to show
+
+tests/unit/tickstore/test_tickstore.py:97: AssertionError
+
+===============================================================================
+
+____________________ test_tickstore_pandas_to_bucket_image _____________________
+
+    def test_tickstore_pandas_to_bucket_image():
+        symbol = 'SYM'
+        tz = 'UTC'
+        initial_image = {'index': dt(2014, 1, 1, 0, 0, tzinfo=mktz(tz)), 'A': 123, 'B': 54.4, 'C': 'DESC'}
+        data = [{'A': 120, 'D': 1}, {'A': 122, 'B': 2.0}, {'A': 3, 'B': 3.0, 'D': 1}]
+        tick_index = [dt(2014, 1, 2, 0, 0, tzinfo=mktz(tz)),
+                      dt(2014, 1, 3, 0, 0, tzinfo=mktz(tz)),
+                      dt(2014, 1, 4, 0, 0, tzinfo=mktz(tz))]
+        data = pd.DataFrame(data, index=tick_index)
+        bucket, final_image = TickStore._pandas_to_bucket(data, symbol, initial_image)
+        assert final_image == {'index': dt(2014, 1, 4, 0, 0, tzinfo=mktz(tz)), 'A': 3, 'B': 3.0, 'C': 'DESC', 'D': 1}
+        assert IMAGE_DOC in bucket
+        assert bucket[COUNT] == 3
+        assert bucket[START] == dt(2014, 1, 1, 0, 0, tzinfo=mktz(tz))
+        assert bucket[END] == dt(2014, 1, 4, 0, 0, tzinfo=mktz(tz))
+        assert set(bucket[COLUMNS]) == set(('A', 'B', 'D'))
+        assert set(bucket[COLUMNS]['A']) == set((ROWMASK, DTYPE, DATA))
+        assert get_coldata(bucket[COLUMNS]['A']) == ([120, 122, 3], [1, 1, 1, 0, 0, 0, 0, 0])
+        values, rowmask = get_coldata(bucket[COLUMNS]['B'])
+        assert np.isnan(values[0]) and values[1:] == [2.0, 3.0]
+        assert rowmask == [1, 1, 1, 0, 0, 0, 0, 0]
+        values, rowmask = get_coldata(bucket[COLUMNS]['D'])
+        assert np.isnan(values[1])
+        assert values[0] == 1 and values[2] == 1
+        assert rowmask == [1, 1, 1, 0, 0, 0, 0, 0]
+        index = [dt.fromtimestamp(int(i/1000)).replace(tzinfo=mktz(tz)) for i in
+                 list(np.cumsum(np.frombuffer(decompress(bucket[INDEX]), dtype='uint64')))]
+>       assert index == tick_index
+E       AssertionError: assert [datetime.dat...neinfo/UTC'))] == [datetime.date...neinfo/UTC'))]
+E         At index 0 diff: datetime.datetime(2014, 1, 1, 17, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC')) != datetime.datetime(2014, 1, 2, 0, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC'))
+E         Full diff:
+E         - [datetime.datetime(2014, 1, 1, 17, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC')),
+E         ?                             ^ ----
+E         + [datetime.datetime(2014, 1, 2, 0, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC')),
+E         ?                             ^    +++
+E         -  datetime.datetime(2014, 1, 2, 17, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC')),...
+E         
+E         ...Full output truncated (8 lines hidden), use '-vv' to show
+
+tests/unit/tickstore/test_tickstore.py:162: AssertionError
+
+===============================================================================
+=============================== warnings summary ===============================
+tests/integration/test_arctic.py::test_delete_library
+tests/integration/test_arctic.py::test_lib_rename
+tests/integration/test_arctic.py::test_lib_rename_namespace
+tests/integration/test_arctic.py::test_renaming_returns_new_name_in_cache
+tests/integration/test_arctic.py::test_deleting_library_removes_it_from_cache
+tests/integration/scripts/test_delete_library.py::test_delete_library
+tests/integration/scripts/test_delete_library.py::test_delete_library1
+tests/integration/scripts/test_delete_library.py::test_delete_library2
+tests/integration/scripts/test_delete_library.py::test_delete_library3
+tests/integration/scripts/test_delete_library.py::test_delete_library_doesnt_exist
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/_cache.py:120: DeprecationWarning: update is deprecated. Use replace_one, update_one or update_many instead.
+    {"$pull": {"data": item}}
+
+tests/integration/test_arctic.py::test_list_libraries_cached
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/test_arctic.py:250: DeprecationWarning: remove is deprecated. Use delete_one or delete_many instead.
+    arctic._conn.meta_db.cache.remove({})
+
+tests/integration/chunkstore/test_chunkstore.py::test_write_dataframe_with_func
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/.tox/dev27/lib/python2.7/site-packages/pandas/core/indexing.py:621: SettingWithCopyWarning: 
+  A value is trying to be set on a copy of a slice from a DataFrame.
+  Try using .loc[row_indexer,col_indexer] = value instead
+  
+  See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
+    self.obj[item_labels[indexer[info_axis]]] = value
+
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size0]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size1]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size2]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size3]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size4]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size5]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size6]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size7]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size8]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size9]
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/store/test_pandas_store.py:660: DeprecationWarning: 
+  Panel is deprecated and will be removed in a future version.
+  The recommended way to represent these types of 3-dimensional data are with a MultiIndex on a DataFrame, via the Panel.to_frame() method
+  Alternatively, you can use the xarray package http://xarray.pydata.org/en/stable/.
+  Pandas provides a `.to_xarray()` method to help automate this conversion.
+  
+    pn = panel(*df_size)
+
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size0]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size1]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size2]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size3]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size4]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size5]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size6]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size7]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size8]
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size9]
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/store/_pandas_ndarray_store.py:249: DeprecationWarning: 
+  Panel is deprecated and will be removed in a future version.
+  The recommended way to represent these types of 3-dimensional data are with a MultiIndex on a DataFrame, via the Panel.to_frame() method
+  Alternatively, you can use the xarray package http://xarray.pydata.org/en/stable/.
+  Pandas provides a `.to_xarray()` method to help automate this conversion.
+  
+    return item.iloc[:, 0].unstack().to_panel()
+
+tests/integration/store/test_pandas_store.py::test_panel_save_read_with_nans
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/.tox/dev27/lib/python2.7/site-packages/_pytest/python.py:174: DeprecationWarning: 
+  Panel is deprecated and will be removed in a future version.
+  The recommended way to represent these types of 3-dimensional data are with a MultiIndex on a DataFrame, via the Panel.to_frame() method
+  Alternatively, you can use the xarray package http://xarray.pydata.org/en/stable/.
+  Pandas provides a `.to_xarray()` method to help automate this conversion.
+  
+    testfunction(**testargs)
+
+tests/integration/store/test_pandas_store.py::test_panel_save_read_with_nans
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/store/_pandas_ndarray_store.py:250: DeprecationWarning: 
+  Panel is deprecated and will be removed in a future version.
+  The recommended way to represent these types of 3-dimensional data are with a MultiIndex on a DataFrame, via the Panel.to_frame() method
+  Alternatively, you can use the xarray package http://xarray.pydata.org/en/stable/.
+  Pandas provides a `.to_xarray()` method to help automate this conversion.
+  
+    return item.to_panel()
+
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/.tox/dev27/lib/python2.7/site-packages/numpy/core/numeric.py:2591: DeprecationWarning: elementwise comparison failed; this will raise an error in the future.
+    return bool(asarray(a1 == a2).all())
+
+tests/integration/tickstore/test_toplevel.py::test_should_return_data_when_date_range_falls_in_a_single_underlying_library
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/tickstore/tickstore.py:419: FutureWarning: Conversion of the second argument of issubdtype from `int` to `np.signedinteger` is deprecated. In future, it will be treated as `np.int64 == np.dtype(int).type`.
+    if np.issubdtype(dtype, int):
+
+
+===============================================================================
+
+
+28 failed
+1289 passed
+3 skipped
+7 xfailed
+12 xpassed
+41 warnings in 
+3103.04 seconds
+
+===============================================================================
+
+ERROR: InvocationError for command /arctic_878/.tox/dev27/bin/python setup.py test --pytest-args=-v (exited with code 1)
+
+commands failed

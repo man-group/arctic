@@ -1,0 +1,217 @@
+ERROR: InvocationError for command /arctic_878/.tox/dev27/bin/python setup.py test
+28 failed
+1289 passed
+3 skipped
+7 xfailed
+12 xpassed
+26 warnings in 
+5723.36s (1:35:23)
+
+===============================================================================
+=================================== FAILURES ===================================
+.tox/dev27/lib/python2.7/site-packages/bson/__init__.py:938: InvalidStringData
+===============================================================================
+>       assert_frame_equal(df, res.tz_convert(mktz('Europe/London')))
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (6, 4)
+E       [right]: (5, 4)
+
+tests/integration/tickstore/test_toplevel.py:65: AssertionError              x1
+===============================================================================
+>       assert_frame_equal(expected_df, res.tz_convert(mktz('Europe/London')))
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (9, 4)
+E       [right]: (7, 4)
+
+tests/integration/tickstore/test_toplevel.py:83: AssertionError              x1
+===============================================================================
+>       assert_frame_equal(expected_df, res.tz_convert(mktz('Europe/London')))
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (5, 4)
+E       [right]: (4, 4)
+
+tests/integration/tickstore/test_toplevel.py:101: AssertionError             x1
+===============================================================================
+>       toplevel_tickstore.add(DateRange(start=dt(2010, 1, 1), end=dt(2010, 12, 31, 23, 59, 59, 999000)), 'FEED_2010.LEVEL1')
+
+tests/integration/tickstore/test_toplevel.py:113:                            x1
+===============================================================================
+>   overlapping libraries: {}""".format(library_name, [lib.library for lib in library_metadata]))
+E   OverlappingDataException: There are libraries that overlap with the date range:
+E   library: FEED_2010.LEVEL1
+E   overlapping libraries: [u'FEED_2011.LEVEL1']
+
+arctic/tickstore/toplevel.py:101: OverlappingDataException                   x1
+===============================================================================
+>       assert_frame_equal(expected, res.tz_convert(mktz('Europe/London')))
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (57, 1)
+E       [right]: (55, 1)
+
+tests/integration/tickstore/test_toplevel.py:197: AssertionError             x1
+===============================================================================
+>       assert_frame_equal(expected, res)
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (10, 1)
+E       [right]: (9, 1)
+
+tests/integration/tickstore/test_toplevel.py:215: AssertionError             x1
+===============================================================================
+>       assert_array_equal(df['a'].values, np.array([1, np.nan, np.nan]))
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       (shapes (2,), (3,) mismatch)
+E        x: array([nan, nan])
+E        y: array([ 1., nan, nan])
+
+tests/integration/tickstore/test_ts_read.py:234: AssertionError              x1
+===============================================================================
+>           assert_array_equal(df['b'].values, np.array([2.]))
+E           AssertionError: 
+E           Arrays are not equal
+E           
+E           Mismatched elements: 1 / 1 (100%)
+E           Max absolute difference: 1.
+E           Max relative difference: 0.5
+E            x: array([3.])
+E            y: array([2.])
+
+tests/integration/tickstore/test_ts_read.py:300: AssertionError              x1
+===============================================================================
+>       assert_array_equal(df['b'].values, np.array([2., 4.]))
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       (shapes (1,), (2,) mismatch)
+E        x: array([4.])
+E        y: array([2., 4.])
+
+tests/integration/tickstore/test_ts_read.py:369: AssertionError              x1
+===============================================================================
+>       assert query == {'s': {'$gte': dt(2014, 1, 1, 12, 0, tzinfo=mktz()), '$lte': dt(2014, 1, 3, 0, 0, tzinfo=mktz())}}
+E       AssertionError: assert {'s': {'$gte'...ca/Denver'))}} == {'s': {'$gte':...ca/Denver'))}}
+E         Differing items:
+E         {'s': {'$gte': datetime.datetime(2014, 1, 1, 12, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC')), '$lte': datetime.datetime(2014, 1, 3, 0, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/America/Denver'))}} != {'s': {'$gte': datetime.datetime(2014, 1, 1, 12, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/America/Denver')), '$lte': datetime.datetime(2014, 1, 3, 0, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/America/Denver'))}}
+E         Use -v to get the full diff
+
+tests/unit/tickstore/test_tickstore.py:43: AssertionError                    x1
+===============================================================================
+>       assert index == [i['index'] for i in data]
+E       AssertionError: assert [datetime.dat...neinfo/UTC'))] == [datetime.date...neinfo/UTC'))]
+E         At index 0 diff: datetime.datetime(2013, 12, 31, 17, 1, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC')) != datetime.datetime(2014, 1, 1, 0, 1, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC'))
+E         Use -v to get the full diff
+
+tests/unit/tickstore/test_tickstore.py:97: AssertionError                    x1
+===============================================================================
+>       assert index == tick_index
+E       AssertionError: assert [datetime.dat...neinfo/UTC'))] == [datetime.date...neinfo/UTC'))]
+E         At index 0 diff: datetime.datetime(2014, 1, 1, 17, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC')) != datetime.datetime(2014, 1, 2, 0, 0, tzinfo=tzfile(u'/usr/share/zoneinfo/UTC'))
+E         Use -v to get the full diff
+
+tests/unit/tickstore/test_tickstore.py:162: AssertionError                   x1
+===============================================================================
+=============================== warnings summary ===============================
+tests/integration/test_arctic.py::test_delete_library
+tests/integration/test_arctic.py::test_lib_rename
+tests/integration/test_arctic.py::test_lib_rename_namespace
+tests/integration/test_arctic.py::test_renaming_returns_new_name_in_cache
+tests/integration/test_arctic.py::test_deleting_library_removes_it_from_cache
+tests/integration/scripts/test_delete_library.py::test_delete_library
+tests/integration/scripts/test_delete_library.py::test_delete_library1
+tests/integration/scripts/test_delete_library.py::test_delete_library2
+tests/integration/scripts/test_delete_library.py::test_delete_library3
+tests/integration/scripts/test_delete_library.py::test_delete_library_doesnt_exist
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/_cache.py:120: DeprecationWarning: update is deprecated. Use replace_one, update_one or update_many instead.
+    {"$pull": {"data": item}}
+
+tests/integration/test_arctic.py::test_list_libraries_cached
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/test_arctic.py:250: DeprecationWarning: remove is deprecated. Use delete_one or delete_many instead.
+    arctic._conn.meta_db.cache.remove({})
+
+tests/integration/chunkstore/test_chunkstore.py::test_write_dataframe_with_func
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/.tox/dev27/lib/python2.7/site-packages/pandas/core/indexing.py:635: SettingWithCopyWarning: 
+  A value is trying to be set on a copy of a slice from a DataFrame.
+  Try using .loc[row_indexer,col_indexer] = value instead
+  
+  See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
+    self.obj[item_labels[indexer[info_axis]]] = value
+
+tests/integration/store/test_bitemporal_store.py::test_new_ts_read_write
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/serialization/numpy_records.py:77: FutureWarning: Converting timezone-aware DatetimeArray to timezone-naive ndarray with 'datetime64[ns]' dtype. In the future, this will return an ndarray with 'object' dtype where each element is a 'pandas.Timestamp' with the correct 'tz'.
+  	To accept the future behavior, pass 'dtype=object'.
+  	To keep the old behavior, pass 'dtype="datetime64[ns]"'.
+    ix_vals, index_names, index_tz = _multi_index_to_records(index, len(df) == 0)
+
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size0]
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/store/test_pandas_store.py:652: FutureWarning: 
+  Panel is deprecated and will be removed in a future version.
+  The recommended way to represent these types of 3-dimensional data are with a MultiIndex on a DataFrame, via the Panel.to_frame() method
+  Alternatively, you can use the xarray package http://xarray.pydata.org/en/stable/.
+  Pandas provides a `.to_xarray()` method to help automate this conversion.
+  
+    pn = panel(*df_size)
+
+tests/integration/store/test_pandas_store.py::test_panel_save_read[df_size0]
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/store/_pandas_ndarray_store.py:245: FutureWarning: 
+  Panel is deprecated and will be removed in a future version.
+  The recommended way to represent these types of 3-dimensional data are with a MultiIndex on a DataFrame, via the Panel.to_frame() method
+  Alternatively, you can use the xarray package http://xarray.pydata.org/en/stable/.
+  Pandas provides a `.to_xarray()` method to help automate this conversion.
+  
+    return item.iloc[:, 0].unstack().to_panel()
+
+tests/integration/store/test_pandas_store.py::test_panel_save_read_with_nans
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/.eggs/pytest-4.6.11-py2.7.egg/_pytest/python.py:174: FutureWarning: 
+  Panel is deprecated and will be removed in a future version.
+  The recommended way to represent these types of 3-dimensional data are with a MultiIndex on a DataFrame, via the Panel.to_frame() method
+  Alternatively, you can use the xarray package http://xarray.pydata.org/en/stable/.
+  Pandas provides a `.to_xarray()` method to help automate this conversion.
+  
+    testfunction(**testargs)
+
+tests/integration/store/test_pandas_store.py::test_panel_save_read_with_nans
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/store/test_pandas_store.py:668: FutureWarning: Sorting because non-concatenation axis is not aligned. A future version
+  of pandas will change to not sort by default.
+  
+  To accept the future behavior, pass 'sort=False'.
+  
+  To retain the current behavior and silence the warning, pass 'sort=True'.
+  
+    p_in = Panel(data=dict(i1=df1, i2=df2))
+
+tests/integration/store/test_pandas_store.py::test_panel_save_read_with_nans
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/store/_pandas_ndarray_store.py:246: FutureWarning: 
+  Panel is deprecated and will be removed in a future version.
+  The recommended way to represent these types of 3-dimensional data are with a MultiIndex on a DataFrame, via the Panel.to_frame() method
+  Alternatively, you can use the xarray package http://xarray.pydata.org/en/stable/.
+  Pandas provides a `.to_xarray()` method to help automate this conversion.
+  
+    return item.to_panel()
+
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/.tox/dev27/lib/python2.7/site-packages/numpy/core/numeric.py:2591: DeprecationWarning: elementwise comparison failed; this will raise an error in the future.
+    return bool(asarray(a1 == a2).all())
+
+tests/integration/tickstore/test_toplevel.py::test_should_return_data_when_date_range_falls_in_a_single_underlying_library
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/tickstore/tickstore.py:419: FutureWarning: Conversion of the second argument of issubdtype from `int` to `np.signedinteger` is deprecated. In future, it will be treated as `np.int64 == np.dtype(int).type`.
+    if np.issubdtype(dtype, int):
+
+tests/integration/tickstore/test_ts_read.py::test_read_strings[tickstore]
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/tickstore/tickstore.py:716: FutureWarning: A future version of pandas will default to `skipna=True`. To silence this warning, pass `skipna=True|False` explicitly.
+    array = TickStore._ensure_supported_dtypes(recs[col])

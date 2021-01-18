@@ -1,0 +1,612 @@
+travis_fold:start:worker_info[0K[33;1mWorker information[0m
+hostname: e11b506f-3356-46ad-9b15-6c08ff77307e@1.worker-org-cfdfb76bd-wpjwc.gce-production-4
+version: v6.2.20-1-g3a987d6 https://github.com/travis-ci/worker/tree/3a987d61ed169c9539ad435d1a9b5f2d8c6ce4a6
+instance: travis-job-9c23a07a-7cb9-4061-aa9e-cbe091ba9867 travis-ci-sardonyx-xenial-1593004276-4d46c6b3 (via amqp)
+startup: 6.427195277s
+travis_fold:end:worker_info[0Ktravis_time:start:14c31755[0Ktravis_time:end:14c31755:start=1610819246479249200,finish=1610819246653792797,duration=174543597,event=no_world_writable_dirs[0Ktravis_time:start:00f2b7e8[0Ktravis_time:end:00f2b7e8:start=1610819246658050507,finish=1610819246667374838,duration=9324331,event=agent[0Ktravis_time:start:1af2752c[0Ktravis_time:end:1af2752c:start=1610819246670624840,finish=1610819246673174452,duration=2549612,event=check_unsupported[0Ktravis_time:start:16132c1e[0Ktravis_fold:start:system_info[0K[33;1mBuild system information[0m
+Build language: python
+Build dist: xenial
+Build id: 754792688
+Job id: 754792691
+Runtime kernel version: 4.15.0-1077-gcp
+travis-build version: 5d5d4288
+[34m[1mBuild image provisioning date and time[0m
+Wed Jun 24 13:36:52 UTC 2020
+[34m[1mOperating System Details[0m
+Distributor ID:	Ubuntu
+Description:	Ubuntu 16.04.6 LTS
+Release:	16.04
+Codename:	xenial
+[34m[1mSystemd Version[0m
+systemd 229
+[34m[1mCookbooks Version[0m
+3f92a99 https://github.com/travis-ci/travis-cookbooks/tree/3f92a99
+[34m[1mgit version[0m
+git version 2.27.0
+[34m[1mbash version[0m
+GNU bash, version 4.3.48(1)-release (x86_64-pc-linux-gnu)
+[34m[1mgcc version[0m
+gcc (Ubuntu 5.4.0-6ubuntu1~16.04.12) 5.4.0 20160609
+[34m[1mdocker version[0m
+Client:
+ Version:           18.06.0-ce
+ API version:       1.38
+ Go version:        go1.10.3
+ Git commit:        0ffa825
+ Built:             Wed Jul 18 19:11:02 2018
+ OS/Arch:           linux/amd64
+ Experimental:      false
+
+Server:
+ Engine:
+  Version:          18.06.0-ce
+  API version:      1.38 (minimum version 1.12)
+  Go version:       go1.10.3
+  Git commit:       0ffa825
+  Built:            Wed Jul 18 19:09:05 2018
+  OS/Arch:          linux/amd64
+  Experimental:     false
+[34m[1mclang version[0m
+clang version 7.0.0 (tags/RELEASE_700/final)
+[34m[1mjq version[0m
+jq-1.5
+[34m[1mbats version[0m
+Bats 0.4.0
+[34m[1mshellcheck version[0m
+0.7.0
+[34m[1mshfmt version[0m
+v2.6.3
+[34m[1mccache version[0m
+3.2.4
+[34m[1mcmake version[0m
+cmake version 3.12.4
+[34m[1mheroku version[0m
+heroku/7.42.1 linux-x64 node-v12.16.2
+[34m[1mimagemagick version[0m
+Version: ImageMagick 6.8.9-9 Q16 x86_64 2019-11-12 http://www.imagemagick.org
+[34m[1mmd5deep version[0m
+4.4
+[34m[1mmercurial version[0m
+version 4.8
+[34m[1mmysql version[0m
+mysql  Ver 14.14 Distrib 5.7.30, for Linux (x86_64) using  EditLine wrapper
+[34m[1mopenssl version[0m
+OpenSSL 1.0.2g  1 Mar 2016
+[34m[1mpacker version[0m
+1.3.3
+[34m[1mpostgresql client version[0m
+psql (PostgreSQL) 10.13 (Ubuntu 10.13-1.pgdg16.04+1)
+[34m[1mragel version[0m
+Ragel State Machine Compiler version 6.8 Feb 2013
+[34m[1msudo version[0m
+1.8.16
+[34m[1mgzip version[0m
+gzip 1.6
+[34m[1mzip version[0m
+Zip 3.0
+[34m[1mvim version[0m
+VIM - Vi IMproved 7.4 (2013 Aug 10, compiled Mar 18 2020 14:06:17)
+[34m[1miptables version[0m
+iptables v1.6.0
+[34m[1mcurl version[0m
+curl 7.47.0 (x86_64-pc-linux-gnu) libcurl/7.47.0 GnuTLS/3.4.10 zlib/1.2.8 libidn/1.32 librtmp/2.3
+[34m[1mwget version[0m
+GNU Wget 1.17.1 built on linux-gnu.
+[34m[1mrsync version[0m
+rsync  version 3.1.1  protocol version 31
+[34m[1mgimme version[0m
+v1.5.4
+[34m[1mnvm version[0m
+0.35.3
+[34m[1mperlbrew version[0m
+/home/travis/perl5/perlbrew/bin/perlbrew  - App::perlbrew/0.88
+[34m[1mphpenv version[0m
+rbenv 1.1.2-30-gc879cb0
+[34m[1mrvm version[0m
+rvm 1.29.10 (latest) by Michal Papis, Piotr Kuczynski, Wayne E. Seguin [https://rvm.io]
+[34m[1mdefault ruby version[0m
+ruby 2.5.3p105 (2018-10-18 revision 65156) [x86_64-linux]
+[34m[1mCouchDB version[0m
+couchdb 1.6.1
+[34m[1mElasticSearch version[0m
+5.5.0
+[34m[1mInstalled Firefox version[0m
+firefox 63.0.1
+[34m[1mMongoDB version[0m
+MongoDB 4.0.19
+[34m[1mPhantomJS version[0m
+2.1.1
+[34m[1mPre-installed PostgreSQL versions[0m
+9.4.26
+9.5.22
+9.6.18
+[34m[1mRedis version[0m
+redis-server 6.0.5
+[34m[1mPre-installed Go versions[0m
+1.11.1
+[34m[1mant version[0m
+Apache Ant(TM) version 1.9.6 compiled on July 20 2018
+[34m[1mmvn version[0m
+Apache Maven 3.6.3 (cecedd343002696d0abb50b32b541b8a6ba2883f)
+[34m[1mgradle version[0m
+Gradle 5.1.1!
+[34m[1mlein version[0m
+Leiningen 2.9.3 on Java 11.0.2 OpenJDK 64-Bit Server VM
+[34m[1mPre-installed Node.js versions[0m
+v10.21.0
+v11.0.0
+v12.18.1
+v4.9.1
+v6.17.1
+v8.12.0
+v8.17.0
+v8.9
+[34m[1mphpenv versions[0m
+  system
+  5.6
+  5.6.40
+  7.1
+  7.1.27
+  7.2
+* 7.2.15 (set by /home/travis/.phpenv/version)
+  hhvm
+  hhvm-stable
+[34m[1mcomposer --version[0m
+Composer version 1.8.4 2019-02-11 10:52:10
+[34m[1mPre-installed Ruby versions[0m
+ruby-2.3.8
+ruby-2.4.5
+ruby-2.5.3
+travis_fold:end:system_info[0K
+travis_time:end:16132c1e:start=1610819246676734948,finish=1610819246686864492,duration=10129544,event=show_system_info[0Ktravis_time:start:0a767faa[0Ktravis_time:end:0a767faa:start=1610819246690265815,finish=1610819246705473576,duration=15207761,event=rm_riak_source[0Ktravis_time:start:0d2c9c30[0Ktravis_time:end:0d2c9c30:start=1610819246709240230,finish=1610819246716678954,duration=7438724,event=fix_rwky_redis[0Ktravis_time:start:203cd7dc[0Ktravis_time:end:203cd7dc:start=1610819246722328697,finish=1610819247477085965,duration=754757268,event=wait_for_network[0Ktravis_time:start:0cb605a4[0Ktravis_time:end:0cb605a4:start=1610819247480766506,finish=1610819247717526289,duration=236759783,event=update_apt_keys[0Ktravis_time:start:04786d4e[0Ktravis_time:end:04786d4e:start=1610819247721007884,finish=1610819247777423250,duration=56415366,event=fix_hhvm_source[0Ktravis_time:start:01e3c3ac[0Ktravis_time:end:01e3c3ac:start=1610819247781147170,finish=1610819247784173459,duration=3026289,event=update_mongo_arch[0Ktravis_time:start:2faeb76a[0Ktravis_time:end:2faeb76a:start=1610819247787542791,finish=1610819247831317326,duration=43774535,event=fix_sudo_enabled_trusty[0Ktravis_time:start:0065ac48[0Ktravis_time:end:0065ac48:start=1610819247835271231,finish=1610819247838023925,duration=2752694,event=update_glibc[0Ktravis_time:start:0c6e16f8[0Ktravis_time:end:0c6e16f8:start=1610819247841511811,finish=1610819247850220579,duration=8708768,event=clean_up_path[0Ktravis_time:start:26dae780[0Ktravis_time:end:26dae780:start=1610819247853634901,finish=1610819247862529512,duration=8894611,event=fix_resolv_conf[0Ktravis_time:start:12fa3536[0Ktravis_time:end:12fa3536:start=1610819247866094609,finish=1610819247876492943,duration=10398334,event=fix_etc_hosts[0Ktravis_time:start:14558cee[0Ktravis_time:end:14558cee:start=1610819247879928175,finish=1610819247894012794,duration=14084619,event=fix_mvn_settings_xml[0Ktravis_time:start:0defe77f[0Ktravis_time:end:0defe77f:start=1610819247897622690,finish=1610819247908253749,duration=10631059,event=no_ipv6_localhost[0Ktravis_time:start:07ef9688[0Ktravis_time:end:07ef9688:start=1610819247911796077,finish=1610819247914327016,duration=2530939,event=fix_etc_mavenrc[0Ktravis_time:start:2bc53360[0Ktravis_time:end:2bc53360:start=1610819247917810164,finish=1610819247921290665,duration=3480501,event=fix_wwdr_certificate[0Ktravis_time:start:0932ffe0[0Ktravis_time:end:0932ffe0:start=1610819247924664706,finish=1610819247951824951,duration=27160245,event=put_localhost_first[0Ktravis_time:start:1434dfc8[0Ktravis_time:end:1434dfc8:start=1610819247955330767,finish=1610819247959025146,duration=3694379,event=home_paths[0Ktravis_time:start:14ef5ca2[0Ktravis_time:end:14ef5ca2:start=1610819247962731666,finish=1610819247978222379,duration=15490713,event=disable_initramfs[0Ktravis_time:start:09155b20[0Ktravis_time:end:09155b20:start=1610819247982238773,finish=1610819248347134754,duration=364895981,event=disable_ssh_roaming[0Ktravis_time:start:3d85e304[0Ktravis_time:end:3d85e304:start=1610819248350618155,finish=1610819248353273575,duration=2655420,event=debug_tools[0Ktravis_time:start:1617c9c4[0Ktravis_time:end:1617c9c4:start=1610819248356652044,finish=1610819248360261936,duration=3609892,event=uninstall_oclint[0Ktravis_time:start:02eec0fd[0Ktravis_time:end:02eec0fd:start=1610819248363692159,finish=1610819248367253677,duration=3561518,event=rvm_use[0Ktravis_time:start:1b14ca06[0Ktravis_time:end:1b14ca06:start=1610819248370649040,finish=1610819248379857124,duration=9208084,event=rm_etc_boto_cfg[0Ktravis_time:start:076d46bc[0Ktravis_time:end:076d46bc:start=1610819248383592130,finish=1610819248387941488,duration=4349358,event=rm_oraclejdk8_symlink[0Ktravis_time:start:00c48d44[0Ktravis_time:end:00c48d44:start=1610819248391631022,finish=1610819248501474358,duration=109843336,event=enable_i386[0Ktravis_time:start:095ed63b[0Ktravis_time:end:095ed63b:start=1610819248505408776,finish=1610819248512010573,duration=6601797,event=update_rubygems[0Ktravis_time:start:0033fa40[0Ktravis_time:end:0033fa40:start=1610819248515318359,finish=1610819249380437312,duration=865118953,event=ensure_path_components[0Ktravis_time:start:0d597e0c[0Ktravis_time:end:0d597e0c:start=1610819249384095084,finish=1610819249386712983,duration=2617899,event=redefine_curl[0Ktravis_time:start:02e8a0e7[0Ktravis_time:end:02e8a0e7:start=1610819249390150470,finish=1610819249392732343,duration=2581873,event=nonblock_pipe[0Ktravis_time:start:1505453a[0Ktravis_time:end:1505453a:start=1610819249396073061,finish=1610819255433736362,duration=6037663301,event=apt_get_update[0Ktravis_time:start:0d5f9c78[0Ktravis_time:end:0d5f9c78:start=1610819255437951416,finish=1610819255440705094,duration=2753678,event=deprecate_xcode_64[0Ktravis_time:start:15127c46[0Ktravis_time:end:15127c46:start=1610819255444401141,finish=1610819258226232846,duration=2781831705,event=update_heroku[0Ktravis_time:start:181690f5[0Ktravis_time:end:181690f5:start=1610819258229672625,finish=1610819258232060502,duration=2387877,event=shell_session_update[0Ktravis_time:start:08b7c8f1[0Ktravis_fold:start:docker_mtu_and_registry_mirrors[0Ktravis_fold:end:docker_mtu_and_registry_mirrors[0Ktravis_time:end:08b7c8f1:start=1610819258235138707,finish=1610819260861021454,duration=2625882747,event=set_docker_mtu_and_registry_mirrors[0Ktravis_time:start:1ead3a6b[0Ktravis_fold:start:resolvconf[0Ktravis_fold:end:resolvconf[0Ktravis_time:end:1ead3a6b:start=1610819260865081808,finish=1610819260934612642,duration=69530834,event=resolvconf[0Ktravis_time:start:03bdf53a[0Ktravis_time:end:03bdf53a:start=1610819260939053899,finish=1610819261106934515,duration=167880616,event=maven_central_mirror[0Ktravis_time:start:1c942314[0Ktravis_time:end:1c942314:start=1610819261110613003,finish=1610819261204973195,duration=94360192,event=maven_https[0Ktravis_time:start:126d2460[0Ktravis_fold:start:services[0Ktravis_time:start:28892d02[0K$ sudo systemctl start mongod
+travis_time:end:28892d02:start=1610819261217291672,finish=1610819261235087503,duration=17795831,event=prepare[0Ktravis_fold:end:services[0Ktravis_time:end:28892d02:start=1610819261217291672,finish=1610819264239834740,duration=3022543068,event=services[0Ktravis_time:start:192a3ca8[0Ktravis_time:end:192a3ca8:start=1610819264243490440,finish=1610819264245796249,duration=2305809,event=fix_ps4[0Ktravis_time:start:0b2d93e2[0K
+travis_fold:start:git.checkout[0Ktravis_time:start:01f765b0[0K$ git clone --depth=50 https://github.com/man-group/arctic.git man-group/arctic
+Cloning into 'man-group/arctic'...
+remote: Enumerating objects: 618, done.[K
+remote: Counting objects:   0% (1/618)[Kremote: Counting objects:   1% (7/618)[Kremote: Counting objects:   2% (13/618)[Kremote: Counting objects:   3% (19/618)[Kremote: Counting objects:   4% (25/618)[Kremote: Counting objects:   5% (31/618)[Kremote: Counting objects:   6% (38/618)[Kremote: Counting objects:   7% (44/618)[Kremote: Counting objects:   8% (50/618)[Kremote: Counting objects:   9% (56/618)[Kremote: Counting objects:  10% (62/618)[Kremote: Counting objects:  11% (68/618)[Kremote: Counting objects:  12% (75/618)[Kremote: Counting objects:  13% (81/618)[Kremote: Counting objects:  14% (87/618)[Kremote: Counting objects:  15% (93/618)[Kremote: Counting objects:  16% (99/618)[Kremote: Counting objects:  17% (106/618)remote: Counting objects:  18% (112/618)[Kremote: Counting objects:  19% (118/618)[Kremote: Counting objects:  20% (124/618)[Kremote: Counting objects:  21% (130/618)[Kremote: Counting objects:  22% (136/618)[Kremote: Counting objects:  23% (143/618)[Kremote: Counting objects:  24% (149/618)[Kremote: Counting objects:  25% (155/618)[Kremote: Counting objects:  26% (161/618)[Kremote: Counting objects:  27% (167/618)[Kremote: Counting objects:  28% (174/618)[Kremote: Counting objects:  29% (180/618)[Kremote: Counting objects:  30% (186/618)[Kremote: Counting objects:  31% (192/618)[Kremote: Counting objects:  32% (198/618)[Kremote: Counting objects:  33% (204/618)[Kremote: Counting objects:  34% (211/618)[Kremote: Counting objects:  35% (217/618)[Kremote: Counting objects:  36% (223/618)[Kremote: Counting objects:  37% (229/618)[Kremote: Counting objects:  38% (235/618)[Kremote: Counting objects:  39% (242/618)[Kremote: Counting objects:  40% (248/618)[Kremote: Counting objects:  41% (254/618)[Kremote: Counting objects:  42% (260/618)[Kremote: Counting objects:  43% (266/618)[Kremote: Counting objects:  44% (272/618)[Kremote: Counting objects:  45% (279/618)[Kremote: Counting objects:  46% (285/618)[Kremote: Counting objects:  47% (291/618)[Kremote: Counting objects:  48% (297/618)[Kremote: Counting objects:  49% (303/618)[Kremote: Counting objects:  50% (309/618)[Kremote: Counting objects:  51% (316/618)[Kremote: Counting objects:  52% (322/618)[Kremote: Counting objects:  53% (328/618)[Kremote: Counting objects:  54% (334/618)[Kremote: Counting objects:  55% (340/618)[Kremote: Counting objects:  56% (347/618)[Kremote: Counting objects:  57% (353/618)[Kremote: Counting objects:  58% (359/618)[Kremote: Counting objects:  59% (365/618)[Kremote: Counting objects:  60% (371/618)[Kremote: Counting objects:  61% (377/618)[Kremote: Counting objects:  62% (384/618)[Kremote: Counting objects:  63% (390/618)[Kremote: Counting objects:  64% (396/618)[Kremote: Counting objects:  65% (402/618)[Kremote: Counting objects:  66% (408/618)[Kremote: Counting objects:  67% (415/618)[Kremote: Counting objects:  68% (421/618)[Kremote: Counting objects:  69% (427/618)[Kremote: Counting objects:  70% (433/618)[Kremote: Counting objects:  71% (439/618)[Kremote: Counting objects:  72% (445/618)[Kremote: Counting objects:  73% (452/618)[Kremote: Counting objects:  74% (458/618)[Kremote: Counting objects:  75% (464/618)[Kremote: Counting objects:  76% (470/618)[Kremote: Counting objects:  77% (476/618)[Kremote: Counting objects:  78% (483/618)[Kremote: Counting objects:  79% (489/618)[Kremote: Counting objects:  80% (495/618)[Kremote: Counting objects:  81% (501/618)[Kremote: Counting objects:  82% (507/618)[Kremote: Counting objects:  83% (513/618)[Kremote: Counting objects:  84% (520/618)[Kremote: Counting objects:  85% (526/618)[Kremote: Counting objects:  86% (532/618)[Kremote: Counting objects:  87% (538/618)[Kremote: Counting objects:  88% (544/618)[Kremote: Counting objects:  89% (551/618)[Kremote: Counting objects:  90% (557/618)[Kremote: Counting objects:  91% (563/618)[Kremote: Counting objects:  92% (569/618)[Kremote: Counting objects:  93% (575/618)[Kremote: Counting objects:  94% (581/618)[Kremote: Counting objects:  95% (588/618)[Kremote: Counting objects:  96% (594/618)[Kremote: Counting objects:  97% (600/618)[Kremote: Counting objects:  98% (606/618)[Kremote: Counting objects:  99% (612/618)[Kremote: Counting objects: 100% (618/618)[Kremote: Counting objects: 100% (618/618), done.[K
+remote: Compressing objects:   0% (1/377)[Kremote: Compressing objects:   1% (4/377)[Kremote: Compressing objects:   2% (8/377)[Kremote: Compressing objects:   3% (12/377)[Kremote: Compressing objects:   4% (16/377)[Kremote: Compressing objects:   5% (19/377)[Kremote: Compressing objects:   6% (23/377)[Kremote: Compressing objects:   7% (27/377)[Kremote: Compressing objects:   8% (31/377)[Kremote: Compressing objects:   9% (34/377)[Kremote: Compressing objects:  10% (38/377)[Kremote: Compressing objects:  11% (42/377)[Kremote: Compressing objects:  12% (46/377)[Kremote: Compressing objects:  13% (50/377)[Kremote: Compressing objects:  14% (53/377)[Kremote: Compressing objects:  15% (57/377)[Kremote: Compressing objects:  16% (61/377)[Kremote: Compressing objects:  17% (65/377)[Kremote: Compressing objects:  18% (68/377)[Kremote: Compressing objects:  19% (72/377)[Kremote: Compressing objects:  20% (76/377)[Kremote: Compressing objects:  21% (80/377)[Kremote: Compressing objects:  22% (83/377)[Kremote: Compressing objects:  23% (87/377)[Kremote: Compressing objects:  24% (91/377)[Kremote: Compressing objects:  25% (95/377)[Kremote: Compressing objects:  26% (99/377)[Kremote: Compressing objects:  27% (102/377)[Kremote: Compressing objects:  28% (106/377)[Kremote: Compressing objects:  29% (110/377)[Kremote: Compressing objects:  30% (114/377)[Kremote: Compressing objects:  31% (117/377)[Kremote: Compressing objects:  32% (121/377)[Kremote: Compressing objects:  33% (125/377)[Kremote: Compressing objects:  34% (129/377)[Kremote: Compressing objects:  35% (132/377)[Kremote: Compressing objects:  36% (136/377)[Kremote: Compressing objects:  37% (140/377)[Kremote: Compressing objects:  38% (144/377)[Kremote: Compressing objects:  39% (148/377)[Kremote: Compressing objects:  40% (151/377)[Kremote: Compressing objects:  41% (155/377)[Kremote: Compressing objects:  42% (159/377)[Kremote: Compressing objects:  43% (163/377)[Kremote: Compressing objects:  44% (166/377)[Kremote: Compressing objects:  45% (170/377)[Kremote: Compressing objects:  46% (174/377)[Kremote: Compressing objects:  47% (178/377)[Kremote: Compressing objects:  48% (181/377)[Kremote: Compressing objects:  49% (185/377)[Kremote: Compressing objects:  50% (189/377)[Kremote: Compressing objects:  51% (193/377)[Kremote: Compressing objects:  52% (197/377)[Kremote: Compressing objects:  53% (200/377)[Kremote: Compressing objects:  54% (204/377)[Kremote: Compressing objects:  55% (208/377)[Kremote: Compressing objects:  56% (212/377)[Kremote: Compressing objects:  57% (215/377)[Kremote: Compressing objects:  58% (219/377)[Kremote: Compressing objects:  59% (223/377)[Kremote: Compressing objects:  60% (227/377)[Kremote: Compressing objects:  61% (230/377)[Kremote: Compressing objects:  62% (234/377)[Kremote: Compressing objects:  63% (238/377)[Kremote: Compressing objects:  64% (242/377)[Kremote: Compressing objects:  65% (246/377)[Kremote: Compressing objects:  66% (249/377)[Kremote: Compressing objects:  67% (253/377)[Kremote: Compressing objects:  68% (257/377)[Kremote: Compressing objects:  69% (261/377)[Kremote: Compressing objects:  70% (264/377)[Kremote: Compressing objects:  71% (268/377)[Kremote: Compressing objects:  72% (272/377)[Kremote: Compressing objects:  73% (276/377)[Kremote: Compressing objects:  74% (279/377)[Kremote: Compressing objects:  75% (283/377)[Kremote: Compressing objects:  76% (287/377)[Kremote: Compressing objects:  77% (291/377)[Kremote: Compressing objects:  78% (295/377)[Kremote: Compressing objects:  79% (298/377)[Kremote: Compressing objects:  80% (302/377)[Kremote: Compressing objects:  81% (306/377)[Kremote: Compressing objects:  82% (310/377)[Kremote: Compressing objects:  83% (313/377)[Kremote: Compressing objects:  84% (317/377)[Kremote: Compressing objects:  85% (321/377)[Kremote: Compressing objects:  86% (325/377)[Kremote: Compressing objects:  87% (328/377)[Kremote: Compressing objects:  88% (332/377)[Kremote: Compressing objects:  89% (336/377)[Kremote: Compressing objects:  90% (340/377)[Kremote: Compressing objects:  91% (344/377)[Kremote: Compressing objects:  92% (347/377)[Kremote: Compressing objects:  93% (351/377)[Kremote: Compressing objects:  94% (355/377)[Kremote: Compressing objects:  95% (359/377)[Kremote: Compressing objects:  96% (362/377)[Kremote: Compressing objects:  97% (366/377)[Kremote: Compressing objects:  98% (370/377)[Kremote: Compressing objects:  99% (374/377)[Kremote: Compressing objects: 100% (377/377)[Kremote: Compressing objects: 100% (377/377), done.[K
+Receiving objects:   0% (1/618)Receiving objects:   1% (7/618)Receiving objects:   2% (13/618)Receiving objects:   3% (19/618)Receiving objects:   4% (25/618)Receiving objects:   5% (31/618)Receiving objects:   6% (38/618)Receiving objects:   7% (44/618)Receiving objects:   8% (50/618)Receiving objects:   9% (56/618)Receiving objects:  10% (62/618)Receiving objects:  11% (68/618)Receiving objects:  12% (75/618)Receiving objects:  13% (81/618)Receiving objects:  14% (87/618)Receiving objects:  15% (93/618)Receiving objects:  16% (99/618)Receiving objects:  17% (106/618)Receiving objects:  18% (112/618)Receiving objects:  19% (118/618)Receiving objects:  20% (124/618)Receiving objects:  21% (130/618)Receiving objects:  22% (136/618)Receiving objects:  23% (143/618)Receiving objects:  24% (149/618)Receiving objects:  25% (155/618)Receiving objects:  26% (161/618)Receiving objects:  27% (167/618)Receiving objects:  28% (174/618)Receiving objects:  29% (180/618)Receiving objects:  30% (186/618)Receiving objects:  31% (192/618)Receiving objects:  32% (198/618)Receiving objects:  33% (204/618)Receiving objects:  34% (211/618)Receiving objects:  35% (217/618)Receiving objects:  36% (223/618)Receiving objects:  37% (229/618)Receiving objects:  38% (235/618)Receiving objects:  39% (242/618)Receiving objects:  40% (248/618)Receiving objects:  41% (254/618)Receiving objects:  42% (260/618)Receiving objects:  43% (266/618)Receiving objects:  44% (272/618)Receiving objects:  45% (279/618)Receiving objects:  46% (285/618)Receiving objects:  47% (291/618)Receiving objects:  48% (297/618)Receiving objects:  49% (303/618)Receiving objects:  50% (309/618)Receiving objects:  51% (316/618)Receiving objects:  52% (322/618)Receiving objects:  53% (328/618)Receiving objects:  54% (334/618)Receiving objects:  55% (340/618)Receiving objects:  56% (347/618)Receiving objects:  57% (353/618)Receiving objects:  58% (359/618)Receiving objects:  59% (365/618)Receiving objects:  60% (371/618)Receiving objects:  61% (377/618)Receiving objects:  62% (384/618)Receiving objects:  63% (390/618)Receiving objects:  64% (396/618)Receiving objects:  65% (402/618)Receiving objects:  66% (408/618)Receiving objects:  67% (415/618)Receiving objects:  68% (421/618)remote: Total 618 (delta 305), reused 395 (delta 235), pack-reused 0[K
+Receiving objects:  69% (427/618)Receiving objects:  70% (433/618)Receiving objects:  71% (439/618)Receiving objects:  72% (445/618)Receiving objects:  73% (452/618)Receiving objects:  74% (458/618)Receiving objects:  75% (464/618)Receiving objects:  76% (470/618)Receiving objects:  77% (476/618)Receiving objects:  78% (483/618)Receiving objects:  79% (489/618)Receiving objects:  80% (495/618)Receiving objects:  81% (501/618)Receiving objects:  82% (507/618)Receiving objects:  83% (513/618)Receiving objects:  84% (520/618)Receiving objects:  85% (526/618)Receiving objects:  86% (532/618)Receiving objects:  87% (538/618)Receiving objects:  88% (544/618)Receiving objects:  89% (551/618)Receiving objects:  90% (557/618)Receiving objects:  91% (563/618)Receiving objects:  92% (569/618)Receiving objects:  93% (575/618)Receiving objects:  94% (581/618)Receiving objects:  95% (588/618)Receiving objects:  96% (594/618)Receiving objects:  97% (600/618)Receiving objects:  98% (606/618)Receiving objects:  99% (612/618)Receiving objects: 100% (618/618)Receiving objects: 100% (618/618), 527.03 KiB | 5.27 MiB/s, done.
+Resolving deltas:   0% (0/305)Resolving deltas:   1% (4/305)Resolving deltas:   2% (9/305)Resolving deltas:  26% (80/305)Resolving deltas:  36% (111/305)Resolving deltas:  41% (128/305)Resolving deltas:  46% (143/305)Resolving deltas:  47% (144/305)Resolving deltas:  48% (147/305)Resolving deltas:  51% (156/305)Resolving deltas:  52% (160/305)Resolving deltas:  53% (163/305)Resolving deltas:  55% (170/305)Resolving deltas:  56% (172/305)Resolving deltas:  57% (174/305)Resolving deltas:  59% (181/305)Resolving deltas:  60% (185/305)Resolving deltas:  61% (187/305)Resolving deltas:  63% (194/305)Resolving deltas:  65% (201/305)Resolving deltas:  68% (210/305)Resolving deltas:  71% (217/305)Resolving deltas:  72% (222/305)Resolving deltas:  73% (224/305)Resolving deltas:  74% (226/305)Resolving deltas:  75% (230/305)Resolving deltas:  77% (237/305)Resolving deltas:  78% (238/305)Resolving deltas:  79% (243/305)Resolving deltas:  80% (246/305)Resolving deltas:  81% (248/305)Resolving deltas:  82% (251/305)Resolving deltas:  83% (255/305)Resolving deltas:  84% (257/305)Resolving deltas:  85% (261/305)Resolving deltas:  86% (264/305)Resolving deltas:  90% (276/305)Resolving deltas:  91% (278/305)Resolving deltas:  93% (284/305)Resolving deltas:  94% (288/305)Resolving deltas:  95% (292/305)Resolving deltas:  96% (294/305)Resolving deltas:  97% (297/305)Resolving deltas:  98% (299/305)Resolving deltas:  99% (302/305)Resolving deltas: 100% (305/305)Resolving deltas: 100% (305/305), done.
+travis_time:end:01f765b0:start=1610819264252665588,finish=1610819265021241648,duration=768576060,event=checkout[0K$ cd man-group/arctic
+travis_time:start:01040c7f[0K$ git fetch origin +refs/pull/883/merge:
+remote: Enumerating objects: 318, done.[K
+remote: Counting objects:   0% (1/162)[Kremote: Counting objects:   1% (2/162)[Kremote: Counting objects:   2% (4/162)[Kremote: Counting objects:   3% (5/162)[Kremote: Counting objects:   4% (7/162)[Kremote: Counting objects:   5% (9/162)[Kremote: Counting objects:   6% (10/162)[Kremote: Counting objects:   7% (12/162)[Kremote: Counting objects:   8% (13/162)[Kremote: Counting objects:   9% (15/162)[Kremote: Counting objects:  10% (17/162)[Kremote: Counting objects:  11% (18/162)[Kremote: Counting objects:  12% (20/162)[Kremote: Counting objects:  13% (22/162)[Kremote: Counting objects:  14% (23/162)[Kremote: Counting objects:  15% (25/162)[Kremote: Counting objects:  16% (26/162)[Kremote: Counting objects:  17% (28/162)[Kremote: Counting objects:  18% (30/162)[Kremote: Counting objects:  19% (31/162)[Kremote: Counting objects:  20% (33/162)[Kremote: Counting objects:  21% (35/162)[Kremote: Counting objects:  22% (36/162)[Kremote: Counting objects:  23% (38/162)[Kremote: Counting objects:  24% (39/162)[Kremote: Counting objects:  25% (41/162)[Kremote: Counting objects:  26% (43/162)[Kremote: Counting objects:  27% (44/162)[Kremote: Counting objects:  28% (46/162)[Kremote: Counting objects:  29% (47/162)[Kremote: Counting objects:  30% (49/162)[Kremote: Counting objects:  31% (51/162)[Kremote: Counting objects:  32% (52/162)[Kremote: Counting objects:  33% (54/162)[Kremote: Counting objects:  34% (56/162)[Kremote: Counting objects:  35% (57/162)[Kremote: Counting objects:  36% (59/162)[Kremote: Counting objects:  37% (60/162)[Kremote: Counting objects:  38% (62/162)[Kremote: Counting objects:  39% (64/162)[Kremote: Counting objects:  40% (65/162)[Kremote: Counting objects:  41% (67/162)[Kremote: Counting objects:  42% (69/162)[Kremote: Counting objects:  43% (70/162)[Kremote: Counting objects:  44% (72/162)[Kremote: Counting objects:  45% (73/162)[Kremote: Counting objects:  46% (75/162)[Kremote: Counting objects:  47% (77/162)[Kremote: Counting objects:  48% (78/162)[Kremote: Counting objects:  49% (80/162)[Kremote: Counting objects:  50% (81/162)[Kremote: Counting objects:  51% (83/162)[Kremote: Counting objects:  52% (85/162)[Kremote: Counting objects:  53% (86/162)[Kremote: Counting objects:  54% (88/162)[Kremote: Counting objects:  55% (90/162)[Kremote: Counting objects:  56% (91/162)[Kremote: Counting objects:  57% (93/162)[Kremote: Counting objects:  58% (94/162)[Kremote: Counting objects:  59% (96/162)[Kremote: Counting objects:  60% (98/162)[Kremote: Counting objects:  61% (99/162)[Kremote: Counting objects:  62% (101/162)[Kremote: Counting objects:  63% (103/162)[Kremote: Counting objects:  64% (104/162)[Kremote: Counting objects:  65% (106/162)[Kremote: Counting objects:  66% (107/162)[Kremote: Counting objects:  67% (109/162)[Kremote: Counting objects:  68% (111/162)[Kremote: Counting objects:  69% (112/162)[Kremote: Counting objects:  70% (114/162)[Kremote: Counting objects:  71% (116/162)[Kremote: Counting objects:  72% (117/162)[Kremote: Counting objects:  73% (119/162)[Kremote: Counting objects:  74% (120/162)[Kremote: Counting objects:  75% (122/162)[Kremote: Counting objects:  76% (124/162)[Kremote: Counting objects:  77% (125/162)[Kremote: Counting objects:  78% (127/162)[Kremote: Counting objects:  79% (128/162)[Kremote: Counting objects:  80% (130/162)[Kremote: Counting objects:  81% (132/162)[Kremote: Counting objects:  82% (133/162)[Kremote: Counting objects:  83% (135/162)[Kremote: Counting objects:  84% (137/162)[Kremote: Counting objects:  85% (138/162)[Kremote: Counting objects:  86% (140/162)[Kremote: Counting objects:  87% (141/162)[Kremote: Counting objects:  88% (143/162)[Kremote: Counting objects:  89% (145/162)[Kremote: Counting objects:  90% (146/162)[Kremote: Counting objects:  91% (148/162)[Kremote: Counting objects:  92% (150/162)[Kremote: Counting objects:  93% (151/162)[Kremote: Counting objects:  94% (153/162)[Kremote: Counting objects:  95% (154/162)[Kremote: Counting objects:  96% (156/162)[Kremote: Counting objects:  97% (158/162)[Kremote: Counting objects:  98% (159/162)[Kremote: Counting objects:  99% (161/162)[Kremote: Counting objects: 100% (162/162)[Kremote: Counting objects: 100% (162/162), done.[K
+remote: Compressing objects:   2% (1/37)[Kremote: Compressing objects:   5% (2/37)[Kremote: Compressing objects:   8% (3/37)[Kremote: Compressing objects:  10% (4/37)[Kremote: Compressing objects:  13% (5/37)[Kremote: Compressing objects:  16% (6/37)[Kremote: Compressing objects:  18% (7/37)[Kremote: Compressing objects:  21% (8/37)[Kremote: Compressing objects:  24% (9/37)[Kremote: Compressing objects:  27% (10/37)[Kremote: Compressing objects:  29% (11/37)[Kremote: Compressing objects:  32% (12/37)[Kremote: Compressing objects:  35% (13/37)[Kremote: Compressing objects:  37% (14/37)[Kremote: Compressing objects:  40% (15/37)[Kremote: Compressing objects:  43% (16/37)[Kremote: Compressing objects:  45% (17/37)[Kremote: Compressing objects:  48% (18/37)[Kremote: Compressing objects:  51% (19/37)[Kremote: Compressing objects:  54% (20/37)[Kremote: Compressing objects:  56% (21/37)[Kremote: Compressing objects:  59% (22/37)[Kremote: Compressing objects:  62% (23/37)[Kremote: Compressing objects:  64% (24/37)[Kremote: Compressing objects:  67% (25/37)[Kremote: Compressing objects:  70% (26/37)[Kremote: Compressing objects:  72% (27/37)[Kremote: Compressing objects:  75% (28/37)[Kremote: Compressing objects:  78% (29/37)[Kremote: Compressing objects:  81% (30/37)[Kremote: Compressing objects:  83% (31/37)[Kremote: Compressing objects:  86% (32/37)[Kremote: Compressing objects:  89% (33/37)[Kremote: Compressing objects:  91% (34/37)[Kremote: Compressing objects:  94% (35/37)[Kremote: Compressing objects:  97% (36/37)[Kremote: Compressing objects: 100% (37/37)[Kremote: Compressing objects: 100% (37/37), done.[K
+Unpacking objects:   1% (1/84)Unpacking objects:   2% (2/84)Unpacking objects:   3% (3/84)Unpacking objects:   4% (4/84)Unpacking objects:   5% (5/84)Unpacking objects:   7% (6/84)Unpacking objects:   8% (7/84)Unpacking objects:   9% (8/84)Unpacking objects:  10% (9/84)Unpacking objects:  11% (10/84)Unpacking objects:  13% (11/84)Unpacking objects:  14% (12/84)Unpacking objects:  15% (13/84)Unpacking objects:  16% (14/84)Unpacking objects:  17% (15/84)Unpacking objects:  19% (16/84)Unpacking objects:  20% (17/84)Unpacking objects:  21% (18/84)Unpacking objects:  22% (19/84)Unpacking objects:  23% (20/84)Unpacking objects:  25% (21/84)Unpacking objects:  26% (22/84)Unpacking objects:  27% (23/84)Unpacking objects:  28% (24/84)Unpacking objects:  29% (25/84)Unpacking objects:  30% (26/84)Unpacking objects:  32% (27/84)Unpacking objects:  33% (28/84)Unpacking objects:  34% (29/84)Unpacking objects:  35% (30/84)Unpacking objects:  36% (31/84)Unpacking objects:  38% (32/84)Unpacking objects:  39% (33/84)Unpacking objects:  40% (34/84)Unpacking objects:  41% (35/84)Unpacking objects:  42% (36/84)Unpacking objects:  44% (37/84)remote: Total 84 (delta 53), reused 77 (delta 47), pack-reused 0[K
+Unpacking objects:  45% (38/84)Unpacking objects:  46% (39/84)Unpacking objects:  47% (40/84)Unpacking objects:  48% (41/84)Unpacking objects:  50% (42/84)Unpacking objects:  51% (43/84)Unpacking objects:  52% (44/84)Unpacking objects:  53% (45/84)Unpacking objects:  54% (46/84)Unpacking objects:  55% (47/84)Unpacking objects:  57% (48/84)Unpacking objects:  58% (49/84)Unpacking objects:  59% (50/84)Unpacking objects:  60% (51/84)Unpacking objects:  61% (52/84)Unpacking objects:  63% (53/84)Unpacking objects:  64% (54/84)Unpacking objects:  65% (55/84)Unpacking objects:  66% (56/84)Unpacking objects:  67% (57/84)Unpacking objects:  69% (58/84)Unpacking objects:  70% (59/84)Unpacking objects:  71% (60/84)Unpacking objects:  72% (61/84)Unpacking objects:  73% (62/84)Unpacking objects:  75% (63/84)Unpacking objects:  76% (64/84)Unpacking objects:  77% (65/84)Unpacking objects:  78% (66/84)Unpacking objects:  79% (67/84)Unpacking objects:  80% (68/84)Unpacking objects:  82% (69/84)Unpacking objects:  83% (70/84)Unpacking objects:  84% (71/84)Unpacking objects:  85% (72/84)Unpacking objects:  86% (73/84)Unpacking objects:  88% (74/84)Unpacking objects:  89% (75/84)Unpacking objects:  90% (76/84)Unpacking objects:  91% (77/84)Unpacking objects:  92% (78/84)Unpacking objects:  94% (79/84)Unpacking objects:  95% (80/84)Unpacking objects:  96% (81/84)Unpacking objects:  97% (82/84)Unpacking objects:  98% (83/84)Unpacking objects: 100% (84/84)Unpacking objects: 100% (84/84), 1.73 MiB | 7.13 MiB/s, done.
+From https://github.com/man-group/arctic
+ * branch            refs/pull/883/merge -> FETCH_HEAD
+travis_time:end:01040c7f:start=1610819265025598626,finish=1610819265766730418,duration=741131792,event=checkout[0K$ git checkout -qf FETCH_HEAD
+travis_fold:end:git.checkout[0K
+travis_time:end:01040c7f:start=1610819265025598626,finish=1610819265810729420,duration=785130794,event=checkout[0Ktravis_time:start:0091082a[0Ktravis_time:end:0091082a:start=1610819265814470000,finish=1610819265821529866,duration=7059866,event=env[0Ktravis_time:start:19bed0fa[0K$ source ~/virtualenv/python3.7/bin/activate
+travis_time:end:19bed0fa:start=1610819265825242861,finish=1610819265833809395,duration=8566534,event=[0K$ python --version
+Python 3.7.1
+$ pip --version
+pip 20.1.1 from /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pip (python 3.7)
+travis_fold:start:before_install[0Ktravis_time:start:0939d678[0K$ pip install pycodestyle
+Collecting pycodestyle
+  Downloading pycodestyle-2.6.0-py2.py3-none-any.whl (41 kB)
+[?25l
+[?25hInstalling collected packages: pycodestyle
+Successfully installed pycodestyle-2.6.0
+travis_time:end:0939d678:start=1610819266321241593,finish=1610819267357217664,duration=1035976071,event=before_install[0Ktravis_fold:end:before_install[0Ktravis_fold:start:install.1[0Ktravis_time:start:08cae602[0K$ mongo --version
+MongoDB shell version v4.0.19
+git version: 7e28f4296a04d858a2e3dd84a1e79c9ba59a9568
+OpenSSL version: OpenSSL 1.0.2g  1 Mar 2016
+allocator: tcmalloc
+modules: none
+build environment:
+    distmod: ubuntu1604
+    distarch: x86_64
+    target_arch: x86_64
+travis_time:end:08cae602:start=1610819267361727477,finish=1610819267495472513,duration=133745036,event=install[0Ktravis_fold:end:install.1[0Ktravis_fold:start:install.2[0Ktravis_time:start:03aa5bcc[0K$ pip install --upgrade pip
+Collecting pip
+  Downloading pip-20.3.3-py2.py3-none-any.whl (1.5 MB)
+[?25l
+[?25hInstalling collected packages: pip
+  Attempting uninstall: pip
+    Found existing installation: pip 20.1.1
+    Uninstalling pip-20.1.1:
+      Successfully uninstalled pip-20.1.1
+Successfully installed pip-20.3.3
+travis_time:end:03aa5bcc:start=1610819267499663533,finish=1610819269585813620,duration=2086150087,event=install[0Ktravis_fold:end:install.2[0Ktravis_fold:start:install.3[0Ktravis_time:start:3005f000[0K$ pip install python-dateutil --upgrade
+Collecting python-dateutil
+  Downloading python_dateutil-2.8.1-py2.py3-none-any.whl (227 kB)
+[?25l
+[?25hRequirement already satisfied: six>=1.5 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from python-dateutil) (1.12.0)
+Installing collected packages: python-dateutil
+Successfully installed python-dateutil-2.8.1
+travis_time:end:3005f000:start=1610819269590116029,finish=1610819270390957108,duration=800841079,event=install[0Ktravis_fold:end:install.3[0Ktravis_fold:start:install.4[0Ktravis_time:start:148cb774[0K$ pip install pytz --upgrade
+Collecting pytz
+  Downloading pytz-2020.5-py2.py3-none-any.whl (510 kB)
+[?25l
+[?25hInstalling collected packages: pytz
+Successfully installed pytz-2020.5
+travis_time:end:148cb774:start=1610819270395057332,finish=1610819271418942858,duration=1023885526,event=install[0Ktravis_fold:end:install.4[0Ktravis_fold:start:install.5[0Ktravis_time:start:0ac6af00[0K$ pip install tzlocal --upgrade
+Collecting tzlocal
+  Downloading tzlocal-2.1-py2.py3-none-any.whl (16 kB)
+Requirement already satisfied: pytz in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from tzlocal) (2020.5)
+Installing collected packages: tzlocal
+Successfully installed tzlocal-2.1
+travis_time:end:0ac6af00:start=1610819271423028614,finish=1610819272120619571,duration=697590957,event=install[0Ktravis_fold:end:install.5[0Ktravis_fold:start:install.6[0Ktravis_time:start:10a485f2[0K$ pip install pymongo --upgrade
+Collecting pymongo
+  Downloading pymongo-3.11.2-cp37-cp37m-manylinux2014_x86_64.whl (512 kB)
+[?25l
+[?25hInstalling collected packages: pymongo
+Successfully installed pymongo-3.11.2
+travis_time:end:10a485f2:start=1610819272124649695,finish=1610819273581047850,duration=1456398155,event=install[0Ktravis_fold:end:install.6[0Ktravis_fold:start:install.7[0Ktravis_time:start:02208d00[0K$ pip install numpy --upgrade
+Requirement already satisfied: numpy in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (1.16.4)
+Collecting numpy
+  Downloading numpy-1.19.5-cp37-cp37m-manylinux2010_x86_64.whl (14.8 MB)
+[?25l
+[?25hInstalling collected packages: numpy
+  Attempting uninstall: numpy
+    Found existing installation: numpy 1.16.4
+    Uninstalling numpy-1.16.4:
+      Successfully uninstalled numpy-1.16.4
+Successfully installed numpy-1.19.5
+travis_time:end:02208d00:start=1610819273585221313,finish=1610819277712133057,duration=4126911744,event=install[0Ktravis_fold:end:install.7[0Ktravis_fold:start:install.8[0Ktravis_time:start:04ed26af[0K$ pip install pandas --upgrade
+Collecting pandas
+  Downloading pandas-1.2.0-cp37-cp37m-manylinux1_x86_64.whl (9.9 MB)
+[?25l
+[?25hRequirement already satisfied: python-dateutil>=2.7.3 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pandas) (2.8.1)
+Requirement already satisfied: pytz>=2017.3 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pandas) (2020.5)
+Requirement already satisfied: numpy>=1.16.5 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pandas) (1.19.5)
+Requirement already satisfied: six>=1.5 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from python-dateutil>=2.7.3->pandas) (1.12.0)
+Installing collected packages: pandas
+Successfully installed pandas-1.2.0
+travis_time:end:04ed26af:start=1610819277716167780,finish=1610819282098580841,duration=4382413061,event=install[0Ktravis_fold:end:install.8[0Ktravis_fold:start:install.9[0Ktravis_time:start:0443b344[0K$ pip install decorator --upgrade
+Collecting decorator
+  Downloading decorator-4.4.2-py2.py3-none-any.whl (9.2 kB)
+Installing collected packages: decorator
+Successfully installed decorator-4.4.2
+travis_time:end:0443b344:start=1610819282102628754,finish=1610819282822394645,duration=719765891,event=install[0Ktravis_fold:end:install.9[0Ktravis_fold:start:install.10[0Ktravis_time:start:231549b0[0K$ pip install enum34 --upgrade
+Collecting enum34
+  Downloading enum34-1.1.10-py3-none-any.whl (11 kB)
+Installing collected packages: enum34
+Successfully installed enum34-1.1.10
+travis_time:end:231549b0:start=1610819282826348247,finish=1610819283531385208,duration=705036961,event=install[0Ktravis_fold:end:install.10[0Ktravis_fold:start:install.11[0Ktravis_time:start:060976c5[0K$ pip install lz4 --upgrade
+Collecting lz4
+  Downloading lz4-3.1.2-cp37-cp37m-manylinux2010_x86_64.whl (1.8 MB)
+[?25l
+[?25hInstalling collected packages: lz4
+Successfully installed lz4-3.1.2
+travis_time:end:060976c5:start=1610819283535651176,finish=1610819284572388851,duration=1036737675,event=install[0Ktravis_fold:end:install.11[0Ktravis_fold:start:install.12[0Ktravis_time:start:008c9478[0K$ pip install mock --upgrade
+Requirement already satisfied: mock in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (4.0.2)
+Collecting mock
+  Downloading mock-4.0.3-py3-none-any.whl (28 kB)
+Installing collected packages: mock
+  Attempting uninstall: mock
+    Found existing installation: mock 4.0.2
+    Uninstalling mock-4.0.2:
+      Successfully uninstalled mock-4.0.2
+Successfully installed mock-4.0.3
+travis_time:end:008c9478:start=1610819284576854700,finish=1610819285569104391,duration=992249691,event=install[0Ktravis_fold:end:install.12[0Ktravis_fold:start:install.13[0Ktravis_time:start:0091077b[0K$ pip install mockextras
+Collecting mockextras
+  Downloading mockextras-1.0.2-py3-none-any.whl (8.0 kB)
+Installing collected packages: mockextras
+Successfully installed mockextras-1.0.2
+travis_time:end:0091077b:start=1610819285573363373,finish=1610819286262989118,duration=689625745,event=install[0Ktravis_fold:end:install.13[0Ktravis_fold:start:install.14[0Ktravis_time:start:0defabf0[0K$ pip install pytest --upgrade
+Requirement already satisfied: pytest in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (5.4.3)
+Collecting pytest
+  Downloading pytest-6.2.1-py3-none-any.whl (279 kB)
+[?25l
+[?25hRequirement already satisfied: packaging in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest) (19.0)
+Requirement already satisfied: importlib-metadata>=0.12 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest) (0.18)
+Requirement already satisfied: pluggy<1.0.0a1,>=0.12 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest) (0.12.0)
+Collecting attrs>=19.2.0
+  Downloading attrs-20.3.0-py2.py3-none-any.whl (49 kB)
+[?25l
+[?25hRequirement already satisfied: zipp>=0.5 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from importlib-metadata>=0.12->pytest) (0.5.1)
+Collecting py>=1.8.2
+  Downloading py-1.10.0-py2.py3-none-any.whl (97 kB)
+[?25l
+[?25hCollecting iniconfig
+  Downloading iniconfig-1.1.1-py2.py3-none-any.whl (5.0 kB)
+Requirement already satisfied: six in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from packaging->pytest) (1.12.0)
+Requirement already satisfied: pyparsing>=2.0.2 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from packaging->pytest) (2.4.0)
+Collecting toml
+  Downloading toml-0.10.2-py2.py3-none-any.whl (16 kB)
+Installing collected packages: toml, py, iniconfig, attrs, pytest
+  Attempting uninstall: py
+    Found existing installation: py 1.8.0
+    Uninstalling py-1.8.0:
+      Successfully uninstalled py-1.8.0
+  Attempting uninstall: attrs
+    Found existing installation: attrs 19.1.0
+    Uninstalling attrs-19.1.0:
+      Successfully uninstalled attrs-19.1.0
+  Attempting uninstall: pytest
+    Found existing installation: pytest 5.4.3
+    Uninstalling pytest-5.4.3:
+      Successfully uninstalled pytest-5.4.3
+Successfully installed attrs-20.3.0 iniconfig-1.1.1 py-1.10.0 pytest-6.2.1 toml-0.10.2
+travis_time:end:0defabf0:start=1610819286267127197,finish=1610819289146556039,duration=2879428842,event=install[0Ktravis_fold:end:install.14[0Ktravis_fold:start:install.15[0Ktravis_time:start:0dfa4297[0K$ pip install pytest-cov --upgrade
+Collecting pytest-cov
+  Downloading pytest_cov-2.10.1-py2.py3-none-any.whl (19 kB)
+Requirement already satisfied: pytest>=4.6 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest-cov) (6.2.1)
+Collecting coverage>=4.4
+  Downloading coverage-5.3.1-cp37-cp37m-manylinux2010_x86_64.whl (242 kB)
+[?25l
+[?25hRequirement already satisfied: py>=1.8.2 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=4.6->pytest-cov) (1.10.0)
+Requirement already satisfied: toml in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=4.6->pytest-cov) (0.10.2)
+Requirement already satisfied: packaging in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=4.6->pytest-cov) (19.0)
+Requirement already satisfied: pluggy<1.0.0a1,>=0.12 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=4.6->pytest-cov) (0.12.0)
+Requirement already satisfied: importlib-metadata>=0.12 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=4.6->pytest-cov) (0.18)
+Requirement already satisfied: attrs>=19.2.0 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=4.6->pytest-cov) (20.3.0)
+Requirement already satisfied: iniconfig in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=4.6->pytest-cov) (1.1.1)
+Requirement already satisfied: zipp>=0.5 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from importlib-metadata>=0.12->pytest>=4.6->pytest-cov) (0.5.1)
+Requirement already satisfied: pyparsing>=2.0.2 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from packaging->pytest>=4.6->pytest-cov) (2.4.0)
+Requirement already satisfied: six in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from packaging->pytest>=4.6->pytest-cov) (1.12.0)
+Installing collected packages: coverage, pytest-cov
+Successfully installed coverage-5.3.1 pytest-cov-2.10.1
+travis_time:end:0dfa4297:start=1610819289150648784,finish=1610819290572907622,duration=1422258838,event=install[0Ktravis_fold:end:install.15[0Ktravis_fold:start:install.16[0Ktravis_time:start:05357352[0K$ pip install pytest-server-fixtures --upgrade
+Collecting pytest-server-fixtures
+  Downloading pytest_server_fixtures-1.7.0-py2.py3-none-any.whl (40 kB)
+[?25l
+[?25hRequirement already satisfied: pytest in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest-server-fixtures) (6.2.1)
+Requirement already satisfied: six in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest-server-fixtures) (1.12.0)
+Collecting future
+  Downloading future-0.18.2.tar.gz (829 kB)
+[?25l
+[?25hCollecting psutil
+  Downloading psutil-5.8.0-cp37-cp37m-manylinux2010_x86_64.whl (296 kB)
+[?25l
+[?25hRequirement already satisfied: iniconfig in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest->pytest-server-fixtures) (1.1.1)
+Requirement already satisfied: importlib-metadata>=0.12 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest->pytest-server-fixtures) (0.18)
+Requirement already satisfied: packaging in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest->pytest-server-fixtures) (19.0)
+Requirement already satisfied: toml in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest->pytest-server-fixtures) (0.10.2)
+Requirement already satisfied: pluggy<1.0.0a1,>=0.12 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest->pytest-server-fixtures) (0.12.0)
+Requirement already satisfied: py>=1.8.2 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest->pytest-server-fixtures) (1.10.0)
+Requirement already satisfied: attrs>=19.2.0 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest->pytest-server-fixtures) (20.3.0)
+Requirement already satisfied: zipp>=0.5 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from importlib-metadata>=0.12->pytest->pytest-server-fixtures) (0.5.1)
+Requirement already satisfied: pyparsing>=2.0.2 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from packaging->pytest->pytest-server-fixtures) (2.4.0)
+Collecting pytest-fixture-config
+  Downloading pytest_fixture_config-1.7.0-py2.py3-none-any.whl (6.5 kB)
+Collecting pytest-shutil
+  Downloading pytest_shutil-1.7.0-py2.py3-none-any.whl (15 kB)
+Requirement already satisfied: mock in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest-shutil->pytest-server-fixtures) (4.0.3)
+Collecting contextlib2
+  Using cached contextlib2-0.6.0.post1-py2.py3-none-any.whl (9.8 kB)
+Collecting execnet
+  Downloading execnet-1.7.1-py2.py3-none-any.whl (39 kB)
+Collecting apipkg>=1.4
+  Downloading apipkg-1.5-py2.py3-none-any.whl (4.9 kB)
+Collecting path.py
+  Downloading path.py-12.5.0-py3-none-any.whl (2.3 kB)
+Collecting path
+  Downloading path-15.0.1-py3-none-any.whl (21 kB)
+Collecting requests
+  Downloading requests-2.25.1-py2.py3-none-any.whl (61 kB)
+[?25l
+[?25hRequirement already satisfied: certifi>=2017.4.17 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from requests->pytest-server-fixtures) (2019.3.9)
+Collecting chardet<5,>=3.0.2
+  Downloading chardet-4.0.0-py2.py3-none-any.whl (178 kB)
+[?25l
+[?25hCollecting idna<3,>=2.5
+  Downloading idna-2.10-py2.py3-none-any.whl (58 kB)
+[?25l
+[?25hCollecting urllib3<1.27,>=1.21.1
+  Downloading urllib3-1.26.2-py2.py3-none-any.whl (136 kB)
+[?25l
+[?25hCollecting retry
+  Downloading retry-0.9.2-py2.py3-none-any.whl (8.0 kB)
+Requirement already satisfied: decorator>=3.4.2 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from retry->pytest-server-fixtures) (4.4.2)
+Collecting termcolor
+  Downloading termcolor-1.1.0.tar.gz (3.9 kB)
+Building wheels for collected packages: future, termcolor
+  Building wheel for future (setup.py) ... [?25l- \ | done
+[?25h  Created wheel for future: filename=future-0.18.2-py3-none-any.whl size=491058 sha256=87b6a9b0f49894505ad74deef2301ffe06843e09d9cc5977965b68455708785e
+  Stored in directory: /home/travis/.cache/pip/wheels/56/b0/fe/4410d17b32f1f0c3cf54cdfb2bc04d7b4b8f4ae377e2229ba0
+  Building wheel for termcolor (setup.py) ... [?25l- done
+[?25h  Created wheel for termcolor: filename=termcolor-1.1.0-py3-none-any.whl size=4830 sha256=eeddcb7d7dd723f5989c1576112f769794d6b64684d48614c35450cdb40596bf
+  Stored in directory: /home/travis/.cache/pip/wheels/3f/e3/ec/8a8336ff196023622fbcb36de0c5a5c218cbb24111d1d4c7f2
+Successfully built future termcolor
+Installing collected packages: path, apipkg, urllib3, termcolor, path.py, idna, execnet, contextlib2, chardet, retry, requests, pytest-shutil, pytest-fixture-config, psutil, future, pytest-server-fixtures
+Successfully installed apipkg-1.5 chardet-4.0.0 contextlib2-0.6.0.post1 execnet-1.7.1 future-0.18.2 idna-2.10 path-15.0.1 path.py-12.5.0 psutil-5.8.0 pytest-fixture-config-1.7.0 pytest-server-fixtures-1.7.0 pytest-shutil-1.7.0 requests-2.25.1 retry-0.9.2 termcolor-1.1.0 urllib3-1.26.2
+travis_time:end:05357352:start=1610819290577560614,finish=1610819295536087380,duration=4958526766,event=install[0Ktravis_fold:end:install.16[0Ktravis_fold:start:install.17[0Ktravis_time:start:008ed445[0K$ pip install pytest-timeout --upgrade
+Collecting pytest-timeout
+  Downloading pytest_timeout-1.4.2-py2.py3-none-any.whl (10 kB)
+Requirement already satisfied: pytest>=3.6.0 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest-timeout) (6.2.1)
+Requirement already satisfied: importlib-metadata>=0.12 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=3.6.0->pytest-timeout) (0.18)
+Requirement already satisfied: packaging in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=3.6.0->pytest-timeout) (19.0)
+Requirement already satisfied: toml in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=3.6.0->pytest-timeout) (0.10.2)
+Requirement already satisfied: iniconfig in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=3.6.0->pytest-timeout) (1.1.1)
+Requirement already satisfied: pluggy<1.0.0a1,>=0.12 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=3.6.0->pytest-timeout) (0.12.0)
+Requirement already satisfied: attrs>=19.2.0 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=3.6.0->pytest-timeout) (20.3.0)
+Requirement already satisfied: py>=1.8.2 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=3.6.0->pytest-timeout) (1.10.0)
+Requirement already satisfied: zipp>=0.5 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from importlib-metadata>=0.12->pytest>=3.6.0->pytest-timeout) (0.5.1)
+Requirement already satisfied: pyparsing>=2.0.2 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from packaging->pytest>=3.6.0->pytest-timeout) (2.4.0)
+Requirement already satisfied: six in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from packaging->pytest>=3.6.0->pytest-timeout) (1.12.0)
+Installing collected packages: pytest-timeout
+Successfully installed pytest-timeout-1.4.2
+travis_time:end:008ed445:start=1610819295540499602,finish=1610819296403551417,duration=863051815,event=install[0Ktravis_fold:end:install.17[0Ktravis_fold:start:install.18[0Ktravis_time:start:01c74798[0K$ pip install pytest-xdist --upgrade
+Collecting pytest-xdist
+  Downloading pytest_xdist-2.2.0-py3-none-any.whl (36 kB)
+Requirement already satisfied: pytest>=6.0.0 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest-xdist) (6.2.1)
+Requirement already satisfied: execnet>=1.1 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest-xdist) (1.7.1)
+Requirement already satisfied: apipkg>=1.4 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from execnet>=1.1->pytest-xdist) (1.5)
+Requirement already satisfied: py>=1.8.2 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=6.0.0->pytest-xdist) (1.10.0)
+Requirement already satisfied: toml in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=6.0.0->pytest-xdist) (0.10.2)
+Requirement already satisfied: pluggy<1.0.0a1,>=0.12 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=6.0.0->pytest-xdist) (0.12.0)
+Requirement already satisfied: attrs>=19.2.0 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=6.0.0->pytest-xdist) (20.3.0)
+Requirement already satisfied: iniconfig in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=6.0.0->pytest-xdist) (1.1.1)
+Requirement already satisfied: importlib-metadata>=0.12 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=6.0.0->pytest-xdist) (0.18)
+Requirement already satisfied: packaging in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from pytest>=6.0.0->pytest-xdist) (19.0)
+Requirement already satisfied: zipp>=0.5 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from importlib-metadata>=0.12->pytest>=6.0.0->pytest-xdist) (0.5.1)
+Requirement already satisfied: pyparsing>=2.0.2 in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from packaging->pytest>=6.0.0->pytest-xdist) (2.4.0)
+Requirement already satisfied: six in /home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages (from packaging->pytest>=6.0.0->pytest-xdist) (1.12.0)
+Collecting pytest-forked
+  Downloading pytest_forked-1.3.0-py2.py3-none-any.whl (4.7 kB)
+Installing collected packages: pytest-forked, pytest-xdist
+Successfully installed pytest-forked-1.3.0 pytest-xdist-2.2.0
+travis_time:end:01c74798:start=1610819296407956568,finish=1610819297442215430,duration=1034258862,event=install[0Ktravis_fold:end:install.18[0Ktravis_fold:start:install.19[0Ktravis_time:start:183d05f0[0K$ pip install setuptools-git --upgrade
+Collecting setuptools-git
+  Downloading setuptools_git-1.2-py2.py3-none-any.whl (10 kB)
+Installing collected packages: setuptools-git
+Successfully installed setuptools-git-1.2
+travis_time:end:183d05f0:start=1610819297446774659,finish=1610819298324342440,duration=877567781,event=install[0Ktravis_fold:end:install.19[0Ktravis_fold:start:install.20[0Ktravis_time:start:0c1eb13c[0K$ if [[ $TRAVIS_PYTHON_VERSION == 2.7 ]]; then pip install pandas==0.22.0; fi
+travis_time:end:0c1eb13c:start=1610819298328891981,finish=1610819298331711657,duration=2819676,event=install[0Ktravis_fold:end:install.20[0Ktravis_time:start:0709a5a4[0K$ pip freeze
+apipkg==1.5
+atomicwrites==1.3.0
+attrs==20.3.0
+certifi==2019.3.9
+chardet==4.0.0
+contextlib2==0.6.0.post1
+coverage==5.3.1
+decorator==4.4.2
+enum34==1.1.10
+execnet==1.7.1
+future==0.18.2
+idna==2.10
+importlib-metadata==0.18
+iniconfig==1.1.1
+lz4==3.1.2
+mock==4.0.3
+mockextras==1.0.2
+more-itertools==7.0.0
+nose==1.3.7
+numpy==1.19.5
+packaging==19.0
+pandas==1.2.0
+path==15.0.1
+path.py==12.5.0
+pipenv==2018.11.26
+pluggy==0.12.0
+psutil==5.8.0
+py==1.10.0
+pycodestyle==2.6.0
+pymongo==3.11.2
+pyparsing==2.4.0
+pytest==6.2.1
+pytest-cov==2.10.1
+pytest-fixture-config==1.7.0
+pytest-forked==1.3.0
+pytest-server-fixtures==1.7.0
+pytest-shutil==1.7.0
+pytest-timeout==1.4.2
+pytest-xdist==2.2.0
+python-dateutil==2.8.1
+pytz==2020.5
+requests==2.25.1
+retry==0.9.2
+setuptools-git==1.2
+six==1.12.0
+termcolor==1.1.0
+toml==0.10.2
+tzlocal==2.1
+urllib3==1.26.2
+virtualenv==16.6.0
+virtualenv-clone==0.5.3
+wcwidth==0.1.7
+zipp==0.5.1
+travis_time:end:0709a5a4:start=1610819298335810631,finish=1610819298670892493,duration=335081862,event=script[0K[32;1mThe command "pip freeze" exited with 0.[0m
+travis_time:start:01ccc3c0[0K$ python setup.py test --pytest-args=-v
+running test
+WARNING: Testing via this command is deprecated and will be removed in a future version. Users looking for a generic test entry point independent of test runner are encouraged to use tox.
+running egg_info
+creating arctic.egg-info
+writing arctic.egg-info/PKG-INFO
+writing dependency_links to arctic.egg-info/dependency_links.txt
+writing entry points to arctic.egg-info/entry_points.txt
+writing requirements to arctic.egg-info/requires.txt
+writing top-level names to arctic.egg-info/top_level.txt
+writing manifest file 'arctic.egg-info/SOURCES.txt'
+writing manifest file 'arctic.egg-info/SOURCES.txt'
+running build_ext
+Traceback (most recent call last):
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 703, in import_plugin
+    __import__(importspec)
+  File "/home/travis/build/man-group/arctic/arctic/__init__.py", line 6, in <module>
+    from .store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasPanelStore
+  File "/home/travis/build/man-group/arctic/arctic/store/_pandas_ndarray_store.py", line 6, in <module>
+    from pandas import DataFrame, Series, Panel
+ImportError: cannot import name 'Panel' from 'pandas' (/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pandas/__init__.py)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "setup.py", line 121, in <module>
+    "Topic :: Software Development :: Libraries",
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/setuptools/__init__.py", line 161, in setup
+    return distutils.core.setup(**attrs)
+  File "/opt/python/3.7.1/lib/python3.7/distutils/core.py", line 148, in setup
+    dist.run_commands()
+  File "/opt/python/3.7.1/lib/python3.7/distutils/dist.py", line 966, in run_commands
+    self.run_command(cmd)
+  File "/opt/python/3.7.1/lib/python3.7/distutils/dist.py", line 985, in run_command
+    cmd_obj.run()
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/setuptools/command/test.py", line 238, in run
+    self.run_tests()
+  File "setup.py", line 55, in run_tests
+    errno = pytest.main(args)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 143, in main
+    config = _prepareconfig(args, plugins)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 319, in _prepareconfig
+    pluginmanager=pluginmanager, args=args
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pluggy/hooks.py", line 289, in __call__
+    return self._hookexec(self, self.get_hookimpls(), kwargs)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pluggy/manager.py", line 87, in _hookexec
+    return self._inner_hookexec(hook, methods, kwargs)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pluggy/manager.py", line 81, in <lambda>
+    firstresult=hook.spec.opts.get("firstresult") if hook.spec else False,
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pluggy/callers.py", line 203, in _multicall
+    gen.send(outcome)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/helpconfig.py", line 100, in pytest_cmdline_parse
+    config: Config = outcome.get_result()
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pluggy/callers.py", line 80, in get_result
+    raise ex[1].with_traceback(ex[2])
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pluggy/callers.py", line 187, in _multicall
+    res = hook_impl.function(*args)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 1003, in pytest_cmdline_parse
+    self.parse(args)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 1283, in parse
+    self._preparse(args, addopts=addopts)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 1192, in _preparse
+    early_config=self, args=args, parser=self._parser
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pluggy/hooks.py", line 289, in __call__
+    return self._hookexec(self, self.get_hookimpls(), kwargs)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pluggy/manager.py", line 87, in _hookexec
+    return self._inner_hookexec(hook, methods, kwargs)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pluggy/manager.py", line 81, in <lambda>
+    firstresult=hook.spec.opts.get("firstresult") if hook.spec else False,
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pluggy/callers.py", line 208, in _multicall
+    return outcome.get_result()
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pluggy/callers.py", line 80, in get_result
+    raise ex[1].with_traceback(ex[2])
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pluggy/callers.py", line 187, in _multicall
+    res = hook_impl.function(*args)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 1070, in pytest_load_initial_conftests
+    self.pluginmanager._set_initial_conftests(early_config.known_args_namespace)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 503, in _set_initial_conftests
+    self._try_load_conftest(current, namespace.importmode)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 513, in _try_load_conftest
+    self._getconftestmodules(x, importmode)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 536, in _getconftestmodules
+    mod = self._importconftest(conftestpath, importmode)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 587, in _importconftest
+    self.consider_conftest(mod)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 663, in consider_conftest
+    self.register(conftestmodule, name=conftestmodule.__file__)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 443, in register
+    self.consider_module(plugin)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 669, in consider_module
+    self._import_plugin_specs(getattr(mod, "pytest_plugins", []))
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 676, in _import_plugin_specs
+    self.import_plugin(import_spec)
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 707, in import_plugin
+    ).with_traceback(e.__traceback__) from e
+  File "/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/_pytest/config/__init__.py", line 703, in import_plugin
+    __import__(importspec)
+  File "/home/travis/build/man-group/arctic/arctic/__init__.py", line 6, in <module>
+    from .store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasPanelStore
+  File "/home/travis/build/man-group/arctic/arctic/store/_pandas_ndarray_store.py", line 6, in <module>
+    from pandas import DataFrame, Series, Panel
+ImportError: Error importing plugin "arctic.fixtures.arctic": cannot import name 'Panel' from 'pandas' (/home/travis/virtualenv/python3.7.1/lib/python3.7/site-packages/pandas/__init__.py)
+travis_time:end:01ccc3c0:start=1610819298675247036,finish=1610819301604085352,duration=2928838316,event=script[0K[31;1mThe command "python setup.py test --pytest-args=-v" exited with 1.[0m
+travis_time:start:08dd762c[0K$ pycodestyle arctic
+travis_time:end:08dd762c:start=1610819301608831219,finish=1610819302889851252,duration=1281020033,event=script[0K[32;1mThe command "pycodestyle arctic" exited with 0.[0m
+
+
+Done. Your build exited with 1.

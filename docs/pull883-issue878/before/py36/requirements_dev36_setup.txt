@@ -1,0 +1,14 @@
+decorator~=4.4.2
+numpy~=1.19.5
+six~=1.15.0
+pytz~=2020.5
+setuptools~=51.0.0
+pip~=20.3.3
+wheel~=0.36.2
+tzlocal~=2.1
+arctic~=1.80.0
+pymongo~=3.11.2
+pandas~=1.1.5
+python-dateutil~=2.8.1
+mockextras~=1.0.2
+lz4~=3.1.1
