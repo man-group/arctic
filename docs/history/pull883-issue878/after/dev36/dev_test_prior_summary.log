@@ -1,0 +1,1442 @@
+===============================================================================
+=========================== short test summary info ============================
+
+
+===============================================================================
+...
+tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data6-FwPointersCfg.DISABLED] FAILED [ 10%]
+tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data7-FwPointersCfg.HYBRID] FAILED [ 10%]
+tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data8-FwPointersCfg.ENABLED] 2021-01-17 13:03:14,808 DEBUG pytest_server_fixtures.base2 Server is already killed, skipping FAILED [ 10%]
+tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data9-FwPointersCfg.DISABLED] FAILED [ 11%]
+tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data10-FwPointersCfg.HYBRID] 2021-01-17 13:03:18,897 DEBUG pytest_server_fixtures.base2 Server is already killed, skipping FAILED [ 11%]
+tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data11-FwPointersCfg.ENABLED] FAILED [ 11%]
+...
+tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_snapshots[False-data6-FwPointersCfg.DISABLED] FAILED [ 13%]
+tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_snapshots[False-data7-FwPointersCfg.HYBRID] FAILED [ 14%]
+tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_snapshots[False-data8-FwPointersCfg.ENABLED] FAILED [ 14%]
+tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_snapshots[False-data9-FwPointersCfg.DISABLED] FAILED [ 14%]
+tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_snapshots[False-data10-FwPointersCfg.HYBRID] FAILED [ 14%]
+tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_snapshots[False-data11-FwPointersCfg.ENABLED] FAILED [ 14%]
+...
+tests/integration/scripts/test_prune_versions.py::test_fix_broken_snapshot_references FAILED [ 17%]
+tests/integration/scripts/test_prune_versions.py::test_keep_only_one_version FAILED [ 17%]
+...
+tests/integration/tickstore/test_toplevel.py::test_should_return_data_when_date_range_falls_in_a_single_underlying_library FAILED [ 54%]
+tests/integration/tickstore/test_toplevel.py::test_should_return_data_when_date_range_spans_libraries 2021-01-17 13:26:54,790 DEBUG pytest_server_fixtures.base2 Server is already killed, skipping FAILED [ 54%]
+tests/integration/tickstore/test_toplevel.py::test_should_return_data_when_date_range_spans_libraries_even_if_one_returns_nothing 2021-01-17 13:26:57,087 DEBUG pytest_server_fixtures.base2 Server is already killed, skipping FAILED [ 54%]
+...
+tests/integration/tickstore/test_toplevel.py::test_should_add_underlying_library_where_another_library_exists_in_a_non_overlapping_daterange FAILED [ 54%]
+...
+tests/integration/tickstore/test_toplevel.py::test_should_write_top_level_with_list_of_dicts FAILED [ 55%]
+tests/integration/tickstore/test_toplevel.py::test_should_write_top_level_with_correct_timezone FAILED [ 55%]
+...
+tests/integration/tickstore/test_ts_read.py::test_date_range[tickstore] FAILED [ 56%]
+tests/integration/tickstore/test_ts_read.py::test_date_range_end_not_in_range[tickstore] FAILED [ 56%]
+...
+tests/integration/tickstore/test_ts_read.py::test_date_range_no_bounds[tickstore] FAILED [ 56%]
+...
+tests/unit/store/test_version_store_audit.py::test_ArcticTransaction_detects_concurrent_writes FAILED [ 96%]
+
+tests/unit/tickstore/test_tickstore.py::test_mongo_date_range_query FAILED [ 96%]
+
+tests/unit/tickstore/test_tickstore.py::test_tickstore_to_bucket_with_image FAILED [ 97%]
+
+tests/unit/tickstore/test_tickstore.py::test_tickstore_pandas_to_bucket_image FAILED [ 97%]
+
+=================================== FAILURES ===================================
+
+_________________________________ test_indexes _________________________________
+
+def test_indexes(arctic):
+        c = arctic._conn
+        arctic.initialize_library("library", VERSION_STORE, segment='month')
+        chunk = c.arctic.library.index_information()
+        index_version = chunk['_id_']['v']  # Mongo 3.2 has index v1, 3.4 and 3.5 have v2 (3.4 can run in compabitility mode with v1)
+>       assert chunk == {u'_id_': {u'key': [(u'_id', 1)], u'ns': u'arctic.library', u'v': index_version},
+                         u'symbol_1_parent_1_segment_1': {u'background': True,
+                                                          u'key': [(u'symbol', 1),
+                                                                   (u'parent', 1),
+                                                                   (u'segment', 1)],
+                                                          u'ns': u'arctic.library',
+                                                          u'unique': True,
+                                                          u'v': index_version},
+                         u'symbol_1_sha_1': {u'background': True,
+                                             u'key': [(u'symbol', 1), (u'sha', 1)],
+                                             u'ns': u'arctic.library',
+                                             u'unique': True,
+                                             u'v': index_version},
+                         u'symbol_hashed': {u'background': True,
+                                            u'key': [(u'symbol', u'hashed')],
+                                            u'ns': u'arctic.library',
+                                            u'v': index_version},
+                         u'symbol_1_sha_1_segment_1': {u'background': True,
+                                                       u'key': [(u'symbol', 1), (u'sha', 1), (u'segment', 1)],
+                                                       u'ns': u'arctic.library',
+                                                       u'unique': True,
+                                                       u'v': index_version}}
+E       AssertionError: assert {'_id_': {'ke... 'v': 2}, ...} == {'_id_': {'ke...ue, ...}, ...}
+E         Differing items:
+E         {'_id_': {'key': [('_id', 1)], 'v': 2}} != {'_id_': {'key': [('_id', 1)], 'ns': 'arctic.library', 'v': 2}}
+E         {'symbol_1_sha_1_segment_1': {'background': True, 'key': [('symbol', 1), ('sha', 1), ('segment', 1)], 'unique': True, 'v': 2}} != {'symbol_1_sha_1_segment_1': {'background': True, 'key': [('symbol', 1), ('sha', 1), ('segment', 1)], 'ns': 'arctic.library', 'unique': True, ...}}
+E         {'symbol_1_sha_1': {'background': True, 'key': [('symbol', 1), ('sha', 1)], 'unique': True, 'v': 2}} != {'symbol_1_sha_1': {'background': True, 'key': [('symbol', 1), ('sha', 1)...
+E         
+E         ...Full output truncated (43 lines hidden), use '-vv' to show
+
+tests/integration/test_arctic.py:81: AssertionError
+
+===============================================================================
+
+_______ test_cleanup_orphaned_chunks[False-data6-FwPointersCfg.DISABLED] _______
+
+mongo_host = '127.250.227.95:24153'
+library = <VersionStore at 0x7fef8afafe10>
+    <ArcticLibrary at 0x7feffbc4ee80, arctic_user.library>
+        <Arctic at 0x7fefb27342b0, connected to MongoClient(host=['127.250.227.95:24153'], document_class=dict, tz_aware=False, connect=True)>
+data = {'thing': sentinel.val}, dry_run = False
+fw_pointers_config = <FwPointersCfg.DISABLED: 1>
+
+    @pytest.mark.parametrize(
+        ['dry_run', 'data', 'fw_pointers_config'],
+        [(x, y, z) for (x, y, z) in itertools.product(
+            [True, False], [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
+    def test_cleanup_orphaned_chunks(mongo_host, library, data, dry_run, fw_pointers_config):
+        """
+        Check that we do / don't cleanup chunks based on the dry-run
+        """
+        with FwPointersCtx(fw_pointers_config):
+            yesterday = dt.utcnow() - dtd(days=1, seconds=1)
+            _id = bson.ObjectId.from_datetime(yesterday)
+            with patch("bson.ObjectId", return_value=_id):
+                library.write('symbol', data, prune_previous_version=False)
+    
+            # Number of chunks
+            chunk_count = mongo_count(library._collection)
+            # Remove the version document ; should cleanup
+            library._collection.versions.delete_one({'_id': _id})
+    
+            # No cleanup on dry-run
+            if dry_run:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host)
+                assert mongo_count(library._collection) == chunk_count
+            else:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
+>               assert mongo_count(library._collection) == 0
+E               assert 1 == 0
+E                 +1
+E                 -0
+
+tests/integration/scripts/test_arctic_fsck.py:53: AssertionError
+
+===============================================================================
+
+________ test_cleanup_orphaned_chunks[False-data7-FwPointersCfg.HYBRID] ________
+
+mongo_host = '127.250.227.95:4702'
+library = <VersionStore at 0x7fef8afa1fd0>
+    <ArcticLibrary at 0x7fef8afa1dd8, arctic_user.library>
+        <Arctic at 0x7fef8af9d860, connected to MongoClient(host=['127.250.227.95:4702'], document_class=dict, tz_aware=False, connect=True)>
+data = {'thing': sentinel.val}, dry_run = False
+fw_pointers_config = <FwPointersCfg.HYBRID: 2>
+
+    @pytest.mark.parametrize(
+        ['dry_run', 'data', 'fw_pointers_config'],
+        [(x, y, z) for (x, y, z) in itertools.product(
+            [True, False], [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
+    def test_cleanup_orphaned_chunks(mongo_host, library, data, dry_run, fw_pointers_config):
+        """
+        Check that we do / don't cleanup chunks based on the dry-run
+        """
+        with FwPointersCtx(fw_pointers_config):
+            yesterday = dt.utcnow() - dtd(days=1, seconds=1)
+            _id = bson.ObjectId.from_datetime(yesterday)
+            with patch("bson.ObjectId", return_value=_id):
+                library.write('symbol', data, prune_previous_version=False)
+    
+            # Number of chunks
+            chunk_count = mongo_count(library._collection)
+            # Remove the version document ; should cleanup
+            library._collection.versions.delete_one({'_id': _id})
+    
+            # No cleanup on dry-run
+            if dry_run:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host)
+                assert mongo_count(library._collection) == chunk_count
+            else:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
+>               assert mongo_count(library._collection) == 0
+E               assert 1 == 0
+E                 +1
+E                 -0
+
+tests/integration/scripts/test_arctic_fsck.py:53: AssertionError
+
+===============================================================================
+
+_______ test_cleanup_orphaned_chunks[False-data8-FwPointersCfg.ENABLED] ________
+
+mongo_host = '127.250.227.95:6469'
+library = <VersionStore at 0x7fefb27564a8>
+    <ArcticLibrary at 0x7fefb27563c8, arctic_user.library>
+        <Arctic at 0x7fefb273b048, connected to MongoClient(host=['127.250.227.95:6469'], document_class=dict, tz_aware=False, connect=True)>
+data = {'thing': sentinel.val}, dry_run = False
+fw_pointers_config = <FwPointersCfg.ENABLED: 0>
+
+    @pytest.mark.parametrize(
+        ['dry_run', 'data', 'fw_pointers_config'],
+        [(x, y, z) for (x, y, z) in itertools.product(
+            [True, False], [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
+    def test_cleanup_orphaned_chunks(mongo_host, library, data, dry_run, fw_pointers_config):
+        """
+        Check that we do / don't cleanup chunks based on the dry-run
+        """
+        with FwPointersCtx(fw_pointers_config):
+            yesterday = dt.utcnow() - dtd(days=1, seconds=1)
+            _id = bson.ObjectId.from_datetime(yesterday)
+            with patch("bson.ObjectId", return_value=_id):
+                library.write('symbol', data, prune_previous_version=False)
+    
+            # Number of chunks
+            chunk_count = mongo_count(library._collection)
+            # Remove the version document ; should cleanup
+            library._collection.versions.delete_one({'_id': _id})
+    
+            # No cleanup on dry-run
+            if dry_run:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host)
+                assert mongo_count(library._collection) == chunk_count
+            else:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
+>               assert mongo_count(library._collection) == 0
+E               assert 1 == 0
+E                 +1
+E                 -0
+
+tests/integration/scripts/test_arctic_fsck.py:53: AssertionError
+
+===============================================================================
+
+_______ test_cleanup_orphaned_chunks[False-data9-FwPointersCfg.DISABLED] _______
+
+mongo_host = '127.250.227.95:30245'
+library = <VersionStore at 0x7feffbc8ae10>
+    <ArcticLibrary at 0x7feffbc8a7f0, arctic_user.library>
+        <Arctic at 0x7fef8af2d080, connected to MongoClient(host=['127.250.227.95:30245'], document_class=dict, tz_aware=False, connect=True)>
+data =                          near
+times                        
+2012-09-08 17:06:11.040   1.0
+2012-10-08 17:06:11.040   2.0
+2012-10-09 17:06:11.040   2.5
+2012-11-08 17:06:11.040   3.0
+dry_run = False, fw_pointers_config = <FwPointersCfg.DISABLED: 1>
+
+    @pytest.mark.parametrize(
+        ['dry_run', 'data', 'fw_pointers_config'],
+        [(x, y, z) for (x, y, z) in itertools.product(
+            [True, False], [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
+    def test_cleanup_orphaned_chunks(mongo_host, library, data, dry_run, fw_pointers_config):
+        """
+        Check that we do / don't cleanup chunks based on the dry-run
+        """
+        with FwPointersCtx(fw_pointers_config):
+            yesterday = dt.utcnow() - dtd(days=1, seconds=1)
+            _id = bson.ObjectId.from_datetime(yesterday)
+            with patch("bson.ObjectId", return_value=_id):
+                library.write('symbol', data, prune_previous_version=False)
+    
+            # Number of chunks
+            chunk_count = mongo_count(library._collection)
+            # Remove the version document ; should cleanup
+            library._collection.versions.delete_one({'_id': _id})
+    
+            # No cleanup on dry-run
+            if dry_run:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host)
+                assert mongo_count(library._collection) == chunk_count
+            else:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
+>               assert mongo_count(library._collection) == 0
+E               assert 1 == 0
+E                 +1
+E                 -0
+
+tests/integration/scripts/test_arctic_fsck.py:53: AssertionError
+
+===============================================================================
+
+_______ test_cleanup_orphaned_chunks[False-data10-FwPointersCfg.HYBRID] ________
+
+mongo_host = '127.250.227.95:12882'
+library = <VersionStore at 0x7fef8afa1b00>
+    <ArcticLibrary at 0x7fef8afa1ba8, arctic_user.library>
+        <Arctic at 0x7fef8af2ddd8, connected to MongoClient(host=['127.250.227.95:12882'], document_class=dict, tz_aware=False, connect=True)>
+data =                          near
+times                        
+2012-09-08 17:06:11.040   1.0
+2012-10-08 17:06:11.040   2.0
+2012-10-09 17:06:11.040   2.5
+2012-11-08 17:06:11.040   3.0
+dry_run = False, fw_pointers_config = <FwPointersCfg.HYBRID: 2>
+
+    @pytest.mark.parametrize(
+        ['dry_run', 'data', 'fw_pointers_config'],
+        [(x, y, z) for (x, y, z) in itertools.product(
+            [True, False], [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
+    def test_cleanup_orphaned_chunks(mongo_host, library, data, dry_run, fw_pointers_config):
+        """
+        Check that we do / don't cleanup chunks based on the dry-run
+        """
+        with FwPointersCtx(fw_pointers_config):
+            yesterday = dt.utcnow() - dtd(days=1, seconds=1)
+            _id = bson.ObjectId.from_datetime(yesterday)
+            with patch("bson.ObjectId", return_value=_id):
+                library.write('symbol', data, prune_previous_version=False)
+    
+            # Number of chunks
+            chunk_count = mongo_count(library._collection)
+            # Remove the version document ; should cleanup
+            library._collection.versions.delete_one({'_id': _id})
+    
+            # No cleanup on dry-run
+            if dry_run:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host)
+                assert mongo_count(library._collection) == chunk_count
+            else:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
+>               assert mongo_count(library._collection) == 0
+E               assert 1 == 0
+E                 +1
+E                 -0
+
+tests/integration/scripts/test_arctic_fsck.py:53: AssertionError
+
+===============================================================================
+
+_______ test_cleanup_orphaned_chunks[False-data11-FwPointersCfg.ENABLED] _______
+
+mongo_host = '127.250.227.95:19261'
+library = <VersionStore at 0x7feffbc49cc0>
+    <ArcticLibrary at 0x7feffbc49240, arctic_user.library>
+        <Arctic at 0x7fef8afa3128, connected to MongoClient(host=['127.250.227.95:19261'], document_class=dict, tz_aware=False, connect=True)>
+data =                          near
+times                        
+2012-09-08 17:06:11.040   1.0
+2012-10-08 17:06:11.040   2.0
+2012-10-09 17:06:11.040   2.5
+2012-11-08 17:06:11.040   3.0
+dry_run = False, fw_pointers_config = <FwPointersCfg.ENABLED: 0>
+
+    @pytest.mark.parametrize(
+        ['dry_run', 'data', 'fw_pointers_config'],
+        [(x, y, z) for (x, y, z) in itertools.product(
+            [True, False], [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
+    def test_cleanup_orphaned_chunks(mongo_host, library, data, dry_run, fw_pointers_config):
+        """
+        Check that we do / don't cleanup chunks based on the dry-run
+        """
+        with FwPointersCtx(fw_pointers_config):
+            yesterday = dt.utcnow() - dtd(days=1, seconds=1)
+            _id = bson.ObjectId.from_datetime(yesterday)
+            with patch("bson.ObjectId", return_value=_id):
+                library.write('symbol', data, prune_previous_version=False)
+    
+            # Number of chunks
+            chunk_count = mongo_count(library._collection)
+            # Remove the version document ; should cleanup
+            library._collection.versions.delete_one({'_id': _id})
+    
+            # No cleanup on dry-run
+            if dry_run:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host)
+                assert mongo_count(library._collection) == chunk_count
+            else:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
+>               assert mongo_count(library._collection) == 0
+E               assert 1 == 0
+E                 +1
+E                 -0
+
+tests/integration/scripts/test_arctic_fsck.py:53: AssertionError
+
+===============================================================================
+
+_____ test_cleanup_orphaned_snapshots[False-data6-FwPointersCfg.DISABLED] ______
+
+mongo_host = '127.250.227.95:26587'
+library = <VersionStore at 0x7fef8af12780>
+    <ArcticLibrary at 0x7fef8af127f0, arctic_user.library>
+        <Arctic at 0x7fef8965c9e8, connected to MongoClient(host=['127.250.227.95:26587'], document_class=dict, tz_aware=False, connect=True)>
+data = {'thing': sentinel.val}, dry_run = False
+fw_pointers_config = <FwPointersCfg.DISABLED: 1>
+
+    @pytest.mark.parametrize(
+        ['dry_run', 'data', 'fw_pointers_config'],
+        [(x, y, z) for (x, y, z) in itertools.product(
+            [True, False], [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
+    def test_cleanup_orphaned_snapshots(mongo_host, library, data, dry_run, fw_pointers_config):
+        """
+        Check that we do / don't cleanup chunks based on the dry-run
+        """
+        with FwPointersCtx(fw_pointers_config):
+            yesterday = dt.utcnow() - dtd(days=1, seconds=1)
+            _id = bson.ObjectId.from_datetime(yesterday)
+            library.write('symbol', data, prune_previous_version=False)
+            with patch("bson.ObjectId", return_value=_id):
+                library.snapshot('snap_name')
+    
+            # Remove the version document ; should cleanup
+            assert library._collection.snapshots.delete_one({})
+    
+            # No cleanup on dry-run
+            if dry_run:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host)
+                assert mongo_count(library._collection) > 0
+                assert mongo_count(library._collection.versions)
+                assert repr(library.read('symbol').data) == repr(data)
+                # Nothing done_APPEND_COUNT
+                assert len(library._collection.versions.find_one({})['parent'])
+            else:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
+                assert mongo_count(library._collection) > 0
+                assert mongo_count(library._collection.versions)
+                # Data still available (write with prune_previous_version will do the cleanup)
+                assert repr(library.read('symbol').data) == repr(data)
+                # Snapshot cleaned up
+>               assert not len(library._collection.versions.find_one({})['parent'])
+E               AssertionError: assert not 1
+E                +  where 1 = len([ObjectId('600346d50000000000000000')])
+
+tests/integration/scripts/test_arctic_fsck.py:170: AssertionError
+
+===============================================================================
+
+______ test_cleanup_orphaned_snapshots[False-data7-FwPointersCfg.HYBRID] _______
+
+mongo_host = '127.250.227.95:3294'
+library = <VersionStore at 0x7fefb2756860>
+    <ArcticLibrary at 0x7fefb27562b0, arctic_user.library>
+        <Arctic at 0x7fef8965ce80, connected to MongoClient(host=['127.250.227.95:3294'], document_class=dict, tz_aware=False, connect=True)>
+data = {'thing': sentinel.val}, dry_run = False
+fw_pointers_config = <FwPointersCfg.HYBRID: 2>
+
+    @pytest.mark.parametrize(
+        ['dry_run', 'data', 'fw_pointers_config'],
+        [(x, y, z) for (x, y, z) in itertools.product(
+            [True, False], [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
+    def test_cleanup_orphaned_snapshots(mongo_host, library, data, dry_run, fw_pointers_config):
+        """
+        Check that we do / don't cleanup chunks based on the dry-run
+        """
+        with FwPointersCtx(fw_pointers_config):
+            yesterday = dt.utcnow() - dtd(days=1, seconds=1)
+            _id = bson.ObjectId.from_datetime(yesterday)
+            library.write('symbol', data, prune_previous_version=False)
+            with patch("bson.ObjectId", return_value=_id):
+                library.snapshot('snap_name')
+    
+            # Remove the version document ; should cleanup
+            assert library._collection.snapshots.delete_one({})
+    
+            # No cleanup on dry-run
+            if dry_run:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host)
+                assert mongo_count(library._collection) > 0
+                assert mongo_count(library._collection.versions)
+                assert repr(library.read('symbol').data) == repr(data)
+                # Nothing done_APPEND_COUNT
+                assert len(library._collection.versions.find_one({})['parent'])
+            else:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
+                assert mongo_count(library._collection) > 0
+                assert mongo_count(library._collection.versions)
+                # Data still available (write with prune_previous_version will do the cleanup)
+                assert repr(library.read('symbol').data) == repr(data)
+                # Snapshot cleaned up
+>               assert not len(library._collection.versions.find_one({})['parent'])
+E               AssertionError: assert not 1
+E                +  where 1 = len([ObjectId('600346d70000000000000000')])
+
+tests/integration/scripts/test_arctic_fsck.py:170: AssertionError
+
+===============================================================================
+
+______ test_cleanup_orphaned_snapshots[False-data8-FwPointersCfg.ENABLED] ______
+
+mongo_host = '127.250.227.95:8692'
+library = <VersionStore at 0x7fefd2408a58>
+    <ArcticLibrary at 0x7fefd2408c50, arctic_user.library>
+        <Arctic at 0x7fef8afa15c0, connected to MongoClient(host=['127.250.227.95:8692'], document_class=dict, tz_aware=False, connect=True)>
+data = {'thing': sentinel.val}, dry_run = False
+fw_pointers_config = <FwPointersCfg.ENABLED: 0>
+
+    @pytest.mark.parametrize(
+        ['dry_run', 'data', 'fw_pointers_config'],
+        [(x, y, z) for (x, y, z) in itertools.product(
+            [True, False], [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
+    def test_cleanup_orphaned_snapshots(mongo_host, library, data, dry_run, fw_pointers_config):
+        """
+        Check that we do / don't cleanup chunks based on the dry-run
+        """
+        with FwPointersCtx(fw_pointers_config):
+            yesterday = dt.utcnow() - dtd(days=1, seconds=1)
+            _id = bson.ObjectId.from_datetime(yesterday)
+            library.write('symbol', data, prune_previous_version=False)
+            with patch("bson.ObjectId", return_value=_id):
+                library.snapshot('snap_name')
+    
+            # Remove the version document ; should cleanup
+            assert library._collection.snapshots.delete_one({})
+    
+            # No cleanup on dry-run
+            if dry_run:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host)
+                assert mongo_count(library._collection) > 0
+                assert mongo_count(library._collection.versions)
+                assert repr(library.read('symbol').data) == repr(data)
+                # Nothing done_APPEND_COUNT
+                assert len(library._collection.versions.find_one({})['parent'])
+            else:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
+                assert mongo_count(library._collection) > 0
+                assert mongo_count(library._collection.versions)
+                # Data still available (write with prune_previous_version will do the cleanup)
+                assert repr(library.read('symbol').data) == repr(data)
+                # Snapshot cleaned up
+>               assert not len(library._collection.versions.find_one({})['parent'])
+E               AssertionError: assert not 1
+E                +  where 1 = len([ObjectId('600346d90000000000000000')])
+
+tests/integration/scripts/test_arctic_fsck.py:170: AssertionError
+
+===============================================================================
+
+_____ test_cleanup_orphaned_snapshots[False-data9-FwPointersCfg.DISABLED] ______
+
+mongo_host = '127.250.227.95:11430'
+library = <VersionStore at 0x7fef8963c4a8>
+    <ArcticLibrary at 0x7fef8963c710, arctic_user.library>
+        <Arctic at 0x7fef8af9d550, connected to MongoClient(host=['127.250.227.95:11430'], document_class=dict, tz_aware=False, connect=True)>
+data =                          near
+times                        
+2012-09-08 17:06:11.040   1.0
+2012-10-08 17:06:11.040   2.0
+2012-10-09 17:06:11.040   2.5
+2012-11-08 17:06:11.040   3.0
+dry_run = False, fw_pointers_config = <FwPointersCfg.DISABLED: 1>
+
+    @pytest.mark.parametrize(
+        ['dry_run', 'data', 'fw_pointers_config'],
+        [(x, y, z) for (x, y, z) in itertools.product(
+            [True, False], [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
+    def test_cleanup_orphaned_snapshots(mongo_host, library, data, dry_run, fw_pointers_config):
+        """
+        Check that we do / don't cleanup chunks based on the dry-run
+        """
+        with FwPointersCtx(fw_pointers_config):
+            yesterday = dt.utcnow() - dtd(days=1, seconds=1)
+            _id = bson.ObjectId.from_datetime(yesterday)
+            library.write('symbol', data, prune_previous_version=False)
+            with patch("bson.ObjectId", return_value=_id):
+                library.snapshot('snap_name')
+    
+            # Remove the version document ; should cleanup
+            assert library._collection.snapshots.delete_one({})
+    
+            # No cleanup on dry-run
+            if dry_run:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host)
+                assert mongo_count(library._collection) > 0
+                assert mongo_count(library._collection.versions)
+                assert repr(library.read('symbol').data) == repr(data)
+                # Nothing done_APPEND_COUNT
+                assert len(library._collection.versions.find_one({})['parent'])
+            else:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
+                assert mongo_count(library._collection) > 0
+                assert mongo_count(library._collection.versions)
+                # Data still available (write with prune_previous_version will do the cleanup)
+                assert repr(library.read('symbol').data) == repr(data)
+                # Snapshot cleaned up
+>               assert not len(library._collection.versions.find_one({})['parent'])
+E               AssertionError: assert not 1
+E                +  where 1 = len([ObjectId('600346dd0000000000000000')])
+
+tests/integration/scripts/test_arctic_fsck.py:170: AssertionError
+
+===============================================================================
+
+______ test_cleanup_orphaned_snapshots[False-data10-FwPointersCfg.HYBRID] ______
+
+mongo_host = '127.250.227.95:17215'
+library = <VersionStore at 0x7fef8afa85f8>
+    <ArcticLibrary at 0x7fef8afa8940, arctic_user.library>
+        <Arctic at 0x7fefd23a88d0, connected to MongoClient(host=['127.250.227.95:17215'], document_class=dict, tz_aware=False, connect=True)>
+data =                          near
+times                        
+2012-09-08 17:06:11.040   1.0
+2012-10-08 17:06:11.040   2.0
+2012-10-09 17:06:11.040   2.5
+2012-11-08 17:06:11.040   3.0
+dry_run = False, fw_pointers_config = <FwPointersCfg.HYBRID: 2>
+
+    @pytest.mark.parametrize(
+        ['dry_run', 'data', 'fw_pointers_config'],
+        [(x, y, z) for (x, y, z) in itertools.product(
+            [True, False], [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
+    def test_cleanup_orphaned_snapshots(mongo_host, library, data, dry_run, fw_pointers_config):
+        """
+        Check that we do / don't cleanup chunks based on the dry-run
+        """
+        with FwPointersCtx(fw_pointers_config):
+            yesterday = dt.utcnow() - dtd(days=1, seconds=1)
+            _id = bson.ObjectId.from_datetime(yesterday)
+            library.write('symbol', data, prune_previous_version=False)
+            with patch("bson.ObjectId", return_value=_id):
+                library.snapshot('snap_name')
+    
+            # Remove the version document ; should cleanup
+            assert library._collection.snapshots.delete_one({})
+    
+            # No cleanup on dry-run
+            if dry_run:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host)
+                assert mongo_count(library._collection) > 0
+                assert mongo_count(library._collection.versions)
+                assert repr(library.read('symbol').data) == repr(data)
+                # Nothing done_APPEND_COUNT
+                assert len(library._collection.versions.find_one({})['parent'])
+            else:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
+                assert mongo_count(library._collection) > 0
+                assert mongo_count(library._collection.versions)
+                # Data still available (write with prune_previous_version will do the cleanup)
+                assert repr(library.read('symbol').data) == repr(data)
+                # Snapshot cleaned up
+>               assert not len(library._collection.versions.find_one({})['parent'])
+E               AssertionError: assert not 1
+E                +  where 1 = len([ObjectId('600346df0000000000000000')])
+
+tests/integration/scripts/test_arctic_fsck.py:170: AssertionError
+
+===============================================================================
+
+_____ test_cleanup_orphaned_snapshots[False-data11-FwPointersCfg.ENABLED] ______
+
+mongo_host = '127.250.227.95:13995'
+library = <VersionStore at 0x7fef885f9550>
+    <ArcticLibrary at 0x7feffbc24d30, arctic_user.library>
+        <Arctic at 0x7fefd23edb00, connected to MongoClient(host=['127.250.227.95:13995'], document_class=dict, tz_aware=False, connect=True)>
+data =                          near
+times                        
+2012-09-08 17:06:11.040   1.0
+2012-10-08 17:06:11.040   2.0
+2012-10-09 17:06:11.040   2.5
+2012-11-08 17:06:11.040   3.0
+dry_run = False, fw_pointers_config = <FwPointersCfg.ENABLED: 0>
+
+    @pytest.mark.parametrize(
+        ['dry_run', 'data', 'fw_pointers_config'],
+        [(x, y, z) for (x, y, z) in itertools.product(
+            [True, False], [some_object, ts], [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])])
+    def test_cleanup_orphaned_snapshots(mongo_host, library, data, dry_run, fw_pointers_config):
+        """
+        Check that we do / don't cleanup chunks based on the dry-run
+        """
+        with FwPointersCtx(fw_pointers_config):
+            yesterday = dt.utcnow() - dtd(days=1, seconds=1)
+            _id = bson.ObjectId.from_datetime(yesterday)
+            library.write('symbol', data, prune_previous_version=False)
+            with patch("bson.ObjectId", return_value=_id):
+                library.snapshot('snap_name')
+    
+            # Remove the version document ; should cleanup
+            assert library._collection.snapshots.delete_one({})
+    
+            # No cleanup on dry-run
+            if dry_run:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host)
+                assert mongo_count(library._collection) > 0
+                assert mongo_count(library._collection.versions)
+                assert repr(library.read('symbol').data) == repr(data)
+                # Nothing done_APPEND_COUNT
+                assert len(library._collection.versions.find_one({})['parent'])
+            else:
+                run_as_main(main, '--library', 'user.library', '--host', mongo_host, '-f')
+                assert mongo_count(library._collection) > 0
+                assert mongo_count(library._collection.versions)
+                # Data still available (write with prune_previous_version will do the cleanup)
+                assert repr(library.read('symbol').data) == repr(data)
+                # Snapshot cleaned up
+>               assert not len(library._collection.versions.find_one({})['parent'])
+E               AssertionError: assert not 1
+E                +  where 1 = len([ObjectId('600346e10000000000000000')])
+
+tests/integration/scripts/test_arctic_fsck.py:170: AssertionError
+
+===============================================================================
+
+_____________________ test_fix_broken_snapshot_references ______________________
+
+library = <VersionStore at 0x7fefb5173390>
+    <ArcticLibrary at 0x7fef8afa3518, arctic_test.TEST>
+        <Arctic at 0x7fefd22a32e8, connected to MongoClient(host=['127.250.227.95:14176'], document_class=dict, tz_aware=False, connect=True)>
+
+    def test_fix_broken_snapshot_references(library):
+        library.write("cherry", "blob")
+        one_day_ago = time.time() - (3600 * 24.) - 10  # make sure we are a few seconds before 24 hours
+        with patch('time.time', return_value=one_day_ago):
+            library.snapshot("snappy")
+        library._snapshots.delete_one({"name": "snappy"})
+    
+        mpv.prune_versions(library, ["cherry"], 10)
+    
+>       assert library._versions.find_one({"symbol": "cherry"}).get("parent", []) == []
+E       AssertionError: assert [ObjectId('60...819e414fe43')] == []
+E         Left contains one more item: ObjectId('6003474412a2b819e414fe43')
+E         Full diff:
+E         - []
+E         + [ObjectId('6003474412a2b819e414fe43')]
+
+tests/integration/scripts/test_prune_versions.py:63: AssertionError
+
+===============================================================================
+
+__________________________ test_keep_only_one_version __________________________
+
+library = <VersionStore at 0x7fefd234e518>
+    <ArcticLibrary at 0x7fefd2409c50, arctic_test.TEST>
+        <Arctic at 0x7feffbc7a128, connected to MongoClient(host=['127.250.227.95:5450'], document_class=dict, tz_aware=False, connect=True)>
+
+    def test_keep_only_one_version(library):
+        library.write("cherry", "blob")
+        library.write("cherry", "blob")
+        one_day_ago = time.time() - (3600 * 24.) - 10  # make sure we are a few seconds before 24 hours
+        with patch('time.time', return_value=one_day_ago):
+            library.snapshot("snappy")
+        library._snapshots.delete_one({"name": "snappy"})
+    
+        mpv.prune_versions(library, ["cherry"], 0)
+    
+>       assert len(list(library._versions.find({"symbol": "cherry"}))) == 1
+E       assert 2 == 1
+E         +2
+E         -1
+
+tests/integration/scripts/test_prune_versions.py:76: AssertionError
+
+===============================================================================
+
+_ test_should_return_data_when_date_range_falls_in_a_single_underlying_library _
+
+toplevel_tickstore = <arctic.tickstore.toplevel.TopLevelTickStore object at 0x7fefb17a87b8>
+arctic = <Arctic at 0x7fefb19a04a8, connected to MongoClient(host=['127.250.227.95:5902'], document_class=dict, tz_aware=False, connect=True)>
+
+    def test_should_return_data_when_date_range_falls_in_a_single_underlying_library(toplevel_tickstore, arctic):
+        arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+        tstore = arctic['FEED_2010.LEVEL1']
+        arctic.initialize_library('test_current.toplevel_tickstore', tickstore.TICK_STORE_TYPE)
+        tickstore_current = arctic['test_current.toplevel_tickstore']
+        toplevel_tickstore._collection.insert_one({'start': dt(2010, 1, 1),
+                                               'end': dt(2010, 12, 31, 23, 59, 59),
+                                               'library_name': 'FEED_2010.LEVEL1'})
+        dates = pd.date_range('20100101', periods=6, tz=mktz('Europe/London'))
+        df = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
+        tstore.write('blah', df)
+        tickstore_current.write('blah', df)
+        res = toplevel_tickstore.read('blah', DateRange(start=dt(2009, 1, 1), end=dt(2010, 1, 6)), list('ABCD'))    # FIXME: CM#012 - (read missing January 1st)
+    
+>       assert_frame_equal(df, res.tz_convert(mktz('Europe/London')))
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (6, 4)
+E       [right]: (5, 4)
+
+tests/integration/tickstore/test_toplevel.py:65: AssertionError
+
+===============================================================================
+
+___________ test_should_return_data_when_date_range_spans_libraries ____________
+
+toplevel_tickstore = <arctic.tickstore.toplevel.TopLevelTickStore object at 0x7fefb19c2f98>
+arctic = <Arctic at 0x7fefb188dcf8, connected to MongoClient(host=['127.250.227.95:3612'], document_class=dict, tz_aware=False, connect=True)>
+
+    def test_should_return_data_when_date_range_spans_libraries(toplevel_tickstore, arctic):
+        arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+        arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
+        tickstore_2010 = arctic['FEED_2010.LEVEL1']
+        tickstore_2011 = arctic['FEED_2011.LEVEL1']
+        toplevel_tickstore.add(DateRange(start=dt(2010, 1, 1), end=dt(2010, 12, 31, 23, 59, 59, 999000)), 'FEED_2010.LEVEL1')
+        toplevel_tickstore.add(DateRange(start=dt(2011, 1, 1), end=dt(2011, 12, 31, 23, 59, 59, 999000)), 'FEED_2011.LEVEL1')
+        dates = pd.date_range('20100101', periods=6, tz=mktz('Europe/London'))
+        df_10 = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
+        tickstore_2010.write('blah', df_10)
+        dates = pd.date_range('20110101', periods=6, tz=mktz('Europe/London'))
+        df_11 = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
+        tickstore_2011.write('blah', df_11)
+        res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 1, 2), end=dt(2011, 1, 4)), list('ABCD'))
+        expected_df = pd.concat([df_10[1:], df_11[:4]])
+>       assert_frame_equal(expected_df, res.tz_convert(mktz('Europe/London')))
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (9, 4)
+E       [right]: (7, 4)
+
+tests/integration/tickstore/test_toplevel.py:83: AssertionError
+
+===============================================================================
+
+_ test_should_return_data_when_date_range_spans_libraries_even_if_one_returns_nothing _
+
+toplevel_tickstore = <arctic.tickstore.toplevel.TopLevelTickStore object at 0x7fef8a552860>
+arctic = <Arctic at 0x7fefb1be2198, connected to MongoClient(host=['127.250.227.95:25493'], document_class=dict, tz_aware=False, connect=True)>
+
+    def test_should_return_data_when_date_range_spans_libraries_even_if_one_returns_nothing(toplevel_tickstore, arctic):
+        arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+        arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
+        tickstore_2010 = arctic['FEED_2010.LEVEL1']
+        tickstore_2011 = arctic['FEED_2011.LEVEL1']
+        toplevel_tickstore.add(DateRange(start=dt(2010, 1, 1), end=dt(2010, 12, 31, 23, 59, 59, 999000)), 'FEED_2010.LEVEL1')
+        toplevel_tickstore.add(DateRange(start=dt(2011, 1, 1), end=dt(2011, 12, 31, 23, 59, 59, 999000)), 'FEED_2011.LEVEL1')
+        dates = pd.date_range('20100101', periods=6, tz=mktz('Europe/London'))
+        df_10 = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
+        tickstore_2010.write('blah', df_10)
+        dates = pd.date_range('20110201', periods=6, tz=mktz('Europe/London'))
+        df_11 = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
+        tickstore_2011.write('blah', df_11)
+        res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 1, 2), end=dt(2011, 1, 4)), list('ABCD'))
+        expected_df = df_10[1:]
+>       assert_frame_equal(expected_df, res.tz_convert(mktz('Europe/London')))
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (5, 4)
+E       [right]: (4, 4)
+
+tests/integration/tickstore/test_toplevel.py:101: AssertionError
+
+===============================================================================
+
+_ test_should_add_underlying_library_where_another_library_exists_in_a_non_overlapping_daterange _
+
+toplevel_tickstore = <arctic.tickstore.toplevel.TopLevelTickStore object at 0x7fef8a0e2d30>
+arctic = <Arctic at 0x7fefb115f898, connected to MongoClient(host=['127.250.227.95:18380'], document_class=dict, tz_aware=False, connect=True)>
+
+    def test_should_add_underlying_library_where_another_library_exists_in_a_non_overlapping_daterange(toplevel_tickstore, arctic):
+        toplevel_tickstore._collection.insert_one({'library_name': 'FEED_2011.LEVEL1', 'start': dt(2011, 1, 1), 'end': dt(2011, 12, 31)})
+        arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+>       toplevel_tickstore.add(DateRange(start=dt(2010, 1, 1), end=dt(2010, 12, 31, 23, 59, 59, 999000)), 'FEED_2010.LEVEL1')
+
+tests/integration/tickstore/test_toplevel.py:113: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <arctic.tickstore.toplevel.TopLevelTickStore object at 0x7fef8a0e2d30>
+date_range = DateRange(start=datetime.datetime(2010, 1, 1, 0, 0), end=datetime.datetime(2010, 12, 31, 23, 59, 59, 999000))
+library_name = 'FEED_2010.LEVEL1'
+
+        def add(self, date_range, library_name):
+            """
+            Adds the library with the given date range to the underlying collection of libraries used by this store.
+            The underlying libraries should not overlap as the date ranges are assumed to be CLOSED_CLOSED by this function
+            and the rest of the class.
+    
+            Arguments:
+    
+            date_range: A date range provided on the assumption that it is CLOSED_CLOSED. If for example the underlying
+            libraries were split by year, the start of the date range would be datetime.datetime(year, 1, 1) and the end
+            would be datetime.datetime(year, 12, 31, 23, 59, 59, 999000). The date range must fall on UTC day boundaries,
+            that is the start must be add midnight and the end must be 1 millisecond before midnight.
+    
+            library_name: The name of the underlying library. This must be the name of a valid Arctic library
+            """
+            # check that the library is valid
+            try:
+                self._arctic_lib.arctic[library_name]
+            except Exception as e:
+                logger.error("Could not load library")
+                raise e
+            assert date_range.start and date_range.end, "Date range should have start and end properties {}".format(date_range)
+            start = date_range.start.astimezone(mktz('UTC')) if date_range.start.tzinfo is not None else date_range.start.replace(tzinfo=mktz('UTC'))
+            end = date_range.end.astimezone(mktz('UTC')) if date_range.end.tzinfo is not None else date_range.end.replace(tzinfo=mktz('UTC'))
+            assert start.time() == time.min and end.time() == end_time_min, "Date range should fall on UTC day boundaries {}".format(date_range)
+            # check that the date range does not overlap
+            library_metadata = self._get_library_metadata(date_range)
+            if len(library_metadata) > 1 or (len(library_metadata) == 1 and library_metadata[0] != library_name):
+                raise OverlappingDataException("""There are libraries that overlap with the date range:
+    library: {}
+>   overlapping libraries: {}""".format(library_name, [lib.library for lib in library_metadata]))
+E   arctic.exceptions.OverlappingDataException: There are libraries that overlap with the date range:
+E   library: FEED_2010.LEVEL1
+E   overlapping libraries: ['FEED_2011.LEVEL1']
+
+arctic/tickstore/toplevel.py:101: OverlappingDataException
+
+===============================================================================
+
+________________ test_should_write_top_level_with_list_of_dicts ________________
+
+arctic = <Arctic at 0x7fefb1b68ef0, connected to MongoClient(host=['127.250.227.95:11125'], document_class=dict, tz_aware=False, connect=True)>
+
+    def test_should_write_top_level_with_list_of_dicts(arctic):
+        arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+        arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
+        arctic.initialize_library('FEED.LEVEL1', toplevel.TICK_STORE_TYPE)
+        toplevel_tickstore = arctic['FEED.LEVEL1']
+        dates = pd.date_range('20101201', periods=57, tz=mktz('Europe/London'))
+        data = [{'index': dates[i], 'a': i} for i in range(len(dates))]
+        expected = pd.DataFrame(np.arange(57, dtype=np.float64), index=dates, columns=list('a'))
+        toplevel_tickstore.write('blah', data)
+        res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 12, 1), end=dt(2011, 2, 1)), columns=list('a'))
+>       assert_frame_equal(expected, res.tz_convert(mktz('Europe/London')))
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (57, 1)
+E       [right]: (55, 1)
+
+tests/integration/tickstore/test_toplevel.py:197: AssertionError
+
+===============================================================================
+
+______________ test_should_write_top_level_with_correct_timezone _______________
+
+arctic = <Arctic at 0x7fefb196cbe0, connected to MongoClient(host=['127.250.227.95:29745'], document_class=dict, tz_aware=False, connect=True)>
+
+    def test_should_write_top_level_with_correct_timezone(arctic):
+        # Write timezone aware data and read back in UTC
+        utc = mktz('UTC')
+        arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+        arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
+        arctic.initialize_library('FEED.LEVEL1', toplevel.TICK_STORE_TYPE)
+        toplevel_tickstore = arctic['FEED.LEVEL1']
+        dates = pd.date_range('20101230220000', periods=10, tz=mktz('America/New_York'))  # 10pm New York time is 3am next day UTC
+        data = [{'index': dates[i], 'a': i} for i in range(len(dates))]
+        expected = pd.DataFrame(np.arange(len(dates), dtype=np.float64), index=dates.tz_convert(utc), columns=list('a'))
+        toplevel_tickstore.write('blah', data)
+        res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 1, 1), end=dt(2011, 12, 31)), columns=list('a')).tz_convert(utc)
+>       assert_frame_equal(expected, res)
+E       AssertionError: DataFrame are different
+E       
+E       DataFrame shape mismatch
+E       [left]:  (10, 1)
+E       [right]: (9, 1)
+
+tests/integration/tickstore/test_toplevel.py:215: AssertionError
+
+===============================================================================
+
+__________________________ test_date_range[tickstore] __________________________
+
+tickstore_lib = <TickStore at 0x7fefb18c6588>
+    <ArcticLibrary at 0x7fefb1979e80, arctic_test.tickstore>
+        <Arctic at 0x7fefb188d898, connected to MongoClient(host=['127.250.227.95:3463'], document_class=dict, tz_aware=False, connect=True)>
+
+    def test_date_range(tickstore_lib):
+        tickstore_lib.write('SYM', DUMMY_DATA)
+        df = tickstore_lib.read('SYM', date_range=DateRange(20130101, 20130103), columns=None)
+>       assert_array_equal(df['a'].values, np.array([1, np.nan, np.nan]))
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       (shapes (2,), (3,) mismatch)
+E        x: array([nan, nan])
+E        y: array([ 1., nan, nan])
+
+tests/integration/tickstore/test_ts_read.py:234: AssertionError
+
+===============================================================================
+
+_________________ test_date_range_end_not_in_range[tickstore] __________________
+
+tickstore_lib = <TickStore at 0x7fefb191e908>
+    <ArcticLibrary at 0x7fefb1994908, arctic_test.tickstore>
+        <Arctic at 0x7fefb1792080, connected to MongoClient(host=['127.250.227.95:12350'], document_class=dict, tz_aware=False, connect=True)>
+
+    def test_date_range_end_not_in_range(tickstore_lib):
+        DUMMY_DATA = [
+                      {'a': 1.,
+                       'b': 2.,
+                       'index': dt(2013, 1, 1, tzinfo=mktz('Europe/London'))
+                       },
+                      {'b': 3.,
+                       'c': 4.,
+                       'index': dt(2013, 1, 2, 10, 1, tzinfo=mktz('Europe/London'))
+                       },
+                      ]
+    
+        tickstore_lib._chunk_size = 1
+        tickstore_lib.write('SYM', DUMMY_DATA)
+        with patch.object(tickstore_lib._collection, 'find', side_effect=tickstore_lib._collection.find) as f:
+            df = tickstore_lib.read('SYM', date_range=DateRange(20130101, dt(2013, 1, 2, 9, 0)), columns=None)
+>           assert_array_equal(df['b'].values, np.array([2.]))
+E           AssertionError: 
+E           Arrays are not equal
+E           
+E           Mismatched elements: 1 / 1 (100%)
+E           Max absolute difference: 1.
+E           Max relative difference: 0.5
+E            x: array([3.])
+E            y: array([2.])
+
+tests/integration/tickstore/test_ts_read.py:300: AssertionError
+
+===============================================================================
+
+_____________________ test_date_range_no_bounds[tickstore] _____________________
+
+tickstore_lib = <TickStore at 0x7fefb1a08630>
+    <ArcticLibrary at 0x7fefb2a52c18, arctic_test.tickstore>
+        <Arctic at 0x7fefb19f9a58, connected to MongoClient(host=['127.250.227.95:27754'], document_class=dict, tz_aware=False, connect=True)>
+
+    def test_date_range_no_bounds(tickstore_lib):
+        DUMMY_DATA = [
+                      {'a': 1.,
+                       'b': 2.,
+                       'index': dt(2013, 1, 1, tzinfo=mktz('Europe/London'))
+                       },
+                      {'a': 3.,
+                       'b': 4.,
+                       'index': dt(2013, 1, 30, tzinfo=mktz('Europe/London'))
+                       },
+                      {'b': 5.,
+                       'c': 6.,
+                       'index': dt(2013, 2, 2, 10, 1, tzinfo=mktz('Europe/London'))
+                       },
+                      ]
+    
+        tickstore_lib._chunk_size = 1
+        tickstore_lib.write('SYM', DUMMY_DATA)
+    
+        # 1) No start, no end
+        df = tickstore_lib.read('SYM', columns=None)
+        assert_array_equal(df['b'].values, np.array([2., 4.]))
+        # 1.2) Start before the real start
+        df = tickstore_lib.read('SYM', date_range=DateRange(20121231), columns=None)
+        assert_array_equal(df['b'].values, np.array([2., 4.]))
+        # 2.1) Only go one month out
+        df = tickstore_lib.read('SYM', date_range=DateRange(20130101), columns=None)
+>       assert_array_equal(df['b'].values, np.array([2., 4.]))
+E       AssertionError: 
+E       Arrays are not equal
+E       
+E       (shapes (1,), (2,) mismatch)
+E        x: array([4.])
+E        y: array([2., 4.])
+
+tests/integration/tickstore/test_ts_read.py:369: AssertionError
+
+===============================================================================
+
+_______________ test_ArcticTransaction_detects_concurrent_writes _______________
+
+    def test_ArcticTransaction_detects_concurrent_writes():
+        vs = Mock(spec=VersionStore)
+        ts1 = pd.DataFrame(index=[1, 2], data={'a': [1.0, 2.0]})
+        vs.read.return_value = VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=1, metadata=None,
+                                             data=ts1, host=sentinel.host)
+        vs.write.side_effect = [VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=2, metadata=None,
+                                              data=None, host=sentinel.host),
+                                VersionedItem(symbol=sentinel.symbol, library=sentinel.library, version=3, metadata=None,
+                                              data=None, host=sentinel.host)]
+        # note that we return some extra version 5, it is possible that we have a write coming in after our own write that gets picked up
+        vs.list_versions.side_effect = [[{'version': 5}, {'version': 2}, {'version': 1}, ],
+                                       [{'version': 5}, {'version': 3}, {'version': 2}, {'version': 1}, ]]
+        from threading import Event, Thread
+        e1 = Event()
+        e2 = Event()
+    
+        def losing_writer():
+            # will attempt to write version 2, should find that version 2 is there and it ends up writing version 3
+            with pytest.raises(ArcticTransaction):
+                with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
+                    cwb.write(sentinel.symbol, pd.DataFrame([1.0, 2.0], [3, 4]))
+                    e1.wait()
+    
+        def winning_writer():
+            # will attempt to write version 2 as well
+            with ArcticTransaction(vs, sentinel.symbol, sentinel.user, sentinel.log) as cwb:
+                cwb.write(sentinel.symbol, pd.DataFrame([1.0, 2.0], [5, 6]))
+                e2.wait()
+    
+        t1 = Thread(target=losing_writer)
+        t2 = Thread(target=winning_writer)
+        t1.start()
+        t2.start()
+    
+        # both read the same timeseries and are locked doing some 'work'
+        e2.set()
+        # t2  should now be able to finish
+        t2.join()
+        e1.set()
+        t1.join()
+    
+        # we're expecting the losing_writer to undo its write once it realises that it wrote v3 instead of v2
+>       vs._delete_version.assert_called_once_with(sentinel.symbol, 3)
+
+tests/unit/store/test_version_store_audit.py:221: 
+
+===============================================================================
+
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+_mock_self = <Mock name='mock._delete_version' id='140666293242344'>
+args = (sentinel.symbol, 3), kwargs = {}
+self = <Mock name='mock._delete_version' id='140666293242344'>
+msg = "Expected '_delete_version' to be called once. Called 0 times."
+
+    def assert_called_once_with(_mock_self, *args, **kwargs):
+        """assert that the mock was called exactly once and that that call was
+        with the specified arguments."""
+        self = _mock_self
+        if not self.call_count == 1:
+            msg = ("Expected '%s' to be called once. Called %s times.%s"
+                   % (self._mock_name or 'mock',
+                      self.call_count,
+                      self._calls_repr()))
+>           raise AssertionError(msg)
+E           AssertionError: Expected '_delete_version' to be called once. Called 0 times.
+
+.tox/dev36/lib/python3.6/site-packages/mock/mock.py:925: AssertionError
+
+===============================================================================
+
+----------------------------- Captured stderr call -----------------------------
+2021-01-17 13:34:37,467 INFO arctic.store.audit MT: None@None: [sentinel.user] sentinel.log: sentinel.symbol
+Exception in thread Thread-774:
+Traceback (most recent call last):
+  File "/usr/lib/python3.6/threading.py", line 916, in _bootstrap_inner
+    self.run()
+  File "/usr/lib/python3.6/threading.py", line 864, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/cwm/git/bb.FLXSA/quant/arctic_878/tests/unit/store/test_version_store_audit.py", line 197, in losing_writer
+    with pytest.raises(ArcticTransaction):
+  File "/home/cwm/git/bb.FLXSA/quant/arctic_878/.tox/dev36/lib/python3.6/site-packages/_pytest/python_api.py", line 719, in raises
+    raise TypeError(msg.format(not_a))
+TypeError: expected exception must be a BaseException type, not ArcticTransaction
+
+------------------------------ Captured log call -------------------------------
+INFO     arctic.store.audit:audit.py:87 MT: None@None: [sentinel.user] sentinel.log: sentinel.symbol
+
+===============================================================================
+
+_________________________ test_mongo_date_range_query __________________________
+
+    def test_mongo_date_range_query():
+        self = create_autospec(TickStore)
+        self._collection = create_autospec(Collection)
+        self._symbol_query.return_value = {"sy": {"$in" : ["s1" , "s2"]}}
+        self._collection.aggregate.return_value = iter([{"_id": "s1", "start": dt(2014, 1, 1, 0, 0, tzinfo=mktz())},
+                                                        {"_id": "s2", "start": dt(2014, 1, 1, 12, 0, tzinfo=mktz())}])
+    
+        self._collection.find_one.side_effect = [
+            {'e': dt(2014, 1, 1, 15, 0, tzinfo=mktz())},
+            {'e': dt(2014, 1, 2, 12, 0, tzinfo=mktz())}]
+    
+        query = TickStore._mongo_date_range_query(self, 'sym', DateRange(dt(2014, 1, 2, 0, 0, tzinfo=mktz()),
+                                                                         dt(2014, 1, 3, 0, 0, tzinfo=mktz())))
+    
+        assert self._collection.aggregate.call_args_list == [call([
+         {"$match": {"s": {"$lte": dt(2014, 1, 2, 0, 0, tzinfo=mktz())}, "sy": {"$in" : ["s1" , "s2"]}}},
+         {"$project": {"_id": 0, "s": 1, "sy": 1}},
+         {"$group": {"_id": "$sy", "start": {"$max": "$s"}}},
+         {"$sort": {"start": 1}}])]
+    
+        assert self._collection.find_one.call_args_list == [
+            call({'sy': 's1', 's': dt(2014, 1, 1, 0, 0, tzinfo=mktz())}, {'e': 1}),
+            call({'sy': 's2', 's': dt(2014, 1, 1, 12, 0, tzinfo=mktz())}, {'e': 1})]
+    
+>       assert query == {'s': {'$gte': dt(2014, 1, 1, 12, 0, tzinfo=mktz()), '$lte': dt(2014, 1, 3, 0, 0, tzinfo=mktz())}}
+E       AssertionError: assert {'s': {'$gte'...ca/Denver'))}} == {'s': {'$gte'...ca/Denver'))}}
+E         Differing items:
+E         {'s': {'$gte': datetime.datetime(2014, 1, 1, 12, 0, tzinfo=tzfile('/usr/share/zoneinfo/UTC')), '$lte': datetime.datetime(2014, 1, 3, 0, 0, tzinfo=tzfile('/usr/share/zoneinfo/America/Denver'))}} != {'s': {'$gte': datetime.datetime(2014, 1, 1, 12, 0, tzinfo=tzfile('/usr/share/zoneinfo/America/Denver')), '$lte': datetime.datetime(2014, 1, 3, 0, 0, tzinfo=tzfile('/usr/share/zoneinfo/America/Denver'))}}
+E         Full diff:
+E           {
+E         -  's': {'$gte': datetime.datetime(2014, 1, 1, 12, 0, tzinfo=tzfile('/usr/share/zoneinfo/America/Denver')),
+E         ?                                      ...
+E         
+E         ...Full output truncated (5 lines hidden), use '-vv' to show
+
+tests/unit/tickstore/test_tickstore.py:43: AssertionError
+
+===============================================================================
+
+_____________________ test_tickstore_to_bucket_with_image ______________________
+
+    def test_tickstore_to_bucket_with_image():
+        symbol = 'SYM'
+        tz = 'UTC'
+        initial_image = {'index': dt(2014, 1, 1, 0, 0, tzinfo=mktz(tz)), 'A': 123, 'B': 54.4, 'C': 'DESC'}
+        data = [{'index': dt(2014, 1, 1, 0, 1, tzinfo=mktz(tz)), 'A': 124, 'D': 0},
+                {'index': dt(2014, 1, 1, 0, 2, tzinfo=mktz(tz)), 'A': 125, 'B': 27.2}]
+        bucket, final_image = TickStore._to_bucket(data, symbol, initial_image)
+        assert bucket[COUNT] == 2
+        assert bucket[END] == dt(2014, 1, 1, 0, 2, tzinfo=mktz(tz))
+        assert set(bucket[COLUMNS]) == set(('A', 'B', 'D'))
+        assert set(bucket[COLUMNS]['A']) == set((ROWMASK, DTYPE, DATA))
+        assert get_coldata(bucket[COLUMNS]['A']) == ([124, 125], [1, 1, 0, 0, 0, 0, 0, 0])
+        assert get_coldata(bucket[COLUMNS]['B']) == ([27.2], [0, 1, 0, 0, 0, 0, 0, 0])
+        assert get_coldata(bucket[COLUMNS]['D']) == ([0], [1, 0, 0, 0, 0, 0, 0, 0])
+        index = [dt.fromtimestamp(int(i/1000)).replace(tzinfo=mktz(tz)) for i in
+                 list(np.cumsum(np.frombuffer(decompress(bucket[INDEX]), dtype='uint64')))]
+>       assert index == [i['index'] for i in data]
+E       AssertionError: assert [datetime.dat...neinfo/UTC'))] == [datetime.dat...neinfo/UTC'))]
+E         At index 0 diff: datetime.datetime(2013, 12, 31, 17, 1, tzinfo=tzfile('/usr/share/zoneinfo/UTC')) != datetime.datetime(2014, 1, 1, 0, 1, tzinfo=tzfile('/usr/share/zoneinfo/UTC'))
+E         Full diff:
+E           [
+E         -  datetime.datetime(2014, 1, 1, 0, 1, tzinfo=tzfile('/usr/share/zoneinfo/UTC')),
+E         ?                       ^       ------
+E         +  datetime.datetime(2013, 12, 31, 17, 1, tzinfo=tzfile('/usr/share/zoneinfo/UTC')),
+E         ?                       ^  +++++   ++++...
+E         
+E         ...Full output truncated (6 lines hidden), use '-vv' to show
+
+tests/unit/tickstore/test_tickstore.py:97: AssertionError
+
+===============================================================================
+
+____________________ test_tickstore_pandas_to_bucket_image _____________________
+
+    def test_tickstore_pandas_to_bucket_image():
+        symbol = 'SYM'
+        tz = 'UTC'
+        initial_image = {'index': dt(2014, 1, 1, 0, 0, tzinfo=mktz(tz)), 'A': 123, 'B': 54.4, 'C': 'DESC'}
+        data = [{'A': 120, 'D': 1}, {'A': 122, 'B': 2.0}, {'A': 3, 'B': 3.0, 'D': 1}]
+        tick_index = [dt(2014, 1, 2, 0, 0, tzinfo=mktz(tz)),
+                      dt(2014, 1, 3, 0, 0, tzinfo=mktz(tz)),
+                      dt(2014, 1, 4, 0, 0, tzinfo=mktz(tz))]
+        data = pd.DataFrame(data, index=tick_index)
+        bucket, final_image = TickStore._pandas_to_bucket(data, symbol, initial_image)
+        assert final_image == {'index': dt(2014, 1, 4, 0, 0, tzinfo=mktz(tz)), 'A': 3, 'B': 3.0, 'C': 'DESC', 'D': 1}
+        assert IMAGE_DOC in bucket
+        assert bucket[COUNT] == 3
+        assert bucket[START] == dt(2014, 1, 1, 0, 0, tzinfo=mktz(tz))
+        assert bucket[END] == dt(2014, 1, 4, 0, 0, tzinfo=mktz(tz))
+        assert set(bucket[COLUMNS]) == set(('A', 'B', 'D'))
+        assert set(bucket[COLUMNS]['A']) == set((ROWMASK, DTYPE, DATA))
+        assert get_coldata(bucket[COLUMNS]['A']) == ([120, 122, 3], [1, 1, 1, 0, 0, 0, 0, 0])
+        values, rowmask = get_coldata(bucket[COLUMNS]['B'])
+        assert np.isnan(values[0]) and values[1:] == [2.0, 3.0]
+        assert rowmask == [1, 1, 1, 0, 0, 0, 0, 0]
+        values, rowmask = get_coldata(bucket[COLUMNS]['D'])
+        assert np.isnan(values[1])
+        assert values[0] == 1 and values[2] == 1
+        assert rowmask == [1, 1, 1, 0, 0, 0, 0, 0]
+        index = [dt.fromtimestamp(int(i/1000)).replace(tzinfo=mktz(tz)) for i in
+                 list(np.cumsum(np.frombuffer(decompress(bucket[INDEX]), dtype='uint64')))]
+>       assert index == tick_index
+E       AssertionError: assert [datetime.dat...neinfo/UTC'))] == [datetime.dat...neinfo/UTC'))]
+E         At index 0 diff: datetime.datetime(2014, 1, 1, 17, 0, tzinfo=tzfile('/usr/share/zoneinfo/UTC')) != datetime.datetime(2014, 1, 2, 0, 0, tzinfo=tzfile('/usr/share/zoneinfo/UTC'))
+E         Full diff:
+E           [
+E         +  datetime.datetime(2014, 1, 1, 17, 0, tzinfo=tzfile('/usr/share/zoneinfo/UTC')),
+E         -  datetime.datetime(2014, 1, 2, 0, 0, tzinfo=tzfile('/usr/share/zoneinfo/UTC')),
+E         ?                                  ---
+E         +  datetime.datetime(2014, 1, 2, 17, 0, tzinfo=tzfile('/usr/share/zoneinfo/UTC')),...
+E         
+E         ...Full output truncated (8 lines hidden), use '-vv' to show
+
+tests/unit/tickstore/test_tickstore.py:162: AssertionError
+
+===============================================================================
+=============================== warnings summary ===============================
+tests/integration/test_arctic.py: 4 warnings
+tests/integration/test_concurrent_append.py: 1 warning
+tests/integration/test_howtos.py: 3 warnings
+tests/integration/scripts/test_arctic_fsck.py: 45 warnings
+tests/integration/scripts/test_copy_data.py: 23 warnings
+tests/integration/store/test_bitemporal_store.py: 43 warnings
+tests/integration/store/test_ndarray_store.py: 37 warnings
+tests/integration/store/test_ndarray_store_append.py: 69 warnings
+tests/integration/store/test_pandas_store.py: 378 warnings
+tests/integration/store/test_version_store.py: 653 warnings
+tests/integration/store/test_version_store_audit.py: 29 warnings
+tests/integration/store/test_version_store_corruption.py: 14 warnings
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/store/_ndarray_store.py:600: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    sha.update(item.tostring())
+
+tests/integration/test_arctic.py: 3 warnings
+tests/integration/test_howtos.py: 3 warnings
+tests/integration/scripts/test_arctic_fsck.py: 42 warnings
+tests/integration/scripts/test_copy_data.py: 21 warnings
+tests/integration/store/test_bitemporal_store.py: 29 warnings
+tests/integration/store/test_ndarray_store.py: 828 warnings
+tests/integration/store/test_ndarray_store_append.py: 314 warnings
+tests/integration/store/test_pandas_store.py: 285 warnings
+tests/integration/store/test_version_store.py: 573 warnings
+tests/integration/store/test_version_store_audit.py: 21 warnings
+tests/integration/store/test_version_store_corruption.py: 18 warnings
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/store/_ndarray_store.py:657: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    chunks = [(item[i * rows_per_chunk: (i + 1) * rows_per_chunk]).tostring() for i in idxs]
+
+tests/integration/test_arctic.py: 3 warnings
+tests/integration/test_howtos.py: 3 warnings
+tests/integration/scripts/test_arctic_fsck.py: 42 warnings
+tests/integration/scripts/test_copy_data.py: 21 warnings
+tests/integration/store/test_bitemporal_store.py: 29 warnings
+tests/integration/store/test_pandas_store.py: 39 warnings
+tests/integration/store/test_version_store.py: 1979 warnings
+tests/integration/store/test_version_store_audit.py: 21 warnings
+tests/integration/store/test_version_store_corruption.py: 138 warnings
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/store/_pandas_ndarray_store.py:62: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    return Binary(compress(index.tostring()))
+
+tests/integration/test_arctic.py: 5 warnings
+tests/integration/scripts/test_delete_library.py: 5 warnings
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/_cache.py:120: DeprecationWarning: update is deprecated. Use replace_one, update_one or update_many instead.
+    {"$pull": {"data": item}}
+
+tests/integration/test_arctic.py::test_list_libraries_cached
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/test_arctic.py:250: DeprecationWarning: remove is deprecated. Use delete_one or delete_many instead.
+    arctic._conn.meta_db.cache.remove({})
+
+tests/integration/chunkstore/test_chunkstore.py: 9982 warnings
+tests/integration/chunkstore/test_fixes.py: 107 warnings
+tests/integration/chunkstore/test_utils.py: 2 warnings
+tests/integration/chunkstore/tools/test_tools.py: 52 warnings
+tests/unit/serialization/test_numpy_arrays.py: 26 warnings
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/serialization/numpy_arrays.py:119: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    arrays.append(arr.tostring())
+
+tests/integration/store/test_ndarray_store.py: 3 warnings
+tests/integration/store/test_ndarray_store_append.py: 583 warnings
+tests/integration/store/test_pandas_store.py: 21 warnings
+tests/integration/store/test_version_store.py: 1546 warnings
+tests/integration/store/test_version_store_corruption.py: 124 warnings
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/store/_ndarray_store.py:449: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    data = item.tostring()
+
+tests/integration/store/test_pandas_store.py::test_save_read_pandas_empty_series_with_datetime_multiindex_with_timezone
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/integration/store/test_pandas_store.py:155: DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
+    df = Series(data=[], index=empty_index)
+
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+tests/integration/store/test_pandas_store.py::test_duplicate_labels
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/.tox/dev36/lib/python3.6/site-packages/numpy/core/numeric.py:2378: DeprecationWarning: elementwise comparison failed; this will raise an error in the future.
+    return bool(asarray(a1 == a2).all())
+
+tests/integration/tickstore/test_toplevel.py: 44 warnings
+tests/integration/tickstore/test_ts_read.py: 5 warnings
+tests/integration/tickstore/test_ts_write.py: 2 warnings
+tests/unit/tickstore/test_tickstore.py: 1 warning
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/tickstore/tickstore.py:707: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    rowmask = Binary(lz4_compressHC(np.packbits(np.ones(len(df), dtype='uint8')).tostring()))
+
+tests/integration/tickstore/test_toplevel.py: 176 warnings
+tests/integration/tickstore/test_ts_read.py: 6 warnings
+tests/integration/tickstore/test_ts_write.py: 6 warnings
+tests/unit/tickstore/test_tickstore.py: 3 warnings
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/tickstore/tickstore.py:718: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    DATA: Binary(lz4_compressHC(array.tostring())),
+
+tests/integration/tickstore/test_toplevel.py: 44 warnings
+tests/integration/tickstore/test_ts_read.py: 4 warnings
+tests/integration/tickstore/test_ts_write.py: 2 warnings
+tests/unit/tickstore/test_tickstore.py: 1 warning
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/tickstore/tickstore.py:727: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    recs[index_name].astype('datetime64[ms]').view('uint64')))).tostring()))
+
+tests/integration/tickstore/test_toplevel.py: 4 warnings
+tests/integration/tickstore/test_ts_delete.py: 12 warnings
+tests/integration/tickstore/test_ts_read.py: 136 warnings
+tests/integration/tickstore/test_ts_write.py: 18 warnings
+tests/unit/tickstore/test_tickstore.py: 8 warnings
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/tickstore/tickstore.py:758: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    for k, v in iteritems(rowmask)])
+
+tests/integration/tickstore/test_toplevel.py: 4 warnings
+tests/integration/tickstore/test_ts_delete.py: 12 warnings
+tests/integration/tickstore/test_ts_read.py: 136 warnings
+tests/integration/tickstore/test_ts_write.py: 18 warnings
+tests/unit/tickstore/test_tickstore.py: 8 warnings
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/tickstore/tickstore.py:763: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    rtn[COLUMNS][k] = {DATA: Binary(lz4_compressHC(v.tostring())),
+
+tests/integration/tickstore/test_toplevel.py: 4 warnings
+tests/integration/tickstore/test_ts_delete.py: 6 warnings
+tests/integration/tickstore/test_ts_read.py: 38 warnings
+tests/integration/tickstore/test_ts_write.py: 7 warnings
+tests/unit/tickstore/test_tickstore.py: 2 warnings
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/tickstore/tickstore.py:776: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    rtn[INDEX] = Binary(lz4_compressHC(np.concatenate(([data['index'][0]], np.diff(data['index']))).tostring()))
+
+tests/unit/chunkstore/test_passthrough_chunker.py::test_pass_thru
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/chunkstore/passthrough_chunker.py:75: DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
+    return Series()
+
+tests/unit/chunkstore/test_passthrough_chunker.py::test_pass_thru
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/unit/chunkstore/test_passthrough_chunker.py:18: DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
+    assert(p.exclude(Series([1, 2, 3]), None).equals(Series()))
+
+tests/unit/serialization/test_incremental.py: 41846 warnings
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/serialization/incremental.py:223: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    chunk = chunk.tostring() if chunk is not None and get_bytes else chunk
+
+tests/unit/serialization/test_numpy_arrays.py::test_string_cols_with_nans
+tests/unit/serialization/test_numpy_arrays.py::test_objify_with_missing_columns
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/arctic/serialization/numpy_arrays.py:118: DeprecationWarning: tostring() is deprecated. Use tobytes() instead.
+    masks[str(c)] = Binary(compress(mask.tostring()))
+
+tests/unit/store/test_pickle_store.py::test_unpickle_highest_protocol
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/unit/store/test_pickle_store.py:121: DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
+    'blob': compressHC(cPickle.dumps(pd.Series(), protocol=cPickle.HIGHEST_PROTOCOL)),
+
+tests/unit/store/test_pickle_store.py::test_unpickle_highest_protocol
+  /home/cwm/git/bb.FLXSA/quant/arctic_878/tests/unit/store/test_pickle_store.py:127: DeprecationWarning: The default dtype for empty Series will be 'object' instead of 'float64' in a future version. Specify a dtype explicitly to silence this warning.
+    expected = pd.Series()
+
+-- Docs: https://docs.pytest.org/en/stable/warnings.html
+---- generated xml file: /home/cwm/git/bb.FLXSA/quant/arctic_878/junit.xml -----
+
+---------- coverage: platform linux, python 3.6.12-final-0 -----------
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+
+=========================== short test summary info ============================
+FAILED tests/integration/test_arctic.py::test_indexes - AssertionError: asser...
+FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data6-FwPointersCfg.DISABLED]
+FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data7-FwPointersCfg.HYBRID]
+FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data8-FwPointersCfg.ENABLED]
+FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data9-FwPointersCfg.DISABLED]
+FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data10-FwPointersCfg.HYBRID]
+FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_chunks[False-data11-FwPointersCfg.ENABLED]
+FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_snapshots[False-data6-FwPointersCfg.DISABLED]
+FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_snapshots[False-data7-FwPointersCfg.HYBRID]
+FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_snapshots[False-data8-FwPointersCfg.ENABLED]
+FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_snapshots[False-data9-FwPointersCfg.DISABLED]
+FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_snapshots[False-data10-FwPointersCfg.HYBRID]
+FAILED tests/integration/scripts/test_arctic_fsck.py::test_cleanup_orphaned_snapshots[False-data11-FwPointersCfg.ENABLED]
+FAILED tests/integration/scripts/test_prune_versions.py::test_fix_broken_snapshot_references
+FAILED tests/integration/scripts/test_prune_versions.py::test_keep_only_one_version
+FAILED tests/integration/tickstore/test_toplevel.py::test_should_return_data_when_date_range_falls_in_a_single_underlying_library
+FAILED tests/integration/tickstore/test_toplevel.py::test_should_return_data_when_date_range_spans_libraries
+FAILED tests/integration/tickstore/test_toplevel.py::test_should_return_data_when_date_range_spans_libraries_even_if_one_returns_nothing
+FAILED tests/integration/tickstore/test_toplevel.py::test_should_add_underlying_library_where_another_library_exists_in_a_non_overlapping_daterange
+FAILED tests/integration/tickstore/test_toplevel.py::test_should_write_top_level_with_list_of_dicts
+FAILED tests/integration/tickstore/test_toplevel.py::test_should_write_top_level_with_correct_timezone
+FAILED tests/integration/tickstore/test_ts_read.py::test_date_range[tickstore]
+FAILED tests/integration/tickstore/test_ts_read.py::test_date_range_end_not_in_range[tickstore]
+FAILED tests/integration/tickstore/test_ts_read.py::test_date_range_no_bounds[tickstore]
+FAILED tests/unit/store/test_version_store_audit.py::test_ArcticTransaction_detects_concurrent_writes
+FAILED tests/unit/tickstore/test_tickstore.py::test_mongo_date_range_query - ...
+FAILED tests/unit/tickstore/test_tickstore.py::test_tickstore_to_bucket_with_image
+FAILED tests/unit/tickstore/test_tickstore.py::test_tickstore_pandas_to_bucket_image
+
+===============================================================================
+
+
+28 failed
+1288 passed
+3 skipped
+19 xfailed
+1 xpassed
+60732 warnings in 
+2611.78s (0:43:31)
+
+===============================================================================
+
+ERROR: InvocationError for command /arctic_878/.tox/dev36/bin/python setup.py test --pytest-args=-v (exited with code 1)
+
+commands failed
+

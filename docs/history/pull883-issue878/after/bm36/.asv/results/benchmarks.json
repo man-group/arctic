@@ -1,0 +1,153 @@
+{
+    "benchmarks.TimeSuiteAppend.time_append_dataframe": {
+        "code": "class TimeSuiteAppend:\n    def time_append_dataframe(self, idx):\n        self.lib.append('test_df', df_random[idx])\n\n    def setup(self, idx):\n        self.store.delete_library('test.lib')\n        self.store.initialize_library('test.lib')\n        self.lib = self.store['test.lib']\n    \n        self.lib.write('test_df', df_random[idx])",
+        "min_run_count": 2,
+        "name": "benchmarks.TimeSuiteAppend.time_append_dataframe",
+        "number": 0,
+        "param_names": [
+            "5K * 10^"
+        ],
+        "params": [
+            [
+                "0",
+                "1",
+                "2",
+                "3"
+            ]
+        ],
+        "processes": 2,
+        "repeat": 0,
+        "sample_time": 0.01,
+        "timeout": 60.0,
+        "type": "time",
+        "unit": "seconds",
+        "version": "2abd92aa0bf966c651b87c70727bae7d3f006f94546c3cb76b4716b8291ae961",
+        "warmup_time": -1
+    },
+    "benchmarks.TimeSuiteRead.time_read_dataframe": {
+        "code": "class TimeSuiteRead:\n    def time_read_dataframe(self, idx):\n        self.lib.read('test_df')\n\n    def setup(self, idx):\n        self.store.delete_library('test.lib')\n        self.store.initialize_library('test.lib')\n        self.lib = self.store['test.lib']\n    \n        self.lib.write('test_df', df_random[idx])",
+        "min_run_count": 2,
+        "name": "benchmarks.TimeSuiteRead.time_read_dataframe",
+        "number": 0,
+        "param_names": [
+            "5K * 10^"
+        ],
+        "params": [
+            [
+                "0",
+                "1",
+                "2",
+                "3"
+            ]
+        ],
+        "processes": 2,
+        "repeat": 0,
+        "sample_time": 0.01,
+        "timeout": 60.0,
+        "type": "time",
+        "unit": "seconds",
+        "version": "edc2563403fc27d3ff40ff14d9e5f13f10ae25e4255c0ed3a89903188b272263",
+        "warmup_time": -1
+    },
+    "benchmarks.TimeSuiteWrite.time_write_dataframe_compressible": {
+        "code": "class TimeSuiteWrite:\n    def time_write_dataframe_compressible(self, idx):\n        self.lib.write('df_bench_compressible', df_compress[idx])\n\n    def setup(self, arg):\n        self.store = Arctic(\"127.0.0.1\")\n        self.store.delete_library('test.lib')\n        self.store.initialize_library('test.lib')\n        self.lib = self.store['test.lib']",
+        "min_run_count": 2,
+        "name": "benchmarks.TimeSuiteWrite.time_write_dataframe_compressible",
+        "number": 0,
+        "param_names": [
+            "5K * 10^"
+        ],
+        "params": [
+            [
+                "0",
+                "1",
+                "2",
+                "3"
+            ]
+        ],
+        "processes": 2,
+        "repeat": 0,
+        "sample_time": 0.01,
+        "timeout": 60.0,
+        "type": "time",
+        "unit": "seconds",
+        "version": "d28a966d29d1ce62bff62c289778b32ae91c07bea584b49edf5017357aeff89d",
+        "warmup_time": -1
+    },
+    "benchmarks.TimeSuiteWrite.time_write_dataframe_random": {
+        "code": "class TimeSuiteWrite:\n    def time_write_dataframe_random(self, idx):\n        self.lib.write('df_bench_random', df_random[idx])\n\n    def setup(self, arg):\n        self.store = Arctic(\"127.0.0.1\")\n        self.store.delete_library('test.lib')\n        self.store.initialize_library('test.lib')\n        self.lib = self.store['test.lib']",
+        "min_run_count": 2,
+        "name": "benchmarks.TimeSuiteWrite.time_write_dataframe_random",
+        "number": 0,
+        "param_names": [
+            "5K * 10^"
+        ],
+        "params": [
+            [
+                "0",
+                "1",
+                "2",
+                "3"
+            ]
+        ],
+        "processes": 2,
+        "repeat": 0,
+        "sample_time": 0.01,
+        "timeout": 60.0,
+        "type": "time",
+        "unit": "seconds",
+        "version": "041167c7a5d52f1be19fedf234d74c247ef687f9c30e66668f782dfd86fd99f1",
+        "warmup_time": -1
+    },
+    "benchmarks.TimeSuiteWrite.time_write_series_compressible": {
+        "code": "class TimeSuiteWrite:\n    def time_write_series_compressible(self, idx):\n        self.lib.write('series_bench_compressible', s_compress[idx])\n\n    def setup(self, arg):\n        self.store = Arctic(\"127.0.0.1\")\n        self.store.delete_library('test.lib')\n        self.store.initialize_library('test.lib')\n        self.lib = self.store['test.lib']",
+        "min_run_count": 2,
+        "name": "benchmarks.TimeSuiteWrite.time_write_series_compressible",
+        "number": 0,
+        "param_names": [
+            "5K * 10^"
+        ],
+        "params": [
+            [
+                "0",
+                "1",
+                "2",
+                "3"
+            ]
+        ],
+        "processes": 2,
+        "repeat": 0,
+        "sample_time": 0.01,
+        "timeout": 60.0,
+        "type": "time",
+        "unit": "seconds",
+        "version": "bfadd71e5469437a8c4f28daa3560629dc00f9c907853efb0129441583e7e498",
+        "warmup_time": -1
+    },
+    "benchmarks.TimeSuiteWrite.time_write_series_random": {
+        "code": "class TimeSuiteWrite:\n    def time_write_series_random(self, idx):\n        self.lib.write('series_bench_random', s_random[idx])\n\n    def setup(self, arg):\n        self.store = Arctic(\"127.0.0.1\")\n        self.store.delete_library('test.lib')\n        self.store.initialize_library('test.lib')\n        self.lib = self.store['test.lib']",
+        "min_run_count": 2,
+        "name": "benchmarks.TimeSuiteWrite.time_write_series_random",
+        "number": 0,
+        "param_names": [
+            "5K * 10^"
+        ],
+        "params": [
+            [
+                "0",
+                "1",
+                "2",
+                "3"
+            ]
+        ],
+        "processes": 2,
+        "repeat": 0,
+        "sample_time": 0.01,
+        "timeout": 60.0,
+        "type": "time",
+        "unit": "seconds",
+        "version": "f415128641258a98d340f16894962bd62a4c60975d64a19917368dc434996632",
+        "warmup_time": -1
+    },
+    "version": 2
+}

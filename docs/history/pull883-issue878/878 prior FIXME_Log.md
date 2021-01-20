@@ -163,7 +163,8 @@ One terminal window is need for each of these processes:
     tests/integration/tickstore/test_toplevel.py:63
         test_should_return_data_when_date_range_falls_in_a_single_underlying_library
 
-### FIXME: CM#013 - ()
+### FIXME: CM#013 - (asv unable to import tests module - add arctic proj root to path)
+    benchmarks/fast_serializable_check.py:3 to 6
 
 ### FIXME: CM#014 - ()
 

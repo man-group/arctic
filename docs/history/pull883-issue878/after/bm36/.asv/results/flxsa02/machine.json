@@ -1,0 +1,9 @@
+{
+    "arch": "x86_64",
+    "cpu": "Intel(R) Core(TM) i7-4810MQ CPU @ 2.80GHz",
+    "machine": "flxsa02",
+    "num_cpu": "8",
+    "os": "Linux 4.15.0-128-generic",
+    "ram": "24596084",
+    "version": 1
+}

@@ -1,5 +1,10 @@
 import time
 
+# FIXME: CM#013 - (asv unable to import tests module - add arctic proj root to path)
+import os.path
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 import arctic.serialization.numpy_records as anr
 from tests.unit.serialization.serialization_test_data import _mixed_test_data as input_test_data
 
