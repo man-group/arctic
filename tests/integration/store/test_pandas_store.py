@@ -648,6 +648,7 @@ def panel(i1, i2, i3):
                  list(rrule(DAILY, count=i3, dtstart=dt(1970, 1, 1), interval=1)))
 
 
+@pytest.mark.skipif(pd.__version__ >= '0.25.0', reason="Panel has been removed")
 @pytest.mark.xfail(pd.__version__ >= '0.18.0', reason="see issue #115")
 @pytest.mark.parametrize("df_size", list(itertools.combinations_with_replacement([1, 2, 4], r=3)))
 def test_panel_save_read(library, df_size):
@@ -663,6 +664,7 @@ def test_panel_save_read(library, df_size):
                 str(pn.axes[i].names) + "!=" + str(pn.axes[i].names)
 
 
+@pytest.mark.skipif(pd.__version__ >= '0.25.0', reason="Panel has been removed")
 @pytest.mark.xfail(pd.__version__ >= '0.20.0', reason='Panel is deprecated')
 def test_panel_save_read_with_nans(library):
     '''Ensure that nan rows are not dropped when calling to_frame.'''
