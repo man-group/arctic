@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from mock import Mock, sentinel, patch
 from pytest import raises
 
