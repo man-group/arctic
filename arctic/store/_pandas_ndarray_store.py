@@ -3,7 +3,11 @@ import logging
 
 import numpy as np
 from bson.binary import Binary
-from pandas import DataFrame, Series, Panel
+from pandas import DataFrame, Series
+try:
+    from pandas import Panel
+except ImportError:
+    pass
 
 from arctic._util import NP_OBJECT_DTYPE
 from arctic.serialization.numpy_records import SeriesSerializer, DataFrameSerializer
