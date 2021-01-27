@@ -5,7 +5,7 @@ import numpy as np
 from bson.binary import Binary
 from pandas import DataFrame, Series
 try:
-    from pandas import Panel		# FIXME pull881
+    from pandas import Panel
 except ImportError:
     pass
 
