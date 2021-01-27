@@ -60,7 +60,7 @@ def test_should_return_data_when_date_range_falls_in_a_single_underlying_library
     df = pd.DataFrame(np.random.randn(6, 4), index=dates, columns=list('ABCD'))
     tstore.write('blah', df)
     tickstore_current.write('blah', df)
-    res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 1, 1), end=dt(2010, 1, 6)), list('ABCD'))
+    res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 1, 1), end=dt(2010, 1, 6)), list('ABCD'))        # FIXME: CM#014 - (read does not include January 1st)
 
     assert_frame_equal(df, res.tz_convert(mktz('Europe/London')))
 

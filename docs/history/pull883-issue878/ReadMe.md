@@ -358,7 +358,7 @@ We expect `travis` to fail, so it is the delta improvement that is important.
 |   xfailed |       6 |       6 |       0 |
 |   xpassed |      13 |      13 |       0 |
 |  warnings |      41 |      41 |       0 |
-| test time | 1301.89 | 1375.97 |     ~74 |
+| test time | 1336.84 | 1375.97 |  -39.13 |
 
 
 #### Python 3.6:
@@ -366,13 +366,13 @@ We expect `travis` to fail, so it is the delta improvement that is important.
 
 |    Status |  before |   after |   delta |
 |----------:|--------:|--------:|--------:|
-|    failed |      61 |       7 |     -54 |
-|    passed |    1255 |    1309 |     +46 |
+|    failed |      61 |       5 |     -56 |
+|    passed |    1255 |    1311 |     +56 |
 |   skipped |       3 |       3 |       0 |
 |   xfailed |      19 |      19 |       0 |
 |   xpassed |       1 |       1 |       0 |
-|  warnings |   60848 |   60747 |      -1 |
-| test time | 0:22:02 | 0:22:21 | +0:0:19 |
+|  warnings |   60848 |   60744 |    -104 |
+| test time | 1322.83 | 1272.69 | +0:0:19 |
 
 ##### dev36 travis log
 ```shell
@@ -392,6 +392,16 @@ The command "pycodestyle arctic" exited with 0.
 
 #### Python 3.7:
 * PR #881:job [#2416.3 - ERRORED](https://travis-ci.org/github/man-group/arctic/jobs/754297000) 
+
+|   Status |  before |   after |    delta |
+|---------:|--------:|--------:|---------:|
+|   failed |  broken |     230 |          |
+|   passed |  broken |    1086 |          |
+|  skipped |  broken |       3 |          |
+|  xfailed |  broken |      20 |          |
+|  xpassed |  broken |       0 |          |
+| warnings |  broken |   58860 |          |
+| test sec |  broken | 2560.64 |          |
 
 ```shell
 File "/home/travis/build/man-group/arctic/arctic/store/_pandas_ndarray_store.py", line 6, in <module>

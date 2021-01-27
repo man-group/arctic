@@ -2,8 +2,34 @@
 
 The following steps were used to setup an Ubuntu 16.04 development system.  
 
-## Install Python 3.6
+## PyPy and Python Versions
 
+### pypy
+Installing pypy package on Ubuntu 16.04 (Xenial Xerus) is as easy as running 
+the following command on terminal:
+```shell
+$ sudo apt-get update
+$ sudo apt-get install pypy
+$ pypy -m ensurepip               # install pip (NOT WORKING ON UBUNTU 16.04)
+$ pypy -mpip install -U pip wheel # to upgrade to the latest versions
+
+$ pypy
+Python 2.7.10 (5.1.2+dfsg-1~16.04, Jun 16 2016, 17:37:42)
+[PyPy 5.1.2 with GCC 5.3.1 20160413] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+
+
+$ sudo add-apt-repository ppa:pypy/ppa
+$ sudo apt update
+$ sudo apt install pypy3
+
+$ pypy3
+Python 3.6.12 (7.3.3+dfsg-2~ppa1~ubuntu16.04, Dec 20 2020, 00:30:46)
+[PyPy 7.3.3 with GCC 5.4.0 20160609] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+```
+
+### Python
 Ubuntu 16.04 should come with Python 2.7 and 3.5 already installed.  PyCharm 
 has already dropped Python 3.5 so what follows jumps to >= 3.6.
 
@@ -46,11 +72,11 @@ Activate the virtual environment
 $ source .venv/bin/activate
 ```
 
-Update the pip
+Update pip and install tox
 ```shell
 $ cd <root of arctic project directory>
-$ cp -i docs/tox/get-pip.py get-pip.py
-(.venv) $ python get-pip.py
+(.venv) $ pip install --upgrade pip
+(.venv) $ python -m pip install --upgrade pip
 (.venv) $ pip install tox
 ```
 
@@ -74,9 +100,6 @@ rm -rf .git/modules/asv
 # Remove the entry in .gitmodules and remove the submodule directory located at path/to/submodule
 git rm -f asv
 ``` 
-
-
-
 
 ### Optional - use the `setpath.sh` script to find the `tox` virtual environment
 By doing this the `python` command will now be using the python3.6 you installed 
@@ -191,6 +214,6 @@ by running the `clean_after_tox.sh` script from the root directory.
 ```shell
 (.venv) $ cd <root of arctic project directory>
 (.venv) $ cd <root of arctic project directory>
-(.venv) $ cp -i docs/tox_setup/clean_after_tox.sh clean_after_tox.sh
+(.venv) $ cp -i docs/tox/clean_after_tox.sh clean_after_tox.sh
 (.venv) $ sh ./clean_after_tox.sh
 ```

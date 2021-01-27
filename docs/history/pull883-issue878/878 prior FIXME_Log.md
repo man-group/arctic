@@ -166,7 +166,7 @@ One terminal window is need for each of these processes:
 ### FIXME: CM#013 - (asv unable to import tests module - add arctic proj root to path)
     benchmarks/fast_serializable_check.py:3 to 6
 
-### FIXME: CM#014 - ()
+### FIXME: CM#014 - (read does not include January 1st - ?)
 
 ### FIXME: CM#015 - ()
 
