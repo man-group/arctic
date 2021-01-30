@@ -362,14 +362,14 @@ We expect `travis` to fail, so it is the delta improvement that is important.
 
 
 #### Python 3.6:
-* PR #881:job [#2416.2 - FAILED](https://travis-ci.org/github/man-group/arctic/jobs/754297001) 
+* PR #881:job [#2428.2 - FAILED](https://travis-ci.org/github/man-group/arctic/jobs/756492649) 
 
 |    Status |  before |   after |   delta |
 |----------:|--------:|--------:|--------:|
 |    failed |      61 |       5 |     -56 |
-|    passed |    1255 |    1311 |     +56 |
-|   skipped |       3 |       3 |       0 |
-|   xfailed |      19 |      19 |       0 |
+|    passed |    1255 |    1307 |     +52 |
+|   skipped |       3 |      18 |     +15 |
+|   xfailed |      19 |       8 |     +11 |
 |   xpassed |       1 |       1 |       0 |
 |  warnings |   60848 |   60744 |    -104 |
 | test time | 1322.83 | 1272.69 | +0:0:19 |
@@ -377,16 +377,14 @@ We expect `travis` to fail, so it is the delta improvement that is important.
 ##### dev36 travis log
 ```shell
 =========================== short test summary info ============================
-FAILED tests/integration/store/test_pandas_store.py::test_save_read_pandas_series_with_unicode_index_name
-FAILED tests/integration/store/test_pandas_store.py::test_save_read_pandas_dataframe_with_unicode_index_name
 FAILED tests/integration/tickstore/test_toplevel.py::test_should_return_data_when_date_range_falls_in_a_single_underlying_library
 FAILED tests/integration/tickstore/test_toplevel.py::test_should_return_data_when_date_range_spans_libraries_even_if_one_returns_nothing
 FAILED tests/integration/tickstore/test_toplevel.py::test_should_write_top_level_with_list_of_dicts
 FAILED tests/integration/tickstore/test_toplevel.py::test_should_write_top_level_with_correct_timezone
 FAILED tests/unit/store/test_version_store_audit.py::test_ArcticTransaction_detects_concurrent_writes
-= 7 failed, 1309 passed, 3 skipped, 19 xfailed, 1 xpassed, 60747 warnings in 1341.21s (0:22:21) =
+= 5 failed, 1307 passed, 18 skipped, 8 xfailed, 1 xpassed, 60744 warnings in 1323.29s (0:22:03) =
 The command "python setup.py test --pytest-args=-v" exited with 1.
-1.24s$ pycodestyle arctic
+1.26s$ pycodestyle arctic
 The command "pycodestyle arctic" exited with 0.
 ```
 
