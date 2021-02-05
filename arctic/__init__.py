@@ -24,5 +24,9 @@ else:
 
 register_versioned_storage(PandasDataFrameStore)
 register_versioned_storage(PandasSeriesStore)
-register_versioned_storage(PandasPanelStore)
+try:
+    from pandas import Panel
+    register_versioned_storage(PandasPanelStore)
+except ImportError:
+    pass
 register_versioned_storage(NdarrayStore)
