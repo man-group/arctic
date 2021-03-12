@@ -95,7 +95,11 @@ class PickleStore(object):
         collection = arctic_lib.get_top_level_collection()
         # Try to pickle it. This is best effort
         version['blob'] = _MAGIC_CHUNKEDV2
-        pickled = cPickle.dumps(item, protocol=cPickle.HIGHEST_PROTOCOL)
+        # Python 3.8 onwards uses protocol 5 which cannot be unpickled in Python versions below that, so limiting
+        # it to use a maximum of protocol 4 in Python which is understood by 3.4 onwards and is still fairly efficient.
+        # The min() allows lower versions to be used in py2 (which supports a max of 2)
+        pickle_protocol = min(cPickle.HIGHEST_PROTOCOL, 4)
+        pickled = cPickle.dumps(item, protocol=pickle_protocol)
 
         data = compress_array([pickled[i * _CHUNK_SIZE: (i + 1) * _CHUNK_SIZE] for i in xrange(int(len(pickled) / _CHUNK_SIZE + 1))])
 
