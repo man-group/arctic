@@ -77,7 +77,7 @@ setup(
                       "enum-compat",
                       "futures; python_version == '2.7'",
                       "mockextras",
-                      "pandas",
+                      "pandas<=1.0.3",
                       "pymongo>=3.6.0",
                       "python-dateutil",
                       "pytz",
