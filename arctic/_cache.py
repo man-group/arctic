@@ -84,8 +84,9 @@ class Cache:
             if cached_data and self._is_not_expired(cached_data, newer_than_secs):
                 return cached_data['data']
         except OperationFailure as op:
-            logging.warning("Could not read from cache due to: %s. Ask your admin to give read permissions on %s:%s",
-                            op, CACHE_DB, CACHE_COLL)
+            # Fallback to uncached version without spamming.
+            logging.debug("Could not read from cache due to: %s. Ask your admin to give read permissions on %s:%s",
+                          op, CACHE_DB, CACHE_COLL)
 
         return None
 

@@ -203,7 +203,9 @@ class Arctic(object):
         -------
         list of Arctic library names
         """
-        return self._list_libraries_cached(newer_than_secs) if self.is_caching_enabled() else self._list_libraries()
+        if self._cache and self.is_caching_enabled():
+            return self._list_libraries_cached(newer_than_secs)
+        return self._list_libraries()
 
     @mongo_retry
     def _list_libraries(self):
