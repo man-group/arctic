@@ -63,8 +63,8 @@ class ChunkStore(object):
                                       background=True)
         self._collection.create_index([(SYMBOL, pymongo.ASCENDING),
                                        (START, pymongo.ASCENDING),
-                                       (END, pymongo.ASCENDING),
-                                       (SEGMENT, pymongo.ASCENDING)],
+                                       (SEGMENT, pymongo.ASCENDING),
+                                       (END, pymongo.ASCENDING)],
                                       unique=True, background=True)
         self._collection.create_index([(SYMBOL, pymongo.ASCENDING),
                                        (START, pymongo.ASCENDING),
