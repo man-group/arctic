@@ -145,7 +145,7 @@ class FrameConverter(object):
         """
         cols = columns or doc[METADATA][COLUMNS]
         data = {}
-        valid_columns = doc[METADATA][LENGTHS]
+        valid_columns = set(cols).intersection(doc[METADATA][LENGTHS])
         missing_columns = set(cols).difference(valid_columns)
         for col in valid_columns:
             d = decompress(doc[DATA][doc[METADATA][LENGTHS][col][0]: doc[METADATA][LENGTHS][col][1] + 1])
@@ -158,11 +158,12 @@ class FrameConverter(object):
                 d = ma.masked_array(d, mask)
             data[col] = d
 
-        for col in missing_columns:
-            # if there is missing data in a chunk, we can default to NaN and
-            empty = np.empty(len(d))
-            empty[:] = np.nan
-            data[col] = empty
+        if data:
+            for col in missing_columns:
+                # if there is missing data in a chunk, we can default to NaN and
+                empty = np.empty(len(d))
+                empty[:] = np.nan
+                data[col] = empty
 
         if as_df:
             return pd.DataFrame(data)
@@ -218,15 +219,17 @@ class FrametoArraySerializer(Serializer):
         meta = data[0][METADATA] if isinstance(data, list) else data[METADATA]
         index = INDEX in meta
 
+        if not isinstance(data, list):
+            data = [data]
+
         if columns:
             if index:
                 columns = columns[:]
                 columns.extend(meta[INDEX])
             if len(columns) > len(set(columns)):
                 raise Exception("Duplicate columns specified, cannot de-serialize")
-
-        if not isinstance(data, list):
-            data = [data]
+        else:
+            columns = [col for doc in data for col in doc[METADATA][COLUMNS]]
 
         df = defaultdict(list)
 
