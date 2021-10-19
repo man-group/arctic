@@ -91,7 +91,7 @@ defaults: &defaults
          #pip install -r ./notebooker/notebook_templates_example/notebook_requirements.txt
          mkdir test-results
          #arctic tests added
-         python setup.py test --pytest-args=-v
+         python setup.py test --pytest-args=-v --junitxml=test-results/junit.xml
          #py.test -svvvvv --junitxml=test-results/junit.xml
          #bash <(curl -s https://codecov.io/bash) -c -F python
     - store_test_results:
