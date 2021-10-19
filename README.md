@@ -2,7 +2,7 @@
 
 
 [![Documentation Status](https://readthedocs.org/projects/arctic/badge/?version=latest)](https://arctic.readthedocs.io/en/latest/?badge=latest)
-[![CircleCI](https://app.circleci.com/pipelines/github/man-group/arctic?branch=master)](https://app.circleci.com/pipelines/github/man-group/arctic)
+[![Circle CI](https://app.circleci.com/pipelines/github/man-group/arctic?branch=master)](https://app.circleci.com/pipelines/github/man-group/arctic)
 [![Travis CI](https://travis-ci.com/man-group/arctic.svg?branch=master)](https://travis-ci.org/man-group/arctic)
 [![Join the chat at https://gitter.im/manahl/arctic](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/manahl/arctic?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
