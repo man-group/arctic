@@ -21,7 +21,7 @@ defaults: &defaults
         name: Version checks
         command: |
             #grep -q $VERSION notebooker/version.py || (echo "ERROR: Version number not found in notebooker/_version.py: $VERSION"; exit 1)
-            grep -q $VERSION CHANGELOG.md || (echo "ERROR: Version number not found in CHANGES.md: $VERSION"; exit 1)
+            grep -q $VERSION CHANGES.md || (echo "ERROR: Version number not found in CHANGES.md: $VERSION"; exit 1)
             #grep -q $VERSION docs/conf.py || (echo "ERROR: Version number not found in docs/source/conf.py: $VERSION"; exit 1)
             #grep -q $VERSION notebooker/web/static/package.json || (echo "ERROR: Version number not found in package.json: $VERSION"; exit 1)
     - run:
@@ -29,9 +29,9 @@ defaults: &defaults
         command: |
           echo $VERSION > "$CIRCLE_ARTIFACTS/version.txt"
           # Find the lines of the changelog between releases, escape double quotes, delete empty lines
-          sed -n '{ /------/= }' CHANGELOG.md \
+          sed -n '{ /------/= }' CHANGES.md \
               | head -n 2 \
-              | xargs -n 2 bash -c 'sed -n "s/\"/\\\\\"/g;`expr $0 + 1`,`expr $1 - 2`p" CHANGELOG.md' \
+              | xargs -n 2 bash -c 'sed -n "s/\"/\\\\\"/g;`expr $0 + 1`,`expr $1 - 2`p" CHANGES.md' \
               | sed '/^$/d' \
               > "$CIRCLE_ARTIFACTS/changes.md"
     - run:
