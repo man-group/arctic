@@ -80,8 +80,8 @@ defaults: &defaults
     #      fi
     # Test
     - run:
-       name: Run all tests
-       command: |
+        name: Run all tests
+        command: |
          set -x
          . ci/bin/activate
         # ls -la /bin | grep mongo
