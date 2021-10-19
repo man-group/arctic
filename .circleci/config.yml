@@ -84,16 +84,16 @@ defaults: &defaults
         command: |
          set -x
          . ci/bin/activate
-        # ls -la /bin | grep mongo
-        # which mongod
-        # pip install -e .[prometheus,test]
-        # python -m ipykernel install --user --name=notebooker_kernel
-        # pip install -r ./notebooker/notebook_templates_example/notebook_requirements.txt
-        mkdir test-results
-        # arctic tests added
-        python setup.py test --pytest-args=-v
-        #py.test -svvvvv --junitxml=test-results/junit.xml
-        # bash <(curl -s https://codecov.io/bash) -c -F python
+         #ls -la /bin | grep mongo
+         #which mongod
+         #pip install -e .[prometheus,test]
+         #python -m ipykernel install --user --name=notebooker_kernel
+         #pip install -r ./notebooker/notebook_templates_example/notebook_requirements.txt
+         mkdir test-results
+         #arctic tests added
+         python setup.py test --pytest-args=-v
+         #py.test -svvvvv --junitxml=test-results/junit.xml
+         #bash <(curl -s https://codecov.io/bash) -c -F python
     - store_test_results:
         path: test-results
     # Save artifacts
