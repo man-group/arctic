@@ -1,0 +1,171 @@
+defaults: &defaults
+    parallelism: 1
+    shell: /bin/bash --login
+    steps:
+    - checkout
+    - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
+    # Restore the dependency cache
+    - restore_cache:
+        keys:
+        # This branch if available
+        - v1-dep-{{ .Branch }}-
+        # Default branch if not
+        - v1-dep-master-
+        # Any branch if there are none on the default branch - this should be unnecessary if you have your default branch configured correctly
+        - v1-dep-
+    #- restore_cache:
+    #    name: Restore Yarn Package Cache
+    #    keys:
+    #      - yarn-packages-{{ checksum "notebooker/web/static/yarn.lock" }}
+    - run:
+        name: Version checks
+        command: |
+            #grep -q $VERSION notebooker/version.py || (echo "ERROR: Version number not found in notebooker/_version.py: $VERSION"; exit 1)
+            grep -q $VERSION CHANGES.md || (echo "ERROR: Version number not found in CHANGES.md: $VERSION"; exit 1)
+            #grep -q $VERSION docs/conf.py || (echo "ERROR: Version number not found in docs/source/conf.py: $VERSION"; exit 1)
+            #grep -q $VERSION notebooker/web/static/package.json || (echo "ERROR: Version number not found in package.json: $VERSION"; exit 1)
+    - run:
+        name: Output useful stuff
+        command: |
+          echo $VERSION > "$CIRCLE_ARTIFACTS/version.txt"
+          # Find the lines of the changelog between releases, escape double quotes, delete empty lines
+          sed -n '{ /------/= }' CHANGES.md \
+              | head -n 2 \
+              | xargs -n 2 bash -c 'sed -n "s/\"/\\\\\"/g;`expr $0 + 1`,`expr $1 - 2`p" CHANGES.md' \
+              | sed '/^$/d' \
+              > "$CIRCLE_ARTIFACTS/changes.md"
+    - run:
+        name: Install MongoDB
+        command: |
+            # run "cat /etc/os-release" to view information about the OS
+            # good article on how to install mongo, https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/
+
+            cat /etc/os-release
+            set -x
+            wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+            sudo apt-get install gnupg
+            wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+            echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+            sudo apt-get update
+            sudo ln -Tf /bin/true /usr/bin/systemctl
+            sudo apt-get install -y mongodb-org=4.2.11 mongodb-org-server=4.2.11 mongodb-org-shell=4.2.11 mongodb-org-mongos=4.2.11 mongodb-org-tools=4.2.11
+            sudo rm /usr/bin/systemctl
+    - run:
+       name: Create and activate virtualenv
+       command: |
+         virtualenv ci
+         . ci/bin/activate
+         pip install pip python-dateutil pytz tzlocal pymongo numpy pandas decorator enum34 lz4 mock mockextras pytest pytest-cov pytest-server-fixtures pytest-timeout pytest-xdist setuptools-git pytest black .[test]
+         python setup.py develop
+    # Save dependency cache
+    - save_cache:
+        key: v1-dep-{{ .Branch }}-{{ epoch }}
+        paths:
+        - ~/ci
+    #- run:
+    #    name: Run Flake8
+    #    command: |
+    #      . ci/bin/activate
+    #      flake8 notebooker tests
+    #- run:
+    #    name: Run black
+    #    command: |
+    #      . ci/bin/activate
+    #      black --check -l 120 notebooker tests
+    #      if [ $? -eq 0 ]
+    #      then
+    #        echo "Black worked fine."
+    #      else
+    #        echo "Black found differences!"; exit $?
+    #      fi
+    # Test
+    - run:
+        name: Run all tests
+        command: |
+         set -x
+         . ci/bin/activate
+         #ls -la /bin | grep mongo
+         #which mongod
+         #pip install -e .[prometheus,test]
+         #python -m ipykernel install --user --name=notebooker_kernel
+         #pip install -r ./notebooker/notebook_templates_example/notebook_requirements.txt
+         mkdir test-results
+         #arctic tests added
+         python setup.py test --pytest-args=-v
+         cp junit.xml test-results
+         #py.test -svvvvv --junitxml=test-results/junit.xml
+         #bash <(curl -s https://codecov.io/bash) -c -F python
+    - store_test_results:
+        path: test-results
+    # Save artifacts
+    - store_artifacts:
+        path: /tmp/circleci-artifacts
+    - store_artifacts:
+        path: test-results
+    - persist_to_workspace:
+        root: /tmp/circleci-artifacts
+        paths:
+          - ./*/version.txt
+          - ./*/changes.md
+          - ./*/dist/*
+version: 2
+jobs:
+  build_3_6:
+    environment:
+      PYTHON_VERSION: "3_6"
+      CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_6
+      CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_6
+      VERSION: 1.80.0
+      #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
+      #YARN_STATIC_DIR: notebooker/web/static/
+      IMAGE_NAME: mangroup/arctic
+    working_directory: ~/arctic_3_6
+    docker:
+    - image: cimg/python:3.6-node
+    <<: *defaults
+  build_3_7:
+    environment:
+      CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_7
+      CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_7
+      VERSION: 1.80.0
+      #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
+      #YARN_STATIC_DIR: notebooker/web/static/
+      IMAGE_NAME: mangroup/arctic
+    working_directory: ~/arctic_3_7
+    docker:
+    - image: cimg/python:3.7-node
+    <<: *defaults
+  publish-github-release:
+    docker:
+      - image: cibuilds/github:0.13
+    steps:
+      - attach_workspace:
+          at: /tmp/circleci-artifacts
+      - run:
+          name: "Publish release on GitHub"
+          command: |
+            VERSION=$(cat /tmp/circleci-artifacts/3_6/version.txt)
+            CHANGES=$(cat /tmp/circleci-artifacts/3_6/changes.md)
+            ghr -t ${GITHUB_TOKEN} \
+                -u ${CIRCLE_PROJECT_USERNAME} \
+                -r ${CIRCLE_PROJECT_REPONAME} \
+                -c ${CIRCLE_SHA1} \
+                -n ${VERSION} \
+                -b "${CHANGES}" \
+                -soft \
+                ${VERSION} /tmp/circleci-artifacts/3_6/dist
+workflows:
+  version: 2
+  build_all:
+    jobs:
+      - build_3_6
+      - build_3_7
+      - publish-github-release:
+          requires:
+            - build_3_6
+            - build_3_7
+          filters:
+            branches:
+              only:
+                - master
+
