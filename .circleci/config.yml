@@ -84,8 +84,8 @@ defaults: &defaults
         command: |
          set -x
          . ci/bin/activate
-         #ls -la /bin | grep mongo
-         #which mongod
+         ls -la /bin | grep mongo
+         which mongod
          #pip install -e .[prometheus,test]
          #python -m ipykernel install --user --name=notebooker_kernel
          #pip install -r ./notebooker/notebook_templates_example/notebook_requirements.txt
@@ -136,24 +136,24 @@ jobs:
     - image: cimg/python:3.7-node
     <<: *defaults
   publish-github-release:
-    docker:
-      - image: cibuilds/github:0.13
-    steps:
-      - attach_workspace:
-          at: /tmp/circleci-artifacts
-      - run:
-          name: "Publish release on GitHub"
-          command: |
-            VERSION=$(cat /tmp/circleci-artifacts/3_6/version.txt)
-            CHANGES=$(cat /tmp/circleci-artifacts/3_6/changes.md)
-            ghr -t ${GITHUB_TOKEN} \
-                -u ${CIRCLE_PROJECT_USERNAME} \
-                -r ${CIRCLE_PROJECT_REPONAME} \
-                -c ${CIRCLE_SHA1} \
-                -n ${VERSION} \
-                -b "${CHANGES}" \
-                -soft \
-                ${VERSION} /tmp/circleci-artifacts/3_6/dist
+   docker:
+     - image: cibuilds/github:0.13
+   steps:
+     - attach_workspace:
+         at: /tmp/circleci-artifacts
+     - run:
+         name: "Publish release on GitHub"
+         command: |
+           VERSION=$(cat /tmp/circleci-artifacts/3_6/version.txt)
+           CHANGES=$(cat /tmp/circleci-artifacts/3_6/changes.md)
+  #         ghr -t ${GITHUB_TOKEN} \
+  #             -u ${CIRCLE_PROJECT_USERNAME} \
+  #             -r ${CIRCLE_PROJECT_REPONAME} \
+  #             -c ${CIRCLE_SHA1} \
+  #             -n ${VERSION} \
+  #             -b "${CHANGES}" \
+  #             -soft \
+  #             ${VERSION} /tmp/circleci-artifacts/3_6/dist
 workflows:
   version: 2
   build_all:
