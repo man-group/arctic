@@ -83,12 +83,19 @@ def enable_sharding(arctic, library_name, hashed=True, key='symbol'):
 
 
 def mongo_count(collection, filter=None, **kwargs):
+    """
+    pymongo 3.7 or higher calling count_documents without a filter is pathologically slow
+    """
     filter = {} if filter is None else filter
     global _use_new_count_api
     _use_new_count_api = _detect_new_count_api() if _use_new_count_api is None else _use_new_count_api
-    # This is a temporary compatibility fix for compatibility with pymongo>=3.7, and also avoid deprecation warnings
+
     if _use_new_count_api:
-        # Projection is ignored for count_documents
-        return collection.count_documents(filter=filter, **kwargs)
+        # use the quick count for total docs in a collection
+        if filter == {}:
+            return collection.estimated_document_count(**kwargs)
+        else:
+            return collection.count_documents(filter=filter, **kwargs)
     else:
+        # deprecated in pymongo 3.7
         return collection.count(filter=filter, **kwargs)

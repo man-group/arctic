@@ -1,7 +1,7 @@
 ## Changelog
 
 ### 1.80.1
-  * Bugfix: #855 use IXSCAN for list\_symbols which speeds up snapshotting (actually #856)
+  * Bugfix: #855 use IXSCAN for list\_symbols which speeds up snapshotting (was not released in 1.79.4)
 
 ### 1.80.0 (2021-10-28)
   * Feature: #919 Add CircleCI badge to README.md
