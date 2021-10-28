@@ -1,8 +1,6 @@
 ## Changelog
 
 ### 1.80.0 (2021-10-28)
-  * Feature: add CircleCI build
-
   * Feature: #919 Add CircleCI badge to README.md
   * Feature: #917 Add CircleCI build
   * Bugfix:  #910 Fix column subsetting bug
