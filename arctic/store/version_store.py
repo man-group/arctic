@@ -79,6 +79,8 @@ class VersionStore(object):
                                          background=True)
         collection.versions.create_index([('symbol', pymongo.ASCENDING), ('version', pymongo.DESCENDING)], unique=True,
                                          background=True)
+        collection.versions.create_index([('symbol', pymongo.ASCENDING), ('version', pymongo.DESCENDING), ('metadata.deleted', pymongo.ASCENDING)],
+                                         background=True)
         collection.version_nums.create_index('symbol', unique=True, background=True)
         for th in _TYPE_HANDLERS:
             th._ensure_index(collection)
@@ -170,29 +172,13 @@ class VersionStore(object):
             # Match based on user criteria first
             pipeline.append({'$match': query})
         pipeline.extend([
-            # version_custom value is: 2*version + (0 if deleted else 1)
-            # This is used to optimize aggregation query:
-            #  - avoid sorting
-            #  - be able to rely on the latest version (max) for the deleted status
-            #
-            # Be aware of that if you don't use custom sort or if use a sort before $group which utilizes
-            # exactly an existing index, the $group will do best effort to utilize this index:
-            #  - https://jira.mongodb.org/browse/SERVER-4507
+            {'$sort': bson.SON([('symbol', pymongo.ASCENDING), ('version', pymongo.DESCENDING)])},
             {'$group': {
                 '_id': '$symbol',
-                'version_custom': {
-                    '$max': {
-                        '$add': [
-                            {'$multiply': ['$version', 2]},
-                            {'$cond': [{'$eq': ['$metadata.deleted', True]}, 1, 0]}
-                        ]
-                    }
-                },
+                'deleted': {'$first': '$metadata.deleted'}
             }},
-            # Don't include symbols which are part of some snapshot, but really deleted...
-            {'$match': {'version_custom': {'$mod': [2, 0]}}}
+            {'$match': {'deleted': {'$ne': True}}}
         ])
-
         # We may hit the group memory limit (100MB), so use allowDiskUse to circumvent this
         #  - https://docs.mongodb.com/manual/reference/operator/aggregation/group/#group-memory-limit
         return sorted([x['_id'] for x in self._versions.aggregate(pipeline, allowDiskUse=True)])
