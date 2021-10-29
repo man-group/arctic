@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.81.0
+ * Bugfix:   #856 fix(list_symbols): #855 Use IXSCAN queries for the versions collection when querying symbols
+
 ### 1.80.0 (2021-10-28)
   * Feature: #919 Add CircleCI badge to README.md
   * Feature: #917 Add CircleCI build
