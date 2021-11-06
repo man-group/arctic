@@ -1,6 +1,21 @@
 ## Changelog
 
-### 1.80.0
+### 1.80.1
+  * Bugfix: #855 use IXSCAN for list\_symbols which speeds up snapshotting (actually #856)
+
+### 1.80.0 (2021-10-28)
+  * Feature: #919 Add CircleCI badge to README.md
+  * Feature: #917 Add CircleCI build
+  * Bugfix:  #910 Fix column subsetting bug
+  * Bugfix:  #909 Speedup FrameToArray serialiser for ChunkStore by removing intermediate DataFrame construction
+  * Bugfix:  #902 Chunkstore-read-speedup
+  * Bugfix:  #872 Do not spam if not permissioned on cache db
+  * Bugfix:  #874 Pickle protocol 5 not supported in 3.7 and below
+  * Bugfix:       Handle uninitialized cache object
+  * Feature: #897 Pin numpy 1.18.4
+  * Feature: #897 Pin pandas 1.0.3
+  * Bugfix:  #881 Fix for issue #815
+  * Bugfix:  #875 Fix flake8 errors
 
 ### 1.79.4 (2020-12-01)
   * Bugfix: Update code to work with latest version of pandas

@@ -184,8 +184,11 @@ def test_ensure_index():
     with patch('arctic.store.version_store._TYPE_HANDLERS', [th]):
         VersionStore._ensure_index(vs)
     assert vs._collection.snapshots.create_index.call_args_list == [call([('name', 1)], unique=True, background=True)]
-    assert vs._collection.versions.create_index.call_args_list == [call([('symbol', 1), ('_id', -1)], background=True),
-                                                               call([('symbol', 1), ('version', -1)], unique=True, background=True)]
+    assert vs._collection.versions.create_index.call_args_list == [
+        call([('symbol', 1), ('_id', -1)], background=True),
+        call([('symbol', 1), ('version', -1)], unique=True, background=True),
+        call([('symbol', 1), ('version', -1), ('metadata.deleted', 1)], background=True),
+    ]
     assert vs._collection.version_nums.create_index.call_args_list == [call('symbol', unique=True, background=True)]
     th._ensure_index.assert_called_once_with(vs._collection)
 
@@ -272,18 +275,12 @@ def test_list_symbols_default_pipeline():
     VersionStore.list_symbols(vs)
 
     pipeline = [
+        {'$sort': bson.SON([('symbol', 1), ('version', -1)])},
         {'$group': {
             '_id': '$symbol',
-            'version_custom': {
-                '$max': {
-                    '$add': [
-                        {'$multiply': ['$version', 2]},
-                        {'$cond': [{'$eq': ['$metadata.deleted', True]}, 1, 0]}
-                    ]
-                }
-            },
+            'deleted': {'$first': '$metadata.deleted'}
         }},
-        {'$match': {'version_custom': {'$mod': [2, 0]}}}
+        {'$match': {'deleted': {'$ne': True}}}
     ]
     versions.aggregate.assert_called_once_with(pipeline, allowDiskUse=True)
 

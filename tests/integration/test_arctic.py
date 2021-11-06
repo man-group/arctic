@@ -121,7 +121,11 @@ def test_indexes(arctic):
                                                           u'key': [(u'symbol', 1), (u'version', -1)],
                                                           u'ns': u'arctic.library.versions',
                                                           u'unique': True,
-                                                          u'v': index_version}}
+                                                          u'v': index_version},
+                                 u'symbol_1_version_-1_metadata.deleted_1': {u'background': True,
+                                                                             u'key': [(u'symbol', 1), (u'version', -1), (u'metadata.deleted', 1)],
+                                                                             u'ns': u'arctic.library.versions',
+                                                                             u'v': index_version}}
     version_nums = c.arctic.library.version_nums.index_information()
     assert version_nums == {u'_id_': {u'key': [(u'_id', 1)],
                                                u'ns': u'arctic.library.version_nums',
