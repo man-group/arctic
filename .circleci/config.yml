@@ -81,7 +81,8 @@ defaults: &defaults
          . ci/bin/activate
          ls -la /bin | grep mongo
          which mongod
-         py.test -svvvvv --junitxml=test-results/junit.xml
+         #py.test -svvvvv --junitxml=test-results/junit.xml
+         python -m test
     - store_test_results:
         path: test-results
     # Save artifacts
