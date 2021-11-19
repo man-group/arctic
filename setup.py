@@ -91,6 +91,7 @@ setup(
     tests_require=["mock",
                    "mockextras",
                    "pytest",
+                   "py.test",
                    "pytest-cov",
                    "pytest-server-fixtures",
                    "pytest-timeout",
