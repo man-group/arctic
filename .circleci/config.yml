@@ -13,27 +13,22 @@ defaults: &defaults
         - v1-dep-master-
         # Any branch if there are none on the default branch - this should be unnecessary if you have your default branch configured correctly
         - v1-dep-
-    #- restore_cache:
-    #    name: Restore Yarn Package Cache
-    #    keys:
-    #      - yarn-packages-{{ checksum "notebooker/web/static/yarn.lock" }}
     - run:
         name: Version checks
         command: |
-            #grep -q $VERSION notebooker/version.py || (echo "ERROR: Version number not found in notebooker/_version.py: $VERSION"; exit 1)
             grep -q $VERSION CHANGES.md || (echo "ERROR: Version number not found in CHANGES.md: $VERSION"; exit 1)
-            #grep -q $VERSION docs/conf.py || (echo "ERROR: Version number not found in docs/source/conf.py: $VERSION"; exit 1)
-            #grep -q $VERSION notebooker/web/static/package.json || (echo "ERROR: Version number not found in package.json: $VERSION"; exit 1)
+
     - run:
         name: Output useful stuff
         command: |
           echo $VERSION > "$CIRCLE_ARTIFACTS/version.txt"
           # Find the lines of the changelog between releases, escape double quotes, delete empty lines
-          sed -n '{ /------/= }' CHANGES.md \
-              | head -n 2 \
-              | xargs -n 2 bash -c 'sed -n "s/\"/\\\\\"/g;`expr $0 + 1`,`expr $1 - 2`p" CHANGES.md' \
-              | sed '/^$/d' \
-              > "$CIRCLE_ARTIFACTS/changes.md"
+          # Simply gets the current changes from top of changelog.
+          #sed -n '{ /------/= }' CHANGES.md \
+              #| head -n 2 \
+              #| xargs -n 2 bash -c 'sed -n "s/\"/\\\\\"/g;`expr $0 + 1`,`expr $1 - 2`p" CHANGES.md' \
+              #| sed '/^$/d' \
+              #> "$CIRCLE_ARTIFACTS/changes.md"
     - run:
         name: Install MongoDB
         command: |
@@ -55,8 +50,8 @@ defaults: &defaults
        command: |
          virtualenv ci
          . ci/bin/activate
-         pip install pip python-dateutil pytz tzlocal pymongo numpy pandas decorator enum34 lz4 mock mockextras pytest pytest-cov pytest-server-fixtures pytest-timeout pytest-xdist setuptools-git pytest black .[test]
          python setup.py develop
+         pip freeze
     # Save dependency cache
     - save_cache:
         key: v1-dep-{{ .Branch }}-{{ epoch }}
@@ -86,15 +81,7 @@ defaults: &defaults
          . ci/bin/activate
          ls -la /bin | grep mongo
          which mongod
-         #pip install -e .[prometheus,test]
-         #python -m ipykernel install --user --name=notebooker_kernel
-         #pip install -r ./notebooker/notebook_templates_example/notebook_requirements.txt
-         mkdir test-results
-         #arctic tests added
-         python setup.py test --pytest-args=-v
-         cp junit.xml test-results
-         #py.test -svvvvv --junitxml=test-results/junit.xml
-         #bash <(curl -s https://codecov.io/bash) -c -F python
+         py.test -svvvvv --junitxml=test-results/junit.xml
     - store_test_results:
         path: test-results
     # Save artifacts
@@ -110,6 +97,19 @@ defaults: &defaults
           - ./*/dist/*
 version: 2
 jobs:
+  build_2_7:
+    environment:
+      PYTHON_VERSION: "2_7"
+      CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/2_7
+      CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/2_7
+      VERSION: 1.80.0
+      #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
+      #YARN_STATIC_DIR: notebooker/web/static/
+      IMAGE_NAME: mangroup/arctic
+    working_directory: ~/arctic_2_7
+    docker:
+    - image: cimg/python:2.7-node
+    <<: *defaults
   build_3_6:
     environment:
       PYTHON_VERSION: "3_6"
@@ -125,6 +125,7 @@ jobs:
     <<: *defaults
   build_3_7:
     environment:
+      PYTHON_VERSION: "3_7"
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_7
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_7
       VERSION: 1.80.0
@@ -146,26 +147,29 @@ jobs:
          command: |
            VERSION=$(cat /tmp/circleci-artifacts/3_6/version.txt)
            CHANGES=$(cat /tmp/circleci-artifacts/3_6/changes.md)
-  #         ghr -t ${GITHUB_TOKEN} \
-  #             -u ${CIRCLE_PROJECT_USERNAME} \
-  #             -r ${CIRCLE_PROJECT_REPONAME} \
-  #             -c ${CIRCLE_SHA1} \
-  #             -n ${VERSION} \
-  #             -b "${CHANGES}" \
-  #             -soft \
-  #             ${VERSION} /tmp/circleci-artifacts/3_6/dist
+           ghr -t ${GITHUB_TOKEN} \
+               -u ${CIRCLE_PROJECT_USERNAME} \
+               -r ${CIRCLE_PROJECT_REPONAME} \
+               -c ${CIRCLE_SHA1} \
+               -n ${VERSION} \
+               -b "${CHANGES}" \
+               -soft \
+               ${VERSION} /tmp/circleci-artifacts/3_6/dist
 workflows:
   version: 2
   build_all:
     jobs:
+      # just build 3.6 its all we need right now
+      #- build_2_7
       - build_3_6
-      - build_3_7
-      - publish-github-release:
-          requires:
-            - build_3_6
-            - build_3_7
-          filters:
-            branches:
-              only:
-                - master
+      #- build_3_7
 
+      # do not publish
+      #- publish-github-release:
+      #    requires:
+      #      - build_3_6
+      #      - build_3_7
+      #    filters:
+      #      branches:
+      #        only:
+      #          - master

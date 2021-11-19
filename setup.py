@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2015 Man AHL
+# Copyright (C) 2015-2021 Man Group Ltd
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -71,11 +71,14 @@ setup(
     cmdclass={'test': PyTest},
     setup_requires=["six",
                     "numpy<=1.18.4",
+                    "pip",
                     "setuptools-git",
                    ],
-    install_requires=["decorator",
+    install_requires=["black",
+                      "decorator",
                       "enum-compat",
-                      "futures; python_version == '2.7'",
+                      "enum34",
+                      #"futures; python_version == '2.7'",
                       "mockextras",
                       "pandas<=1.0.3",
                       "pymongo>=3.6.0",
@@ -109,8 +112,6 @@ setup(
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
         "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: Implementation :: CPython",
         "Operating System :: POSIX",
