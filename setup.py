@@ -72,7 +72,6 @@ setup(
     setup_requires=["six",
                     "numpy<=1.18.4",
                     "pip",
-                    "py.test",
                     "setuptools-git",
                    ],
     install_requires=["black",
