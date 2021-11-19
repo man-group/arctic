@@ -80,7 +80,7 @@ setup(
                       "enum34",
                       #"futures; python_version == '2.7'",
                       "mockextras",
-                      "pandas<=022.0",
+                      "pandas<=0.22.0",
                       # FAILS 14 "pandas<=1.0.3",
                       "pymongo>=3.6.0",
                       "python-dateutil",
