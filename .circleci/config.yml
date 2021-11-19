@@ -81,13 +81,11 @@ defaults: &defaults
          . ci/bin/activate
          ls -la /bin | grep mongo
          which mongod
-         #py.test not found
+         # both not found
          #py.test -svvvvv --junitxml=test-results/junit.xml
-         # runs python tests
-         #python -m test
+         #pytest -svvvvv --junitxml=test-results/junit.xml
          # deprecated but works
-         #python setup.py test --pytest-args=-v
-         pytest -svvvvv --junitxml=test-results/junit.xml
+         python setup.py test --pytest-args=-v
     - store_test_results:
         path: test-results
     # Save artifacts
