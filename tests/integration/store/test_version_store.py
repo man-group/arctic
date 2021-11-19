@@ -1044,9 +1044,12 @@ def test_snapshot_no_collscan(library):
 
     query_plan = list(profile_db.find({'command.aggregate': {'$exists': True}}))[-1]
 
-    assert query_plan.get('docsExamined') == 0
+    # TODO DMK depends on mongo version?
+    assert query_plan.get('docsExamined') <= 1
     assert query_plan.get('keysExamined') == 1
-    assert query_plan.get('planSummary').startswith('IXSCAN')
+    assert not query_plan.get('planSummary').startswith('COLLSCAN')
+    #assert query_plan.get('planSummary').startswith('IXSCAN')
+    #assert query_plan.get('planSummary').startswith('DISTINCT_SCAN')
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
