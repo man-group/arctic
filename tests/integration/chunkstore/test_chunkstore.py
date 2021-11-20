@@ -701,7 +701,7 @@ def test_append_no_new_data(chunkstore_lib):
 
     chunkstore_lib.write('test', df)
     chunkstore_lib.append('test', df)
-    r = chunkstore_lib.read('test')
+    r = chunkstore_lib.read('test').sort_index(axis=1) #DMK
     assert_frame_equal(pd.concat([df, df]).sort_index(), r)
 
 
@@ -831,7 +831,7 @@ def test_read_column_subset(chunkstore_lib):
                                                  (dt(2016, 3, 2), 1),
                                                  (dt(2016, 3, 3), 1)],
                                                 names=['date', 'id'])
-                   )
+                   ).sort_index(axis=1) # DMK
     cols = ['prev_close', 'volume']
     chunkstore_lib.write('test', df, chunk_size='Y')
     r = chunkstore_lib.read('test', columns=cols)
@@ -846,7 +846,7 @@ def test_rename(chunkstore_lib):
     df = create_test_data(size=10, cols=5)
 
     chunkstore_lib.write('test', df, chunk_size='D')
-    assert_frame_equal(chunkstore_lib.read('test'), df)
+    assert_frame_equal(chunkstore_lib.read('test').sort_index(axis=1), df) # DMK
     chunkstore_lib.rename('test', 'new_name')
     assert_frame_equal(chunkstore_lib.read('new_name'), df)
 
@@ -914,7 +914,7 @@ def test_size_chunking(chunkstore_lib):
                          'date': [dt(2016, 1, 1)] * 5500000})
 
     chunkstore_lib.write('test_df', df)
-    read_df = chunkstore_lib.read('test_df')
+    read_df = chunkstore_lib.read('test_df').sort_index(axis=1) # DMK
     assert_frame_equal(df, read_df)
 
 
@@ -925,7 +925,7 @@ def test_size_chunk_append(chunkstore_lib):
                          'date': [dt(2016, 1, 1)] * 5500000})
     chunkstore_lib.write('test_df', df)
     chunkstore_lib.append('test_df', dg)
-    read_df = chunkstore_lib.read('test_df')
+    read_df = chunkstore_lib.read('test_df').sort_index(axis=1) # DMK
 
     assert_frame_equal(pd.concat([df, dg], ignore_index=True), read_df)
 
@@ -957,7 +957,7 @@ def test_size_chunk_update(chunkstore_lib):
     chunkstore_lib.append('test_df', dg)
     chunkstore_lib.update('test_df', dh)
 
-    read_df = chunkstore_lib.read('test_df')
+    read_df = chunkstore_lib.read('test_df').sort_index(axis=1) # DMK
 
     assert_frame_equal(dh, read_df)
     assert mongo_count(chunkstore_lib._collection, filter={'sy': 'test_df'}) == 1
@@ -971,7 +971,7 @@ def test_size_chunk_multiple_update(chunkstore_lib):
     chunkstore_lib.update('test_df', df_large, upsert=True)
     chunkstore_lib.update('test_df', df_small, upsert=True)
 
-    read_df = chunkstore_lib.read('test_df')
+    read_df = chunkstore_lib.read('test_df').sort_index(axis=1) # DMK
 
     expected = pd.concat([df_large, df_small]).reset_index(drop=True)
 

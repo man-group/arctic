@@ -119,7 +119,7 @@ def test_rewrite(chunkstore_lib):
     chunkstore_lib.write('test', df, chunk_size='D')
 
     df2 = DataFrame(data={'something': [100, 200, 300, 400, 500, 600, 700, 800],
-                          'date': date_range})
+                          'date': date_range}).sort_index(axis=1) # DMK
 
     chunkstore_lib.write('test', df2, chunk_size='D')
     ret = chunkstore_lib.read('test')
@@ -165,7 +165,7 @@ def test_missing_cols(chunkstore_lib):
 
 
     assert_frame_equal(chunkstore_lib.read('test'), expected_df)
-    df = chunkstore_lib.read('test', columns=['B'])
+    df = chunkstore_lib.read('test', columns=['B']).sort_index(axis=1) # DMK
     assert_frame_equal(df, expected_df['B'].to_frame())
 
 
