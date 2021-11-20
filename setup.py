@@ -89,7 +89,7 @@ setup(
                    "mockextras",
                    "pytest",
                    "pytest-cov",
-                   "pytest-server-fixtures",
+                   #"pytest-server-fixtures",
                    "pytest-timeout",
                    "pytest-xdist<=1.26.1",
                      ],
