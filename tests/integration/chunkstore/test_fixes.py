@@ -60,7 +60,7 @@ def test_compression(chunkstore_lib):
     chunkstore_lib.append('test', df2)
     read = chunkstore_lib.read('test')
 
-    assert_frame_equal(read, pd.concat([df, df2], ignore_index=True))
+    assert_frame_equal(read, pd.concat([df, df2], ignore_index=True).sort_index(axis=1)) #DMK
 
 
 # issue #420 - ChunkStore doesnt respect DateRange interval
@@ -165,7 +165,7 @@ def test_missing_cols(chunkstore_lib):
     chunkstore_lib.append('test', df, chunk_size='D')
 
 
-    assert_frame_equal(chunkstore_lib.read('test').sort_index(axis=1), expected_df) # DMK
+    assert_frame_equal(chunkstore_lib.read('test'), expected_df)
     df = chunkstore_lib.read('test', columns=['B']).sort_index(axis=1) # DMK
     assert_frame_equal(df, expected_df['B'].to_frame())
 

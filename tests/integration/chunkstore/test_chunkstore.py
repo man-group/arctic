@@ -278,7 +278,7 @@ def test_update_chunk_range(chunkstore_lib):
 
     chunkstore_lib.write('chunkstore_test', df, chunk_size='M')
     chunkstore_lib.update('chunkstore_test', df2, chunk_range=DateRange(dt(2015, 1, 1), dt(2015, 1, 2)))
-    assert_frame_equalassert_frame_equal_chunkstore_lib.read('chunkstore_test'), equals)
+    assert_frame_equal_(chunkstore_lib.read('chunkstore_test'), equals)
 
 
 def test_update_chunk_range_overlap(chunkstore_lib):
