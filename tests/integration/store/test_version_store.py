@@ -953,7 +953,7 @@ def test_prunes_doesnt_prune_snapshots_fully_different_tss(library, fw_pointers_
         library.delete_snapshot('snap')
         assert mongo_count(coll.versions) == 5
         library.write(symbol, c, prune_previous_version=True)
-        assert_frame_equalassert_frame_equal_library.read(symbol, as_of=4).data, c)
+        assert_frame_equal_(library.read(symbol, as_of=4).data, c)
         assert_frame_equal_(library.read(symbol, as_of=5).data, c)
         assert_frame_equal_(library.read(symbol, as_of=6).data, c)
         assert_frame_equal_(library.read(symbol, as_of=7).data, c)
