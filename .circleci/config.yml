@@ -52,6 +52,8 @@ defaults: &defaults
          . ci/bin/activate
          echo "run setup.py develop"
          python setup.py develop
+         echo "manual install pytest-server-fixtures"
+         pip install pytest-server-fixtures[mongodb]
          echo "pip freeze"
          pip freeze
     # Save dependency cache
