@@ -83,12 +83,7 @@ setup(
                       # FAILS 14 "pandas<=1.0.3",
                       "pandas<=1.1.5",
                       "pymongo>=3.6.0",
-                      "python-dateutil",
                       "pytest",
-                      "pytest-cov",
-                      "pytest-server-fixtures",
-                      "pytest-timeout",
-                      "pytest-xdist<=1.26.1",
                       "pytz",
                       "tzlocal",
                       "lz4"
