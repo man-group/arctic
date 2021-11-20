@@ -99,7 +99,7 @@ def _query(allow_secondary, library_name):
 
 
 def assert_frame_equal_(df1, df2):
-    assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1)
+    assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1))
 
 
 def test_store_item_new_version(library, library_name):
