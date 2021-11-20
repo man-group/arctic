@@ -75,7 +75,7 @@ setup(
                    ],
     install_requires=["decorator",
                       "enum-compat",
-                      #"enum34",
+                      "enum34",
                       #"futures; python_version == '2.7'",
                       "mockextras",
                       "mock",
