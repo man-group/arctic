@@ -83,7 +83,7 @@ setup(
                       # FAILS 14 "pandas<=1.0.3",
                       "pandas<=1.1.5",
                       "pymongo>=3.6.0",
-                      "pytest-server-fixtures",
+                      #"pytest-server-fixtures",
                       "pytest-cov", # uninstalls pytest do it first. also pulls in pytest-server-fixtures
                       "pytest",
                       "pytz",
