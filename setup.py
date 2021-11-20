@@ -78,6 +78,7 @@ setup(
                       "enum34",
                       #"futures; python_version == '2.7'",
                       "mockextras",
+                      "mock",
                       # FIX 3 OK "pandas<=0.22.0",
                       # FAILS 14 "pandas<=1.0.3",
                       "pandas<=1.1.5",
