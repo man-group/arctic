@@ -18,7 +18,7 @@ from tests.integration.chunkstore.test_utils import create_test_data
 
 
 def assert_frame_equal_(df1, df2):
-    assert_frame_equal(df.sort_index(axis=1), read_df.sort_index(axis=1))
+    assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1))
 
 def test_write_dataframe(chunkstore_lib):
     df = create_test_data()
@@ -86,7 +86,7 @@ def test_write_read_with_daterange(chunkstore_lib):
 
 def test_write_read_with_daterange_noindex(chunkstore_lib):
     df = create_test_data(index=False)
-    dg = df[(df.date >= dt(2016, 1, 1)) & (df.date <= dt(2016, 1, 2))].sort_index(axis=1)
+    dg = df[(df.date >= dt(2016, 1, 1)) & (df.date <= dt(2016, 1, 2))]
 
     chunkstore_lib.write('test_df', df)
     read_df = chunkstore_lib.read('test_df', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 2)))
@@ -837,7 +837,7 @@ def test_read_column_subset(chunkstore_lib):
                    )
     cols = ['prev_close', 'volume']
     chunkstore_lib.write('test', df, chunk_size='Y')
-    r = chunkstore_lib.read('test', columns=cols).sort_index(axis=1)
+    r = chunkstore_lib.read('test', columns=cols)
     assert cols == ['prev_close', 'volume']
     assert_frame_equal_(r, df[cols])
 
@@ -849,7 +849,7 @@ def test_rename(chunkstore_lib):
     df = create_test_data(size=10, cols=5)
 
     chunkstore_lib.write('test', df, chunk_size='D')
-    assert_frame_equal_(chunkstore_lib.read('test')
+    assert_frame_equal_(chunkstore_lib.read('test'), df)
     chunkstore_lib.rename('test', 'new_name')
     assert_frame_equal_(chunkstore_lib.read('new_name'), df)
 
