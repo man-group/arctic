@@ -86,7 +86,8 @@ setup(
                       "pytest",
                       "pytz",
                       "tzlocal",
-                      "lz4"
+                      "lz4",
+                      "pytest-cov",
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
     tests_require=["mock",
