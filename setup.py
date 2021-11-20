@@ -83,11 +83,11 @@ setup(
                       # FAILS 14 "pandas<=1.0.3",
                       "pandas<=1.1.5",
                       "pymongo>=3.6.0",
+                      "pytest-cov", # seems to uninstall pytest do it first
                       "pytest",
                       "pytz",
                       "tzlocal",
                       "lz4",
-                      "pytest-cov",
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
     tests_require=["mock",
