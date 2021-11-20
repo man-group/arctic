@@ -98,6 +98,10 @@ def _query(allow_secondary, library_name):
 #    and server.description.server_type != SERVER_TYPE.Mongos)
 
 
+def assert_frame_equal_(df1, df2):
+    assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1)
+
+
 def test_store_item_new_version(library, library_name):
     with patch('pymongo.message.query', side_effect=_query(False, library_name)), \
          patch('pymongo.server_description.ServerDescription.server_type', SERVER_TYPE.Mongos):
@@ -168,7 +172,7 @@ def test_store_item_metadata(library, fw_pointers_cfg):
 
         assert after.metadata['key'] == 'value'
         assert after.version
-        assert_frame_equal(after.data, ts1)
+        assert_frame_equal_(after.data, ts1)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -230,7 +234,7 @@ def test_store_item_and_update(library, fw_pointers_cfg):
 
         # Assertions:
         assert mongo_count(coll.versions) == 1
-        assert_frame_equal(library.read(symbol).data, ts1)
+        assert_frame_equal_(library.read(symbol).data, ts1)
 
         # Update the TimeSeries
         time.sleep(1)
@@ -238,27 +242,27 @@ def test_store_item_and_update(library, fw_pointers_cfg):
         recent = datetime.now()
 
         assert mongo_count(coll.versions) == 2
-        assert_frame_equal(library.read(symbol).data, ts2)
+        assert_frame_equal_(library.read(symbol).data, ts2)
 
         # Get the different versions of the DB
         with pytest.raises(NoDataFoundException):
             library.read(symbol, as_of=none)
-        assert_frame_equal(library.read(symbol, as_of=original).data, ts1)
-        assert_frame_equal(library.read(symbol, as_of=recent).data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of=original).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of=recent).data, ts2)
 
         # Now push back in the original version
         time.sleep(1)
         library.write(symbol, ts1, prune_previous_version=False)
 
         assert mongo_count(coll.versions) == 3
-        assert_frame_equal(library.read(symbol).data, ts1)
+        assert_frame_equal_(library.read(symbol).data, ts1)
 
         # Get the different versions of the DB
         with pytest.raises(NoDataFoundException):
             library.read(symbol, as_of=none)
-        assert_frame_equal(library.read(symbol, as_of=original).data, ts1)
-        assert_frame_equal(library.read(symbol, as_of=recent).data, ts2)
-        assert_frame_equal(library.read(symbol, as_of=datetime.now()).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of=original).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of=recent).data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of=datetime.now()).data, ts1)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -271,7 +275,7 @@ def test_append_update(library, fw_pointers_cfg):
 
         # Assertions:
         assert mongo_count(coll.versions) == 1
-        assert_frame_equal(library.read(symbol).data, ts1)
+        assert_frame_equal_(library.read(symbol).data, ts1)
 
         # Append an item
         dts = list(ts1.index)
@@ -285,16 +289,16 @@ def test_append_update(library, fw_pointers_cfg):
         # reuse the last chunk.
         library.write(symbol, ts2, prune_previous_version=False)
         assert mongo_count(coll.versions) == 2
-        assert_frame_equal(library.read(symbol, as_of='snap').data, ts1)
-        assert_frame_equal(library.read(symbol).data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of='snap').data, ts1)
+        assert_frame_equal_(library.read(symbol).data, ts2)
 
         # We should be able to save a smaller timeseries too
         # This isn't likely to happen, so we don't care too much about space saving
         # just make sure we get it right.
         library.write(symbol, ts1, prune_previous_version=False)
-        assert_frame_equal(library.read(symbol, as_of=1).data, ts1)
-        assert_frame_equal(library.read(symbol, as_of=2).data, ts2)
-        assert_frame_equal(library.read(symbol, as_of=3).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of=1).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of=2).data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of=3).data, ts1)
 
         # Append an item, and add a whole new chunk
         dts = list(ts2.index)
@@ -307,17 +311,17 @@ def test_append_update(library, fw_pointers_cfg):
         ts3.index.name = ts1.index.name
 
         library.write(symbol, ts3, prune_previous_version=False)
-        assert_frame_equal(library.read(symbol, as_of=1).data, ts1)
-        assert_frame_equal(library.read(symbol, as_of=2).data, ts2)
-        assert_frame_equal(library.read(symbol, as_of=3).data, ts1)
-        assert_frame_equal(library.read(symbol, as_of=4).data, ts3)
+        assert_frame_equal_(library.read(symbol, as_of=1).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of=2).data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of=3).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of=4).data, ts3)
 
         library.write(symbol, ts3, prune_previous_version=False)
-        assert_frame_equal(library.read(symbol, as_of=1).data, ts1)
-        assert_frame_equal(library.read(symbol, as_of=2).data, ts2)
-        assert_frame_equal(library.read(symbol, as_of=3).data, ts1)
-        assert_frame_equal(library.read(symbol, as_of=4).data, ts3)
-        assert_frame_equal(library.read(symbol, as_of=5).data, ts3)
+        assert_frame_equal_(library.read(symbol, as_of=1).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of=2).data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of=3).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of=4).data, ts3)
+        assert_frame_equal_(library.read(symbol, as_of=5).data, ts3)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -373,8 +377,8 @@ def test_query_version_as_of_int(library):
     library.write(symbol, ts1)
     library.write(symbol, ts2, prune_previous_version=False)
 
-    assert_frame_equal(library.read(symbol, as_of=1).data, ts1)
-    assert_frame_equal(library.read(symbol).data, ts2)
+    assert_frame_equal_(library.read(symbol, as_of=1).data, ts1)
+    assert_frame_equal_(library.read(symbol).data, ts2)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -481,15 +485,15 @@ def test_delete_versions(library, fw_pointers_cfg):
 
         # Delete version 1 (ts1)
         library._delete_version(symbol, 1)
-        assert_frame_equal(library.read(symbol, as_of=2).data, ts2)
-        assert_frame_equal(library.read(symbol, as_of=3).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of=2).data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of=3).data, ts1)
 
         library._delete_version(symbol, 2)
-        assert_frame_equal(library.read(symbol, as_of=3).data, ts1)
-        assert_frame_equal(library.read(symbol, as_of=4).data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of=3).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of=4).data, ts2)
 
         library._delete_version(symbol, 3)
-        assert_frame_equal(library.read(symbol).data, ts2)
+        assert_frame_equal_(library.read(symbol).data, ts2)
 
         library._delete_version(symbol, 4)
         assert mongo_count(coll) == 0
@@ -568,8 +572,8 @@ def test_delete_item_snapshot(library, fw_pointers_cfg):
                 library.read(symbol, version)
 
         # Can get the version out of the snapshots
-        assert_frame_equal(library.read(symbol, 'snap').data, ts1)
-        assert_frame_equal(library.read(symbol, 3).data, ts1)
+        assert_frame_equal_(library.read(symbol, 'snap').data, ts1)
+        assert_frame_equal_(library.read(symbol, 3).data, ts1)
 
         assert not library.has_symbol(symbol)
         assert not library.has_symbol(symbol, as_of=2)
@@ -583,7 +587,7 @@ def test_delete_item_snapshot(library, fw_pointers_cfg):
         library.snapshot('snap2')
         with pytest.raises(NoDataFoundException):
             library.read(symbol, 'snap2')
-        assert_frame_equal(library.read(symbol, 'snap').data, ts1)
+        assert_frame_equal_(library.read(symbol, 'snap').data, ts1)
         assert symbol in library.list_symbols(snapshot='snap')
         assert symbol not in library.list_symbols(snapshot='snap2')
 
@@ -600,25 +604,25 @@ def test_snapshot(library, fw_pointers_cfg):
         library.write(symbol, ts1)
         library.snapshot('current')
         library.write(symbol, ts2)
-        assert_frame_equal(library.read(symbol, as_of='current').data, ts1)
-        assert_frame_equal(library.read(symbol).data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of='current').data, ts1)
+        assert_frame_equal_(library.read(symbol).data, ts2)
         versions = library.list_versions(symbol)
         assert versions[0]['snapshots'] == []
         assert versions[1]['snapshots'] == ['current']
 
         library.snapshot('new')
-        assert_frame_equal(library.read(symbol, as_of='current').data, ts1)
-        assert_frame_equal(library.read(symbol, as_of='new').data, ts2)
-        assert_frame_equal(library.read(symbol).data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of='current').data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of='new').data, ts2)
+        assert_frame_equal_(library.read(symbol).data, ts2)
         versions = library.list_versions(symbol)
         assert versions[0]['snapshots'] == ['new']
         assert versions[1]['snapshots'] == ['current']
 
         # Replace the current version, and the snapshot shouldn't be deleted
         library.write(symbol, ts1, prune_previous_version=True)
-        assert_frame_equal(library.read(symbol, as_of='current').data, ts1)
-        assert_frame_equal(library.read(symbol, as_of='new').data, ts2)
-        assert_frame_equal(library.read(symbol).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of='current').data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of='new').data, ts2)
+        assert_frame_equal_(library.read(symbol).data, ts1)
         versions = library.list_versions(symbol)
         assert versions[0]['snapshots'] == []
         assert versions[1]['snapshots'] == ['new']
@@ -637,18 +641,18 @@ def test_snapshot_with_versions(library, fw_pointers_cfg):
         versions = library.list_versions(symbol)
         assert versions[0]['snapshots'] == []
         assert versions[1]['snapshots'] == ['previous']
-        assert_frame_equal(library.read(symbol, as_of='previous').data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of='previous').data, ts1)
 
         # ensure new snapshots are ordered after previous ones
         library.snapshot('new')
         versions = library.list_versions(symbol)
         assert versions[0]['snapshots'] == ['new']
         assert versions[0]['version'] == 2
-        assert_frame_equal(library.read(symbol, as_of='new').data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of='new').data, ts2)
 
         assert versions[1]['snapshots'] == ['previous']
         assert versions[1]['version'] == 1
-        assert_frame_equal(library.read(symbol, as_of='previous').data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of='previous').data, ts1)
 
         # ensure snapshot of previous version doesn't overwrite current version
         library.write(symbol, ts1, prune_previous_version=True)
@@ -657,14 +661,14 @@ def test_snapshot_with_versions(library, fw_pointers_cfg):
 
         assert versions[0]['snapshots'] == []
         assert versions[0]['version'] == 3
-        assert_frame_equal(library.read(symbol).data, ts1)
+        assert_frame_equal_(library.read(symbol).data, ts1)
 
         assert versions[1]['snapshots'] == ['new']
         assert versions[1]['version'] == 2
 
         assert versions[2]['snapshots'] == ['previous', 'another']
         assert versions[2]['version'] == 1
-        assert_frame_equal(library.read(symbol, as_of='another').data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of='another').data, ts1)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -691,13 +695,13 @@ def test_snapshot_delete(library, fw_pointers_cfg):
         with pytest.raises(NoDataFoundException):
             library.read(symbol, as_of='current')
         # But still accessible through the version
-        assert_frame_equal(library.read(symbol, as_of=1).data, ts1)
-        assert_frame_equal(library.read(symbol, as_of=2).data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of=1).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of=2).data, ts2)
 
         # Snapshot again
         library.snapshot('current')
         library.write(symbol, ts1)
-        assert_frame_equal(library.read(symbol, as_of='current').data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of='current').data, ts2)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -711,14 +715,14 @@ def test_multiple_snapshots(library, fw_pointers_cfg):
         assert 'current' in library.list_snapshots()
         assert 'current2' in library.list_snapshots()
 
-        assert_frame_equal(library.read(symbol).data, ts2)
-        assert_frame_equal(library.read(symbol, as_of=1).data, ts1)
-        assert_frame_equal(library.read(symbol, as_of=2).data, ts2)
-        assert_frame_equal(library.read(symbol, as_of='current').data, ts1)
-        assert_frame_equal(library.read(symbol, as_of='current2').data, ts2)
+        assert_frame_equal_(library.read(symbol).data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of=1).data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of=2).data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of='current').data, ts1)
+        assert_frame_equal_(library.read(symbol, as_of='current2').data, ts2)
 
         library.delete_snapshot('current')
-        assert_frame_equal(library.read(symbol, as_of='current2').data, ts2)
+        assert_frame_equal_(library.read(symbol, as_of='current2').data, ts2)
         library.delete_snapshot('current2')
         assert len(list(library.list_versions(symbol))) == 2
 
@@ -730,10 +734,10 @@ def test_delete_identical_snapshots(library):
     library.snapshot('current3')
 
     library.delete_snapshot('current3')
-    assert_frame_equal(library.read(symbol, as_of='current2').data, ts1)
+    assert_frame_equal_(library.read(symbol, as_of='current2').data, ts1)
     library.delete_snapshot('current1')
-    assert_frame_equal(library.read(symbol, as_of='current2').data, ts1)
-    assert_frame_equal(library.read(symbol).data, ts1)
+    assert_frame_equal_(library.read(symbol, as_of='current2').data, ts1)
+    assert_frame_equal_(library.read(symbol).data, ts1)
 
 
 def test_list_snapshots(library):
@@ -837,9 +841,9 @@ def test_prunes_multiple_versions_ts(library, fw_pointers_cfg):
         # Prunes all versions older than the most recent version that's older than 10 mins
         library.write(symbol, a, prune_previous_version=True)
         assert mongo_count(coll.versions) == 3
-        assert_frame_equal(library.read(symbol, as_of=3).data, a)
+        assert_frame_equal_(library.read(symbol, as_of=3).data, a)
         assert_frame_equal(library.read(symbol, as_of=4).data, c)
-        assert_frame_equal(library.read(symbol, as_of=5).data, a)
+        assert_frame_equal_(library.read(symbol, as_of=5).data, a)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -864,19 +868,19 @@ def test_prunes_doesnt_prune_snapshots_ts(library, fw_pointers_cfg):
         # Prunes all versions older than the most recent version that's older than 10 mins
         library.write(symbol, a, prune_previous_version=True)
         assert mongo_count(coll.versions) == 4
-        assert_frame_equal(library.read(symbol, as_of='snap').data, c)
-        assert_frame_equal(library.read(symbol, as_of=3).data, a)
-        assert_frame_equal(library.read(symbol, as_of=4).data, c)
-        assert_frame_equal(library.read(symbol, as_of=5).data, a)
+        assert_frame_equal_(library.read(symbol, as_of='snap').data, c)
+        assert_frame_equal_(library.read(symbol, as_of=3).data, a)
+        assert_frame_equal_(library.read(symbol, as_of=4).data, c)
+        assert_frame_equal_(library.read(symbol, as_of=5).data, a)
 
         # Remove the snapshot, the version should now be pruned
         library.delete_snapshot('snap')
         assert mongo_count(coll.versions) == 4
         library.write(symbol, c, prune_previous_version=True)
         assert mongo_count(coll.versions) == 4
-        assert_frame_equal(library.read(symbol, as_of=4).data, c)
-        assert_frame_equal(library.read(symbol, as_of=5).data, a)
-        assert_frame_equal(library.read(symbol, as_of=6).data, c)
+        assert_frame_equal_(library.read(symbol, as_of=4).data, c)
+        assert_frame_equal_(library.read(symbol, as_of=5).data, a)
+        assert_frame_equal_(library.read(symbol, as_of=6).data, c)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -906,9 +910,9 @@ def test_prunes_multiple_versions_fully_different_tss(library, fw_pointers_cfg):
 
         # Prunes all versions older than the most recent version that's older than 10 mins
         library.write(symbol, c, prune_previous_version=True)
-        assert_frame_equal(library.read(symbol, as_of=4).data, c)
-        assert_frame_equal(library.read(symbol, as_of=5).data, c)
-        assert_frame_equal(library.read(symbol, as_of=6).data, c)
+        assert_frame_equal_(library.read(symbol, as_of=4).data, c)
+        assert_frame_equal_(library.read(symbol, as_of=5).data, c)
+        assert_frame_equal_(library.read(symbol, as_of=6).data, c)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -940,19 +944,19 @@ def test_prunes_doesnt_prune_snapshots_fully_different_tss(library, fw_pointers_
         # Prunes all versions older than the most recent version that's older than 10 mins
         library.write(symbol, c, prune_previous_version=True)
         assert mongo_count(coll.versions) == 5
-        assert_frame_equal(library.read(symbol, as_of='snap').data, c)
-        assert_frame_equal(library.read(symbol, as_of=4).data, c)
-        assert_frame_equal(library.read(symbol, as_of=5).data, c)
-        assert_frame_equal(library.read(symbol, as_of=6).data, c)
-        assert_frame_equal(library.read(symbol, as_of=7).data, c)
+        assert_frame_equal_(library.read(symbol, as_of='snap').data, c)
+        assert_frame_equal_(library.read(symbol, as_of=4).data, c)
+        assert_frame_equal_(library.read(symbol, as_of=5).data, c)
+        assert_frame_equal_(library.read(symbol, as_of=6).data, c)
+        assert_frame_equal_(library.read(symbol, as_of=7).data, c)
 
         library.delete_snapshot('snap')
         assert mongo_count(coll.versions) == 5
         library.write(symbol, c, prune_previous_version=True)
-        assert_frame_equal(library.read(symbol, as_of=4).data, c)
-        assert_frame_equal(library.read(symbol, as_of=5).data, c)
-        assert_frame_equal(library.read(symbol, as_of=6).data, c)
-        assert_frame_equal(library.read(symbol, as_of=7).data, c)
+        assert_frame_equalassert_frame_equal_library.read(symbol, as_of=4).data, c)
+        assert_frame_equal_(library.read(symbol, as_of=5).data, c)
+        assert_frame_equal_(library.read(symbol, as_of=6).data, c)
+        assert_frame_equal_(library.read(symbol, as_of=7).data, c)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -976,37 +980,37 @@ def test_prunes_previous_version_append_interaction(library, fw_pointers_cfg):
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=130)),
                                     from_datetime=bson.ObjectId.from_datetime):
             library.write(symbol, ts, prune_previous_version=False)
-        assert_frame_equal(ts, library.read(symbol).data)
+        assert_frame_equal_(ts, library.read(symbol).data)
 
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=129)),
                                     from_datetime=bson.ObjectId.from_datetime):
             library.write(symbol, ts2, prune_previous_version=False)
-        assert_frame_equal(ts, library.read(symbol, as_of=1).data)
-        assert_frame_equal(ts2, library.read(symbol).data)
+        assert_frame_equal_(ts, library.read(symbol, as_of=1).data)
+        assert_frame_equal_(ts2, library.read(symbol).data)
 
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=128)),
                                     from_datetime=bson.ObjectId.from_datetime):
             library.write(symbol, ts3, prune_previous_version=False)
-        assert_frame_equal(ts, library.read(symbol, as_of=1).data)
-        assert_frame_equal(ts2, library.read(symbol, as_of=2).data)
-        assert_frame_equal(ts3, library.read(symbol).data)
+        assert_frame_equal_(ts, library.read(symbol, as_of=1).data)
+        assert_frame_equal_(ts2, library.read(symbol, as_of=2).data)
+        assert_frame_equal_(ts3, library.read(symbol).data)
 
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=127)),
                                     from_datetime=bson.ObjectId.from_datetime):
             library.write(symbol, ts4, prune_previous_version=False)
-        assert_frame_equal(ts, library.read(symbol, as_of=1).data)
-        assert_frame_equal(ts2, library.read(symbol, as_of=2).data)
-        assert_frame_equal(ts3, library.read(symbol, as_of=3).data)
-        assert_frame_equal(ts4, library.read(symbol).data)
+        assert_frame_equal_(ts, library.read(symbol, as_of=1).data)
+        assert_frame_equal_(ts2, library.read(symbol, as_of=2).data)
+        assert_frame_equal_(ts3, library.read(symbol, as_of=3).data)
+        assert_frame_equal_(ts4, library.read(symbol).data)
 
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now - dtd(minutes=126)),
                                     from_datetime=bson.ObjectId.from_datetime):
             library.write(symbol, ts5, prune_previous_version=False)
-        assert_frame_equal(ts, library.read(symbol, as_of=1).data)
-        assert_frame_equal(ts2, library.read(symbol, as_of=2).data)
-        assert_frame_equal(ts3, library.read(symbol, as_of=3).data)
-        assert_frame_equal(ts4, library.read(symbol, as_of=4).data)
-        assert_frame_equal(ts5, library.read(symbol).data)
+        assert_frame_equal_(ts, library.read(symbol, as_of=1).data)
+        assert_frame_equal_(ts2, library.read(symbol, as_of=2).data)
+        assert_frame_equal_(ts3, library.read(symbol, as_of=3).data)
+        assert_frame_equal_(ts4, library.read(symbol, as_of=4).data)
+        assert_frame_equal_(ts5, library.read(symbol).data)
 
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(now),
                                     from_datetime=bson.ObjectId.from_datetime):
@@ -1018,8 +1022,8 @@ def test_prunes_previous_version_append_interaction(library, fw_pointers_cfg):
             library.read(symbol, as_of=2)
         with pytest.raises(NoDataFoundException):
             library.read(symbol, as_of=3)
-        assert_frame_equal(ts5, library.read(symbol, as_of=5).data)
-        assert_frame_equal(ts6, library.read(symbol).data)
+        assert_frame_equal_(ts5, library.read(symbol, as_of=5).data)
+        assert_frame_equal_(ts6, library.read(symbol).data)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1129,7 +1133,7 @@ def test_date_range_large(library, fw_pointers_cfg):
         df.columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
         library.write('test', df)
         r = library.read('test', date_range=DateRange(dt(2017, 1, 1), dt(2017, 1, 2)))
-        assert_frame_equal(df, r.data)
+        assert_frame_equal_(df, r.data)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1146,7 +1150,7 @@ def test_append_after_empty(library, fw_pointers_cfg):
         for i in range(len_df):
             library.append(symbol, df.iloc[i:i + 1])
         r = library.read(symbol)
-        assert_frame_equal(df, r.data)
+        assert_frame_equal_(df, r.data)
 
 
 def _rnd_df(nrows, ncols):
@@ -1174,10 +1178,10 @@ def test_write_metadata(library, fw_pointers_cfg):
             assert v_doc_2.get(FW_POINTERS_REFS_KEY) == v_doc_3.get(FW_POINTERS_REFS_KEY)
 
             v = library.read(symbol)
-            assert_frame_equal(v.data, mydf_b)
+            assert_frame_equal_(v.data, mydf_b)
             assert v.metadata == {'field_b': 1}
             assert library._read_metadata(symbol).get('version') == 3
-            assert_frame_equal(library.read(symbol, as_of=1).data, mydf_a)
+            assert_frame_equal_(library.read(symbol, as_of=1).data, mydf_a)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1195,10 +1199,10 @@ def test_write_metadata_followed_by_append(library, fw_pointers_cfg):
             library._prune_previous_versions(symbol, 0)
 
             v = library.read(symbol)
-            assert_frame_equal(v.data, mydf_a.append(mydf_b))
+            assert_frame_equal_(v.data, mydf_a.append(mydf_b))
             assert v.metadata == {'field_c': 1}
             assert library._read_metadata(symbol).get('version') == 3
-            assert_frame_equal(library.read(symbol, as_of=1).data, mydf_a)
+            assert_frame_equal_(library.read(symbol, as_of=1).data, mydf_a)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1223,7 +1227,7 @@ def test_write_metadata_after_append(library, fw_pointers_cfg):
             library.append(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
             library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 3
             v = library.read(symbol)
-            assert_frame_equal(v.data, mydf_a.append(mydf_b))
+            assert_frame_equal_(v.data, mydf_a.append(mydf_b))
             assert v.metadata == {'field_b': 1}
             assert library._read_metadata(symbol).get('version') == 3
 
@@ -1246,14 +1250,14 @@ def test_write_metadata_purge_previous_versions(library, fw_pointers_cfg):
 
                 # Assert the data
                 v = library.read(symbol)
-                assert_frame_equal(v.data, mydf_b)
+                assert_frame_equal_(v.data, mydf_b)
                 assert v.metadata == {'field_b': 1}
 
                 # Check if after snapshot and deleting the symbol, the data/metadata survive
                 library.snapshot('SNAP_1')
                 library.delete(symbol)
                 v = library.read(symbol, as_of='SNAP_1')
-                assert_frame_equal(v.data, mydf_b)
+                assert_frame_equal_(v.data, mydf_b)
                 assert library._read_metadata(symbol, as_of='SNAP_1').get('version') == 3
                 assert v.metadata == {'field_b': 1}
 
@@ -1274,7 +1278,7 @@ def test_write_metadata_delete_symbol(library, fw_pointers_cfg):
                 library.read(symbol)
 
             library.write(symbol, data=mydf_b, metadata={'field_a': 1})  # creates version 1
-            assert_frame_equal(library.read(symbol).data, mydf_b)
+            assert_frame_equal_(library.read(symbol).data, mydf_b)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1293,15 +1297,15 @@ def test_write_metadata_snapshots(library, fw_pointers_cfg):
             library._prune_previous_versions(symbol, keep_mins=0)
 
             v = library.read(symbol)
-            assert_frame_equal(v.data, mydf_b)
+            assert_frame_equal_(v.data, mydf_b)
             assert v.metadata == {'field_c': 1}
 
             v = library.read(symbol, as_of='SNAP_1')
-            assert_frame_equal(v.data, mydf_a)
+            assert_frame_equal_(v.data, mydf_a)
             assert v.metadata == {'field_a': 1}
 
             v = library.read(symbol, as_of='SNAP_2')
-            assert_frame_equal(v.data, mydf_a)
+            assert_frame_equal_(v.data, mydf_a)
             assert v.metadata == {'field_b': 1}
 
 
@@ -1316,7 +1320,7 @@ def test_restore_version(library, fw_pointers_cfg):
             library.write(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_b)
+            assert_frame_equal_(item.data, mydf_b)
             assert item.metadata == {'field_a': 2}
             assert library._read_metadata(symbol).get('version') == 2
 
@@ -1325,7 +1329,7 @@ def test_restore_version(library, fw_pointers_cfg):
             assert restore_item.metadata == {'field_a': 1}
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a)
             assert item.metadata == {'field_a': 1}
             assert library._read_metadata(symbol).get('version') == 3
 
@@ -1352,7 +1356,7 @@ def test_restore_version_followed_by_append(library, fw_pointers_cfg):
             time.sleep(2)
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_a.append(mydf_c))
+            assert_frame_equal_(item.data, mydf_a.append(mydf_c))
             assert item.metadata == {'field_c': 3}
             assert library._read_metadata(symbol).get('version') == 4
 
@@ -1378,7 +1382,7 @@ def test_restore_version_purging_previous_versions(library, fw_pointers_cfg):
             # library._delete_version(symbol, 1)  # delete the original version to test further the robustness/dependency
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a)
             assert item.metadata == {'field_a': 1}
             assert library._read_metadata(symbol).get('version') == 3
 
@@ -1395,7 +1399,7 @@ def test_restore_version_non_existent_version(library, fw_pointers_cfg):
                 library.restore_version(symbol, as_of=3)
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a)
             assert item.metadata == {'field_a': 1}
             assert item.version == 1
 
@@ -1416,7 +1420,7 @@ def test_restore_version_which_updated_only_metadata(library, fw_pointers_cfg):
             assert restore_item.metadata == {'field_b': 1}
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a)
             assert item.metadata == {'field_b': 1}
             assert item.version == 4
 
@@ -1439,7 +1443,7 @@ def test_restore_version_then_snapshot(library, fw_pointers_cfg):
             library.write(symbol, data=mydf_b)  # creates version 3
 
             item = library.read(symbol, as_of='SNAP_1')
-            assert_frame_equal(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a)
             assert item.metadata == {'field_a': 1}
             assert item.version == 3
 
@@ -1459,7 +1463,7 @@ def test_restore_version_latest_snapshot_noop(library, fw_pointers_cfg):
             assert restore_item.version == 2
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a)
             assert item.metadata == {'field_b': 1}
             assert item.version == 2
 
@@ -1478,7 +1482,7 @@ def test_restore_version_latest_version_noop(library, fw_pointers_cfg):
             assert restore_item.version == 2
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a)
             assert item.metadata == {'field_b': 1}
             assert item.version == 2
 
@@ -1501,7 +1505,7 @@ def test_restore_version_snap_delete_symbol_restore(library, fw_pointers_cfg):
             assert restored_item.version == 5
 
             item = library.read(symbol)
-            assert_frame_equal(item.data, mydf[:15])
+            assert_frame_equal_(item.data, mydf[:15])
             assert item.metadata == {'field_a': 1}
             assert item.version == 5
 
@@ -1643,7 +1647,7 @@ def test_write_non_serializable_throws(arctic):
 
         # Check that saving a regular dataframe succeeds with this option set
         library.write('ns2', ts1)
-        assert_frame_equal(ts1, library.read('ns2').data)
+        assert_frame_equal_(ts1, library.read('ns2').data)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1654,7 +1658,7 @@ def test_write_non_serializable_pickling_default(arctic, fw_pointers_cfg):
         library = arctic[lib_name]
         df = pd.DataFrame({'a': [dict(a=1)]})
         library.write('ns3', df)
-        assert_frame_equal(df, library.read('ns3').data)
+        assert_frame_equal_(df, library.read('ns3').data)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1706,7 +1710,7 @@ def test_write_df_with_objects_in_index(library):
     df = _mixed_test_data()['multiindex_with_object'][0]
     library.write(symbol='symX', data=df)
     read_data = library.read(symbol='symX').data
-    assert_frame_equal(df, read_data)
+    assert_frame_equal_(df, read_data)
 
 
 def test_write_series_with_objects_in_index(library):
@@ -1733,7 +1737,7 @@ def test_can_write_tz_aware_data_df(library, fw_pointers_cfg):
         # Arctic converts by default the data to UTC, convert back
         read_data.colB = read_data.colB.dt.tz_localize('UTC').dt.tz_convert(read_data.index.tzinfo)
         assert library._versions.find_one({'symbol': 'symTz'})['type'] == PandasDataFrameStore.TYPE
-        assert_frame_equal(mydf, read_data)
+        assert_frame_equal_(mydf, read_data)
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1812,7 +1816,7 @@ def test_fwpointers_mixed_scenarios(library, write_cfg, read_cfg, append_cfg, re
 
         # The read
         with FwPointersCtx(read_cfg):
-            assert_frame_equal(to_write, library.read(symbol=symbol).data)
+            assert_frame_equal_(to_write, library.read(symbol=symbol).data)
 
         # The append
         with FwPointersCtx(append_cfg):
@@ -1822,7 +1826,7 @@ def test_fwpointers_mixed_scenarios(library, write_cfg, read_cfg, append_cfg, re
 
         # The final read
         with FwPointersCtx(reread_cfg):
-            assert_frame_equal(mydf, library.read(symbol=symbol).data)
+            assert_frame_equal_(mydf, library.read(symbol=symbol).data)
 
     assert outer['raised']
 
@@ -1836,7 +1840,7 @@ def test_fwpointers_writemetadata_enabled_disabled(library):
 
     with FwPointersCtx(FwPointersCfg.ENABLED):
         library.write(symbol=symbol, data=to_write_a)
-        assert_frame_equal(to_write_a, library.read(symbol=symbol).data)
+        assert_frame_equal_(to_write_a, library.read(symbol=symbol).data)
 
     with FwPointersCtx(FwPointersCfg.DISABLED):
         library.write_metadata(symbol=symbol, metadata={'key_a': 100})
@@ -1845,16 +1849,16 @@ def test_fwpointers_writemetadata_enabled_disabled(library):
     with FwPointersCtx(FwPointersCfg.ENABLED):
         vitem = library.read(symbol)
         assert vitem.metadata == {'key_a': 100}
-        assert_frame_equal(to_write_a, vitem.data)
+        assert_frame_equal_(to_write_a, vitem.data)
 
     with FwPointersCtx(FwPointersCfg.DISABLED):
         vitem = library.read(symbol)
         assert vitem.metadata == {'key_a': 100}
-        assert_frame_equal(to_write_a, vitem.data)
+        assert_frame_equal_(to_write_a, vitem.data)
 
     with FwPointersCtx(FwPointersCfg.ENABLED):
         library.append(symbol=symbol, data=to_write_b, prune_previous_version=False)
-        assert_frame_equal(mydf, library.read(symbol=symbol).data)
+        assert_frame_equal_(mydf, library.read(symbol=symbol).data)
 
     last_v = library._versions.find_one({'symbol': symbol}, sort=[("version", pymongo.DESCENDING)])
     assert len(last_v.get(FW_POINTERS_REFS_KEY)) == 2
@@ -1862,12 +1866,12 @@ def test_fwpointers_writemetadata_enabled_disabled(library):
     with FwPointersCtx(FwPointersCfg.ENABLED):
         vitem = library.read(symbol, as_of=2)
         assert vitem.metadata == {'key_a': 100}
-        assert_frame_equal(to_write_a, vitem.data)
+        assert_frame_equal_(to_write_a, vitem.data)
 
     with FwPointersCtx(FwPointersCfg.DISABLED):
         vitem = library.read(symbol, as_of=2)
         assert vitem.metadata == {'key_a': 100}
-        assert_frame_equal(to_write_a, vitem.data)
+        assert_frame_equal_(to_write_a, vitem.data)
 
 
 def test_fwpointer_enabled_write_delete_keep_version_append(library):
@@ -1881,7 +1885,7 @@ def test_fwpointer_enabled_write_delete_keep_version_append(library):
         library.write(symbol=symbol, data=to_write_a)
         library.append(symbol=symbol, data=to_write_b)
         library.snapshot('snapA')
-        assert_frame_equal(mydf, library.read(symbol=symbol).data)
+        assert_frame_equal_(mydf, library.read(symbol=symbol).data)
 
     with FwPointersCtx(FwPointersCfg.DISABLED):
         library.delete(symbol)
@@ -1889,7 +1893,7 @@ def test_fwpointer_enabled_write_delete_keep_version_append(library):
 
     with FwPointersCtx(FwPointersCfg.ENABLED):
         library.write(symbol=symbol, data=to_write_a)
-        assert_frame_equal(to_write_a, library.read(symbol=symbol).data)
+        assert_frame_equal_(to_write_a, library.read(symbol=symbol).data)
 
 
 def test_version_arctic_version(arctic):
@@ -1923,14 +1927,14 @@ def test_prune_mixed_fwpointer_configs(library):
     with FwPointersCtx(FwPointersCfg.ENABLED):
         library.append(symbol, to_write_c, prune_previous_version=False)
 
-    assert_frame_equal(to_write_a, library.read(symbol, as_of=1).data)
-    assert_frame_equal(pd.concat((to_write_a, to_write_b)), library.read(symbol, as_of=2).data)
-    assert_frame_equal(mydf, library.read(symbol).data)
+    assert_frame_equal_(to_write_a, library.read(symbol, as_of=1).data)
+    assert_frame_equal_(pd.concat((to_write_a, to_write_b)), library.read(symbol, as_of=2).data)
+    assert_frame_equal_(mydf, library.read(symbol).data)
 
     library._prune_previous_versions(symbol, keep_mins=0)
     assert mongo_count(library._versions, {'symbol': symbol}) == 1
 
-    assert_frame_equal(mydf, library.read(symbol).data)
+    assert_frame_equal_(mydf, library.read(symbol).data)
 
 
 @pytest.mark.parametrize('first_write_cfg, second_write_cfg', [
@@ -1954,10 +1958,10 @@ def test_prune_crossref_fwpointer_configs(library, first_write_cfg, second_write
         library.write(symbol, to_write_a_b)
     with FwPointersCtx(second_write_cfg):
         library.write(symbol, to_write_b_c, prune_previous_version=False)
-    assert_frame_equal(to_write_b_c, library.read(symbol).data)
+    assert_frame_equal_(to_write_b_c, library.read(symbol).data)
     library._prune_previous_versions(symbol, keep_mins=0)
     assert mongo_count(library._versions, {'symbol': symbol}) == 1
-    assert_frame_equal(to_write_b_c, library.read(symbol).data)
+    assert_frame_equal_(to_write_b_c, library.read(symbol).data)
 
     library.delete(symbol)
     assert mongo_count(library._versions, {'symbol': symbol}) == 0
