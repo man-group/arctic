@@ -34,7 +34,7 @@ def test_upsert_dataframe(chunkstore_lib):
 def test_write_dataframe_noindex(chunkstore_lib):
     df = create_test_data(index=False)
     chunkstore_lib.write('test_df', df)
-    read_df = chunkstore_lib.read('test_df')
+    read_df = chunkstore_lib.read('test_df').sort_index(axis=1) # DMK
     assert_frame_equal(df, read_df)
 
 
@@ -55,7 +55,7 @@ def test_overwrite_dataframe_noindex(chunkstore_lib):
 
     chunkstore_lib.write('test_df', df)
     chunkstore_lib.write('test_df', df2)
-    read_df = chunkstore_lib.read('test_df')
+    read_df = chunkstore_lib.read('test_df').sort_index(axis=1) # DMK
     assert_frame_equal(df2, read_df)
 
 
@@ -86,7 +86,7 @@ def test_write_read_with_daterange_noindex(chunkstore_lib):
     dg = df[(df.date >= dt(2016, 1, 1)) & (df.date <= dt(2016, 1, 2))].sort_index(axis=1)
 
     chunkstore_lib.write('test_df', df)
-    read_df = chunkstore_lib.read('test_df', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 2)))
+    read_df = chunkstore_lib.read('test_df', chunk_range=DateRange(dt(2016, 1, 1), dt(2016, 1, 2))).sort_index(axis=1) # DMK
     assert_frame_equal(read_df, dg)
 
 def test_store_single_index_df(chunkstore_lib):
@@ -125,7 +125,7 @@ def test_closed_open_no_index(chunkstore_lib):
     df = create_test_data(index=False)
 
     chunkstore_lib.write('chunkstore_test', df, chunk_size='D')
-    ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(dt(2016, 1, 1), None))
+    ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(dt(2016, 1, 1), None)).sort_index(axis=1) #DMK
     assert_frame_equal(df, ret)
 
 
@@ -133,7 +133,7 @@ def test_open_open_no_index(chunkstore_lib):
     df = create_test_data(index=False)
 
     chunkstore_lib.write('chunkstore_test', df, chunk_size='D')
-    ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(None, None))
+    ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(None, None)).sort_index(axis=1) #DMK
     assert_frame_equal(df, ret)
 
 
@@ -701,7 +701,7 @@ def test_append_no_new_data(chunkstore_lib):
 
     chunkstore_lib.write('test', df)
     chunkstore_lib.append('test', df)
-    r = chunkstore_lib.read('test')
+    r = chunkstore_lib.read('test').sort_index(axis=1) # DMK
     assert_frame_equal(pd.concat([df, df]).sort_index(), r)
 
 
@@ -846,7 +846,7 @@ def test_rename(chunkstore_lib):
     df = create_test_data(size=10, cols=5)
 
     chunkstore_lib.write('test', df, chunk_size='D')
-    assert_frame_equal(chunkstore_lib.read('test'), df)
+    assert_frame_equal(chunkstore_lib.read('test').sort_index(axis=1), df) # DMK
     chunkstore_lib.rename('test', 'new_name')
     assert_frame_equal(chunkstore_lib.read('new_name'), df)
 
