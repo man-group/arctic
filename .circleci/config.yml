@@ -82,10 +82,10 @@ defaults: &defaults
          ls -la /bin | grep mongo
          which mongod
          # both not found
-         #py.test -svvvvv --junitxml=test-results/junit.xml
+         py.test -svvvvv --junitxml=test-results/junit.xml
          #pytest -svvvvv --junitxml=test-results/junit.xml
-         # deprecated but works
-         python setup.py test --pytest-args=-v
+         # deprecated but works does save results
+         #python setup.py test --pytest-args=-v
     - store_test_results:
         path: test-results
     # Save artifacts
