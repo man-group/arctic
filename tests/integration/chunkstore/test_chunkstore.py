@@ -51,7 +51,7 @@ def test_overwrite_dataframe(chunkstore_lib):
 def test_overwrite_dataframe_noindex(chunkstore_lib):
     df = create_test_data(size=10, index=False)
 
-    df2 = create_test_data(size=2, index=False).sort_index(axis=1) # DMK
+    df2 = create_test_data(size=2, index=False)
 
     chunkstore_lib.write('test_df', df)
     chunkstore_lib.write('test_df', df2)
@@ -126,7 +126,7 @@ def test_closed_open_no_index(chunkstore_lib):
 
     chunkstore_lib.write('chunkstore_test', df, chunk_size='D')
     ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(dt(2016, 1, 1), None))
-    assert_frame_equal(df.sort_index(axis=1), ret) # DMK
+    assert_frame_equal(df, ret)
 
 
 def test_open_open_no_index(chunkstore_lib):
@@ -134,7 +134,7 @@ def test_open_open_no_index(chunkstore_lib):
 
     chunkstore_lib.write('chunkstore_test', df, chunk_size='D')
     ret = chunkstore_lib.read('chunkstore_test', chunk_range=DateRange(None, None))
-    assert_frame_equal(df.sort_index(axis=1), ret) # DMK
+    assert_frame_equal(df, ret)
 
 
 def test_monthly_df(chunkstore_lib):
@@ -701,7 +701,7 @@ def test_append_no_new_data(chunkstore_lib):
 
     chunkstore_lib.write('test', df)
     chunkstore_lib.append('test', df)
-    r = chunkstore_lib.read('test').sort_index(axis=1) #DMK
+    r = chunkstore_lib.read('test')
     assert_frame_equal(pd.concat([df, df]).sort_index(), r)
 
 
@@ -846,9 +846,9 @@ def test_rename(chunkstore_lib):
     df = create_test_data(size=10, cols=5)
 
     chunkstore_lib.write('test', df, chunk_size='D')
-    assert_frame_equal(chunkstore_lib.read('test').sort_index(axis=1), df) # DMK
+    assert_frame_equal(chunkstore_lib.read('test'), df)
     chunkstore_lib.rename('test', 'new_name')
-    assert_frame_equal(chunkstore_lib.read('new_name').sort_index(axis=1), df) # DMK
+    assert_frame_equal(chunkstore_lib.read('new_name'), df)
 
     with pytest.raises(Exception) as e:
         chunkstore_lib.rename('new_name', 'new_name')
