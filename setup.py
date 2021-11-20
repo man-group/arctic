@@ -83,6 +83,7 @@ setup(
                       "pandas<=1.1.5",
                       "pymongo>=3.6.0",
                       "python-dateutil",
+                      "pytest",
                       "pytz",
                       "tzlocal",
                       "lz4"

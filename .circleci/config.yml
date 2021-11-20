@@ -50,7 +50,9 @@ defaults: &defaults
        command: |
          virtualenv ci
          . ci/bin/activate
+         echo "run setup.py develop"
          python setup.py develop
+         echo "pip freeze"
          pip freeze
     # Save dependency cache
     - save_cache:
@@ -83,6 +85,8 @@ defaults: &defaults
          which mongod
          # both not found
          py.test -svvvvv --junitxml=test-results/junit.xml
+         echo try pytest
+         pytest
          #pytest -svvvvv --junitxml=test-results/junit.xml
          # deprecated but works does save results
          #python setup.py test --pytest-args=-v
