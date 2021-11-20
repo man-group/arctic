@@ -83,12 +83,13 @@ setup(
                       # FAILS 14 "pandas<=1.0.3",
                       "pandas<=1.1.5",
                       "pymongo>=3.6.0",
-                      "pytest-server-fixtures.mongo",
+                      "pytest-server-fixtures",
                       "pytest-cov", # uninstalls pytest do it first. also pulls in pytest-server-fixtures
                       "pytest",
                       "pytz",
                       "tzlocal",
                       "lz4",
+                      "pytest",
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
     tests_require=["mock",
