@@ -77,21 +77,16 @@ setup(
                       "enum-compat",
                       "enum34",
                       #"futures; python_version == '2.7'",
+                      "mockextras",
                       # FIX 3 OK "pandas<=0.22.0",
                       # FAILS 14 "pandas<=1.0.3",
                       "pandas<=1.1.5",
                       "pymongo>=3.6.0",
                       "python-dateutil",
+                      "pytest",
                       "pytz",
                       "tzlocal",
                       "lz4"
-                      # moved here to make tests work
-                   "mockextras",
-                   "pytest",
-                   "pytest-cov",
-                   #"pytest-server-fixtures",
-                   "pytest-timeout",
-                   "pytest-xdist<=1.26.1",
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
     tests_require=["mock",
