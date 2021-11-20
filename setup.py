@@ -75,7 +75,7 @@ setup(
                    ],
     install_requires=["decorator",
                       "enum-compat",
-                      "enum34",
+                      #"enum34",
                       #"futures; python_version == '2.7'",
                       "mockextras",
                       "mock",
@@ -84,8 +84,8 @@ setup(
                       "pandas<=1.1.5",
                       "pymongo>=3.6.0",
                       "python-dateutil",
-                      "pytest",
                       "pytest-server-fixtures",
+                      "pytest",
                       "pytz",
                       "tzlocal",
                       "lz4"
