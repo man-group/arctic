@@ -85,6 +85,7 @@ setup(
                       "pymongo>=3.6.0",
                       "python-dateutil",
                       "pytest",
+                      "pytest-server-fixtures",
                       "pytz",
                       "tzlocal",
                       "lz4"
