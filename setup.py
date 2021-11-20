@@ -91,6 +91,7 @@ setup(
                       "lz4",
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
+    # TODO why is this ignored
     tests_require=["mock",
                    "mockextras",
                    "pytest",

@@ -50,9 +50,7 @@ def test_segment_repair_tool(chunkstore_lib):
     read = chunkstore_lib.read('test')
 
     # TODO DMK reorder columns so date in right place.  IS THIS OK?
-    df_sorted = pd.concat([df,df2], ignore_index=True).sort_index(axis=1)
-    assert_frame_equal(read, df_sorted)
-    #assert_frame_equal(read, pd.concat([df, df2], ignore_index=True))
+    assert_frame_equal(read, pd.concat([df, df2], ignore_index=True).sort_index(axis=1)) # DMK
 
     chunkstore_lib._collection.update_one({'sy': 'test', 'sg': 0}, {'$set': {'sg': -1}})
     chunkstore_lib._collection.update_one({'sy': 'test', 'sg': 1}, {'$set': {'sg': 0}})

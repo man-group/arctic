@@ -628,7 +628,7 @@ def test_delete_range_noindex(chunkstore_lib):
 
     df_result = DataFrame(data={'data': [1, 6],
                                 'date': [dt(2016, 1, 1),
-                                         dt(2016, 3, 2)]})
+                                         dt(2016, 3, 2)]}).sort_index(axis=1) # DMK
 
     chunkstore_lib.write('test', df, chunk_size='M')
     chunkstore_lib.delete('test', chunk_range=DateRange(dt(2016, 1, 2), dt(2016, 3, 1)))
