@@ -17,8 +17,8 @@ from arctic.exceptions import NoDataFoundException
 from tests.integration.chunkstore.test_utils import create_test_data
 
 
-def assert_frame_equal_(df1, df2):
-    assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1))
+def assert_frame_equal_(df1, df2, check_freq=True):
+    assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_freq=check_freq)
 
 def test_write_dataframe(chunkstore_lib):
     df = create_test_data()
@@ -716,7 +716,7 @@ def test_overwrite_series(chunkstore_lib):
 
     chunkstore_lib.write('test', s)
     chunkstore_lib.write('test', s + 1)
-    assert_series_equal(chunkstore_lib.read('test'), s + 1)
+    assert_series_equal(chunkstore_lib.read('test'), s + 1, check_freq=False) # DMK
 
 
 def test_overwrite_series_monthly(chunkstore_lib):
@@ -945,7 +945,8 @@ def test_delete_range_segment(chunkstore_lib):
     chunkstore_lib.write('test_df', pd.concat([df, dg], ignore_index=True), chunk_size='M')
     chunkstore_lib.delete('test_df', chunk_range=pd.date_range(dt(2016, 1, 1), dt(2016, 1, 1)))
     read_df = chunkstore_lib.read('test_df')
-    assert(read_df.equals(dg))
+    assert_frame_equal_(read_df, dg) # DMK
+    #assert(read_df.equals(dg)) # DMK
     assert(mongo_count(chunkstore_lib._collection, {'sy': 'test_df'}) == 1)
 
 
@@ -1037,7 +1038,7 @@ def test_quarterly_data(chunkstore_lib):
     df.index.name = 'date'
 
     chunkstore_lib.write('quarterly', df, chunk_size='Q')
-    assert_frame_equal_(df, chunkstore_lib.read('quarterly'))
+    assert_frame_equal_(df, chunkstore_lib.read('quarterly'), check_freq=False) # TODO DMK
     assert(len(chunkstore_lib.read('quarterly', chunk_range=(None, '2016-01-05'))) == 5)
     count = 0
     for _ in chunkstore_lib._collection.find({SYMBOL: 'quarterly'}, sort=[(START, pymongo.ASCENDING)],):
