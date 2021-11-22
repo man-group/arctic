@@ -97,9 +97,9 @@ def _query(allow_secondary, library_name):
 #     topology.description.topology_type == TOPOLOGY_TYPE.Single
 #    and server.description.server_type != SERVER_TYPE.Mongos)
 
-
-def assert_frame_equal_(df1, df2):
-    assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1))
+# TODO import
+def assert_frame_equal_(df1, df2, check_freq=True):
+    assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_freq=check_freq)
 
 
 def test_store_item_new_version(library, library_name):
@@ -1178,10 +1178,10 @@ def test_write_metadata(library, fw_pointers_cfg):
             assert v_doc_2.get(FW_POINTERS_REFS_KEY) == v_doc_3.get(FW_POINTERS_REFS_KEY)
 
             v = library.read(symbol)
-            assert_frame_equal_(v.data, mydf_b)
+            assert_frame_equal_(v.data, mydf_b, False) # DMK
             assert v.metadata == {'field_b': 1}
             assert library._read_metadata(symbol).get('version') == 3
-            assert_frame_equal_(library.read(symbol, as_of=1).data, mydf_a)
+            assert_frame_equal_(library.read(symbol, as_of=1).data, mydf_a, False) # DMK
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1199,10 +1199,10 @@ def test_write_metadata_followed_by_append(library, fw_pointers_cfg):
             library._prune_previous_versions(symbol, 0)
 
             v = library.read(symbol)
-            assert_frame_equal_(v.data, mydf_a.append(mydf_b))
+            assert_frame_equal_(v.data, mydf_a.append(mydf_b), False) # DMK
             assert v.metadata == {'field_c': 1}
             assert library._read_metadata(symbol).get('version') == 3
-            assert_frame_equal_(library.read(symbol, as_of=1).data, mydf_a)
+            assert_frame_equal_(library.read(symbol, as_of=1).data, mydf_a, False) # DMK
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1227,7 +1227,7 @@ def test_write_metadata_after_append(library, fw_pointers_cfg):
             library.append(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
             library.write_metadata(symbol, metadata={'field_b': 1})  # creates version 3
             v = library.read(symbol)
-            assert_frame_equal_(v.data, mydf_a.append(mydf_b))
+            assert_frame_equal_(v.data, mydf_a.append(mydf_b), False) # DMK
             assert v.metadata == {'field_b': 1}
             assert library._read_metadata(symbol).get('version') == 3
 
@@ -1250,14 +1250,14 @@ def test_write_metadata_purge_previous_versions(library, fw_pointers_cfg):
 
                 # Assert the data
                 v = library.read(symbol)
-                assert_frame_equal_(v.data, mydf_b)
+                assert_frame_equal_(v.data, mydf_b, False) # DMK
                 assert v.metadata == {'field_b': 1}
 
                 # Check if after snapshot and deleting the symbol, the data/metadata survive
                 library.snapshot('SNAP_1')
                 library.delete(symbol)
                 v = library.read(symbol, as_of='SNAP_1')
-                assert_frame_equal_(v.data, mydf_b)
+                assert_frame_equal_(v.data, mydf_b, False) # DMK
                 assert library._read_metadata(symbol, as_of='SNAP_1').get('version') == 3
                 assert v.metadata == {'field_b': 1}
 
@@ -1278,7 +1278,7 @@ def test_write_metadata_delete_symbol(library, fw_pointers_cfg):
                 library.read(symbol)
 
             library.write(symbol, data=mydf_b, metadata={'field_a': 1})  # creates version 1
-            assert_frame_equal_(library.read(symbol).data, mydf_b)
+            assert_frame_equal_(library.read(symbol).data, mydf_b, False) # DMK
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1297,15 +1297,15 @@ def test_write_metadata_snapshots(library, fw_pointers_cfg):
             library._prune_previous_versions(symbol, keep_mins=0)
 
             v = library.read(symbol)
-            assert_frame_equal_(v.data, mydf_b)
+            assert_frame_equal_(v.data, mydf_b, False) # DMK
             assert v.metadata == {'field_c': 1}
 
             v = library.read(symbol, as_of='SNAP_1')
-            assert_frame_equal_(v.data, mydf_a)
+            assert_frame_equal_(v.data, mydf_a, False) # DMK
             assert v.metadata == {'field_a': 1}
 
             v = library.read(symbol, as_of='SNAP_2')
-            assert_frame_equal_(v.data, mydf_a)
+            assert_frame_equal_(v.data, mydf_a, False) # DMK
             assert v.metadata == {'field_b': 1}
 
 
@@ -1320,7 +1320,7 @@ def test_restore_version(library, fw_pointers_cfg):
             library.write(symbol, data=mydf_b, metadata={'field_a': 2})  # creates version 2
 
             item = library.read(symbol)
-            assert_frame_equal_(item.data, mydf_b)
+            assert_frame_equal_(item.data, mydf_b, False) # DMK
             assert item.metadata == {'field_a': 2}
             assert library._read_metadata(symbol).get('version') == 2
 
@@ -1329,7 +1329,7 @@ def test_restore_version(library, fw_pointers_cfg):
             assert restore_item.metadata == {'field_a': 1}
 
             item = library.read(symbol)
-            assert_frame_equal_(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a, False) # DMK
             assert item.metadata == {'field_a': 1}
             assert library._read_metadata(symbol).get('version') == 3
 
@@ -1356,7 +1356,7 @@ def test_restore_version_followed_by_append(library, fw_pointers_cfg):
             time.sleep(2)
 
             item = library.read(symbol)
-            assert_frame_equal_(item.data, mydf_a.append(mydf_c))
+            assert_frame_equal_(item.data, mydf_a.append(mydf_c), False) # DMK
             assert item.metadata == {'field_c': 3}
             assert library._read_metadata(symbol).get('version') == 4
 
@@ -1382,7 +1382,7 @@ def test_restore_version_purging_previous_versions(library, fw_pointers_cfg):
             # library._delete_version(symbol, 1)  # delete the original version to test further the robustness/dependency
 
             item = library.read(symbol)
-            assert_frame_equal_(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a, False) # DMK
             assert item.metadata == {'field_a': 1}
             assert library._read_metadata(symbol).get('version') == 3
 
@@ -1399,7 +1399,7 @@ def test_restore_version_non_existent_version(library, fw_pointers_cfg):
                 library.restore_version(symbol, as_of=3)
 
             item = library.read(symbol)
-            assert_frame_equal_(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a, False) # DMK
             assert item.metadata == {'field_a': 1}
             assert item.version == 1
 
@@ -1420,7 +1420,7 @@ def test_restore_version_which_updated_only_metadata(library, fw_pointers_cfg):
             assert restore_item.metadata == {'field_b': 1}
 
             item = library.read(symbol)
-            assert_frame_equal_(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a, False) #DMK
             assert item.metadata == {'field_b': 1}
             assert item.version == 4
 
@@ -1443,7 +1443,7 @@ def test_restore_version_then_snapshot(library, fw_pointers_cfg):
             library.write(symbol, data=mydf_b)  # creates version 3
 
             item = library.read(symbol, as_of='SNAP_1')
-            assert_frame_equal_(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a, False) # DMK
             assert item.metadata == {'field_a': 1}
             assert item.version == 3
 
@@ -1463,7 +1463,7 @@ def test_restore_version_latest_snapshot_noop(library, fw_pointers_cfg):
             assert restore_item.version == 2
 
             item = library.read(symbol)
-            assert_frame_equal_(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a, False) # DMK
             assert item.metadata == {'field_b': 1}
             assert item.version == 2
 
@@ -1482,7 +1482,7 @@ def test_restore_version_latest_version_noop(library, fw_pointers_cfg):
             assert restore_item.version == 2
 
             item = library.read(symbol)
-            assert_frame_equal_(item.data, mydf_a)
+            assert_frame_equal_(item.data, mydf_a, False) #DM, False) # DMK
             assert item.metadata == {'field_b': 1}
             assert item.version == 2
 
@@ -1505,7 +1505,7 @@ def test_restore_version_snap_delete_symbol_restore(library, fw_pointers_cfg):
             assert restored_item.version == 5
 
             item = library.read(symbol)
-            assert_frame_equal_(item.data, mydf[:15])
+            assert_frame_equal_(item.data, mydf[:15], False) # DMK
             assert item.metadata == {'field_a': 1}
             assert item.version == 5
 
@@ -1647,7 +1647,7 @@ def test_write_non_serializable_throws(arctic):
 
         # Check that saving a regular dataframe succeeds with this option set
         library.write('ns2', ts1)
-        assert_frame_equal_(ts1, library.read('ns2').data)
+        assert_frame_equal_(ts1, library.read('ns2').data, False) # DMK
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1658,7 +1658,7 @@ def test_write_non_serializable_pickling_default(arctic, fw_pointers_cfg):
         library = arctic[lib_name]
         df = pd.DataFrame({'a': [dict(a=1)]})
         library.write('ns3', df)
-        assert_frame_equal_(df, library.read('ns3').data)
+        assert_frame_equal_(df, library.read('ns3').data, False) # DMK
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1737,7 +1737,7 @@ def test_can_write_tz_aware_data_df(library, fw_pointers_cfg):
         # Arctic converts by default the data to UTC, convert back
         read_data.colB = read_data.colB.dt.tz_localize('UTC').dt.tz_convert(read_data.index.tzinfo)
         assert library._versions.find_one({'symbol': 'symTz'})['type'] == PandasDataFrameStore.TYPE
-        assert_frame_equal_(mydf, read_data)
+        assert_frame_equal_(mydf, read_data, False) # DMK
 
 
 @pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
@@ -1749,7 +1749,7 @@ def test_can_write_tz_aware_data_series(library, fw_pointers_cfg):
         # Arctic converts by default the data to UTC, convert back
         read_data = read_data.dt.tz_localize('UTC').dt.tz_convert(read_data.index.tzinfo)
         assert library._versions.find_one({'symbol': 'symTzSer'})['type'] == PandasSeriesStore.TYPE
-        assert_series_equal(myseries, read_data)
+        assert_series_equal(myseries, read_data, False) # DMK
 
 
 @pytest.mark.parametrize('write_cfg, read_cfg, append_cfg, reread_cfg', [
