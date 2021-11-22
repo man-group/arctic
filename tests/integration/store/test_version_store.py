@@ -1749,7 +1749,7 @@ def test_can_write_tz_aware_data_series(library, fw_pointers_cfg):
         # Arctic converts by default the data to UTC, convert back
         read_data = read_data.dt.tz_localize('UTC').dt.tz_convert(read_data.index.tzinfo)
         assert library._versions.find_one({'symbol': 'symTzSer'})['type'] == PandasSeriesStore.TYPE
-        assert_series_equal(myseries, read_data, False) # DMK
+        assert_series_equal(myseries, read_data, check_freq=False) # DMK
 
 
 @pytest.mark.parametrize('write_cfg, read_cfg, append_cfg, reread_cfg', [

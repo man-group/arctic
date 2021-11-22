@@ -81,7 +81,7 @@ setup(
                       "mockextras",
                       # FIX 3 OK "pandas<=0.22.0",
                       #"pandas<=1.0.3", # original travis check_freq not found
-                      "pandas<=1.1.5", # default circleCI python 3.6
+                      "pandas<=1.1.5", # default circleCI python 3.6 14 failed
                       "pymongo>=3.6.0",
                       #"pytest-server-fixtures",
                       "pytest-cov", # uninstalls pytest do it first. also pulls in pytest-server-fixtures
