@@ -79,11 +79,13 @@ setup(
                       #"futures; python_version == '2.7'",
                       "mock",
                       "mockextras",
-                      # FIX 3 OK "pandas<=0.22.0",
+                      # OK "pandas<=0.22.0",
                       #"pandas<=1.0.3", # original travis check_freq not found
-                      "pandas<=1.1.5", # default circleCI python 3.6 14 failed
-                      "pymongo>=3.6.0",
+                      #"pandas<=1.1.5", # green build 3.6/3.7
+                      #"pymongo>=3.6.0",# green build 3.6/3.7
                       #"pytest-server-fixtures",
+                      "pandas", # test no version
+                      "pymongo",# test no version
                       "pytest-cov", # uninstalls pytest do it first. also pulls in pytest-server-fixtures
                       "pytest",
                       "pytz",
@@ -117,6 +119,7 @@ setup(
         "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: Implementation :: CPython",
         "Operating System :: POSIX",
         "Operating System :: MacOS",
