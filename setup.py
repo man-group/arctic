@@ -70,8 +70,7 @@ setup(
     long_description_content_type="text/markdown",
     cmdclass={'test': PyTest},
     setup_requires=["six",
-                    #"numpy<=1.18.4",
-                    "numpy",
+                    "numpy<=1.18.4",
                     "setuptools-git",
                    ],
     install_requires=["decorator",
@@ -82,11 +81,8 @@ setup(
                       "mockextras",
                       # OK "pandas<=0.22.0",
                       #"pandas<=1.0.3", # original travis check_freq not found
-                      #"pandas<=1.1.5", # green build 3.6/3.7
-                      #"pymongo>=3.6.0",# green build 3.6/3.7
-                      "pandas",
-                      "pymongo",
-                      "coverage",
+                      "pandas<=1.1.5", # green build 3.6/3.7
+                      "pymongo>=3.6.0",# green build 3.6/3.7
                       #"pytest-server-fixtures", # must be manual
                       "pytest-cov", # uninstalls pytest do it first. also pulls in pytest-server-fixtures
                       "pytest",
