@@ -85,10 +85,7 @@ defaults: &defaults
          . ci/bin/activate
          ls -la /bin | grep mongo
          which mongod
-         # this is correct method pytest also valid
          py.test -svvvvv --junitxml=test-results/junit.xml
-         # deprecated but works does save results
-         #python setup.py test --pytest-args=-v
     - store_test_results:
         path: test-results
     # Save artifacts
@@ -169,7 +166,7 @@ workflows:
       # just build 3.6 its all we need right now
       #- build_2_7
       - build_3_6
-      #- build_3_7
+      - build_3_7
 
       # do not publish
       #- publish-github-release:
