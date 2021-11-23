@@ -8,12 +8,10 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex
 from pandas.util.testing import assert_frame_equal
+from tests.integration.chunkstore.test_chunkstore import assert_frame_equal_
 
 from arctic.date import DateRange, CLOSED_OPEN, CLOSED_CLOSED, OPEN_OPEN, OPEN_CLOSED
 
-# TODO import
-def assert_frame_equal_(df1, df2, check_freq=True):
-    assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_freq=check_freq)
 
 if int(pd.__version__.split('.')[1]) > 22:
     from functools import partial
@@ -52,7 +50,7 @@ def test_compression(chunkstore_lib):
                                    'liquidty', 'momentum', 'resvol', 'sid', 'size', 'sizenl'])
         df['date'] = date
 
-        df.sort_index(axis=1, inplace=True) # DMK
+        #df.sort_index(axis=1, inplace=True) # DMK
         return df
 
     date = pd.Timestamp('2000-01-01')
@@ -62,8 +60,7 @@ def test_compression(chunkstore_lib):
     df2 = generate_data(date)
     chunkstore_lib.append('test', df2)
     read = chunkstore_lib.read('test')
-
-    assert_frame_equal_(read, pd.concat([df, df2], ignore_index=True).sort_index(axis=1)) #DMK
+    assert_frame_equal_(read, pd.concat([df, df2], ignore_index=True))
 
 
 # issue #420 - ChunkStore doesnt respect DateRange interval
@@ -123,7 +120,7 @@ def test_rewrite(chunkstore_lib):
     chunkstore_lib.write('test', df, chunk_size='D')
 
     df2 = DataFrame(data={'something': [100, 200, 300, 400, 500, 600, 700, 800],
-                          'date': date_range}).sort_index(axis=1) # DMK
+                          'date': date_range})
 
     chunkstore_lib.write('test', df2, chunk_size='D')
     ret = chunkstore_lib.read('test')
@@ -169,7 +166,7 @@ def test_missing_cols(chunkstore_lib):
 
 
     assert_frame_equal_(chunkstore_lib.read('test'), expected_df, False) # DMK
-    df = chunkstore_lib.read('test', columns=['B']).sort_index(axis=1) # DMK
+    df = chunkstore_lib.read('test', columns=['B'])
     assert_frame_equal_(df, expected_df['B'].to_frame(), False) # DMK
 
 

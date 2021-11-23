@@ -25,9 +25,7 @@ def create_test_data(size=5, index=True, multiindex=True, random_data=True, rand
             return DataFrame(data=data, index=index)
         return DataFrame(data=data, index=Index(data=dates, name='date'))
     data.update({'date': dates})
-    df = DataFrame(data=data)
-    df.sort_index(axis=1, inplace=True) # DMK
-    return df
+    return DataFrame(data=data)
 
 
 def test_read_apply(chunkstore_lib):
@@ -36,7 +34,6 @@ def test_read_apply(chunkstore_lib):
 
     def func(df):
         df['data0'] += 1.0
-        df.sort_index(axis=1, inplace=True) # DMK
         return df
 
     for data in read_apply(chunkstore_lib, 'test', func):

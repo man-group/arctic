@@ -80,8 +80,9 @@ setup(
                       "mock",
                       "mockextras",
                       # OK "pandas<=0.22.0",
-                      #"pandas<=1.0.3", # original travis check_freq not found
-                      "pandas<=1.1.5", # green build 3.6/3.7
+                      "pandas<=1.0.3", # original travis check_freq not found
+                      "numpy<=1.18.4",
+                      #"pandas<=1.1.5", # green build 3.6/3.7
                       "pymongo>=3.6.0",# green build 3.6/3.7
                       #"pytest-server-fixtures", # must be manual
                       "pytest-cov", # uninstalls pytest do it first. also pulls in pytest-server-fixtures

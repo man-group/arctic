@@ -4,10 +4,8 @@ import pytest
 from pandas.util.testing import assert_frame_equal
 
 from arctic.serialization.numpy_arrays import FrameConverter, FrametoArraySerializer
+from tests.integration.chunkstore.test_chunkstore import assert_frame_equal_
 
-# TODO DMK apply to all?
-def assert_frame_equal_(df1, df2, check_freq=True):
-    assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_freq=check_freq)
 
 def test_frame_converter():
     f = FrameConverter()
