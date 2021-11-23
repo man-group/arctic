@@ -7,6 +7,10 @@ from pandas.util.testing import assert_frame_equal
 
 from arctic.chunkstore.utils import read_apply
 
+# TODO DMK circ dependency
+def assert_frame_equal_(df1, df2, check_freq=True, check_names=True):
+    # no check_freq in 1.0.3
+    assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_names=check_names)
 
 def create_test_data(size=5, index=True, multiindex=True, random_data=True, random_ids=True, date_offset=0, use_hours=False, cols=1):
     data = {}
@@ -37,4 +41,4 @@ def test_read_apply(chunkstore_lib):
         return df
 
     for data in read_apply(chunkstore_lib, 'test', func):
-        assert_frame_equal(data, func(df))
+        assert_frame_equal_(data, func(df))

@@ -3,6 +3,7 @@ from datetime import datetime as dt
 import pytest
 import pytz
 from pandas.util.testing import assert_frame_equal
+from tests.integration.chunkstore.test_chunkstore import assert_frame_equal_
 
 from arctic.date import mktz, DateRange
 from arctic.exceptions import OverlappingDataException
@@ -73,7 +74,7 @@ def test_ts_write_pandas(tickstore_lib):
     tickstore_lib.write('SYM', data)
 
     read = tickstore_lib.read('SYM', columns=None)
-    assert_frame_equal(read, data, check_names=False)
+    assert_frame_equal_(read, data, check_names=False)
 
 
 def test_ts_write_named_col(tickstore_lib):

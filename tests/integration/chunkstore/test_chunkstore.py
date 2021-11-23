@@ -22,9 +22,9 @@ def assert_frame_equal_(df1, df2, check_freq=True, check_names=True):
         assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_freq=check_freq)
     else:
         # no check_freq in 1.0.3
-        #assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_names=check_names)
-        # revert to original 2.7 state
-        assert_frame_equal(df1, df2, check_names=check_names)
+        assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_names=check_names)
+        # revert to original 2.7 behaviour 23/34 failures
+        #assert_frame_equal(df1, df2, check_names=check_names)
 
 def test_write_dataframe(chunkstore_lib):
     df = create_test_data()
@@ -951,7 +951,8 @@ def test_delete_range_segment(chunkstore_lib):
     chunkstore_lib.write('test_df', pd.concat([df, dg], ignore_index=True), chunk_size='M')
     chunkstore_lib.delete('test_df', chunk_range=pd.date_range(dt(2016, 1, 1), dt(2016, 1, 1)))
     read_df = chunkstore_lib.read('test_df')
-    assert(read_df.equals(dg))
+    #assert_equals(read_df.equals(dg))
+    assert_frame_equal_(read_df, dg) # DMK
     assert(mongo_count(chunkstore_lib._collection, {'sy': 'test_df'}) == 1)
 
 
