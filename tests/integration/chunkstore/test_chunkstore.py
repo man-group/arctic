@@ -722,7 +722,7 @@ def test_overwrite_series(chunkstore_lib):
 
     chunkstore_lib.write('test', s)
     chunkstore_lib.write('test', s + 1)
-    assert_series_equal(chunkstore_lib.read('test'), s + 1) # reverted , check_freq=False) # DMK
+    assert_series_equal(chunkstore_lib.read('test'), s + 1)
 
 
 def test_overwrite_series_monthly(chunkstore_lib):
@@ -1044,7 +1044,7 @@ def test_quarterly_data(chunkstore_lib):
     df.index.name = 'date'
 
     chunkstore_lib.write('quarterly', df, chunk_size='Q')
-    assert_frame_equal_(df, chunkstore_lib.read('quarterly'), check_freq=False) # TODO DMK
+    assert_frame_equal_(df, chunkstore_lib.read('quarterly'), check_freq=False) # TODO DMK this is for pandas 1.1.5
     assert(len(chunkstore_lib.read('quarterly', chunk_range=(None, '2016-01-05'))) == 5)
     count = 0
     for _ in chunkstore_lib._collection.find({SYMBOL: 'quarterly'}, sort=[(START, pymongo.ASCENDING)],):

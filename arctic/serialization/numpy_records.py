@@ -93,7 +93,6 @@ class PandasSerializer(object):
     def _index_from_records(self, recarr):
         index = recarr.dtype.metadata['index']
 
-        # DK unicode problem here
         if len(index) == 1:
             rtn = Index(np.copy(recarr[str(index[0])]), name=index[0])
             if isinstance(rtn, DatetimeIndex) and 'index_tz' in recarr.dtype.metadata:

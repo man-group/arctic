@@ -50,7 +50,6 @@ def test_compression(chunkstore_lib):
                                    'liquidty', 'momentum', 'resvol', 'sid', 'size', 'sizenl'])
         df['date'] = date
 
-        #df.sort_index(axis=1, inplace=True) # DMK
         return df
 
     date = pd.Timestamp('2000-01-01')
