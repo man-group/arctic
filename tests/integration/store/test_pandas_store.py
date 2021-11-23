@@ -22,7 +22,7 @@ from arctic.date import DateRange, mktz
 # Do not remove PandasStore, used in global scope
 from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasStore
 from arctic.store.version_store import register_versioned_storage
-from tests.integration.chunkstore.test_chunkstore import assert_frame_equal_
+from tests.util import assert_frame_equal_
 
 register_versioned_storage(PandasDataFrameStore)
 

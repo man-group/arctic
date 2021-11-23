@@ -27,7 +27,7 @@ from arctic.store import version_store
 from tests.unit.serialization.serialization_test_data import _mixed_test_data
 from ...util import read_str_as_pandas
 from ..test_utils import enable_profiling_for_library
-from tests.integration.chunkstore.test_chunkstore import assert_frame_equal_
+from tests.util import assert_frame_equal_
 
 ts1 = read_str_as_pandas("""         times | near
                    2012-09-08 17:06:11.040 |  1.0

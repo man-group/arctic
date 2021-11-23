@@ -15,16 +15,8 @@ from arctic.chunkstore.passthrough_chunker import PassthroughChunker
 from arctic.date import DateRange
 from arctic.exceptions import NoDataFoundException
 from tests.integration.chunkstore.test_utils import create_test_data
+from tests.util import assert_frame_equal_
 
-
-def assert_frame_equal_(df1, df2, check_freq=True, check_names=True):
-    if pd.__version__ > '1.0.3':
-        assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_freq=check_freq)
-    else:
-        # no check_freq in 1.0.3
-        assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_names=check_names)
-        # revert to original 2.7 behaviour 23/34 failures
-        #assert_frame_equal(df1, df2, check_names=check_names)
 
 def test_write_dataframe(chunkstore_lib):
     df = create_test_data()

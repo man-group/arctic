@@ -4,7 +4,7 @@ import pytest
 from pandas.util.testing import assert_frame_equal
 
 from arctic.serialization.numpy_arrays import FrameConverter, FrametoArraySerializer
-from tests.integration.chunkstore.test_chunkstore import assert_frame_equal_
+from tests.util import assert_frame_equal_
 
 
 def test_frame_converter():
