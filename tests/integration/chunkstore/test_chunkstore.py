@@ -22,7 +22,9 @@ def assert_frame_equal_(df1, df2, check_freq=True, check_names=True):
         assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_freq=check_freq)
     else:
         # no check_freq in 1.0.3
-        assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_names=check_names)
+        #assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_names=check_names)
+        # revert to original 2.7 state
+        assert_frame_equal(df1, df2, check_names=check_names)
 
 def test_write_dataframe(chunkstore_lib):
     df = create_test_data()
