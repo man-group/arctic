@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2015 Man AHL
+# Copyright (C) 2015-2021 Man Group Ltd
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -58,7 +58,7 @@ class PyTest(TestCommand):
 
 setup(
     name="arctic",
-    version="1.80.0",
+    version="1.80.1",
     author="Man AHL Technology",
     author_email="ManAHLTech@ahl.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
@@ -75,16 +75,20 @@ setup(
                    ],
     install_requires=["decorator",
                       "enum-compat",
-                      "futures; python_version == '2.7'",
                       "mockextras",
                       "pandas<=1.0.3",
+                      "numpy<=1.18.4",
                       "pymongo>=3.6.0",
                       "python-dateutil",
+                      #"pytest-server-fixtures", # must be manual
+                      "pytest-cov",
+                      "pytest",
                       "pytz",
                       "tzlocal",
                       "lz4"
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
+    # TODO why is this ignored by circleci
     tests_require=["mock",
                    "mockextras",
                    "pytest",
@@ -108,10 +112,8 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: Implementation :: CPython",
         "Operating System :: POSIX",
         "Operating System :: MacOS",
