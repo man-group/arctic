@@ -50,7 +50,7 @@ def test_segment_repair_tool(chunkstore_lib):
 
     read = chunkstore_lib.read('test')
 
-    assert_frame_equal_(read, pd.concat([df, df2], ignore_index=True)) # DMK
+    assert_frame_equal_(read, pd.concat([df, df2], ignore_index=True))
 
     chunkstore_lib._collection.update_one({'sy': 'test', 'sg': 0}, {'$set': {'sg': -1}})
     chunkstore_lib._collection.update_one({'sy': 'test', 'sg': 1}, {'$set': {'sg': 0}})
@@ -60,5 +60,5 @@ def test_segment_repair_tool(chunkstore_lib):
     assert(get_segments() == [0, 1])
     assert(symbols == ['test'])
 
-    assert_frame_equal_(chunkstore_lib.read('more_data'), more_data) # DMK
-    assert_frame_equal_(chunkstore_lib.read('other_data'), other_data) #DMK
+    assert_frame_equal_(chunkstore_lib.read('more_data'), more_data)
+    assert_frame_equal_(chunkstore_lib.read('other_data'), other_data)

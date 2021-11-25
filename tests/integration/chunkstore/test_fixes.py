@@ -73,15 +73,15 @@ def test_date_interval(chunkstore_lib):
     chunkstore_lib.write('test', df, chunk_size='D')
 
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_OPEN))
-    assert_frame_equal_(ret, df[1:4], False) #DMK
+    assert_frame_equal_(ret, df[1:4], check_freq=False)
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_OPEN))
-    assert_frame_equal_(ret, df[2:4], False) # DMK
+    assert_frame_equal_(ret, df[2:4], check_freq=False)
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_CLOSED))
-    assert_frame_equal_(ret, df[2:5], False) # DMK
+    assert_frame_equal_(ret, df[2:5], check_freq=False)
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_CLOSED))
-    assert_frame_equal_(ret, df[1:5], False) # DMK
+    assert_frame_equal_(ret, df[1:5], check_freq=False)
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), None, CLOSED_OPEN))
-    assert_frame_equal_(ret, df[1:8], False) # DMK
+    assert_frame_equal_(ret, df[1:8], check_freq=False)
 
     # test without index
     df = DataFrame(data={'data': range(8),
@@ -164,9 +164,9 @@ def test_missing_cols(chunkstore_lib):
     chunkstore_lib.append('test', df, chunk_size='D')
 
 
-    assert_frame_equal_(chunkstore_lib.read('test'), expected_df, False) # DMK
+    assert_frame_equal_(chunkstore_lib.read('test'), expected_df, check_freq=False)
     df = chunkstore_lib.read('test', columns=['B'])
-    assert_frame_equal_(df, expected_df['B'].to_frame(), False) # DMK
+    assert_frame_equal_(df, expected_df['B'].to_frame(), check_freq=False)
 
 
 def test_column_copy(chunkstore_lib):

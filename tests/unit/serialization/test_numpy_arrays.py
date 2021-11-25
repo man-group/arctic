@@ -12,7 +12,7 @@ def test_frame_converter():
     df = pd.DataFrame(np.random.randint(0, 100, size=(100, 4)),
                       columns=list('ABCD'))
 
-    assert_frame_equal_(f.objify(f.docify(df)), df) # DMK
+    assert_frame_equal_(f.objify(f.docify(df)), df)
 
 
 def test_with_strings():
@@ -65,7 +65,7 @@ def test_without_index():
                       columns=list('ABCD'))
     n = FrametoArraySerializer()
     a = n.serialize(df)
-    assert_frame_equal_(df, n.deserialize(a)) # DMK
+    assert_frame_equal_(df, n.deserialize(a))
 
 
 def test_with_index():
@@ -74,7 +74,7 @@ def test_with_index():
     df = df.set_index(['A'])
     n = FrametoArraySerializer()
     a = n.serialize(df)
-    assert_frame_equal_(df, n.deserialize(a)) # DMK
+    assert_frame_equal_(df, n.deserialize(a))
 
 
 def test_invalid_column_subset_with_index():
@@ -117,7 +117,7 @@ def test_with_nans():
     df['A'] = np.NaN
     n = FrametoArraySerializer()
     a = n.serialize(df)
-    assert_frame_equal_(df, n.deserialize(a)) # DMK
+    assert_frame_equal_(df, n.deserialize(a))
 
 
 def test_empty_dataframe():
@@ -131,7 +131,7 @@ def test_empty_columns():
     df = pd.DataFrame(data={'A': [], 'B': [], 'C': []})
     n = FrametoArraySerializer()
     a = n.serialize(df)
-    assert_frame_equal_(df, n.deserialize(a)) # DMK
+    assert_frame_equal_(df, n.deserialize(a))
 
 
 def test_string_cols_with_nans():

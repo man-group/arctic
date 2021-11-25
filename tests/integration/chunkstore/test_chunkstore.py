@@ -943,8 +943,7 @@ def test_delete_range_segment(chunkstore_lib):
     chunkstore_lib.write('test_df', pd.concat([df, dg], ignore_index=True), chunk_size='M')
     chunkstore_lib.delete('test_df', chunk_range=pd.date_range(dt(2016, 1, 1), dt(2016, 1, 1)))
     read_df = chunkstore_lib.read('test_df')
-    #assert_equals(read_df.equals(dg))
-    assert_frame_equal_(read_df, dg) # DMK
+    assert_frame_equal_(read_df, dg)
     assert(mongo_count(chunkstore_lib._collection, {'sy': 'test_df'}) == 1)
 
 
@@ -1036,7 +1035,7 @@ def test_quarterly_data(chunkstore_lib):
     df.index.name = 'date'
 
     chunkstore_lib.write('quarterly', df, chunk_size='Q')
-    assert_frame_equal_(df, chunkstore_lib.read('quarterly'), check_freq=False) # TODO DMK this is for pandas 1.1.5
+    assert_frame_equal_(df, chunkstore_lib.read('quarterly'), check_freq=False)
     assert(len(chunkstore_lib.read('quarterly', chunk_range=(None, '2016-01-05'))) == 5)
     count = 0
     for _ in chunkstore_lib._collection.find({SYMBOL: 'quarterly'}, sort=[(START, pymongo.ASCENDING)],):
