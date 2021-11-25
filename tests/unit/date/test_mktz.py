@@ -6,7 +6,11 @@ from pytest import raises
 
 from arctic.date import mktz, TimezoneError
 
-DEFAULT_TIME_ZONE_NAME = tzlocal.get_localzone().zone  # 'Europe/London'
+try:
+    DEFAULT_TIME_ZONE_NAME = tzlocal.get_localzone().zone # 'Europe/London'
+except AttributeError:
+    # The zone attribute is called key in tzlocal >= 3.0
+    DEFAULT_TIME_ZONE_NAME = tzlocal.get_localzone().key
 
 
 def test_mktz():
