@@ -84,7 +84,9 @@ def enable_sharding(arctic, library_name, hashed=True, key='symbol'):
 
 def mongo_count(collection, filter=None, **kwargs):
     """
-    pymongo 3.7 or higher calling count_documents without a filter is pathologically slow
+    pymongo 3.7 or higher calling unindexed count_documents is pathologically slow
+    pymongo >= 3.7 calling with unindexed filter will COLLSCAN
+    pymongo <= 3.6 count() is the only option
     """
     filter = {} if filter is None else filter
     global _use_new_count_api
@@ -95,7 +97,10 @@ def mongo_count(collection, filter=None, **kwargs):
         if filter == {}:
             return collection.estimated_document_count(**kwargs)
         else:
+            # fastest but non-transactional deprecated
+            # return collection.count(filter=filter, **kwargs)
+            # slowest transactional
             return collection.count_documents(filter=filter, **kwargs)
     else:
-        # deprecated in pymongo 3.7
+        # pymongo <= 3.6
         return collection.count(filter=filter, **kwargs)

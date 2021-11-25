@@ -75,6 +75,7 @@ setup(
                    ],
     install_requires=["decorator",
                       "enum-compat",
+                      "mock",
                       "mockextras",
                       "pandas<=1.0.3",
                       "numpy<=1.18.4",
@@ -85,10 +86,10 @@ setup(
                       "pytest",
                       "pytz",
                       "tzlocal",
-                      "lz4"
+                      "lz4",
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
-    # TODO why is this ignored by circleci
+    # Note: tests_require is deprecated
     tests_require=["mock",
                    "mockextras",
                    "pytest",

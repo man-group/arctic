@@ -2,7 +2,10 @@ import logging
 import os
 import re
 import threading
+import warnings
 
+# just suppress for pymongo
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect
 from six import string_types
