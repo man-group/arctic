@@ -24,6 +24,7 @@ def get_fwptr_config(version):
 
 def _detect_new_count_api():
     try:
+        print(f'detected mongo version {pymongo.version}')
         mongo_v = [int(v) for v in pymongo.version.split('.')]
         return mongo_v[0] >= 3 and mongo_v[1] >= 7
     except:
@@ -91,12 +92,16 @@ def mongo_count(collection, filter=None, **kwargs):
     _use_new_count_api = _detect_new_count_api() if _use_new_count_api is None else _use_new_count_api
 
     if _use_new_count_api:
+        print('new drivers detected')
         if filter == {}:
+            print('new drivers null filter')
             # fast. uses collection metadata
             return collection.estimated_document_count(**kwargs)
         else:
+            print('new drivers plus filter')
             # transactions supported, but slow for non-indexed filters
             return collection.count_documents(filter=filter, **kwargs)
     else:
+        print('old drivers detected')
         # pymongo <= 3.6 # faster than count_documents but non-transactional and deprecated
         return collection.count(filter=filter, **kwargs)
