@@ -11,6 +11,18 @@ import dateutil
 import numpy as np
 import pandas
 from dateutil.rrule import rrule, DAILY
+from pandas.util.testing import assert_frame_equal
+
+
+def assert_frame_equal_(df1, df2, check_freq=True, check_names=True):
+    if pandas.__version__ > '1.0.3':
+        # had to add check_freq because pandas 1.1.5 has different freq metadata behaviour
+        assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_names=check_names, check_freq=check_freq)
+    else:
+        # pandas 1.0.3
+        assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_names=check_names)
+    #else: # 0.22.0 python 2.7
+        #assert_frame_equal(df1, df2, check_names=check_names)
 
 
 def dt_or_str_parser(string):

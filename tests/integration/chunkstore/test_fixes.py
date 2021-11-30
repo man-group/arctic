@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame, DatetimeIndex
 from pandas.util.testing import assert_frame_equal
+from tests.util import assert_frame_equal_
 
 from arctic.date import DateRange, CLOSED_OPEN, CLOSED_CLOSED, OPEN_OPEN, OPEN_CLOSED
 
@@ -58,7 +59,7 @@ def test_compression(chunkstore_lib):
     df2 = generate_data(date)
     chunkstore_lib.append('test', df2)
     read = chunkstore_lib.read('test')
-    assert_frame_equal(read, pd.concat([df, df2], ignore_index=True))
+    assert_frame_equal_(read, pd.concat([df, df2], ignore_index=True))
 
 
 # issue #420 - ChunkStore doesnt respect DateRange interval
@@ -72,15 +73,15 @@ def test_date_interval(chunkstore_lib):
     chunkstore_lib.write('test', df, chunk_size='D')
 
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_OPEN))
-    assert_frame_equal(ret, df[1:4])
+    assert_frame_equal_(ret, df[1:4], check_freq=False)
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_OPEN))
-    assert_frame_equal(ret, df[2:4])
+    assert_frame_equal_(ret, df[2:4], check_freq=False)
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), OPEN_CLOSED))
-    assert_frame_equal(ret, df[2:5])
+    assert_frame_equal_(ret, df[2:5], check_freq=False)
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), dt(2017, 5, 5), CLOSED_CLOSED))
-    assert_frame_equal(ret, df[1:5])
+    assert_frame_equal_(ret, df[1:5], check_freq=False)
     ret = chunkstore_lib.read('test', chunk_range=DateRange(dt(2017, 5, 2), None, CLOSED_OPEN))
-    assert_frame_equal(ret, df[1:8])
+    assert_frame_equal_(ret, df[1:8], check_freq=False)
 
     # test without index
     df = DataFrame(data={'data': range(8),
@@ -122,7 +123,7 @@ def test_rewrite(chunkstore_lib):
 
     chunkstore_lib.write('test', df2, chunk_size='D')
     ret = chunkstore_lib.read('test')
-    assert_frame_equal(ret, df2)
+    assert_frame_equal_(ret, df2)
 
 
 def test_iterator(chunkstore_lib):
@@ -163,9 +164,9 @@ def test_missing_cols(chunkstore_lib):
     chunkstore_lib.append('test', df, chunk_size='D')
 
 
-    assert_frame_equal(chunkstore_lib.read('test'), expected_df)
+    assert_frame_equal_(chunkstore_lib.read('test'), expected_df, check_freq=False)
     df = chunkstore_lib.read('test', columns=['B'])
-    assert_frame_equal(df, expected_df['B'].to_frame())
+    assert_frame_equal_(df, expected_df['B'].to_frame(), check_freq=False)
 
 
 def test_column_copy(chunkstore_lib):
