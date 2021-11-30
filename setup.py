@@ -58,7 +58,7 @@ class PyTest(TestCommand):
 
 setup(
     name="arctic",
-    version="1.80.0",
+    version="1.80.1",
     author="Man AHL Technology",
     author_email="ManAHLTech@ahl.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
@@ -75,24 +75,21 @@ setup(
                    ],
     install_requires=["decorator",
                       "enum-compat",
-                      #"enum34", # errors
-                      #"futures; python_version == '2.7'",
+                      #"enum34",
                       "mock",
                       "mockextras",
-                      # OK "pandas<=0.22.0",
-                      "pandas<=1.0.3", # original travis check_freq not found
+                      "pandas<=1.0.3",
                       "numpy<=1.18.4",
-                      #"pandas<=1.1.5", # green build 3.6/3.7
-                      "pymongo>=3.6.0",# green build 3.6/3.7
+                      "pymongo>=3.6.0, <= 3.11.0"
                       #"pytest-server-fixtures", # must be manual
-                      "pytest-cov", # uninstalls pytest do it first. also pulls in pytest-server-fixtures
+                      "pytest-cov",
                       "pytest",
                       "pytz",
                       "tzlocal",
                       "lz4",
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
-    # TODO why is this ignored
+    # deprecated
     tests_require=["mock",
                    "mockextras",
                    "pytest",
@@ -116,7 +113,6 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: Implementation :: CPython",
