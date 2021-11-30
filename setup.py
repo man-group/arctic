@@ -80,7 +80,7 @@ setup(
                       "mockextras",
                       "pandas<=1.0.3",
                       "numpy<=1.18.4",
-                      "pymongo>=3.6.0, <= 3.11.0"
+                      "pymongo>=3.6.0, <= 3.11.0",
                       #"pytest-server-fixtures", # must be manual
                       "pytest-cov",
                       "pytest",
