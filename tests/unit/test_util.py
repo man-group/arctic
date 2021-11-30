@@ -1,6 +1,6 @@
 from mock import MagicMock, ANY, patch
 
-from arctic._util import are_equals, enable_sharding, mongo_count
+from arctic._util import are_equals, enable_sharding, mongo_count, _use_new_count_api
 from arctic.arctic import Arctic
 
 
@@ -17,6 +17,7 @@ def test_enable_sharding_hashed():
 
 
 def test_mongo_count_old_pymongo():
+    _use_new_count_api = None
     with patch('pymongo.version', '3.6.0'):
         coll = MagicMock()
         mongo_count(coll, filter="_id:1")
@@ -25,6 +26,7 @@ def test_mongo_count_old_pymongo():
         assert coll.count.call_count == 3
 
 def test_mongo_count_new_pymongo():
+    _use_new_count_api = None
     with patch('pymongo.version', '3.11.0'):
         coll2 = MagicMock()
         mongo_count(coll2, filter="_id:1")
