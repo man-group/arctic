@@ -17,6 +17,7 @@ defaults: &defaults
         name: Version checks
         command: |
             grep -q $VERSION CHANGES.md || (echo "ERROR: Version number not found in CHANGES.md: $VERSION"; exit 1)
+
     - run:
         name: Output useful stuff
         command: |
@@ -33,6 +34,7 @@ defaults: &defaults
         command: |
             # run "cat /etc/os-release" to view information about the OS
             # good article on how to install mongo, https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/
+
             cat /etc/os-release
             set -x
             wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -

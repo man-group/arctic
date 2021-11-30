@@ -75,6 +75,7 @@ setup(
                    ],
     install_requires=["decorator",
                       "enum-compat",
+                      #"enum34",
                       "mock",
                       "mockextras",
                       "pandas<=1.0.3",
@@ -83,13 +84,12 @@ setup(
                       #"pytest-server-fixtures", # must be manual
                       "pytest-cov",
                       "pytest",
-                      "pytest",
                       "pytz",
                       "tzlocal",
                       "lz4",
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
-    # Note: tests_require is deprecated
+    # deprecated
     tests_require=["mock",
                    "mockextras",
                    "pytest",
