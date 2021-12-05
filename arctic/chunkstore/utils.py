@@ -1,4 +1,8 @@
 """
+Copyright (C) 2020 Man Group
+For a list of authors, see README.md; for the license, see file LICENSE in project root directory.
+"""
+"""
 Helper functions that are not 'core' to chunkstore
 """
 

@@ -1,3 +1,7 @@
+"""
+Copyright (C) 2020 Man Group
+For a list of authors, see README.md; for the license, see file LICENSE in project root directory.
+"""
 try:
     from unittest.mock import Mock, patch, MagicMock, create_autospec, sentinel, call
 except:    

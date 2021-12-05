@@ -1,3 +1,7 @@
+"""
+Copyright (C) 2020 Man Group
+For a list of authors, see README.md; for the license, see file LICENSE in project root directory.
+"""
 import numpy as np
 from numpy.testing import assert_equal
 import numpy as np

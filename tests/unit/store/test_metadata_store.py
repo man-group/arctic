@@ -1,3 +1,7 @@
+"""
+Copyright (C) 2020 Man Group
+For a list of authors, see README.md; for the license, see file LICENSE in project root directory.
+"""
 import datetime as dt
 
 from mock import create_autospec, call

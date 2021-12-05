@@ -1,3 +1,7 @@
+"""
+Copyright (C) 2020 Man Group
+For a list of authors, see README.md; for the license, see file LICENSE in project root directory.
+"""
 from arctic.arctic import Arctic
 from arctic.store.metadata_store import MetadataStore
 from arctic.store.version_store import VersionStore
