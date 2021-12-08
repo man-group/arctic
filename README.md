@@ -143,6 +143,7 @@ It wouldn't be possible without the work of the AHL Data Engineering Team includ
  * [Bryant Moscon](https://github.com/bmoscon)
  * [Dimosthenis Pediaditakis](https://github.com/dimosped)
  * [Shashank Khare](https://github.com/shashank88)
+ * [Duncan Kerr](https://github.com/dunckerr)
  * ... and many others ...
 
 Contributions welcome!
