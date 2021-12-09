@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.80.1
+### 1.80.1 (2021-12-09)
   * Bugfix: #855 use IXSCAN for list\_symbols which speeds up snapshotting (actually #856)
   * Bugfix: #926 avoid pathologically slow count_documents() call with pymongo > 3.6.0
 
