@@ -17,7 +17,6 @@ defaults: &defaults
         name: Version checks
         command: |
             grep -q $VERSION CHANGES.md || (echo "ERROR: Version number not found in CHANGES.md: $VERSION"; exit 1)
-
     - run:
         name: Output useful stuff
         command: |
@@ -34,7 +33,6 @@ defaults: &defaults
         command: |
             # run "cat /etc/os-release" to view information about the OS
             # good article on how to install mongo, https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/
-
             cat /etc/os-release
             set -x
             wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
@@ -104,7 +102,7 @@ jobs:
       PYTHON_VERSION: "2_7"
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/2_7
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/2_7
-      VERSION: 1.80.0
+      VERSION: 1.80.1
       #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
       #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
@@ -117,7 +115,7 @@ jobs:
       PYTHON_VERSION: "3_6"
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_6
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_6
-      VERSION: 1.80.0
+      VERSION: 1.80.1
       #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
       #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
@@ -130,7 +128,7 @@ jobs:
       PYTHON_VERSION: "3_7"
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_7
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_7
-      VERSION: 1.80.0
+      VERSION: 1.80.1
       #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
       #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
