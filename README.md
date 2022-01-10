@@ -15,7 +15,7 @@ Arctic can query millions of rows per second per client, achieves ~10x compressi
 ~10x compression on disk, and scales to hundreds of millions of rows per second per
 [MongoDB](https://www.mongodb.org/) instance.
 
-Arctic has been under active development at [Man AHL](http://www.ahl.com/) since 2012.
+Arctic has been under active development at [Man AHL](https://www.man.com/ahl) since 2012.
 
 ## Quickstart
 
@@ -114,7 +114,7 @@ Arctic storage implementations are **pluggable**.  VersionStore is the default.
 
 Arctic currently works with:
 
- * Python 3.5, 3.6
+ * Python 3.6, 3.7
  * pymongo 3.60 thru 3.11.0
  * Pandas 0.22.0 thru 1.0.3
  * MongoDB >= 2.4.x
@@ -127,7 +127,7 @@ Operating Systems:
 
 ## Acknowledgements
 
-Arctic has been under active development at [Man AHL](http://www.ahl.com/) since 2012.
+Arctic has been under active development at [Man AHL](https://www.man.com/ahl) since 2012.
 
 It wouldn't be possible without the work of the AHL Data Engineering Team including:
 
