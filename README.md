@@ -24,15 +24,15 @@ Arctic has been under active development at [Man AHL](https://www.man.com/ahl) s
 
 ### Install Arctic
 
-```
+``
 pip install git+https://github.com/manahl/arctic.git
-```
+``
 
 ### Run a MongoDB
 
-```
+``
 mongod --dbpath <path/to/db_directory>
-```
+``
 
 ### Using VersionStore
 ``
