@@ -86,7 +86,6 @@ setup(
                       "pytest-cov",
                       "pytest",
                       "pytz",
-                      "tomli==1.2.2",
                       "tzlocal",
                       "lz4",
                      ],
@@ -99,6 +98,7 @@ setup(
                    "pytest-server-fixtures",
                    "pytest-timeout",
                    "pytest-xdist<=1.26.1",
+                   "tomli==1.2.2; python_version=='3.6'",
                    "lz4"
                   ],
     entry_points={'console_scripts': [
