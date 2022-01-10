@@ -17,6 +17,9 @@ Arctic can query millions of rows per second per client, achieves ~10x compressi
 
 Arctic has been under active development at [Man AHL](https://www.man.com/ahl) since 2012.
 
+ * Stable Version 1.79.3
+ * Beta Version 1.80.2
+
 ## Quickstart
 
 ### Install Arctic
