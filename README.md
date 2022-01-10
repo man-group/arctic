@@ -35,8 +35,7 @@ mongod --dbpath <path/to/db_directory>
 ```
 
 ### Using VersionStore
-
-```
+``
 from arctic import Arctic
 import quandl
 
@@ -59,7 +58,7 @@ library.write('AAPL', aapl, metadata={'source': 'Quandl'})
 item = library.read('AAPL')
 aapl = item.data
 metadata = item.metadata
-```
+``
 
 VersionStore supports much more: [See the HowTo](howtos/how_to_use_arctic.py)!
 
@@ -88,7 +87,7 @@ itself is composed of a number of collections within the database. Libraries loo
   * user.EOD
   * user.ONEMINUTE
 
-A library is mapped to a Python class.  All library databases in MongoDB are prefixed with 'arctic_'
+A library is mapped to a Python class.  All library databases in MongoDB are prefixed with 'arctic\_'
 
 ### Storage Engines
 
