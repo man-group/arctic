@@ -7,7 +7,6 @@ from bson import Binary, SON
 
 from .._compression import compress, decompress, compress_array
 from ._serializer import Serializer
-from collections import defaultdict
 
 try:
     from pandas.api.types import infer_dtype

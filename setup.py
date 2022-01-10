@@ -86,6 +86,7 @@ setup(
                       "pytest-cov",
                       "pytest",
                       "pytz",
+                      "tomli==1.2.2",
                       "tzlocal",
                       "lz4",
                      ],
