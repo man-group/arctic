@@ -59,13 +59,13 @@ class PyTest(TestCommand):
 
 setup(
     name="arctic",
-    version="1.80.2",
+    version="1.80.3",
     author="Man AHL Technology",
     author_email="ManAHLTech@ahl.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
     license="GPL",
     keywords=["ahl", "keyvalue", "tickstore", "mongo", "timeseries", ],
-    url="https://github.com/manahl/arctic",
+    url="https://github.com/man-group/arctic",
     packages=find_packages(exclude=['tests', 'tests.*', 'benchmarks']),
     long_description='\n'.join((long_description, changelog)),
     long_description_content_type="text/markdown",
@@ -76,7 +76,6 @@ setup(
                    ],
     install_requires=["decorator",
                       "enum-compat",
-                      #"enum34",
                       "mock",
                       "mockextras",
                       "pandas<=1.0.3",
