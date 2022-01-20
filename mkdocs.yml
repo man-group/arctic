@@ -1,11 +1,11 @@
 # Project info
 site_name: Arctic
-site_url: https://github.com/manahl/arctic
+site_url: https://github.com/man-group/arctic
 site_description: High performance datastore for numeric data
 
 # Repository info
 repo_name: 'arctic'
-repo_url: 'https://github.com/manahl/arctic'
+repo_url: 'https://github.com/man-group/arctic'
 edit_uri: edit/master/docs/
 
 theme:
