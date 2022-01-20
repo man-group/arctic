@@ -2,6 +2,7 @@
 
 ### 1.80.3 (2022-01-20)
   * Feature: #941 use named index for VersionStore to avoid 127 max fully qualified index name
+  * Bugfix:  #935, #936 fixed README.md rendering which was preventing pypi upload
 
 ### 1.80.2 (2022-01-10)
   * Bugfix: #932 revert serialization-optimization (#909, #910)
