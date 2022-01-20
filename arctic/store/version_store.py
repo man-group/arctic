@@ -70,6 +70,7 @@ class VersionStore(object):
         last_seq = self._version_nums.find_one({'symbol': symbol})
         return last_seq['version'] if last_seq else 0
 
+    # new index named because of 127 char restriction on fully qualified index names
     @mongo_retry
     def _ensure_index(self):
         collection = self._collection
@@ -79,7 +80,9 @@ class VersionStore(object):
                                          background=True)
         collection.versions.create_index([('symbol', pymongo.ASCENDING), ('version', pymongo.DESCENDING)], unique=True,
                                          background=True)
-        collection.versions.create_index([('symbol', pymongo.ASCENDING), ('version', pymongo.DESCENDING), ('metadata.deleted', pymongo.ASCENDING)],
+        collection.versions.create_index([('symbol', pymongo.ASCENDING), ('version', pymongo.DESCENDING),
+                                          ('metadata.deleted', pymongo.ASCENDING)],
+                                         name='versionstore_idx',
                                          background=True)
         collection.version_nums.create_index('symbol', unique=True, background=True)
         for th in _TYPE_HANDLERS:

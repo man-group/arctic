@@ -122,7 +122,7 @@ def test_indexes(arctic):
                                                           u'ns': u'arctic.library.versions',
                                                           u'unique': True,
                                                           u'v': index_version},
-                                 u'symbol_1_version_-1_metadata.deleted_1': {u'background': True,
+                                 u'versionstore_idx': {u'background': True,
                                                                              u'key': [(u'symbol', 1), (u'version', -1), (u'metadata.deleted', 1)],
                                                                              u'ns': u'arctic.library.versions',
                                                                              u'v': index_version}}
