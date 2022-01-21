@@ -59,7 +59,7 @@
   * BugFix: #670 Lots of pycodestyle fixes
   * BugFix: #691 Fix arrays_to_mgr for pandas 0.23.4+
   * BugFix: #698 Fix no handler in logging warning
-  * BugFix: #705 Use sort_index instead of sortlevel_
+  * BugFix: #705 Use sort_index instead of sortlevel\_
   * BugFix: #710: Initialize SEGMENT_SHA in versions for writes and appends
   * Feature: #669 Experimental initial implementation of async arctic
   * Feature: #704 Do not enable sharding by default in BSONStore.
@@ -377,12 +377,14 @@
 ### 1.16 (2015-12-15)
 
   * Feature: ArticTransaction now supports non-audited 'transactions': `audit=False`
-             ```
-             with ArcticTransaction(Arctic('hostname')['some_library'], 'symbol', audit=False) as at:
-                   ...
-             ```
-             This is useful for batch jobs which read-modify-write and don't want to clash with
-             concurrent writers, and which don't require keeping all versions of a symbol.
+
+```
+with ArcticTransaction(Arctic('hostname')['some_library'], 'symbol', audit=False) as at:
+...
+```
+
+     This is useful for batch jobs which read-modify-write and don't want to clash with
+     concurrent writers, and which don't require keeping all versions of a symbol.
 
 ### 1.15 (2015-11-25)
 
