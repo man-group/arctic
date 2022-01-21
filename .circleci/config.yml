@@ -111,7 +111,7 @@ jobs:
       PYTHON_VERSION: "2_7"
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/2_7
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/2_7
-      VERSION: 1.80.3
+      VERSION: 1.80.4
       #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
       #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
@@ -124,7 +124,7 @@ jobs:
       PYTHON_VERSION: "3_6"
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_6
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_6
-      VERSION: 1.80.3
+      VERSION: 1.80.4
       #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
       #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
@@ -137,7 +137,7 @@ jobs:
       PYTHON_VERSION: "3_7"
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_7
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_7
-      VERSION: 1.80.3
+      VERSION: 1.80.4
       #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
       #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic

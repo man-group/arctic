@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.80.4 (2022-01-25)
+  * Bugfix:  #940 fix rows per chunk causing divide by zero
+  * Feature: #943 check markdown rendering of README.md and CHANGES.md in build
+
 ### 1.80.3 (2022-01-20)
   * Feature: #941 use named index for VersionStore to avoid 127 max fully qualified index name
   * Bugfix:  #935, #936 fixed README.md rendering which was preventing pypi upload
