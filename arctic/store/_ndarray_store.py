@@ -636,7 +636,10 @@ class NdarrayStore(object):
         row_size = int(item.dtype.itemsize * np.prod(item.shape[1:]))
 
         # chunk and store the data by (uncompressed) size
-        rows_per_chunk = int(_CHUNK_SIZE / row_size)
+        # increasing the rows per chunk by 1 because the value maybe 0
+        # Doesn't make much difference in the general case
+        # Will fail if row_size is greater than MAX_DOC_SIZE
+        rows_per_chunk = int(_CHUNK_SIZE / row_size) + 1
 
         symbol_all_previous_shas, version_shas = set(), set()
         if previous_version:
