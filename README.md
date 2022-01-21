@@ -1,10 +1,9 @@
-# [![arctic](logo/arctic_50.png)](https://github.com/man-group/arctic) [Arctic TimeSeries and Tick store](https://github.com/man-group/arctic)
+[![arctic](logo/arctic_50.png)](https://github.com/man-group/arctic) [Arctic TimeSeries and Tick store](https://github.com/man-group/arctic)
 
 
 [![Documentation Status](https://readthedocs.org/projects/arctic/badge/?version=latest)](https://arctic.readthedocs.io/en/latest/?badge=latest)
 [![CircleCI](https://circleci.com/gh/man-group/arctic/tree/master.svg?style=shield)](https://app.circleci.com/pipelines/github/man-group/arctic?branch=master)
 [![PyPI](https://img.shields.io/pypi/v/arctic)](https://pypi.org/project/arctic/)
-[![Travis CI](https://travis-ci.com/man-group/arctic.svg?branch=master)](https://travis-ci.org/man-group/arctic)
 [![Join the chat at https://gitter.im/man-group/arctic](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/man-group/arctic?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Arctic is a high performance datastore for numeric data. It supports [Pandas](http://pandas.pydata.org/),
