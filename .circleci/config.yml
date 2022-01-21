@@ -52,6 +52,13 @@ defaults: &defaults
          pip install pytest-server-fixtures[mongodb]
          pip freeze
          python --version
+    - run:
+       name: Check MarkDown rendering
+       command: |
+         pip install readme_renderer
+         python -m readme_renderer CHANGES.md  -o c.html
+         python -m readme_renderer README.md  -o r.html
+         python -m readme_renderer setup.py  -o s.html
     # Save dependency cache
     - save_cache:
         key: v1-dep-{{ .Branch }}-{{ epoch }}
