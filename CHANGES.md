@@ -3,6 +3,7 @@
 ### 1.80.4 (2022-01-25)
   * Bugfix:  #940 fix rows per chunk causing divide by zero
   * Feature: #943 check markdown rendering of README.md and CHANGES.md in build
+  * Bugfix:  #946 move test dependencies to tests_require
 
 ### 1.80.3 (2022-01-20)
   * Feature: #941 use named index for VersionStore to avoid 127 max fully qualified index name
