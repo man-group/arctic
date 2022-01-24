@@ -51,7 +51,7 @@ class PyTest(TestCommand):
         args.extend(['--cov', 'arctic',
                      '--cov-report', 'xml',
                      '--cov-report', 'html',
-                     '--junitxml', 'junit.xml',
+                     '--junitxml', 'test-results/junit.xml',
                      ])
         errno = pytest.main(args)
         sys.exit(errno)
