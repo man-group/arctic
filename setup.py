@@ -51,7 +51,7 @@ class PyTest(TestCommand):
         args.extend(['--cov', 'arctic',
                      '--cov-report', 'xml',
                      '--cov-report', 'html',
-                     '--junitxml', 'junit.xml',
+                     '--junitxml', 'test-results/junit.xml',
                      ])
         errno = pytest.main(args)
         sys.exit(errno)
@@ -81,11 +81,7 @@ setup(
                       "pandas<=1.0.3",
                       "numpy<=1.18.4",
                       "pymongo>=3.6.0, <= 3.11.0",
-                      #"pytest-server-fixtures", # must be manual
-                      "pytest-cov",
-                      "pytest",
                       "pytz",
-                      "tomli==1.2.3; python_version=='3.6'",
                       "tzlocal",
                       "lz4",
                      ],
@@ -98,6 +94,7 @@ setup(
                    "pytest-server-fixtures",
                    "pytest-timeout",
                    "pytest-xdist<=1.26.1",
+                   "tomli<2; python_version=='3.6'",
                    "lz4"
                   ],
     entry_points={'console_scripts': [
