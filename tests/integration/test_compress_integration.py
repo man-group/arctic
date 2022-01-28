@@ -5,7 +5,6 @@ import string
 from datetime import datetime as dt
 
 import pytest
-import six
 
 import arctic._compression as c
 
@@ -56,7 +55,7 @@ def test_performance_sequential(n, length):
 
 
 def random_string(N):
-    _str = ''.join(random.choice(list(string.printable) + ['hello', 'world', 'hellworld', 'Hello', 'w0rld']) for _ in six.moves.xrange(int(N)))
+    _str = ''.join(random.choice(list(string.printable) + ['hello', 'world', 'hellworld', 'Hello', 'w0rld']) for _ in range(int(N)))
     return _str.encode('ascii')
 
 
