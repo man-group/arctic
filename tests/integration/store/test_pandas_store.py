@@ -15,7 +15,7 @@ except ImportError:
     pass
 from pandas.tseries.offsets import DateOffset
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-from six import StringIO
+from io import StringIO
 
 from arctic._compression import decompress
 from arctic.date import DateRange, mktz

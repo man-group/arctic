@@ -44,9 +44,8 @@ class PyTest(TestCommand):
 
         # import here, cause outside the eggs aren't loaded
         import pytest
-        import six
 
-        args = [self.pytest_args] if isinstance(self.pytest_args, six.string_types) else list(self.pytest_args)
+        args = [self.pytest_args] if isinstance(self.pytest_args, str) else list(self.pytest_args)
         args.extend(['--cov', 'arctic',
                      '--cov-report', 'xml',
                      '--cov-report', 'html',
@@ -69,8 +68,7 @@ setup(
     long_description='\n'.join((long_description, changelog)),
     long_description_content_type="text/markdown",
     cmdclass={'test': PyTest},
-    setup_requires=["six",
-                    "numpy<=1.18.4",
+    setup_requires=["numpy<=1.18.4",
                     "setuptools-git",
                    ],
     install_requires=["decorator",

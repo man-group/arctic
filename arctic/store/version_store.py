@@ -156,7 +156,7 @@ class VersionStore(object):
         if regex is not None:
             query['symbol'] = {'$regex': regex}
         if kwargs:
-            for k, v in six.iteritems(kwargs):
+            for k, v in kwargs.items():
                 # TODO: this doesn't work as expected as it ignores the versions with metadata.deleted set
                 #       as a result it will return symbols with matching metadata which have been deleted
                 #       Maybe better add a match step in the pipeline instead of making it part of the query

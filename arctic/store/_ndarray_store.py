@@ -6,7 +6,6 @@ import numpy as np
 import pymongo
 from bson.binary import Binary
 from pymongo.errors import OperationFailure, DuplicateKeyError, BulkWriteError
-from six.moves import xrange
 
 from ._version_store_utils import checksum, version_base_or_id, _fast_check_corruption
 from .._compression import compress_array, decompress
@@ -656,7 +655,7 @@ class NdarrayStore(object):
         segment_index = []
 
         # Compress
-        idxs = xrange(int(np.ceil(float(length) / rows_per_chunk)))
+        idxs = range(int(np.ceil(float(length) / rows_per_chunk)))
         chunks = [(item[i * rows_per_chunk: (i + 1) * rows_per_chunk]).tostring() for i in idxs]
         compressed_chunks = compress_array(chunks)
 

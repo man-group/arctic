@@ -96,7 +96,7 @@ class MetadataStore(BSONStore):
         # Document query part
         data_query = {}
         if kwargs:
-            for k, v in six.iteritems(kwargs):
+            for k, v in kwargs.items():
                 data_query['metadata.' + k] = v
 
         # Sort using index, relying on https://docs.mongodb.com/manual/core/aggregation-pipeline-optimization/

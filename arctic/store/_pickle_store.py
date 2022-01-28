@@ -6,7 +6,7 @@ import bson
 import six
 from bson.binary import Binary
 from bson.errors import InvalidDocument
-from six.moves import cPickle, xrange
+from six.moves import cPickle
 
 from ._version_store_utils import checksum, pickle_compat_load, version_base_or_id
 from .._compression import decompress, compress_array
@@ -97,7 +97,7 @@ class PickleStore(object):
         pickle_protocol = min(cPickle.HIGHEST_PROTOCOL, 4)
         pickled = cPickle.dumps(item, protocol=pickle_protocol)
 
-        data = compress_array([pickled[i * _CHUNK_SIZE: (i + 1) * _CHUNK_SIZE] for i in xrange(int(len(pickled) / _CHUNK_SIZE + 1))])
+        data = compress_array([pickled[i * _CHUNK_SIZE: (i + 1) * _CHUNK_SIZE] for i in range(int(len(pickled) / _CHUNK_SIZE + 1))])
 
         for seg, d in enumerate(data):
             segment = {'data': Binary(d)}

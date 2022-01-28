@@ -4,7 +4,6 @@ import uuid
 from threading import RLock, Event
 
 from concurrent.futures import ThreadPoolExecutor, wait, ALL_COMPLETED, FIRST_EXCEPTION
-from six import iteritems, itervalues
 
 from arctic._config import ARCTIC_ASYNC_NWORKERS
 from arctic.exceptions import AsyncArcticException
@@ -106,7 +105,7 @@ class LazySingletonTasksCoordinator(ABC):
 
     def stop_all_running_tasks(self):
         with type(self)._POOL_LOCK:
-            for fut, ev in (v for v in itervalues(self.alive_tasks) if not v[0].done()):
+            for fut, ev in (v for v in self.alive_tasks.values() if not v[0].done()):
                 if ev:
                     ev.set()
                 fut.cancel()
@@ -145,13 +144,13 @@ class LazySingletonTasksCoordinator(ABC):
                 new_future = self._workers_pool.submit(_looping_task, shutdown_flag, fun, *args, **kwargs)
             else:
                 new_future = self._workers_pool.submit(_exec_task, fun, *args, **kwargs)
-            self.alive_tasks = {k: v for k, v in iteritems(self.alive_tasks) if not v[0].done()}
+            self.alive_tasks = {k: v for k, v in self.alive_tasks.items() if not v[0].done()}
             self.alive_tasks[new_id] = (new_future, shutdown_flag)
         return new_id, new_future
 
     def total_alive_tasks(self):
         with type(self)._POOL_LOCK:
-            self.alive_tasks = {k: v for k, v in iteritems(self.alive_tasks) if not v[0].done()}
+            self.alive_tasks = {k: v for k, v in self.alive_tasks.items() if not v[0].done()}
             total = len(self.alive_tasks)
         return total
 
@@ -169,7 +168,7 @@ class LazySingletonTasksCoordinator(ABC):
             if not self.is_shutdown:
                 raise AsyncArcticException("The workers pool has not been shutdown, please call shutdown() first.")
         LazySingletonTasksCoordinator.wait_tasks(
-            [v[0] for v in itervalues(self.alive_tasks)],
+            [v[0] for v in self.alive_tasks.values()],
             timeout=timeout, return_when=ALL_COMPLETED, raise_exceptions=False)
         with type(self)._POOL_LOCK:
             self.alive_tasks = {}
