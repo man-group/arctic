@@ -16,6 +16,8 @@ defaults: &defaults
     - run:
         name: Version checks
         command: |
+            VERSION=`fgrep '###' CHANGES.md  | awk '{print $2}' | head -1`
+            echo picked up VERSION=$VERSION from CHANGES.md
             grep -q $VERSION CHANGES.md || (echo "ERROR: Version number not found in CHANGES.md: $VERSION"; exit 1)
     - run:
         name: Output useful stuff
@@ -112,7 +114,7 @@ jobs:
       PYTHON_VERSION: "2_7"
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/2_7
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/2_7
-      VERSION: 1.80.4
+      VERSION: $VERSION
       #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
       #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
@@ -125,7 +127,7 @@ jobs:
       PYTHON_VERSION: "3_6"
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_6
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_6
-      VERSION: 1.80.4
+      VERSION: $VERSION
       #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
       #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
@@ -138,7 +140,7 @@ jobs:
       PYTHON_VERSION: "3_7"
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_7
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_7
-      VERSION: 1.80.4
+      VERSION: $VERSION
       #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
       #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
@@ -169,8 +171,6 @@ workflows:
   version: 2
   build_all:
     jobs:
-      # just build 3.6 its all we need right now
-      #- build_2_7
       - build_3_6
       - build_3_7
 
