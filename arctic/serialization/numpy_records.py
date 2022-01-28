@@ -1,4 +1,3 @@
-import six
 import logging
 
 import numpy as np
@@ -235,9 +234,6 @@ class SeriesSerializer(PandasSerializer):
         data = item[name]
 
         if force_bytes_to_unicode:
-            if six.PY2 and isinstance(name, (bytes, str)):
-                name = name.decode('utf-8')
-
             if len(data) and isinstance(data[0], bytes):
                 data = data.astype('unicode')
 
