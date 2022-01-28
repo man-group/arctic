@@ -1,5 +1,7 @@
 ## Changelog
 
+### 1.80.5
+
 ### 1.80.4 (2022-01-25)
   * Bugfix:  #940 fix rows per chunk causing divide by zero
   * Feature: #943 check markdown rendering of README.md and CHANGES.md in build
