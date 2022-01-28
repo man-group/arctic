@@ -4,7 +4,6 @@ from datetime import datetime as dt
 import numpy as np
 import pandas as pd
 import pytest
-import six
 from mock import patch, call, Mock
 from numpy.testing.utils import assert_array_equal
 from pandas import DatetimeIndex

@@ -4,7 +4,6 @@ from datetime import datetime as dt
 import bson
 import pandas as pd
 import pymongo
-import six
 
 from .bson_store import BSONStore
 from .._util import indent

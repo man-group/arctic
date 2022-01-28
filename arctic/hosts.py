@@ -5,7 +5,6 @@ import logging
 import re
 from weakref import WeakValueDictionary
 
-import six
 
 __all__ = ['get_arctic_lib']
 

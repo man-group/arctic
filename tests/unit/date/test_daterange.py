@@ -3,7 +3,6 @@ import operator
 from datetime import datetime as dt
 
 import pytest
-import six
 
 from arctic.date import DateRange, string_to_daterange, CLOSED_CLOSED, CLOSED_OPEN, OPEN_CLOSED, OPEN_OPEN
 

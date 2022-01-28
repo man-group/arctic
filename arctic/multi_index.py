@@ -6,7 +6,6 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
-import six
 from pandas import to_datetime as dt
 
 from .date import mktz
@@ -43,7 +42,7 @@ def fancy_group_by(df, grouping_level=0, aggregate_level=1, method='last', max_=
     if method not in ('first', 'last'):
         raise ValueError('Invalid method')
 
-    if isinstance(aggregate_level, six.string_types):
+    if isinstance(aggregate_level, str):
         aggregate_level = df.index.names.index(aggregate_level)
 
     # Trim any rows outside the aggregate value bounds

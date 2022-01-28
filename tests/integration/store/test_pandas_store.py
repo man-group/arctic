@@ -1,5 +1,4 @@
 import itertools
-import six
 import string
 from datetime import datetime as dt, timedelta as dtd
 
@@ -1029,7 +1028,7 @@ def test_mutable_df(library):
     assert read_s.data.__array__().flags['WRITEABLE']
 
 
-@pytest.mark.skipif(six.PY3, reason="Skip for Python3")
+@pytest.mark.skip(reason="Skip for Python3")
 def test_forced_encodings_with_df_mixed_types(library):
     sample_data = {'str_col': ['a', 'b'], u'unicode_col': [u'a', u'b'], 'int_col': [1, 2]}
     # This is for testing py2 bytes vs unicode serialization issues. Ignoring Py3 for now.
@@ -1094,7 +1093,7 @@ def test_forced_encodings_with_df_mixed_types(library):
     assert all([type(x) == unicode for x in df_forced_unicode.index])
 
 
-@pytest.mark.skipif(six.PY3, reason="Skip for Python3")
+@pytest.mark.skip(reason="Skip for Python3")
 def test_forced_encodings_with_df(library):
     sample_data = {'str_col': ['a', 'b'], 'unicode_col': [u'a', u'b'], 'int_col': [1, 2]}
     # This is for testing py2 bytes vs unicode serialization issues. Ignoring Py3 for now.
@@ -1150,7 +1149,6 @@ def test_forced_encodings_with_df(library):
     assert all([type(x) == unicode for x in s_str_forced.index])
 
 
-@pytest.mark.skipif(six.PY2, reason="Skip for Python2")
 def test_forced_encodings_with_df_py3(library):
     sample_data = {'str_col': [b'a', b'b'], 'unicode_col': [u'a', u'b'], 'int_col': [1, 2]}
     unicode_type = str
@@ -1206,7 +1204,6 @@ def test_forced_encodings_with_df_py3(library):
     assert all([type(x) == unicode_type for x in s_unicode_forced.index])
 
 
-@pytest.mark.skipif(six.PY2, reason="Skip for Python2")
 def test_forced_encodings_with_df_py3_multi_index(library):
     sample_data = {'str_col': [b'a', b'b'], 'unicode_col': [u'a', u'b'], 'int_col': [1, 2]}
     unicode_type = str

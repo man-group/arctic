@@ -3,10 +3,9 @@ import logging
 from operator import itemgetter
 
 import bson
-import six
 from bson.binary import Binary
 from bson.errors import InvalidDocument
-from six.moves import cPickle
+import pickle
 
 from ._version_store_utils import checksum, pickle_compat_load, version_base_or_id
 from .._compression import decompress, compress_array
@@ -93,9 +92,10 @@ class PickleStore(object):
         version['blob'] = _MAGIC_CHUNKEDV2
         # Python 3.8 onwards uses protocol 5 which cannot be unpickled in Python versions below that, so limiting
         # it to use a maximum of protocol 4 in Python which is understood by 3.4 onwards and is still fairly efficient.
-        # The min() allows lower versions to be used in py2 (which supports a max of 2)
-        pickle_protocol = min(cPickle.HIGHEST_PROTOCOL, 4)
-        pickled = cPickle.dumps(item, protocol=pickle_protocol)
+        # The min() used to allow lower versions to be used in py2 (which supported a max of 2)
+        #pickle_protocol = min(cPickle.HIGHEST_PROTOCOL, 4)
+        pickle_protocol = 4
+        pickled = pickle.dumps(item, protocol=pickle_protocol)
 
         data = compress_array([pickled[i * _CHUNK_SIZE: (i + 1) * _CHUNK_SIZE] for i in range(int(len(pickled) / _CHUNK_SIZE + 1))])
 
