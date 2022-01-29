@@ -77,7 +77,7 @@ class Arctic(object):
 
     def __init__(self, mongo_host, app_name=APPLICATION_NAME, allow_secondary=False,
                  socketTimeoutMS=10 * 60 * 1000, connectTimeoutMS=2 * 1000,
-                 serverSelectionTimeoutMS=30 * 1000, **kwargs):
+                 serverSelectionTimeoutMS=30 * 1000, db_prefix=None, **kwargs):
         """
         Constructs a Arctic Datastore.
 
@@ -105,6 +105,9 @@ class Arctic(object):
         kwargs: 'dict' extra keyword arguments to pass when calling pymongo.MongoClient,
             for example ssl parameters.
         """
+        if db_prefix:
+            Arctic.DB_PREFIX = db_prefix
+
         self._application_name = app_name
         self._library_cache = {}
         self._allow_secondary = allow_secondary
