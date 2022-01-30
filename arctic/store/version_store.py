@@ -610,6 +610,27 @@ class VersionStore(object):
                              metadata=version.pop('metadata', None), data=None,
                              host=self._arctic_lib.arctic.mongo_host)
 
+
+    def _add_min_max_date_to_metadata(self, metadata, data):
+        min_data=max_date = None
+
+        if 'date' in data.index.names:
+            dates = data.index.get_level_values('date')
+            min_date = dates.min()
+            max_date = dates.max()
+
+        elif 'date' in data.columns:
+            min_date = data['date'].min()
+            max_date = data['date'].max()
+
+        metadata = metadata or {}
+
+        if 'min_date' not in metadata and 'max_date' not in metadata:
+            metadata['min_date'] = min_date
+            metadata['max_date'] = max_date
+
+        return metadata
+
     @mongo_retry
     def write(self, symbol, data, metadata=None, prune_previous_version=True, **kwargs):
         """
@@ -642,7 +663,7 @@ class VersionStore(object):
         version['version'] = self._version_nums.find_one_and_update({'symbol': symbol},
                                                                     {'$inc': {'version': 1}},
                                                                     upsert=True, new=True)['version']
-        version['metadata'] = metadata
+        version['metadata'] = self._add_min_max_date_to_metadata(metadata, data)
 
         previous_version = self._versions.find_one({'symbol': symbol, 'version': {'$lt': version['version']}},
                                                    sort=[('version', pymongo.DESCENDING)])
