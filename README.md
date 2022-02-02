@@ -1,9 +1,10 @@
-# [![arctic](logo/arctic_50.png)](https://github.com/manahl/arctic) [Arctic TimeSeries and Tick store](https://github.com/manahl/arctic)
+# [![](https://raw.githubusercontent.com/man-group/arctic/master/logo/arctic_50.png?raw=true)](https://github.com/man-group/arctic) [Arctic TimeSeries and Tick store](https://github.com/man-group/arctic)
 
 
 [![Documentation Status](https://readthedocs.org/projects/arctic/badge/?version=latest)](https://arctic.readthedocs.io/en/latest/?badge=latest)
-[![Travis CI](https://travis-ci.org/man-group/arctic.svg?branch=master)](https://travis-ci.org/man-group/arctic)
-[![Join the chat at https://gitter.im/manahl/arctic](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/manahl/arctic?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![CircleCI](https://circleci.com/gh/man-group/arctic/tree/master.svg?style=shield)](https://app.circleci.com/pipelines/github/man-group/arctic?branch=master)
+[![PyPI](https://img.shields.io/pypi/v/arctic)](https://pypi.org/project/arctic/)
+[![Join the chat at https://gitter.im/man-group/arctic](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/man-group/arctic?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Arctic is a high performance datastore for numeric data. It supports [Pandas](http://pandas.pydata.org/),
 [numpy](http://www.numpy.org/) arrays and pickled objects out-of-the-box, with pluggable support for
@@ -13,48 +14,61 @@ Arctic can query millions of rows per second per client, achieves ~10x compressi
 ~10x compression on disk, and scales to hundreds of millions of rows per second per
 [MongoDB](https://www.mongodb.org/) instance.
 
-Arctic has been under active development at [Man AHL](http://www.ahl.com/) since 2012.
+Arctic has been under active development at [Man AHL](https://www.man.com/ahl) since 2012.
+
+ * Stable Version 1.79.3
+ * Beta Version 1.80.4
 
 ## Quickstart
 
 ### Install Arctic
 
-```
-pip install git+https://github.com/manahl/arctic.git
-```
+``
+pip install git+https://github.com/man-group/arctic.git
+``
 
 ### Run a MongoDB
 
-```
+``
 mongod --dbpath <path/to/db_directory>
-```
+``
 
-### Using VersionStore
-
-```
+## Using VersionStore
+``
 from arctic import Arctic
 import quandl
-
-# Connect to Local MONGODB
+``
+### Connect to Local MONGODB
+``
 store = Arctic('localhost')
+``
 
-# Create the library - defaults to VersionStore
+### Create the library - defaults to VersionStore
+``
 store.initialize_library('NASDAQ')
+``
 
-# Access the library
+### Access the library
+``
 library = store['NASDAQ']
+``
 
-# Load some data - maybe from Quandl
+### Load some data - maybe from Quandl
+``
 aapl = quandl.get("WIKI/AAPL", authtoken="your token here")
+``
 
-# Store the data in the library
+### Store the data in the library
+``
 library.write('AAPL', aapl, metadata={'source': 'Quandl'})
+``
 
-# Reading the data
+### Reading the data
+``
 item = library.read('AAPL')
 aapl = item.data
 metadata = item.metadata
-```
+``
 
 VersionStore supports much more: [See the HowTo](howtos/how_to_use_arctic.py)!
 
@@ -83,7 +97,7 @@ itself is composed of a number of collections within the database. Libraries loo
   * user.EOD
   * user.ONEMINUTE
 
-A library is mapped to a Python class.  All library databases in MongoDB are prefixed with 'arctic_'
+A library is mapped to a Python class.  All library databases in MongoDB are prefixed with 'arctic\_'
 
 ### Storage Engines
 
@@ -101,7 +115,7 @@ Arctic includes three storage engines:
       * [Documentation](docs/versionstore.md)
   * [TickStore](arctic/tickstore/tickstore.py): Column oriented tick database.  Supports
     dynamic fields, chunks aren't versioned. Designed for large continuously ticking data.
-  * [Chunkstore](https://github.com/manahl/arctic/wiki/Chunkstore): A storage type that allows data to be stored in customizable chunk sizes. Chunks
+  * [Chunkstore](https://github.com/man-group/arctic/wiki/Chunkstore): A storage type that allows data to be stored in customizable chunk sizes. Chunks
     aren't versioned, and can be appended to and updated in place. 
     * [Documentation](docs/chunkstore.md)
 
@@ -112,9 +126,9 @@ Arctic storage implementations are **pluggable**.  VersionStore is the default.
 
 Arctic currently works with:
 
- * Python 2.7, 3.4, 3.5, 3.6
- * pymongo >= 3.6
- * Pandas
+ * Python 3.6, 3.7
+ * pymongo 3.6.0 thru 3.11.0
+ * Pandas 0.22.0 thru 1.0.3
  * MongoDB >= 2.4.x
 
 
@@ -125,7 +139,7 @@ Operating Systems:
 
 ## Acknowledgements
 
-Arctic has been under active development at [Man AHL](http://www.ahl.com/) since 2012.
+Arctic has been under active development at [Man AHL](https://www.man.com/ahl) since 2012.
 
 It wouldn't be possible without the work of the AHL Data Engineering Team including:
 
@@ -141,6 +155,7 @@ It wouldn't be possible without the work of the AHL Data Engineering Team includ
  * [Bryant Moscon](https://github.com/bmoscon)
  * [Dimosthenis Pediaditakis](https://github.com/dimosped)
  * [Shashank Khare](https://github.com/shashank88)
+ * [Duncan Kerr](https://github.com/dunckerr)
  * ... and many others ...
 
 Contributions welcome!

@@ -95,6 +95,15 @@ def test_save_read_big_2darray(library, fw_pointers_cfg):
         assert np.all(ndarr == saved_arr)
 
 
+@pytest.mark.parametrize('fw_pointers_cfg', [FwPointersCfg.DISABLED, FwPointersCfg.HYBRID, FwPointersCfg.ENABLED])
+def test_save_read_massive_2darray(library, fw_pointers_cfg):
+    with FwPointersCtx(fw_pointers_cfg):
+        ndarr = np.random.rand(1, 320000)
+        library.write('MYARR', ndarr)
+        saved_arr = library.read('MYARR').data
+        assert np.all(ndarr == saved_arr)
+
+
 def test_get_info_bson_object(library):
     ndarr = np.ones(1000)
     library.write('MYARR', ndarr)

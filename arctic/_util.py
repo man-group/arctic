@@ -83,12 +83,20 @@ def enable_sharding(arctic, library_name, hashed=True, key='symbol'):
 
 
 def mongo_count(collection, filter=None, **kwargs):
+    """
+    use with care as filters on un-indexed fields will generate COLLSCAN.
+    """
     filter = {} if filter is None else filter
     global _use_new_count_api
     _use_new_count_api = _detect_new_count_api() if _use_new_count_api is None else _use_new_count_api
-    # This is a temporary compatibility fix for compatibility with pymongo>=3.7, and also avoid deprecation warnings
+
     if _use_new_count_api:
-        # Projection is ignored for count_documents
-        return collection.count_documents(filter=filter, **kwargs)
+        if filter == {}:
+            # fast. uses collection metadata
+            return collection.estimated_document_count(**kwargs)
+        else:
+            # transactions supported, but slow for non-indexed filters
+            return collection.count_documents(filter=filter, **kwargs)
     else:
+        # pymongo <= 3.6 # faster than count_documents but non-transactional and deprecated
         return collection.count(filter=filter, **kwargs)

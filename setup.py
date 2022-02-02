@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2015 Man AHL
+# Copyright (C) 2015-2022 Man Group Ltd
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -50,7 +50,7 @@ class PyTest(TestCommand):
         args.extend(['--cov', 'arctic',
                      '--cov-report', 'xml',
                      '--cov-report', 'html',
-                     '--junitxml', 'junit.xml',
+                     '--junitxml', 'test-results/junit.xml',
                      ])
         errno = pytest.main(args)
         sys.exit(errno)
@@ -58,33 +58,34 @@ class PyTest(TestCommand):
 
 setup(
     name="arctic",
-    version="1.80.0",
+    version="1.80.5",
     author="Man AHL Technology",
     author_email="ManAHLTech@ahl.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
     license="GPL",
     keywords=["ahl", "keyvalue", "tickstore", "mongo", "timeseries", ],
-    url="https://github.com/manahl/arctic",
+    url="https://github.com/man-group/arctic",
     packages=find_packages(exclude=['tests', 'tests.*', 'benchmarks']),
     long_description='\n'.join((long_description, changelog)),
     long_description_content_type="text/markdown",
     cmdclass={'test': PyTest},
     setup_requires=["six",
-                    "numpy",
+                    "numpy<=1.18.4",
                     "setuptools-git",
                    ],
     install_requires=["decorator",
                       "enum-compat",
-                      "futures; python_version == '2.7'",
+                      "mock",
                       "mockextras",
-                      "pandas",
-                      "pymongo>=3.6.0",
-                      "python-dateutil",
+                      "pandas<=1.0.3",
+                      "numpy<=1.18.4",
+                      "pymongo>=3.6.0, <= 3.11.0",
                       "pytz",
                       "tzlocal",
-                      "lz4"
+                      "lz4",
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
+    # deprecated
     tests_require=["mock",
                    "mockextras",
                    "pytest",
@@ -92,6 +93,7 @@ setup(
                    "pytest-server-fixtures",
                    "pytest-timeout",
                    "pytest-xdist<=1.26.1",
+                   "tomli<2; python_version=='3.6'",
                    "lz4"
                   ],
     entry_points={'console_scripts': [
@@ -108,10 +110,8 @@ setup(
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: Implementation :: CPython",
         "Operating System :: POSIX",
         "Operating System :: MacOS",

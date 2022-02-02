@@ -1,6 +1,36 @@
 ## Changelog
 
-### 1.80.0
+### 1.80.5
+
+### 1.80.4 (2022-01-25)
+  * Bugfix:  #940 fix rows per chunk causing divide by zero
+  * Feature: #943 check markdown rendering of README.md and CHANGES.md in build
+  * Bugfix:  #946 move test dependencies to tests_require
+
+### 1.80.3 (2022-01-20)
+  * Feature: #941 use named index for VersionStore to avoid 127 max fully qualified index name
+  * Bugfix:  #935, #936 fixed README.md rendering which was preventing pypi upload
+
+### 1.80.2 (2022-01-10)
+  * Bugfix: #932 revert serialization-optimization (#909, #910)
+
+### 1.80.1 (2021-12-09)
+  * Bugfix: #855 use IXSCAN for list\_symbols which speeds up snapshotting (actually #856)
+  * Bugfix: #926 avoid pathologically slow count_documents() call with pymongo > 3.6.0
+
+### 1.80.0 (2021-10-28)
+  * Feature: #919 Add CircleCI badge to README.md
+  * Feature: #917 Add CircleCI build
+  * Bugfix:  #910 Fix column subsetting bug
+  * Bugfix:  #909 Speedup FrameToArray serialiser for ChunkStore by removing intermediate DataFrame construction
+  * Bugfix:  #902 Chunkstore-read-speedup
+  * Bugfix:  #872 Do not spam if not permissioned on cache db
+  * Bugfix:  #874 Pickle protocol 5 not supported in 3.7 and below
+  * Bugfix:       Handle uninitialized cache object
+  * Feature: #897 Pin numpy 1.18.4
+  * Feature: #897 Pin pandas 1.0.3
+  * Bugfix:  #881 Fix for issue #815
+  * Bugfix:  #875 Fix flake8 errors
 
 ### 1.79.4 (2020-12-01)
   * Bugfix: Update code to work with latest version of pandas
@@ -36,7 +66,7 @@
   * BugFix: #670 Lots of pycodestyle fixes
   * BugFix: #691 Fix arrays_to_mgr for pandas 0.23.4+
   * BugFix: #698 Fix no handler in logging warning
-  * BugFix: #705 Use sort_index instead of sortlevel_
+  * BugFix: #705 Use sort_index instead of sortlevel\_
   * BugFix: #710: Initialize SEGMENT_SHA in versions for writes and appends
   * Feature: #669 Experimental initial implementation of async arctic
   * Feature: #704 Do not enable sharding by default in BSONStore.
@@ -354,12 +384,14 @@
 ### 1.16 (2015-12-15)
 
   * Feature: ArticTransaction now supports non-audited 'transactions': `audit=False`
-             ```
-             with ArcticTransaction(Arctic('hostname')['some_library'], 'symbol', audit=False) as at:
-                   ...
-             ```
-             This is useful for batch jobs which read-modify-write and don't want to clash with
-             concurrent writers, and which don't require keeping all versions of a symbol.
+
+```
+with ArcticTransaction(Arctic('hostname')['some_library'], 'symbol', audit=False) as at:
+...
+```
+
+     This is useful for batch jobs which read-modify-write and don't want to clash with
+     concurrent writers, and which don't require keeping all versions of a symbol.
 
 ### 1.15 (2015-11-25)
 

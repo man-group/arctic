@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from pandas import DataFrame, Index, MultiIndex
 from pandas.util.testing import assert_frame_equal
+from tests.util import assert_frame_equal_
 
 from arctic.chunkstore.utils import read_apply
 
@@ -37,4 +38,4 @@ def test_read_apply(chunkstore_lib):
         return df
 
     for data in read_apply(chunkstore_lib, 'test', func):
-        assert_frame_equal(data, func(df))
+        assert_frame_equal_(data, func(df))
