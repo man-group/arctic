@@ -4,7 +4,6 @@ from datetime import datetime as dt
 import bson
 import pandas as pd
 import pymongo
-import six
 
 from .bson_store import BSONStore
 from .._util import indent
@@ -96,7 +95,7 @@ class MetadataStore(BSONStore):
         # Document query part
         data_query = {}
         if kwargs:
-            for k, v in six.iteritems(kwargs):
+            for k, v in kwargs.items():
                 data_query['metadata.' + k] = v
 
         # Sort using index, relying on https://docs.mongodb.com/manual/core/aggregation-pipeline-optimization/

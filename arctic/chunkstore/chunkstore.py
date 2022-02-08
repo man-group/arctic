@@ -7,7 +7,6 @@ import pymongo
 from bson.binary import Binary
 from pandas import DataFrame, Series
 from pymongo.errors import OperationFailure
-from six.moves import xrange
 
 from .date_chunker import DateChunker, START, END
 from .passthrough_chunker import PassthroughChunker
@@ -359,7 +358,7 @@ class ChunkStore(object):
             doc[METADATA] = {'columns': data[METADATA][COLUMNS] if COLUMNS in data[METADATA] else ''}
             meta = data[METADATA]
 
-            for i in xrange(int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)):
+            for i in range(int(len(data[DATA]) / MAX_CHUNK_SIZE + 1)):
                 chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE: (i + 1) * MAX_CHUNK_SIZE])}
                 chunk[SEGMENT] = i
                 chunk[START] = meta[START] = start
@@ -459,7 +458,7 @@ class ChunkStore(object):
                                               END: end,
                                               SEGMENT: {'$gte': chunk_count}})
 
-            for i in xrange(chunk_count):
+            for i in range(chunk_count):
                 chunk = {DATA: Binary(data[DATA][i * MAX_CHUNK_SIZE: (i + 1) * MAX_CHUNK_SIZE])}
                 chunk[SEGMENT] = i
                 chunk[START] = start

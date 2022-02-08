@@ -3,7 +3,6 @@ from datetime import datetime as dt, timedelta
 
 import bson
 import pymongo
-import six
 from pymongo import ReadPreference
 from pymongo.errors import OperationFailure, AutoReconnect, DuplicateKeyError
 
@@ -156,7 +155,7 @@ class VersionStore(object):
         if regex is not None:
             query['symbol'] = {'$regex': regex}
         if kwargs:
-            for k, v in six.iteritems(kwargs):
+            for k, v in kwargs.items():
                 # TODO: this doesn't work as expected as it ignores the versions with metadata.deleted set
                 #       as a result it will return symbols with matching metadata which have been deleted
                 #       Maybe better add a match step in the pipeline instead of making it part of the query
@@ -222,7 +221,7 @@ class VersionStore(object):
         """
         query = {}
         if symbol:
-            if isinstance(symbol, six.string_types):
+            if isinstance(symbol, str):
                 query['symbol'] = {'$regex': symbol}
             else:
                 query['symbol'] = {'$in': list(symbol)}
@@ -483,7 +482,7 @@ class VersionStore(object):
         _version = None
         if as_of is None:
             _version = versions_coll.find_one({'symbol': symbol}, sort=[('version', pymongo.DESCENDING)])
-        elif isinstance(as_of, six.string_types):
+        elif isinstance(as_of, str):
             # as_of is a snapshot
             snapshot = self._snapshots.find_one({'name': as_of})
             if snapshot:
