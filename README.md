@@ -1,4 +1,4 @@
-# [![](https://raw.githubusercontent.com/man-group/arctic/master/logo/arctic_50.png?raw=true)](https://github.com/man-group/arctic) [Arctic TimeSeries and Tick store](https://github.com/man-group/arctic)
+# [![arctic](https://raw.githubusercontent.com/man-group/arctic/master/logo/arctic_50.png?raw=true)](https://github.com/man-group/arctic) [Arctic TimeSeries and Tick store](https://github.com/man-group/arctic)
 
 
 [![Documentation Status](https://readthedocs.org/projects/arctic/badge/?version=latest)](https://arctic.readthedocs.io/en/latest/?badge=latest)
