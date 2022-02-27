@@ -33,10 +33,16 @@ def test_write_object():
 
     assert version['blob'] == '__chunked__V2'
     coll = arctic_lib.get_top_level_collection.return_value
-    assert coll.update_one.call_args_list == [call({'sha': checksum('sentinel.symbol', {'segment': 0, 'data': Binary(compress(pickle.dumps(sentinel.item, pickle.HIGHEST_PROTOCOL)))}),
+
+    prot = min(4, cPickle.HIGHEST_PROTOCOL)
+    assert coll.update_one.call_args_list == [call({'sha': checksum('sentinel.symbol', {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, prot)))}),
                                                     'symbol': 'sentinel.symbol'},
-                                                   {'$set': {'segment': 0, 'data': Binary(compress(pickle.dumps(sentinel.item, pickle.HIGHEST_PROTOCOL)), 0)},
+                                                   {'$set': {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, prot)), 0)},
                                                     '$addToSet': {'parent': version['_id']}}, upsert=True)]
+
+    #assert coll.update_one.call_args_list == [call({'symbol': 'sentinel.symbol', 'sha': checksum('sentinel.symbol', {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, prot)))})},
+          #{'$set': {'data':  Binary(compress(cPickle.dumps(sentinel.item, prot)), 0), 'segment': 0}, '$addToSet': {'parent': version['_id']}},
+                                                   #upsert=True)]
 
 
 def test_read():
