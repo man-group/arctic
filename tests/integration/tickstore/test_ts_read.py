@@ -4,7 +4,6 @@ from datetime import datetime as dt
 import numpy as np
 import pandas as pd
 import pytest
-import six
 from mock import patch, call, Mock
 from numpy.testing.utils import assert_array_equal
 from pandas import DatetimeIndex
@@ -662,12 +661,8 @@ def test_read_strings(tickstore_lib):
 
 def test_read_utf8_strings(tickstore_lib):
     data = ['一', '二', '三'] # Chinese character [one, two , three]
-    if six.PY2:
-      utf8_data = data
-      unicode_data = [s.decode('utf8') for s in data]
-    else:
-      utf8_data = [s.encode('utf8') for s in data]
-      unicode_data = data
+    utf8_data = [s.encode('utf8') for s in data]
+    unicode_data = data
     df = pd.DataFrame(data={'data': utf8_data},
                       index=pd.Index(data=[dt(2016, 1, 1, 00, tzinfo=mktz('UTC')),
                                            dt(2016, 1, 2, 00, tzinfo=mktz('UTC')),

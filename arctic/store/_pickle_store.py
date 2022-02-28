@@ -3,10 +3,9 @@ import logging
 from operator import itemgetter
 
 import bson
-import six
 from bson.binary import Binary
 from bson.errors import InvalidDocument
-from six.moves import cPickle, xrange
+import pickle
 
 from ._version_store_utils import checksum, pickle_compat_load, version_base_or_id
 from .._compression import decompress, compress_array
@@ -58,19 +57,15 @@ class PickleStore(object):
                 except:
                     logger.error("Failed to read symbol %s" % symbol)
 
-            if six.PY2:
-                # Providing encoding is not possible on PY2
+            try:
+                # The default encoding is ascii.
                 return pickle_compat_load(io.BytesIO(data))
-            else:
-                try:
-                    # The default encoding is ascii.
-                    return pickle_compat_load(io.BytesIO(data))
-                except UnicodeDecodeError as ue:
-                    # Using encoding='latin1' is required for unpickling NumPy arrays and instances of datetime, date
-                    # and time pickled by Python 2: https://docs.python.org/3/library/pickle.html#pickle.load
-                    logger.info("Could not Unpickle with ascii, Using latin1.")
-                    encoding = kwargs.get('encoding', 'latin_1')  # Check if someone has manually specified encoding.
-                    return pickle_compat_load(io.BytesIO(data), encoding=encoding)
+            except UnicodeDecodeError as ue:
+                # Using encoding='latin1' is required for unpickling NumPy arrays and instances of datetime, date
+                # and time pickled by Python 2: https://docs.python.org/3/library/pickle.html#pickle.load
+                logger.info("Could not Unpickle with ascii, Using latin1.")
+                encoding = kwargs.get('encoding', 'latin_1')  # Check if someone has manually specified encoding.
+                return pickle_compat_load(io.BytesIO(data), encoding=encoding)
         return version['data']
 
     @staticmethod
@@ -97,11 +92,12 @@ class PickleStore(object):
         version['blob'] = _MAGIC_CHUNKEDV2
         # Python 3.8 onwards uses protocol 5 which cannot be unpickled in Python versions below that, so limiting
         # it to use a maximum of protocol 4 in Python which is understood by 3.4 onwards and is still fairly efficient.
-        # The min() allows lower versions to be used in py2 (which supports a max of 2)
-        pickle_protocol = min(cPickle.HIGHEST_PROTOCOL, 4)
-        pickled = cPickle.dumps(item, protocol=pickle_protocol)
+        # The min() used to allow lower versions to be used in py2 (which supported a max of 2)
+        #pickle_protocol = min(cPickle.HIGHEST_PROTOCOL, 4)
+        pickle_protocol = 4
+        pickled = pickle.dumps(item, protocol=pickle_protocol)
 
-        data = compress_array([pickled[i * _CHUNK_SIZE: (i + 1) * _CHUNK_SIZE] for i in xrange(int(len(pickled) / _CHUNK_SIZE + 1))])
+        data = compress_array([pickled[i * _CHUNK_SIZE: (i + 1) * _CHUNK_SIZE] for i in range(int(len(pickled) / _CHUNK_SIZE + 1))])
 
         for seg, d in enumerate(data):
             segment = {'data': Binary(d)}

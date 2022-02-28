@@ -1,5 +1,4 @@
 import dateutil
-import six
 import tzlocal
 
 
@@ -29,9 +28,13 @@ def mktz(zone=None):
     - - - - - -
     TimezoneError : Raised if a user inputs a bad timezone name.
     """
-    if zone is None:
-        zone = tzlocal.get_localzone().zone
-    zone = six.u(zone)
+    try:
+        if zone is None:
+            zone = tzlocal.get_localzone().zone
+    except AttributeError:
+        # The zone attribute is called key in tzlocal >= 3.0
+        zone = tzlocal.get_localzone().key
+
     tz = dateutil.tz.gettz(zone)
     if not tz:
         raise TimezoneError('Timezone "%s" can not be read' % (zone))

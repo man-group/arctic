@@ -1,6 +1,5 @@
 import time
 
-from six.moves import xrange
 
 import arctic._compression as aclz4
 from arctic import Arctic
@@ -47,14 +46,14 @@ def async_bench(num_requests, num_chunks):
     data = get_cached_random_df(num_chunks)
     lib = a[library_name]
     requests = [async_arctic_submit(lib, lib.write, True, symbol='sym_{}'.format(x), data=data)
-                for x in xrange(num_requests)]
+                for x in range(num_requests)]
     async_wait_requests(requests, do_raise=True)
 
 
 def serial_bench(num_requests, num_chunks):
     data = get_cached_random_df(num_chunks)
     lib = a[library_name]
-    for x in xrange(num_requests):
+    for x in range(num_requests):
         lib.write(symbol='sym_{}'.format(x), data=data)
 
 
@@ -64,7 +63,7 @@ def run_scenario(result_text, rounds, num_requests, num_chunks, parallel_lz4,
     if async_arctic_pool_workers is not None:
         ASYNC_ARCTIC.reset(pool_size=int(async_arctic_pool_workers), timeout=10)
     measurements = []
-    for curr_round in xrange(rounds):
+    for curr_round in range(rounds):
         # print("Running round {}".format(curr_round))
         clean_lib()
         start = time.time()

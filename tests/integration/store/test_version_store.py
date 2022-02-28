@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import pymongo
 import pytest
-import six
 from mock import Mock, patch
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pymongo.errors import OperationFailure
@@ -384,7 +383,7 @@ def test_list_version(library, fw_pointers_cfg):
         assert len(list(library.list_versions(symbol))) == 0
         dates = [None, None, None]
         now = dt.utcnow().replace(tzinfo=mktz('UTC'))
-        for x in six.moves.xrange(len(dates)):
+        for x in range(len(dates)):
             dates[x] = now - dtd(minutes=130 - x)
             with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(dates[x])):
                 library.write(symbol, ts1, prune_previous_version=False)
@@ -424,7 +423,7 @@ def test_list_version_latest_only(library):
     assert len(list(library.list_versions(symbol))) == 0
     dates = [None, None, None]
     now = dt.utcnow().replace(tzinfo=mktz('UTC'))
-    for x in six.moves.xrange(len(dates)):
+    for x in range(len(dates)):
         dates[x] = now - dtd(minutes=20 - x)
         with patch("bson.ObjectId", return_value=bson.ObjectId.from_datetime(dates[x])):
             library.write(symbol, ts1, prune_previous_version=False)
