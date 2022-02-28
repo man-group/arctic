@@ -8,7 +8,6 @@ from bson.binary import Binary
 from bson.objectid import ObjectId
 from mock import create_autospec, sentinel, Mock, call
 import pickle
-import cPickle # TODO DMK
 
 from arctic._compression import compress, compressHC
 from arctic.exceptions import UnsupportedPickleStoreVersion
@@ -35,7 +34,7 @@ def test_write_object():
     assert version['blob'] == '__chunked__V2'
     coll = arctic_lib.get_top_level_collection.return_value
 
-    prot = min(4, cPickle.HIGHEST_PROTOCOL)
+    prot = min(4, pickle.HIGHEST_PROTOCOL)
     assert coll.update_one.call_args_list == [call({'sha': checksum('sentinel.symbol', {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, prot)))}),
                                                     'symbol': 'sentinel.symbol'},
                                                    {'$set': {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, prot)), 0)},
