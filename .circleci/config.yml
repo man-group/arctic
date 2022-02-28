@@ -171,7 +171,7 @@ workflows:
   version: 2
   build_all:
     jobs:
-      #- build_3_6
+      - build_3_6
       #- build_3_7
       - build_3_8
 
