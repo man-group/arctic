@@ -8,7 +8,6 @@ from bson.binary import Binary
 from bson.objectid import ObjectId
 from mock import create_autospec, sentinel, Mock, call
 import pickle
-import cPickle # TODO DMK
 
 from arctic._compression import compress, compressHC
 from arctic.exceptions import UnsupportedPickleStoreVersion
