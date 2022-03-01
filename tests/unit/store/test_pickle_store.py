@@ -35,9 +35,9 @@ def test_write_object():
     coll = arctic_lib.get_top_level_collection.return_value
 
     prot = min(4, pickle.HIGHEST_PROTOCOL)
-    assert coll.update_one.call_args_list == [call({'sha': checksum('sentinel.symbol', {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, prot)))}),
+    assert coll.update_one.call_args_list == [call({'sha': checksum('sentinel.symbol', {'segment': 0, 'data': Binary(compress(pickle.dumps(sentinel.item, prot)))}),
                                                     'symbol': 'sentinel.symbol'},
-                                                   {'$set': {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, prot)), 0)},
+                                                   {'$set': {'segment': 0, 'data': Binary(compress(pickle.dumps(sentinel.item, prot)), 0)},
                                                     '$addToSet': {'parent': version['_id']}}, upsert=True)]
 
     #assert coll.update_one.call_args_list == [call({'symbol': 'sentinel.symbol', 'sha': checksum('sentinel.symbol', {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, prot)))})},
