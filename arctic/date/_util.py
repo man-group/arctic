@@ -169,8 +169,13 @@ def datetime_to_ms(d):
         log.warning(f'dk test 1 {millisecond}')
         d1 = _add_tzone(d)
         log.warning(f'dk test d1 {d1}')
+
+        # 2
         #d2 = d1.utctimetuple()
-        d2 = d1.utctimetuple() if d1.tzinfo is None else d1.timetuple()
+        # 40
+        #d2 = d1.utctimetuple() if d1.tzinfo is None else d1.timetuple()
+        d2 = d1.to_pydatetime().utctimetuple()
+
         d3 = calendar.timegm(d2)
         log.warning(f'dk test d3 {d3}')
         d4 = d3 * 1000 + millisecond
