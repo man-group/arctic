@@ -179,7 +179,9 @@ def datetime_to_ms(d):
         try:
             d2 = d1.utctimetuple()
         except AttributeError:
-            d2 = d1.timetuple()
+            utc_zone = mktz("UTC")
+            d3 = d1.replace(tzinfo=utc_zone)
+            d2 = d3.timetuple()
 
         d3 = calendar.timegm(d2)
         log.warning(f'dk test d3 {d3}')
