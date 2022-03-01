@@ -203,10 +203,10 @@ def test_should_write_top_level_with_list_of_dicts(arctic):
 def test_should_write_top_level_with_correct_timezone(arctic):
     # Write timezone aware data and read back in UTC
     utc = mktz('UTC')
-    arctic.initialize_library('FEED_2010.LEVEL2', tickstore.TICK_STORE_TYPE)
-    arctic.initialize_library('FEED_2011.LEVEL2', tickstore.TICK_STORE_TYPE)
-    arctic.initialize_library('FEED.LEVEL2', toplevel.TICK_STORE_TYPE)
-    toplevel_tickstore = arctic['FEED.LEVEL2']
+    arctic.initialize_library('FEED_2010.LEVEL1', tickstore.TICK_STORE_TYPE)
+    arctic.initialize_library('FEED_2011.LEVEL1', tickstore.TICK_STORE_TYPE)
+    arctic.initialize_library('FEED.LEVEL1', toplevel.TICK_STORE_TYPE)
+    toplevel_tickstore = arctic['FEED.LEVEL1']
     dates = pd.date_range('20101230220000', periods=10, tz=mktz('America/New_York'))  # 10pm New York time is 3am next day UTC 
     data = [{'index': dates[i], 'a': i} for i in range(len(dates))]
     expected = pd.DataFrame(np.arange(len(dates), dtype=np.float64), index=dates.tz_convert(utc), columns=list('a'))
