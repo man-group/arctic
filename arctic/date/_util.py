@@ -10,7 +10,8 @@ from ._parse import parse
 
 if sys.version_info > (3,):
     long = int
-
+import logging
+log = logging.getLogger(__name__)
 
 # Support standard brackets syntax for open/closed ranges.
 Ranges = {'()': OPEN_OPEN,
@@ -165,15 +166,15 @@ def datetime_to_ms(d):
     """Convert a Python datetime object to a millisecond epoch (UTC) time value."""
     try:
         millisecond = d.microsecond // 1000
-        print(f'dk test 1 {millisecond}')
+        log.warning(f'dk test 1 {millisecond}')
         d1 = _add_tzone(d)
-        print(f'dk test d1 {d1}')
+        log.warning(f'dk test d1 {d1}')
         d2 = d1.utctimetuple()
-        print(f'dk test {d2}')
+        log.warning(f'dk test {d2}')
         d3 = calendar.timegm(d2)
-        print(f'dk test d3 {d3}')
+        log.warning(f'dk test d3 {d3}')
         d4 = d3 * 1000 + millisecond
-        print(f'dk test d4 {d4}')
+        log.warning(f'dk test d4 {d4}')
         return d4
         #return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
     except AttributeError:
