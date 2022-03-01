@@ -174,7 +174,12 @@ def datetime_to_ms(d):
         #d2 = d1.utctimetuple()
         # 40
         #d2 = d1.utctimetuple() if d1.tzinfo is None else d1.timetuple()
-        d2 = d1.to_pydatetime().utctimetuple()
+        # 3
+        #d2 = d1.to_pydatetime().utctimetuple()
+        try:
+            d2 = d1.utctimetuple()
+        except AttributeError:
+            d2 = d1.timetuple()
 
         d3 = calendar.timegm(d2)
         log.warning(f'dk test d3 {d3}')
