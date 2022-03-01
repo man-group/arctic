@@ -178,6 +178,7 @@ def datetime_to_ms(d):
                 return calendar.timegm(tmp.to_pydatetime().utctimetuple()) * 1000 + millisecond
             else:
                 return calendar.timegm(tmp.utctimetuple()) * 1000 + millisecond
+            d2 = d1.timetuple()
     except AttributeError:
         raise TypeError('expect Python datetime object, not %s' % type(d))
 
