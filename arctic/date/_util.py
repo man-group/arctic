@@ -12,7 +12,8 @@ from ._parse import parse
 
 if sys.version_info > (3,):
     long = int
-
+import logging
+log = logging.getLogger(__name__)
 
 # Support standard brackets syntax for open/closed ranges.
 Ranges = {'()': OPEN_OPEN,
