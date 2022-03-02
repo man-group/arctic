@@ -168,7 +168,9 @@ def datetime_to_ms(d):
 
         # workaround https://github.com/pandas-dev/pandas/issues/32174
         try:
-            d2 = d1.utctimetuple()
+            # test if this really is benign
+            d2 = d1.tz_localize(None).utctimetuple()
+            #d2 = d1.utctimetuple()
         except TypeError:
             # python3.8
             d2 = d1.tz_localize(None).utctimetuple()
