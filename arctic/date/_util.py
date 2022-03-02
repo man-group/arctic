@@ -166,21 +166,14 @@ def datetime_to_ms(d):
         millisecond = d.microsecond // 1000
         d1 = _add_tzone(d)
 
-        # 2
-        #d2 = d1.utctimetuple()
-        # 40
-        #d2 = d1.utctimetuple() if d1.tzinfo is None else d1.timetuple()
-        # 3
-        #d2 = d1.to_pydatetime().utctimetuple()
+        # workaround https://github.com/pandas-dev/pandas/issues/32174
         try:
             d2 = d1.utctimetuple()
         except TypeError:
-            d1 = d1.tz_localize(None)
-            d2 = d1.utctimetuple()
+            # python3.8
+            d2 = d1.tz_localize(None).utctimetuple()
 
-        d3 = calendar.timegm(d2)
-        d4 = d3 * 1000 + millisecond
-        return d4
+        return calendar.timegm(d2) * 1000 + millisecond
         #return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
     except AttributeError:
         raise TypeError('expect Python datetime object, not %s' % type(d))
