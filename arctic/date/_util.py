@@ -167,6 +167,7 @@ def datetime_to_ms(d):
     try:
         millisecond = d.microsecond // 1000
 
+<<<<<<< HEAD
         # python3.8 workaround https://github.com/pandas-dev/pandas/issues/32174
         if sys.version_info < (3, 8, 0):
             return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
@@ -176,6 +177,14 @@ def datetime_to_ms(d):
                 return calendar.timegm(tmp.to_pydatetime().utctimetuple()) * 1000 + millisecond
             else:
                 return calendar.timegm(tmp.utctimetuple()) * 1000 + millisecond
+=======
+        # workaround https://github.com/pandas-dev/pandas/issues/32174
+        try:
+            # test if this really is benign
+            d2 = d1.tz_localize(None).utctimetuple()
+            #d2 = d1.utctimetuple()
+        except TypeError:
+>>>>>>> f885b6a (is tz change really benign)
             # python3.8
             d2 = d1.tz_localize(None).utctimetuple()
     except AttributeError:

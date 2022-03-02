@@ -28,16 +28,15 @@ def mktz(zone=None):
     - - - - - -
     TimezoneError : Raised if a user inputs a bad timezone name.
     """
-    if zone is None:
-        zone = tzlocal.get_localzone().zone
-    """" TODO DMKS this is good
+
+    # https://github.com/man-group/arctic/issues/913
     try:
         if zone is None:
             zone = tzlocal.get_localzone().zone
     except AttributeError:
         # The zone attribute is called key in tzlocal >= 3.0
         zone = tzlocal.get_localzone().key
-    """
+
     tz = dateutil.tz.gettz(zone)
     if not tz:
         raise TimezoneError('Timezone "%s" can not be read' % (zone))
