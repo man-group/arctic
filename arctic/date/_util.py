@@ -11,6 +11,7 @@ from ._parse import parse
 if sys.version_info > (3,):
     long = int
 
+
 # Support standard brackets syntax for open/closed ranges.
 Ranges = {'()': OPEN_OPEN,
           '(]': OPEN_CLOSED,
@@ -164,19 +165,15 @@ def datetime_to_ms(d):
     """Convert a Python datetime object to a millisecond epoch (UTC) time value."""
     try:
         millisecond = d.microsecond // 1000
-        d1 = _add_tzone(d)
 
-        # workaround https://github.com/pandas-dev/pandas/issues/32174
+        # python3.8 workaround https://github.com/pandas-dev/pandas/issues/32174
+        # return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
         try:
-            d2 = d1.utctimetuple()
+            d2 = _add_tzone(d).utctimetuple()
         except TypeError:
-            # python3.8 pandas 1.0.3 loses tz fails 1 test
-            #d2 = d1.tz_localize(None).utctimetuple()
-            # works python 3.6 pandas 0.22.0
-            d2 = d1.to_pydatetime().utctimetuple()
+            d2 = _add_tzone(d).to_pydatetime().utctimetuple()
 
         return calendar.timegm(d2) * 1000 + millisecond
-        #return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
     except AttributeError:
         raise TypeError('expect Python datetime object, not %s' % type(d))
 

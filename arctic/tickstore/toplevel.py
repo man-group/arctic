@@ -96,7 +96,9 @@ class TopLevelTickStore(object):
         # check that the date range does not overlap
         library_metadata = self._get_library_metadata(date_range)
         if len(library_metadata) > 1 or (len(library_metadata) == 1 and library_metadata[0] != library_name):
-            raise OverlappingDataException("""There are libraries that overlap with the date range: library: {} overlapping libraries: {}""".format(library_name, [lib.library for lib in library_metadata]))
+            raise OverlappingDataException("""There are libraries that overlap with the date range:
+library: {}
+overlapping libraries: {}""".format(library_name, [lib.library for lib in library_metadata]))
         self._collection.update_one({'library_name': library_name},
                                     {'$set': {'start': start, 'end': end}}, upsert=True)
 

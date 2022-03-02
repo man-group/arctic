@@ -40,10 +40,6 @@ def test_write_object():
                                                    {'$set': {'segment': 0, 'data': Binary(compress(pickle.dumps(sentinel.item, prot)), 0)},
                                                     '$addToSet': {'parent': version['_id']}}, upsert=True)]
 
-    #assert coll.update_one.call_args_list == [call({'symbol': 'sentinel.symbol', 'sha': checksum('sentinel.symbol', {'segment': 0, 'data': Binary(compress(cPickle.dumps(sentinel.item, prot)))})},
-          #{'$set': {'data':  Binary(compress(cPickle.dumps(sentinel.item, prot)), 0), 'segment': 0}, '$addToSet': {'parent': version['_id']}},
-                                                   #upsert=True)]
-
 
 def test_read():
     self = create_autospec(PickleStore)
