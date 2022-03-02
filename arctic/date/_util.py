@@ -168,12 +168,12 @@ def datetime_to_ms(d):
 
         # workaround https://github.com/pandas-dev/pandas/issues/32174
         try:
-            # test if this really is benign
-            d2 = d1.tz_localize(None).utctimetuple()
-            #d2 = d1.utctimetuple()
+            d2 = d1.utctimetuple()
         except TypeError:
-            # python3.8
-            d2 = d1.tz_localize(None).utctimetuple()
+            # python3.8 pandas 1.0.3 loses tz fails 1 test
+            #d2 = d1.tz_localize(None).utctimetuple()
+            # works python 3.6 pandas 0.22.0
+            d2 = d1.to_pydatetime().utctimetuple()
 
         return calendar.timegm(d2) * 1000 + millisecond
         #return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
