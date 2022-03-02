@@ -12,8 +12,6 @@ from ._parse import parse
 
 if sys.version_info > (3,):
     long = int
-import logging
-log = logging.getLogger(__name__)
 
 # Support standard brackets syntax for open/closed ranges.
 Ranges = {'()': OPEN_OPEN,
@@ -178,10 +176,8 @@ def datetime_to_ms(d):
                 return calendar.timegm(tmp.to_pydatetime().utctimetuple()) * 1000 + millisecond
             else:
                 return calendar.timegm(tmp.utctimetuple()) * 1000 + millisecond
-            utc_zone = mktz("UTC")
-            d1a=d1.tz_localize(None)
-            d1a.replace(tzinfo=utc_zone)
-            d2=d1a.utctimetuple()
+            d1 = d1.tz_localize(None)
+            d2 = d1.utctimetuple()
     except AttributeError:
         raise TypeError('expect Python datetime object, not %s' % type(d))
 
