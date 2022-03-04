@@ -179,10 +179,6 @@ def datetime_to_ms(d):
             else:
                 return calendar.timegm(tmp.utctimetuple()) * 1000 + millisecond
 =======
-        try:
-            d2 = _add_tzone(d).utctimetuple()
-        except TypeError:
-            d2 = _add_tzone(d).to_pydatetime().utctimetuple()
     except AttributeError:
         raise TypeError('expect Python datetime object, not %s' % type(d))
 

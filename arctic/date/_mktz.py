@@ -28,14 +28,8 @@ def mktz(zone=None):
     - - - - - -
     TimezoneError : Raised if a user inputs a bad timezone name.
     """
-
-    # https://github.com/man-group/arctic/issues/913
-    try:
-        if zone is None:
-            zone = tzlocal.get_localzone().zone
-    except AttributeError:
-        # The zone attribute is called key in tzlocal >= 3.0
-        zone = tzlocal.get_localzone().key
+    if zone is None:
+        zone = tzlocal.get_localzone().zone
 
     tz = dateutil.tz.gettz(zone)
     if not tz:
