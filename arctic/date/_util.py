@@ -173,10 +173,7 @@ def datetime_to_ms(d):
             return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
         else:
             tmp = _add_tzone(d)
-            if isinstance(tmp, pd.Timestamp):
-                return calendar.timegm(tmp.to_pydatetime().utctimetuple()) * 1000 + millisecond
-            else:
-                return calendar.timegm(tmp.utctimetuple()) * 1000 + millisecond
+            return calendar.timegm(tmp.to_pydatetime().utctimetuple()) * 1000 + millisecond
     except AttributeError:
         raise TypeError('expect Python datetime object, not %s' % type(d))
 
