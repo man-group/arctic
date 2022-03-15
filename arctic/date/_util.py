@@ -2,6 +2,7 @@ import calendar
 import datetime
 import sys
 from datetime import timedelta
+import pandas
 
 from ._daterange import DateRange
 from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN
@@ -167,10 +168,19 @@ def datetime_to_ms(d):
         millisecond = d.microsecond // 1000
 
         # python3.8 workaround https://github.com/pandas-dev/pandas/issues/32174
-        if sys.version_info < (3, 8, 0):
-            return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
-        else:
+        #if sys.version_info < (3, 8, 0):
+            #return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
+        #else:
+            #if pandas.__version__ > '1.0.3':
+                #return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
+            #else:
+                #return calendar.timegm(_add_tzone(d).to_pydatetime().utctimetuple()) * 1000 + millisecond
+
+        if sys.version_info >= (3, 8, 0) and pandas.__version__ == '1.0.3':
             return calendar.timegm(_add_tzone(d).to_pydatetime().utctimetuple()) * 1000 + millisecond
+        else:
+            return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
+
     except AttributeError:
         raise TypeError('expect Python datetime object, not %s' % type(d))
 
