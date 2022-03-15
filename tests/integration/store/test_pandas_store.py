@@ -861,7 +861,7 @@ def test_daterange(library, df, assert_equal):
     library.write('MYARR', df)
     # whole array
     saved_arr = library.read('MYARR').data
-    assert_equal(df, saved_arr)
+    assert_frame_equal_(df, saved_arr)
     assert_equal(df, library.read('MYARR', date_range=DateRange(df.index[0])).data)
     assert_equal(df, library.read('MYARR', date_range=DateRange(df.index[0], df.index[-1])).data)
     assert_equal(df, library.read('MYARR', date_range=DateRange()).data)
