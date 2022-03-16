@@ -198,7 +198,7 @@ def test_should_write_top_level_with_list_of_dicts(arctic):
     assert_frame_equal_(expected, res.tz_convert(mktz('Europe/London')), check_freq=False)
     lib2010 = arctic['FEED_2010.LEVEL1']
     res = lib2010.read('blah', DateRange(start=dt(2010, 12, 1), end=dt(2011, 1, 1)))
-    assert_frame_equal(expected[dt(2010, 12, 1): dt(2010, 12, 31)], res.tz_convert(mktz('Europe/London')))
+    assert_frame_equal_(expected[dt(2010, 12, 1): dt(2010, 12, 31)], res.tz_convert(mktz('Europe/London')), check_freq=False)
 
 
 def test_should_write_top_level_with_correct_timezone(arctic):
