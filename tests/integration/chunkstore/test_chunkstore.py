@@ -15,7 +15,7 @@ from arctic.chunkstore.passthrough_chunker import PassthroughChunker
 from arctic.date import DateRange
 from arctic.exceptions import NoDataFoundException
 from tests.integration.chunkstore.test_utils import create_test_data
-from tests.util import assert_frame_equal_
+from tests.util import assert_frame_equal_, assert_series_equal_
 
 
 def test_write_dataframe(chunkstore_lib):
@@ -714,7 +714,7 @@ def test_overwrite_series(chunkstore_lib):
 
     chunkstore_lib.write('test', s)
     chunkstore_lib.write('test', s + 1)
-    assert_series_equal(chunkstore_lib.read('test'), s + 1)
+    assert_series_equal_(chunkstore_lib.read('test'), s + 1, check_freq=False)
 
 
 def test_overwrite_series_monthly(chunkstore_lib):
