@@ -864,7 +864,7 @@ def test_daterange(library, df, assert_equal):
     assert_frame_equal_(df, saved_arr, check_freq=False)
     assert_frame_equal(df, library.read('MYARR', date_range=DateRange(df.index[0])).data, check_freq=False)
     assert_frame_equal_(df, library.read('MYARR', date_range=DateRange(df.index[0], df.index[-1])).data, check_freq=False)
-    assert_equal(df, library.read('MYARR', date_range=DateRange()).data)
+    assert_frame_equal_(df, library.read('MYARR', date_range=DateRange()).data, check_freq=False)
     assert_equal(df[df.index[10]:], library.read('MYARR', date_range=DateRange(df.index[10])).data)
     assert_equal(df[:df.index[10]], library.read('MYARR', date_range=DateRange(end=df.index[10])).data)
     assert_equal(df[df.index[-1]:], library.read('MYARR', date_range=DateRange(df.index[-1])).data)
