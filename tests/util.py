@@ -11,7 +11,7 @@ import dateutil
 import numpy as np
 import pandas
 from dateutil.rrule import rrule, DAILY
-from pandas.util.testing import assert_frame_equal
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 
 def assert_frame_equal_(df1, df2, check_freq=True, check_names=True):
@@ -23,6 +23,13 @@ def assert_frame_equal_(df1, df2, check_freq=True, check_names=True):
         assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_names=check_names)
     #else: # 0.22.0 python 2.7
         #assert_frame_equal(df1, df2, check_names=check_names)
+
+def assert_series_equal_(s1, s2, check_freq=True):
+    if pandas.__version__ > '1.0.3':
+        assert_series_equal(s1, s2, check_freq=check_freq)
+    else:
+        # pandas 0.22.0 - 1.0.3
+        assert_series_equal(s1, s2)
 
 
 def dt_or_str_parser(string):
