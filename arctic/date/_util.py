@@ -169,19 +169,28 @@ def datetime_to_ms(d):
     try:
         millisecond = d.microsecond // 1000
 
+        # 0.22.0 amd 1.0.3 3.6,3.7,3.8
         # python3.8 workaround https://github.com/pandas-dev/pandas/issues/32174
         # return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
             #return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
         #else:
             #if pandas.__version__ > '1.0.3':
             tmp = _add_tzone(d)
-            if isinstance(tmp, pd.Timestamp):
+        # 1.1.3 : 2 fails on 3.8
+        #if sys.version_info >= (3, 8, 0) and pandas.__version__ == '1.0.3':
+            #return calendar.timegm(_add_tzone(d).to_pydatetime().utctimetuple()) * 1000 + millisecond
+        #else:
+            #return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
+
+        # new attempt
+        if sys.version_info < (3, 8, 0):
+            return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
+        else:
+            tmp = _add_tzone(d)
+            if isinstance(tmp, pandas.Timestamp):
                 return calendar.timegm(tmp.to_pydatetime().utctimetuple()) * 1000 + millisecond
             else:
                 return calendar.timegm(tmp.utctimetuple()) * 1000 + millisecond
-=======
-        else:
-            return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
 
     except AttributeError:
         raise TypeError('expect Python datetime object, not %s' % type(d))
