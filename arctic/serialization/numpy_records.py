@@ -95,7 +95,14 @@ class PandasSerializer(object):
         if len(index) == 1:
             rtn = Index(np.copy(recarr[str(index[0])]), name=index[0])
             if isinstance(rtn, DatetimeIndex) and 'index_tz' in recarr.dtype.metadata:
-                rtn = rtn.tz_localize('UTC').tz_convert(recarr.dtype.metadata['index_tz'])
+                # TODO DMK
+                if PD_VER > '1.0.3':
+                    if isinstance(recarr.dtype.metadata['index_tz'], list):
+                        rtn = rtn.tz_localize('UTC').tz_convert(recarr.dtype.metadata['index_tz'][0])
+                    else:
+                        rtn = rtn.tz_localize('UTC').tz_convert(recarr.dtype.metadata['index_tz'])
+                else:
+                    rtn = rtn.tz_localize('UTC').tz_convert(recarr.dtype.metadata['index_tz'])
         else:
             level_arrays = []
             index_tz = recarr.dtype.metadata.get('index_tz', [])
