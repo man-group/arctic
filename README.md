@@ -3,7 +3,7 @@
 
 [![Documentation Status](https://readthedocs.org/projects/arctic/badge/?version=latest)](https://arctic.readthedocs.io/en/latest/?badge=latest)
 [![CircleCI](https://circleci.com/gh/man-group/arctic/tree/master.svg?style=shield)](https://app.circleci.com/pipelines/github/man-group/arctic?branch=master)
-[![PyPI](https://img.shields.io/pypi/v/arctic)](https://pypi.org/project/arctic/)
+[![PyPI](https://img.shields.io/pypi/v/arctic)](https://pypi.org/project/arctic)
 [![Python](https://img.shields.io/badge/Python-3.6|3.7|3.8-green.svg)](https://github.com/man-group/arctic)
 [![Join the chat at https://gitter.im/man-group/arctic](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/man-group/arctic?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
