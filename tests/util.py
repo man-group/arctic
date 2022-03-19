@@ -16,13 +16,13 @@ from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 def assert_frame_equal_(df1, df2, check_freq=True, check_names=True):
     if pandas.__version__ > '1.0.3':
-        # had to add check_freq because pandas 1.1.5 has different freq metadata behaviour
+        # had to add check_freq because pandas 1.1.3 has different freq metadata behaviour
         assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_names=check_names, check_freq=check_freq)
     else:
         # pandas 1.0.3
         assert_frame_equal(df1.sort_index(axis=1), df2.sort_index(axis=1), check_names=check_names)
     #else: # 0.22.0 python 2.7
-        #assert_frame_equal(df1, df2, check_names=check_names)
+        #assert_frame_equal(df1, df2)
 
 def assert_series_equal_(s1, s2, check_freq=True):
     if pandas.__version__ > '1.0.3':
