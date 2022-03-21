@@ -76,7 +76,7 @@ setup(
                       "enum-compat",
                       "mock",
                       "mockextras",
-                      "pandas<=1.1.3",
+                      "pandas<=1.1.5",
                       "numpy<=1.19.5",
                       "pymongo>=3.6.0, <= 3.11.0",
                       "pytz",
