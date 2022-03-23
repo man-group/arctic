@@ -126,8 +126,26 @@ class VersionStore(object):
     def _read_preference(self, allow_secondary):
         """ Return the mongo read preference given an 'allow_secondary' argument
         """
+
         allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
-        return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
+        #return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
+
+        # DMK NEW CODE
+        if allow_secondary is False:
+            return ReadPreference.PRIMARY
+        else:
+            #use read pref and tags from connection string
+            return self._collection.read_preference
+
+        # DMK NEW CODE
+        #if allow_secondary is True:
+            #return ReadPreference.NEAREST
+        #elif allow_secondary is False:
+            #return ReadPreference.PRIMARY
+        #else:
+            ## use read pref and tags from connection string
+            #return self._collection.read_preference
+
 
     @mongo_retry
     def list_symbols(self, all_symbols=False, snapshot=None, regex=None, **kwargs):

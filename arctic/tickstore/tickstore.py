@@ -259,7 +259,14 @@ class TickStore(object):
         """ Return the mongo read preference given an 'allow_secondary' argument
         """
         allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
-        return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
+        #return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
+
+        # DMK NEW CODE
+        if allow_secondary is False:
+            return ReadPreference.PRIMARY
+        else:
+            #use read pref and tags from connection string
+            return self._collection.read_preference
 
     def read(self, symbol, date_range=None, columns=None, include_images=False, allow_secondary=None,
              _target_tick_count=0):
