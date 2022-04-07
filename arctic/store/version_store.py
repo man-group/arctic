@@ -127,21 +127,12 @@ class VersionStore(object):
         """ Return the mongo read preference given an 'allow_secondary' argument
         """
 
-        allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
-        #return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
-
-        #if allow_secondary is False:
-            #return ReadPreference.PRIMARY
-        #else:
-            #use read pref and tags from connection string
-            #return self._collection.read_preference
-
-        if allow_secondary is True:
-            return ReadPreference.NEAREST
-        elif allow_secondary is False:
-            return ReadPreference.PRIMARY
+        if self._collection.read_preference.mode == ReadPreference.PRIMARY:
+            # old code default behaviour, nothing in instances.cfg, just switch
+            allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
+            return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
         else:
-            # use read pref and tags from connection string
+            logger.warning(f'xxxxxxxxxx NEW CODE GET PREF FROM arctic root {self._collection.read_preference}')
             return self._collection.read_preference
 
 
@@ -368,6 +359,7 @@ class VersionStore(object):
         """
         try:
             read_preference = self._read_preference(allow_secondary)
+            logger.warning(f'xxxxxxxxxxxxx read with pref {read_preference}')
             _version = self._read_metadata(symbol, as_of=as_of, read_preference=read_preference)
             return self._do_read(symbol, _version, from_version,
                                  date_range=date_range, read_preference=read_preference, **kwargs)

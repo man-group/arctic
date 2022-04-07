@@ -258,22 +258,15 @@ class TickStore(object):
     def _read_preference(self, allow_secondary):
         """ Return the mongo read preference given an 'allow_secondary' argument
         """
-        allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
-        #return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
 
-        #if allow_secondary is False:
-            #return ReadPreference.PRIMARY
-        #else:
-            ##use read pref and tags from connection string
-            #return self._collection.read_preference
-
-        if allow_secondary is True:
-            return ReadPreference.NEAREST
-        elif allow_secondary is False:
-            return ReadPreference.PRIMARY
+        if self._collection.read_preference.mode == ReadPreference.PRIMARY:
+            # old code default behaviour, nothing in instances.cfg, just switch
+            allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
+            return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
         else:
-            # use read pref and tags from connection string
+            logger.warning(f'xxxxxxxxxx NEW CODE GET PREF FROM arctic root {self._collection.read_preference}')
             return self._collection.read_preference
+
 
     def read(self, symbol, date_range=None, columns=None, include_images=False, allow_secondary=None,
              _target_tick_count=0):
