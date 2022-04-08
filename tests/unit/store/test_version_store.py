@@ -16,6 +16,8 @@ from arctic.exceptions import DuplicateSnapshotException, NoDataFoundException
 from arctic.store import version_store
 from arctic.store.version_store import VersionStore, VersionedItem
 
+from pymongo import ReadPreference
+
 
 def test_delete_version_version_not_found():
     with patch('arctic.store.version_store.VersionStore.__init__', return_value=None, autospec=True):
@@ -87,6 +89,10 @@ def test__read_preference__default_false():
     self = create_autospec(VersionStore, _allow_secondary=False)
     assert VersionStore._read_preference(self, None) == ReadPreference.PRIMARY
 
+def test__read_preference_mongo_uri_vanilla_primary():
+    self = create_autospec(VersionStore, _instance=True)
+    self._collection._read_preference=ReadPreference.Primary()
+    assert VersionStore._read_preference(self, True) == ReadPreference.NEAREST
 
 def test_get_version_allow_secondary_True():
     vs = create_autospec(VersionStore, instance=True,
