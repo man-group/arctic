@@ -258,23 +258,13 @@ class TickStore(object):
     def _read_preference(self, allow_secondary):
         """ Return the mongo read preference given an 'allow_secondary' argument
         """
-        if self._collection.read_preference.mode != ReadPreference.PRIMARY:
-            logger.warning(f'xxxxxxxxxx NEW CODE GET PREF FROM arctic root {self._collection.read_preference}')
+        if os.getenv('ARCTIC_USE_MONGODB_URI', False) == True and self._collection.read_preference.mode != ReadPreference.PRIMARY:
+            #logger.warning(f'xxxxxxxxxx NEW CODE GET PREF FROM arctic root {self._collection.read_preference}')
             return self._collection.read_preference
         else:
             # old code default behaviour, nothing in instances.cfg, just switch
             allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
             return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
-
-        #if self._arctic_lib.arctic._Arctic__conn is not None \
-                #and self._arctic_lib.arctic._Arctic__conn.read_preference.mode != ReadPreference.PRIMARY:
-        #if self._collection.read_preference.mode == ReadPreference.PRIMARY:
-            ## old code default behaviour, nothing in instances.cfg, just switch
-            #allow_secondary = self._allow_secondary if allow_secondary is None else allow_secondary
-            #return ReadPreference.NEAREST if allow_secondary else ReadPreference.PRIMARY
-        #else:
-            #logger.warning(f'xxxxxxxxxx NEW CODE GET PREF FROM arctic root {self._collection.read_preference}')
-            #return self._collection.read_preference
 
 
     def read(self, symbol, date_range=None, columns=None, include_images=False, allow_secondary=None,
