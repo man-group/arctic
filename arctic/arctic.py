@@ -8,7 +8,6 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 import pymongo
 from pymongo.errors import OperationFailure, AutoReconnect
-from six import string_types
 
 from ._cache import Cache
 from ._config import ENABLE_CACHE
@@ -116,7 +115,7 @@ class Arctic(object):
         self._pymongo_kwargs = kwargs
         self._cache = None
 
-        if isinstance(mongo_host, string_types):
+        if isinstance(mongo_host, str):
             self._given_instance = False
             self.mongo_host = mongo_host
         else:
@@ -376,7 +375,7 @@ class Arctic(object):
         return self._library_cache[library]
 
     def __getitem__(self, key):
-        if isinstance(key, string_types):
+        if isinstance(key, str):
             return self.get_library(key)
         else:
             raise ArcticException("Unrecognised library specification - use [libraryName]")

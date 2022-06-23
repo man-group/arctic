@@ -109,19 +109,6 @@ defaults: &defaults
           - ./*/dist/*
 version: 2
 jobs:
-  build_2_7:
-    environment:
-      PYTHON_VERSION: "2_7"
-      CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/2_7
-      CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/2_7
-      VERSION: $VERSION
-      #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
-      #YARN_STATIC_DIR: notebooker/web/static/
-      IMAGE_NAME: mangroup/arctic
-    working_directory: ~/arctic_2_7
-    docker:
-    - image: cimg/python:2.7-node
-    <<: *defaults
   build_3_6:
     environment:
       PYTHON_VERSION: "3_6"

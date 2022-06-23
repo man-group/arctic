@@ -6,7 +6,6 @@ import pickle
 import numpy as np
 import pandas as pd
 import pymongo
-import six
 from bson import Binary
 from pandas.compat import pickle_compat
 from pymongo.errors import OperationFailure
@@ -40,7 +39,7 @@ def checksum(symbol, doc):
     sha.update(symbol.encode('ascii'))
     for k in sorted(iter(doc.keys()), reverse=True):
         v = doc[k]
-        if isinstance(v, six.binary_type):
+        if isinstance(v, bytes):
             sha.update(doc[k])
         else:
             sha.update(str(doc[k]).encode('ascii'))

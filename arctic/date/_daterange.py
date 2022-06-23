@@ -1,6 +1,5 @@
 import datetime
 
-from six import string_types
 
 from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN, GeneralSlice
 from ._parse import parse
@@ -56,7 +55,7 @@ class DateRange(GeneralSlice):
         def _compute_bound(value, desc):
             if isinstance(value, bytes):
                 return parse(value.decode('ascii'))
-            elif isinstance(value, (int, string_types)):
+            elif isinstance(value, (int, str)):
                 return parse(str(value))
             elif _is_dt_type(value):
                 return value

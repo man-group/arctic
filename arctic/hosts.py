@@ -5,7 +5,6 @@ import logging
 import re
 from weakref import WeakValueDictionary
 
-import six
 
 __all__ = ['get_arctic_lib']
 
@@ -42,7 +41,7 @@ def get_arctic_lib(connection_string, **kwargs):
 
 def _get_arctic(instance, **kwargs):
     # Consider any kwargs passed to the Arctic as discriminators for the cache
-    key = instance, frozenset(six.iteritems(kwargs))
+    key = instance, frozenset(kwargs.items())
 
     # Don't create lots of Arctic instances
     arctic = arctic_cache.get(key, None)

@@ -10,7 +10,6 @@ import pymongo
 from bson.binary import Binary
 from pymongo import ReadPreference
 from pymongo.errors import OperationFailure
-from six import iteritems, string_types
 
 try:
     from pandas.core.frame import _arrays_to_mgr
@@ -248,7 +247,7 @@ class TickStore(object):
         return {START: start_range}
 
     def _symbol_query(self, symbol):
-        if isinstance(symbol, string_types):
+        if isinstance(symbol, str):
             query = {SYMBOL: symbol}
         elif symbol is not None:
             query = {SYMBOL: {'$in': symbol}}
@@ -292,7 +291,7 @@ class TickStore(object):
         rtn = {}
         column_set = set()
 
-        multiple_symbols = not isinstance(symbol, string_types)
+        multiple_symbols = not isinstance(symbol, str)
 
         date_range = to_pandas_closed_closed(date_range)
         query = self._symbol_query(symbol)
@@ -321,7 +320,7 @@ class TickStore(object):
             data = self._read_bucket(b, column_set, column_dtypes,
                                      multiple_symbols or (columns is not None and 'SYMBOL' in columns),
                                      include_images, columns)
-            for k, v in iteritems(data):
+            for k, v in data.items():
                 try:
                     rtn[k].append(v)
                 except KeyError:
@@ -390,7 +389,7 @@ class TickStore(object):
         rtn = {}
         index = cols[INDEX]
         full_length = len(index)
-        for k, v in iteritems(cols):
+        for k, v in cols.items():
             if k != INDEX and k != 'SYMBOL':
                 col_len = len(v)
                 if col_len < full_length:
@@ -432,7 +431,7 @@ class TickStore(object):
             if columns and field not in columns:
                 continue
             if field not in document or document[field] is None:
-                col_dtype = np.dtype(str if isinstance(image[field], string_types) else 'f8')
+                col_dtype = np.dtype(str if isinstance(image[field], str) else 'f8')
                 document[field] = self._empty(rtn_length, dtype=col_dtype)
                 column_dtypes[field] = col_dtype
                 column_set.add(field)
@@ -738,7 +737,7 @@ class TickStore(object):
         for i, t in enumerate(ticks):
             if initial_image:
                 final_image.update(t)
-            for k, v in iteritems(t):
+            for k, v in t.items():
                 try:
                     if k != 'index':
                         rowmask[k][i] = 1
@@ -755,8 +754,8 @@ class TickStore(object):
                     data[k] = [v]
 
         rowmask = dict([(k, Binary(lz4_compressHC(np.packbits(v).tostring())))
-                        for k, v in iteritems(rowmask)])
-        for k, v in iteritems(data):
+                        for k, v in rowmask.items()])
+        for k, v in data.items():
             if k != 'index':
                 v = np.array(v)
                 v = TickStore._ensure_supported_dtypes(v)
