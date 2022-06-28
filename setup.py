@@ -64,7 +64,7 @@ setup(
     description=("AHL Research Versioned TimeSeries and Tick store"),
     license="GPL",
     keywords=["ahl", "keyvalue", "tickstore", "mongo", "timeseries", ],
-    url="https://github.com/man-group/arctic",
+    url="https://github.com/calebkoch92/arctic",
     packages=find_packages(exclude=['tests', 'tests.*', 'benchmarks']),
     long_description='\n'.join((long_description, changelog)),
     long_description_content_type="text/markdown",
