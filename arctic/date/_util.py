@@ -169,15 +169,15 @@ def datetime_to_ms(d):
     try:
         millisecond = d.microsecond // 1000
 
-        # python3.8 workaround https://github.com/pandas-dev/pandas/issues/32174
+        # https://github.com/pandas-dev/pandas/issues/32526
+        # https://github.com/pandas-dev/pandas/issues/32174
         if sys.version_info < (3, 8, 0):
             return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
         else:
             tmp = _add_tzone(d)
-            if isinstance(tmp, pandas.Timestamp):
-                return calendar.timegm(tmp.to_pydatetime().utctimetuple()) * 1000 + millisecond
+            if isinstance(tmp, pandas.Timestamp) and tmp.tzinfo is None:
+                return calendar.timegm(tmp.timetuple()) * 1000 + millisecond
             else:
-                # default tmp is datetime
                 return calendar.timegm(tmp.utctimetuple()) * 1000 + millisecond
 
     except AttributeError:
