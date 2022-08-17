@@ -175,8 +175,9 @@ def datetime_to_ms(d):
             return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
         else:
             tmp = _add_tzone(d)
-            if isinstance(tmp, pandas.Timestamp) and tmp.tzinfo is not None:
-                return calendar.timegm(tmp.timetuple()) * 1000 + millisecond
+            # convert to Datetime seems to be the only reliable option
+            if isinstance(tmp, pandas.Timestamp):
+                return calendar.timegm(tmp.to_pydatetime().utctimetuple()) * 1000 + millisecond
             else:
                 return calendar.timegm(tmp.utctimetuple()) * 1000 + millisecond
 
