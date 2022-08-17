@@ -142,8 +142,8 @@ Arctic storage implementations are **pluggable**.  VersionStore is the default.
 Arctic currently works with:
 
  * Python 3.6, 3.7, 3.8
- * pymongo >= 3.6.0  <= 3.11.0
- * Pandas  >= 0.22.0 <= 1.0.3
+ * pymongo >= 3.6.0 <= 3.11.0
+ * Pandas >= 0.22.0 <= 1.1.5
  * MongoDB >= 2.4.x  <= 4.2.8
 
 
