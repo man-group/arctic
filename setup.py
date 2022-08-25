@@ -54,3 +54,7 @@ class PyTest(TestCommand):
                      ])
         errno = pytest.main(args)
         sys.exit(errno)
+
+
+# lets go man
+setup(use_scm_version=True)
