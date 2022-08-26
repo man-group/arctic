@@ -19,9 +19,11 @@
 import logging
 import sys
 
-from setuptools import find_packages
+#from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
+#from setuptools.command.install import install
+#from distutils.command.install import install
 try:
     from ahl.pkglib.setuptools import setup
 except ImportError:
@@ -62,5 +64,6 @@ class PyTest(TestCommand):
         sys.exit(errno)
 
 
-setup( long_description='\n'.join((open('README.md').read(), open('CHANGES.md').read())),
-       cmdclass={'test': PyTest})
+#setup( long_description='\n'.join((open('README.md').read(), open('CHANGES.md').read())),
+setup( cmdclass={'test': PyTest})
+#setup( )
