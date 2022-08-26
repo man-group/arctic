@@ -19,7 +19,7 @@
 import logging
 import sys
 
-#from setuptools import find_packages
+from setuptools import find_packages
 from ahl.pkglib.setuptools import setup
 from setuptools.command.test import test as TestCommand
 
@@ -60,7 +60,7 @@ class PyTest(TestCommand):
 # lets go man
 #setup()
 setup(setup_cfg='setup.cfg',
-      long_description_content_type='text/markdown',
       long_description=open('README.md').read(),
-      changelog=open('CHANGES.md').read(),
+      #long_description_content_type='text/markdown',
+      #changelog=open('CHANGES.md').read(),
       )
