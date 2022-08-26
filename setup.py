@@ -20,8 +20,12 @@ import logging
 import sys
 
 from setuptools import find_packages
-from ahl.pkglib.setuptools import setup
+from setuptools import setup
 from setuptools.command.test import test as TestCommand
+try:
+    from ahl.pkglib.setuptools import setup
+except ImportError:
+    pass
 
 # TODO
 # setuptools 38.6.0 rqd (were on 28.8.0)
