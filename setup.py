@@ -30,7 +30,7 @@ except ImportError:
     pass
 
 # TODO
-# setuptools 38.6.0 rqd (were on 28.8.0)
+# setuptools 38.6.0 rqd (we're on 28.8.0)
 #long_description_content_type='text/markdown'
 #long_description = open('README.md').read()
 #changelog = open('CHANGES.md').read()
@@ -65,5 +65,5 @@ class PyTest(TestCommand):
 
 
 #setup( long_description='\n'.join((open('README.md').read(), open('CHANGES.md').read())),
-setup( cmdclass={'test': PyTest})
+setup( safe_zip=True, cmdclass={'test': PyTest})
 #setup( )
