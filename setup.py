@@ -24,6 +24,7 @@ from ahl.pkglib.setuptools import setup
 from setuptools.command.test import test as TestCommand
 
 # TODO
+# setuptools 38.6.0 rqd (were on 28.8.0)
 #long_description_content_type='text/markdown'
 #long_description = open('README.md').read()
 #changelog = open('CHANGES.md').read()
@@ -57,10 +58,5 @@ class PyTest(TestCommand):
         sys.exit(errno)
 
 
-# lets go man
-#setup()
-setup(setup_cfg='setup.cfg',
-      long_description=open('README.md').read(),
-      #long_description_content_type='text/markdown',
-      #changelog=open('CHANGES.md').read(),
-      )
+setup( long_description='\n'.join((open('README.md').read(), open('CHANGES.md').read())),
+       cmdclass={'test': PyTest})
