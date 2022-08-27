@@ -19,21 +19,10 @@
 import logging
 import sys
 
-#from setuptools import find_packages
+from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
-#from setuptools.command.install import install
-#from distutils.command.install import install
-try:
-    from ahl.pkglib.setuptools import setup
-except ImportError:
-    pass
 
-# TODO
-# setuptools 38.6.0 rqd (we're on 28.8.0)
-#long_description_content_type='text/markdown'
-#long_description = open('README.md').read()
-#changelog = open('CHANGES.md').read()
 
 
 class PyTest(TestCommand):
@@ -64,6 +53,8 @@ class PyTest(TestCommand):
         sys.exit(errno)
 
 
-#setup( long_description='\n'.join((open('README.md').read(), open('CHANGES.md').read())),
-setup( safe_zip=True, cmdclass={'test': PyTest})
-#setup( )
+setup( 
+    safe_zip=True, 
+    cmdclass={'test': PyTest},
+    long_description='\n'.join((open('README.md').read(), open('CHANGES.md').read()))
+    )
