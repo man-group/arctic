@@ -54,7 +54,6 @@ class PyTest(TestCommand):
 
 
 setup( 
-    #safe_zip=True, 
     cmdclass={'test': PyTest},
     long_description='\n'.join((open('README.md').read(), open('CHANGES.md').read()))
     )

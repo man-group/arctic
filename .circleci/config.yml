@@ -23,13 +23,6 @@ defaults: &defaults
         name: Output useful stuff
         command: |
           echo $VERSION > "$CIRCLE_ARTIFACTS/version.txt"
-          # Find the lines of the changelog between releases, escape double quotes, delete empty lines
-          # Simply gets the current changes from top of changelog.
-          #sed -n '{ /------/= }' CHANGES.md \
-              #| head -n 2 \
-              #| xargs -n 2 bash -c 'sed -n "s/\"/\\\\\"/g;`expr $0 + 1`,`expr $1 - 2`p" CHANGES.md' \
-              #| sed '/^$/d' \
-              #> "$CIRCLE_ARTIFACTS/changes.md"
     - run:
         name: Install MongoDB
         command: |
@@ -51,7 +44,6 @@ defaults: &defaults
          virtualenv ci
          . ci/bin/activate
          python setup.py develop
-         #pip install pytest-server-fixtures[mongodb]
          pip freeze
          python --version
     - run:
