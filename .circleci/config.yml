@@ -51,7 +51,7 @@ defaults: &defaults
          virtualenv ci
          . ci/bin/activate
          python setup.py develop
-         pip install pytest-server-fixtures[mongodb]
+         #pip install pytest-server-fixtures[mongodb]
          pip freeze
          python --version
     - run:
