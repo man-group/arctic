@@ -95,7 +95,6 @@ class PandasSerializer(object):
         if len(index) == 1:
             rtn = Index(np.copy(recarr[str(index[0])]), name=index[0])
             if isinstance(rtn, DatetimeIndex) and 'index_tz' in recarr.dtype.metadata:
-                # TODO DMK
                 if PD_VER > '1.0.3':
                     if isinstance(recarr.dtype.metadata['index_tz'], list):
                         rtn = rtn.tz_localize('UTC').tz_convert(recarr.dtype.metadata['index_tz'][0])
