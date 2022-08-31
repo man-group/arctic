@@ -60,8 +60,8 @@ setup(
     name="arctic",
     version="1.80.5",
     author="Man AHL Technology",
-    author_email="arctic@man.com"
-    description="AHL Research Versioned TimeSeries and Tick store",
+    author_email="arctic@man.com",
+    description=("AHL Research Versioned TimeSeries and Tick store"),
     license="GPL",
     keywords=["ahl", "keyvalue", "tickstore", "mongo", "timeseries", ],
     url="https://github.com/man-group/arctic",
