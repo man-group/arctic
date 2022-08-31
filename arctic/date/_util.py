@@ -4,8 +4,6 @@ import sys
 from datetime import timedelta
 import pandas
 
-import pandas as pd
-
 from ._daterange import DateRange
 from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN
 from ._mktz import mktz
