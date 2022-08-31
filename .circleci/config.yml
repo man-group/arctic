@@ -135,6 +135,19 @@ jobs:
     docker:
     - image: cimg/python:3.7-node
     <<: *defaults
+  build_3_8:
+    environment:
+      PYTHON_VERSION: "3_8"
+      CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_8
+      CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_8
+      VERSION: $VERSION
+      #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
+      #YARN_STATIC_DIR: notebooker/web/static/
+      IMAGE_NAME: mangroup/arctic
+    working_directory: ~/arctic_3_8
+    docker:
+    - image: cimg/python:3.8-node
+    <<: *defaults
   publish-github-release:
    docker:
      - image: cibuilds/github:0.13
@@ -160,6 +173,7 @@ workflows:
     jobs:
       - build_3_6
       - build_3_7
+      - build_3_8
 
       # do not publish
       #- publish-github-release:

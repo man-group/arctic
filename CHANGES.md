@@ -2,6 +2,7 @@
 
 ### 1.80.5
   * Feature: #950 remove all traces of python 2.7 and six package
+  * Feature: #959 add python 3.8 support
 
 ### 1.80.4 (2022-01-25)
   * Bugfix:  #940 fix rows per chunk causing divide by zero
