@@ -2,6 +2,7 @@ import calendar
 import datetime
 import sys
 from datetime import timedelta
+import pandas as pd
 
 from ._daterange import DateRange
 from ._generalslice import OPEN_OPEN, CLOSED_CLOSED, OPEN_CLOSED, CLOSED_OPEN
@@ -165,7 +166,18 @@ def datetime_to_ms(d):
     """Convert a Python datetime object to a millisecond epoch (UTC) time value."""
     try:
         millisecond = d.microsecond // 1000
-        return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
+
+        # https://github.com/pandas-dev/pandas/issues/32526
+        # https://github.com/pandas-dev/pandas/issues/32174
+        if sys.version_info < (3, 8, 0):
+            return calendar.timegm(_add_tzone(d).utctimetuple()) * 1000 + millisecond
+        else:
+            tmp = _add_tzone(d)
+            # convert to Datetime seems to be the only reliable option
+            if isinstance(tmp, pd.Timestamp):
+                return calendar.timegm(tmp.to_pydatetime().utctimetuple()) * 1000 + millisecond
+            else:
+                return calendar.timegm(tmp.utctimetuple()) * 1000 + millisecond
     except AttributeError:
         raise TypeError('expect Python datetime object, not %s' % type(d))
 

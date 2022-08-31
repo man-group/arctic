@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2015-2022 Man Group Ltd
+# Copyright (C) 2015-2023 Man Group Ltd
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -58,9 +58,9 @@ class PyTest(TestCommand):
 
 setup(
     name="arctic",
-    version="1.80.5",
+    version="1.80.6",
     author="Man AHL Technology",
-    author_email="ManAHLTech@ahl.com",
+    author_email="arctic@man.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
     license="GPL",
     keywords=["ahl", "keyvalue", "tickstore", "mongo", "timeseries", ],
@@ -69,15 +69,15 @@ setup(
     long_description='\n'.join((long_description, changelog)),
     long_description_content_type="text/markdown",
     cmdclass={'test': PyTest},
-    setup_requires=["numpy<=1.18.4",
+    setup_requires=["numpy<1.19.0",
                     "setuptools-git",
                    ],
     install_requires=["decorator",
                       "enum-compat",
                       "mock",
                       "mockextras",
-                      "pandas<=1.0.3",
-                      "numpy<=1.18.4",
+                      "pandas<1.1.0",
+                      "numpy<1.19.0",
                       "pymongo>=3.6.0, <= 3.11.0",
                       "pytz",
                       "tzlocal",
@@ -85,7 +85,7 @@ setup(
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
     # deprecated
-    tests_require=["mock",
+    tests_require=["mock<=2.0.0",
                    "mockextras",
                    "pytest",
                    "pytest-cov",
@@ -93,7 +93,8 @@ setup(
                    "pytest-timeout",
                    "pytest-xdist<=1.26.1",
                    "tomli<2; python_version=='3.6'",
-                   "lz4"
+                   "tzlocal<=1.4; python_version=='3.6'",
+                   "lz4",
                   ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',
@@ -111,6 +112,7 @@ setup(
         "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: Implementation :: CPython",
         "Operating System :: POSIX",
         "Operating System :: MacOS",

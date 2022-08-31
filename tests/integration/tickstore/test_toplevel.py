@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandas.util.testing import assert_frame_equal
+from tests.util import assert_frame_equal_
 
 from arctic.date import DateRange, mktz
 from arctic.exceptions import NoDataFoundException, LibraryNotFoundException, OverlappingDataException
@@ -62,7 +63,7 @@ def test_should_return_data_when_date_range_falls_in_a_single_underlying_library
     tickstore_current.write('blah', df)
     res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 1, 1), end=dt(2010, 1, 6)), list('ABCD'))
 
-    assert_frame_equal(df, res.tz_convert(mktz('Europe/London')))
+    assert_frame_equal_(df, res.tz_convert(mktz('Europe/London')), check_freq=False)
 
 
 def test_should_return_data_when_date_range_spans_libraries(toplevel_tickstore, arctic):
@@ -98,7 +99,7 @@ def test_should_return_data_when_date_range_spans_libraries_even_if_one_returns_
     tickstore_2011.write('blah', df_11)
     res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 1, 2), end=dt(2011, 1, 4)), list('ABCD'))
     expected_df = df_10[1:]
-    assert_frame_equal(expected_df, res.tz_convert(mktz('Europe/London')))
+    assert_frame_equal_(expected_df, res.tz_convert(mktz('Europe/London')), check_freq=False)
 
 
 def test_should_add_underlying_library_where_none_exists(toplevel_tickstore, arctic):
@@ -194,10 +195,10 @@ def test_should_write_top_level_with_list_of_dicts(arctic):
     expected = pd.DataFrame(np.arange(57, dtype=np.float64), index=dates, columns=list('a'))
     toplevel_tickstore.write('blah', data)
     res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 12, 1), end=dt(2011, 2, 1)), columns=list('a'))
-    assert_frame_equal(expected, res.tz_convert(mktz('Europe/London')))
+    assert_frame_equal_(expected, res.tz_convert(mktz('Europe/London')), check_freq=False)
     lib2010 = arctic['FEED_2010.LEVEL1']
     res = lib2010.read('blah', DateRange(start=dt(2010, 12, 1), end=dt(2011, 1, 1)))
-    assert_frame_equal(expected[dt(2010, 12, 1): dt(2010, 12, 31)], res.tz_convert(mktz('Europe/London')))
+    assert_frame_equal_(expected[dt(2010, 12, 1): dt(2010, 12, 31)], res.tz_convert(mktz('Europe/London')), check_freq=False)
 
 
 def test_should_write_top_level_with_correct_timezone(arctic):
@@ -212,7 +213,7 @@ def test_should_write_top_level_with_correct_timezone(arctic):
     expected = pd.DataFrame(np.arange(len(dates), dtype=np.float64), index=dates.tz_convert(utc), columns=list('a'))
     toplevel_tickstore.write('blah', data)
     res = toplevel_tickstore.read('blah', DateRange(start=dt(2010, 1, 1), end=dt(2011, 12, 31)), columns=list('a')).tz_convert(utc)
-    assert_frame_equal(expected, res)
+    assert_frame_equal_(expected, res, check_freq=False)
     lib2010 = arctic['FEED_2010.LEVEL1']
     # Check that only one point was written into 2010 being 3am on 31st
     assert len(lib2010.read('blah', DateRange(start=dt(2010, 12, 1), end=dt(2011, 1, 1)))) == 1

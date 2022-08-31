@@ -1,7 +1,14 @@
 ## Changelog
 
-### 1.80.5
+### 1.80.6
+  * Bugfix: #979 fix circleci mongo install
+  * Feature: #980 get testpack running with mongod 4.4.18
+
+
+### 1.80.5 (2022-09-05)
   * Feature: #950 remove all traces of python 2.7 and six package
+  * Feature: #959 add python 3.8 support
+  * Feature: #962 pin pandas<1.1.0, numpy<1.19.0
 
 ### 1.80.4 (2022-01-25)
   * Bugfix:  #940 fix rows per chunk causing divide by zero
