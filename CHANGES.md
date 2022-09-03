@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.80.5
+### 1.80.5 (2022-09-05)
   * Feature: #950 remove all traces of python 2.7 and six package
   * Feature: #959 add python 3.8 support
   * Feature: #962 pin pandas<1.1.0, numpy<1.19.0

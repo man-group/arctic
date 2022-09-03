@@ -19,9 +19,6 @@ Arctic has been under active development at [Man Group](https://www.man.com/) si
 
 ---
 
-
-:loudspeaker::loudspeaker::loudspeaker: **BUILDING THE NEXT GENERATION OF ARCTIC** :loudspeaker::loudspeaker::loudspeaker:
-
 ## Man Group is currently building the next generation of Arctic.
 
 This will offer the same intuitive Python-centric API whilst utilizing a custom C++ storage engine and modern S3 compatible object storage to provide a timeseries database that is:
