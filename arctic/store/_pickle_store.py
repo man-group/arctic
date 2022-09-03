@@ -92,7 +92,7 @@ class PickleStore(object):
         version['blob'] = _MAGIC_CHUNKEDV2
         # Python 3.8 onwards uses protocol 5 which cannot be unpickled in Python versions below that, so limiting
         # it to use a maximum of protocol 4 in Python which is understood by 3.4 onwards and is still fairly efficient.
-        # The min() used to allow lower versions to be used in py2 (which supported a max of 2)
+        # pickle version 4 is introduced with  python 3.4 and default with 3.8 onward
         pickle_protocol = min(pickle.HIGHEST_PROTOCOL, 4)
         pickled = pickle.dumps(item, protocol=pickle_protocol)
 
