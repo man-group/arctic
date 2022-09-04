@@ -14,22 +14,13 @@ defaults: &defaults
         # Any branch if there are none on the default branch - this should be unnecessary if you have your default branch configured correctly
         - v1-dep-
     - run:
-        name: Version checks
+        name: Output release info
         command: |
             VERSION=`fgrep '###' CHANGES.md  | awk '{print $2}' | head -1`
-            echo picked up VERSION=$VERSION from CHANGES.md
+            echo 'picked up VERSION=$VERSION from CHANGES.md'
             grep -q $VERSION CHANGES.md || (echo "ERROR: Version number not found in CHANGES.md: $VERSION"; exit 1)
-    - run:
-        name: Output useful stuff
-        command: |
-          echo $VERSION > "$CIRCLE_ARTIFACTS/version.txt"
-          # Find the lines of the changelog between releases, escape double quotes, delete empty lines
-          # Simply gets the current changes from top of changelog.
-          #sed -n '{ /------/= }' CHANGES.md \
-              #| head -n 2 \
-              #| xargs -n 2 bash -c 'sed -n "s/\"/\\\\\"/g;`expr $0 + 1`,`expr $1 - 2`p" CHANGES.md' \
-              #| sed '/^$/d' \
-              #> "$CIRCLE_ARTIFACTS/changes.md"
+            echo $VERSION > "$CIRCLE_ARTIFACTS/version.txt"
+            echo "See CHANGES.md for a list of latest improvements" > "$CIRCLE_ARTIFACTS/changes.md"
     - run:
         name: Install MongoDB
         command: |
