@@ -21,7 +21,7 @@ from arctic.date import DateRange, mktz
 # Do not remove PandasStore, used in global scope
 from arctic.store._pandas_ndarray_store import PandasDataFrameStore, PandasSeriesStore, PandasStore
 from arctic.store.version_store import register_versioned_storage
-from tests.util import assert_frame_equal_
+from tests.util import assert_frame_equal_, assert_series_equal_
 
 register_versioned_storage(PandasDataFrameStore)
 
@@ -851,9 +851,9 @@ def test_daterange_large_DataFrame_middle(library):
 
 @pytest.mark.parametrize("df,assert_equal", [
     (DataFrame(index=date_range(dt(2001, 1, 1), freq='D', periods=30000),
-               data=list(range(30000)), columns=['A']), assert_frame_equal),
+               data=list(range(30000)), columns=['A']), assert_frame_equal_),
     (Series(index=date_range(dt(2001, 1, 1), freq='D', periods=30000),
-            data=range(30000)), assert_series_equal),
+            data=range(30000)), assert_series_equal_),
 ])
 def test_daterange(library, df, assert_equal):
     df.index.name = 'idx'
@@ -861,20 +861,20 @@ def test_daterange(library, df, assert_equal):
     library.write('MYARR', df)
     # whole array
     saved_arr = library.read('MYARR').data
-    assert_equal(df, saved_arr)
-    assert_equal(df, library.read('MYARR', date_range=DateRange(df.index[0])).data)
-    assert_equal(df, library.read('MYARR', date_range=DateRange(df.index[0], df.index[-1])).data)
-    assert_equal(df, library.read('MYARR', date_range=DateRange()).data)
-    assert_equal(df[df.index[10]:], library.read('MYARR', date_range=DateRange(df.index[10])).data)
-    assert_equal(df[:df.index[10]], library.read('MYARR', date_range=DateRange(end=df.index[10])).data)
-    assert_equal(df[df.index[-1]:], library.read('MYARR', date_range=DateRange(df.index[-1])).data)
-    assert_equal(df[df.index[-1]:], library.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1])).data)
-    assert_equal(df[df.index[0]:df.index[0]], library.read('MYARR', date_range=DateRange(df.index[0], df.index[0])).data)
-    assert_equal(df[:df.index[0]], library.read('MYARR', date_range=DateRange(end=df.index[0])).data)
+    assert_equal(df, saved_arr, check_freq=False)
+    assert_equal(df, library.read('MYARR', date_range=DateRange(df.index[0])).data, check_freq=False)
+    assert_equal(df, library.read('MYARR', date_range=DateRange(df.index[0], df.index[-1])).data, check_freq=False)
+    assert_equal(df, library.read('MYARR', date_range=DateRange()).data, check_freq=False)
+    assert_equal(df[df.index[10]:], library.read('MYARR', date_range=DateRange(df.index[10])).data, check_freq=False)
+    assert_equal(df[:df.index[10]], library.read('MYARR', date_range=DateRange(end=df.index[10])).data, check_freq=False)
+    assert_equal(df[df.index[-1]:], library.read('MYARR', date_range=DateRange(df.index[-1])).data, check_freq=False)
+    assert_equal(df[df.index[-1]:], library.read('MYARR', date_range=DateRange(df.index[-1], df.index[-1])).data, check_freq=False)
+    assert_equal(df[df.index[0]:df.index[0]], library.read('MYARR', date_range=DateRange(df.index[0], df.index[0])).data, check_freq=False)
+    assert_equal(df[:df.index[0]], library.read('MYARR', date_range=DateRange(end=df.index[0])).data, check_freq=False)
     assert_equal(df[df.index[0] - DateOffset(days=1):],
-                 library.read('MYARR', date_range=DateRange(df.index[0] - DateOffset(days=1))).data)
+                 library.read('MYARR', date_range=DateRange(df.index[0] - DateOffset(days=1))).data, check_freq=False)
     assert_equal(df[df.index[-1] + DateOffset(days=1):],
-                 library.read('MYARR', date_range=DateRange(df.index[-1] + DateOffset(days=1))).data)
+                 library.read('MYARR', date_range=DateRange(df.index[-1] + DateOffset(days=1))).data, check_freq=False)
     assert len(library.read('MYARR', date_range=DateRange(dt(1950, 1, 1), dt(1951, 1, 1))).data) == 0
     assert len(library.read('MYARR', date_range=DateRange(dt(2091, 1, 1), dt(2091, 1, 1))).data) == 0
 

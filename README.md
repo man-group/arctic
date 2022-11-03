@@ -4,7 +4,7 @@
 [![Documentation Status](https://readthedocs.org/projects/arctic/badge/?version=latest)](https://arctic.readthedocs.io/en/latest/?badge=latest)
 [![CircleCI](https://circleci.com/gh/man-group/arctic/tree/master.svg?style=shield)](https://app.circleci.com/pipelines/github/man-group/arctic?branch=master)
 [![PyPI](https://img.shields.io/pypi/v/arctic)](https://pypi.org/project/arctic)
-[![Python](https://img.shields.io/badge/Python-3.6|3.7-green.svg)](https://github.com/man-group/arctic)
+[![Python](https://img.shields.io/badge/Python-3.6|3.7|3.8-green.svg)](https://github.com/man-group/arctic)
 [![Join the chat at https://gitter.im/man-group/arctic](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/man-group/arctic?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Arctic is a high performance datastore for numeric data. It supports [Pandas](http://pandas.pydata.org/),
@@ -18,9 +18,6 @@ Arctic can query millions of rows per second per client, achieves ~10x compressi
 Arctic has been under active development at [Man Group](https://www.man.com/) since 2012.
 
 ---
-
-
-:loudspeaker::loudspeaker::loudspeaker: **BUILDING THE NEXT GENERATION OF ARCTIC** :loudspeaker::loudspeaker::loudspeaker:
 
 ## Man Group is currently building the next generation of Arctic.
 
@@ -141,10 +138,10 @@ Arctic storage implementations are **pluggable**.  VersionStore is the default.
 
 Arctic currently works with:
 
- * Python 3.6, 3.7
- * pymongo >= 3.6.0  <= 3.11.0
- * Pandas  >= 0.22.0 <= 1.0.3
- * MongoDB >= 2.4.x  <= 4.2.8
+ * python 3.6, 3.7, 3.8
+ * pymongo >= 3.6.0 <= 3.11.0
+ * pandas >= 0.22.0 <1.1.0
+ * MongoDB >= 2.4.x <= 4.2.8
 
 
 Operating Systems:
