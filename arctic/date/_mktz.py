@@ -30,6 +30,7 @@ def mktz(zone=None):
     """
     if zone is None:
         try:
+
             zone = tzlocal.get_localzone().zone
         except AttributeError:
             # The zone attribute is called key in tzlocal == 3.x
