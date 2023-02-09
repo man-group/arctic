@@ -512,14 +512,21 @@ class ArcticLibraryBinding(object):
     @property
     def _db(self):
         with self._lock:
+            #print(f'YYY 1')
             arctic_conn = self.arctic._conn
+            #print(f'YYY 2')
             if arctic_conn is not self._curr_conn:
+                print(f'XXXXX arctic reauth')
                 self._auth(arctic_conn[self.database_name])  # trigger re-authentication if Arctic has been reset
+                #print(f'YYY 4')
                 self._curr_conn = arctic_conn
         return self.arctic._conn[self.database_name]
 
     @property
     def _library_coll(self):
+        #print(f'XXXXXX lib {self.library}')
+        #print(f'XXXXXX _db {self._db}')
+        #print(f'XXXXXX len(lib) {len(self.library)}')
         return self._db[self.library]
 
     def __str__(self):
@@ -646,6 +653,7 @@ class ArcticLibraryBinding(object):
         if lib_metadata is not None:
             return lib_metadata.get(field)
         else:
+            print(f'XXXXX arctic get lib type {lib_metadata}')
             return None
 
     @mongo_retry
