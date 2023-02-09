@@ -217,6 +217,11 @@ class PandasPanelStore(PandasDataFrameStore):
 
     @staticmethod
     def can_write_type(data):
+        #try:
+            #from pandas import Panel
+            #return isinstance(data, Panel)
+        #except ImportError:
+            #return False
         return isinstance(data, Panel)
 
     def can_write(self, version, symbol, data):
