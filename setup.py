@@ -93,7 +93,9 @@ setup(
                    "pytest-timeout",
                    "pytest-xdist<=1.26.1",
                    "tomli<2; python_version=='3.6'",
-                   "lz4"
+                   "lz4",
+                   "tzlocal<=1.4",
+                   "pytz<=2019.3"
                   ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',
