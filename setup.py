@@ -85,7 +85,7 @@ setup(
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
     # deprecated
-    tests_require=["mock",
+    tests_require=["mock<=2.0.0",
                    "mockextras",
                    "pytest",
                    "pytest-cov",
