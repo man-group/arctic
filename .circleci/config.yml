@@ -23,19 +23,11 @@ defaults: &defaults
         name: Output useful stuff
         command: |
           echo $VERSION > "$CIRCLE_ARTIFACTS/version.txt"
-          # Find the lines of the changelog between releases, escape double quotes, delete empty lines
-          # Simply gets the current changes from top of changelog.
-          #sed -n '{ /------/= }' CHANGES.md \
-              #| head -n 2 \
-              #| xargs -n 2 bash -c 'sed -n "s/\"/\\\\\"/g;`expr $0 + 1`,`expr $1 - 2`p" CHANGES.md' \
-              #| sed '/^$/d' \
-              #> "$CIRCLE_ARTIFACTS/changes.md"
     - run:
         name: Install MongoDB
         command: |
             # run "cat /etc/os-release" to view information about the OS
             # good article on how to install mongo, https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/
-            # see notebooker
             cat /etc/os-release
             set -x
             # ------ (2022-10-28) install libssl1.1 since mongo doesn't support Ubuntu 22.04 which has libssl v3 
@@ -76,22 +68,6 @@ defaults: &defaults
         key: v1-dep-{{ .Branch }}-{{ epoch }}
         paths:
         - ~/ci
-    #- run:
-    #    name: Run Flake8
-    #    command: |
-    #      . ci/bin/activate
-    #      flake8 notebooker tests
-    #- run:
-    #    name: Run black
-    #    command: |
-    #      . ci/bin/activate
-    #      black --check -l 120 notebooker tests
-    #      if [ $? -eq 0 ]
-    #      then
-    #        echo "Black worked fine."
-    #      else
-    #        echo "Black found differences!"; exit $?
-    #      fi
     # Test
     - run:
         name: Run all tests
@@ -100,6 +76,7 @@ defaults: &defaults
          . ci/bin/activate
          ls -la /bin | grep mongo
          which mongod
+         mkdir test-results
          #py.test -svvvvv --junitxml=test-results/junit.xml
          python setup.py test --pytest-args=-v
     - store_test_results:
@@ -123,8 +100,6 @@ jobs:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_6
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_6
       VERSION: $VERSION
-      #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
-      #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
     working_directory: ~/arctic_3_6
     docker:
@@ -136,8 +111,6 @@ jobs:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_7
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_7
       VERSION: $VERSION
-      #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
-      #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
     working_directory: ~/arctic_3_7
     docker:
@@ -149,8 +122,6 @@ jobs:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_8
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_8
       VERSION: $VERSION
-      #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
-      #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
     working_directory: ~/arctic_3_8
     docker:
