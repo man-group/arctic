@@ -103,10 +103,13 @@ setup(
                    #"tzdata==2022.2",
                    #"tzlocal==4.2",
 
+                   # passing all versions
+                   #"pytz<=2022.1"
+                   #"tzdata==2022.2",
+                   #"tzlocal==4.2; python_version>='3.7'",
+                   #"tzlocal<=1.4; python_version<='3.6'",
+
                    # test
-                   "pytz<=2022.1"
-                   "tzdata==2022.2",
-                   "tzlocal==4.2; python_version>='3.7'",
                    "tzlocal<=1.4; python_version<='3.6'",
 
                    ],
