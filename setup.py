@@ -97,10 +97,14 @@ setup(
                    # good
                    # "tzlocal<=1.4",
                    # "pytz<=2019.3"
-                   # test
-                   "pytz<=2022.1"
-                   "tzdata==2022.2",
-                   "tzlocal==4.2",
+
+                   # fails 3.6 only
+                   #"pytz<=2022.1"
+                   #"tzdata==2022.2",
+                   #"tzlocal==4.2",
+
+                   # test not v3
+                   "tzlocal<3.0,>3.0"
                    ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',
