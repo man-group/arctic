@@ -23,28 +23,28 @@ defaults: &defaults
         name: Output useful stuff
         command: |
           echo $VERSION > "$CIRCLE_ARTIFACTS/version.txt"
-          # Find the lines of the changelog between releases, escape double quotes, delete empty lines
-          # Simply gets the current changes from top of changelog.
-          #sed -n '{ /------/= }' CHANGES.md \
-              #| head -n 2 \
-              #| xargs -n 2 bash -c 'sed -n "s/\"/\\\\\"/g;`expr $0 + 1`,`expr $1 - 2`p" CHANGES.md' \
-              #| sed '/^$/d' \
-              #> "$CIRCLE_ARTIFACTS/changes.md"
     - run:
-        name: Install MongoDB
+        name: Install MongoDB 4.4
         command: |
             # run "cat /etc/os-release" to view information about the OS
             # good article on how to install mongo, https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/
             cat /etc/os-release
             set -x
-            wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+            # ------ (2022-10-28) install libssl1.1 since mongo doesn't support Ubuntu 22.04 which has libssl v3 
+            echo "deb http://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-security.list
+            sudo apt-get update
+            sudo apt-get install libssl1.1
+            # -------
+            wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
             sudo apt-get install gnupg
-            wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
-            echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+            wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+            echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
             sudo apt-get update
             sudo ln -Tf /bin/true /usr/bin/systemctl
-            sudo apt-get install -y mongodb-org=4.2.11 mongodb-org-server=4.2.11 mongodb-org-shell=4.2.11 mongodb-org-mongos=4.2.11 mongodb-org-tools=4.2.11
+            sudo apt-get install -y mongodb-org=4.4.18 mongodb-org-server=4.4.18 mongodb-org-shell=4.4.18 mongodb-org-mongos=4.4.18 mongodb-org-tools=4.4.18
             sudo rm /usr/bin/systemctl
+
+            sudo rm /etc/apt/sources.list.d/focal-security.list
     - run:
        name: Create and activate virtualenv
        command: |
@@ -68,22 +68,6 @@ defaults: &defaults
         key: v1-dep-{{ .Branch }}-{{ epoch }}
         paths:
         - ~/ci
-    #- run:
-    #    name: Run Flake8
-    #    command: |
-    #      . ci/bin/activate
-    #      flake8 notebooker tests
-    #- run:
-    #    name: Run black
-    #    command: |
-    #      . ci/bin/activate
-    #      black --check -l 120 notebooker tests
-    #      if [ $? -eq 0 ]
-    #      then
-    #        echo "Black worked fine."
-    #      else
-    #        echo "Black found differences!"; exit $?
-    #      fi
     # Test
     - run:
         name: Run all tests
@@ -91,7 +75,8 @@ defaults: &defaults
          set -x
          . ci/bin/activate
          ls -la /bin | grep mongo
-         which mongod
+         mongod --version
+         mkdir test-results
          #py.test -svvvvv --junitxml=test-results/junit.xml
          python setup.py test --pytest-args=-v
     - store_test_results:
@@ -115,39 +100,37 @@ jobs:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_6
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_6
       VERSION: $VERSION
-      #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
-      #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
     working_directory: ~/arctic_3_6
     docker:
     - image: cimg/python:3.6-node
     <<: *defaults
+    # The resource_class feature allows configuring CPU and RAM resources for each job. Different resource classes are available for different executors. https://circleci.com/docs/2.0/configuration-reference/#resourceclass
+    #resource_class: large
   build_3_7:
     environment:
       PYTHON_VERSION: "3_7"
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_7
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_7
       VERSION: $VERSION
-      #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
-      #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
     working_directory: ~/arctic_3_7
     docker:
     - image: cimg/python:3.7-node
     <<: *defaults
+    resource_class: large
   build_3_8:
     environment:
       PYTHON_VERSION: "3_8"
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_8
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_8
       VERSION: $VERSION
-      #PANDOC_RELEASES_URL: https://github.com/jgm/pandoc/releases
-      #YARN_STATIC_DIR: notebooker/web/static/
       IMAGE_NAME: mangroup/arctic
     working_directory: ~/arctic_3_8
     docker:
     - image: cimg/python:3.8-node
     <<: *defaults
+    resource_class: large
   publish-github-release:
    docker:
      - image: cibuilds/github:0.13
