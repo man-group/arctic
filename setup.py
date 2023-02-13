@@ -85,7 +85,7 @@ setup(
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
     # deprecated
-    tests_require=["mock<=2.0.0",
+    tests_require=["mock",
                    "mockextras",
                    "pytest",
                    "pytest-cov",
@@ -94,24 +94,7 @@ setup(
                    "pytest-xdist<=1.26.1",
                    "tomli<2; python_version=='3.6'",
                    "lz4",
-                   # good all pass
-                   # "tzlocal<=1.4",
-                   # "pytz<=2019.3"
-
-                   # fails 3.6 only
-                   #"pytz<=2022.1"
-                   #"tzdata==2022.2",
-                   #"tzlocal==4.2",
-
-                   # passing all versions
-                   #"pytz<=2022.1"
-                   #"tzdata==2022.2",
-                   #"tzlocal==4.2; python_version>='3.7'",
-                   #"tzlocal<=1.4; python_version<='3.6'",
-
-                   # test
-                   "tzlocal<=1.4; python_version<='3.6'",
-
+                   "tzlocal<=1.4; python_version<='3.6'"
                    ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',
