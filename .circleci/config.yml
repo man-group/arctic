@@ -24,7 +24,7 @@ defaults: &defaults
         command: |
           echo $VERSION > "$CIRCLE_ARTIFACTS/version.txt"
     - run:
-        name: Install MongoDB
+        name: Install MongoDB 4.2
         command: |
             # run "cat /etc/os-release" to view information about the OS
             # good article on how to install mongo, https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/
@@ -75,7 +75,7 @@ defaults: &defaults
          set -x
          . ci/bin/activate
          ls -la /bin | grep mongo
-         which mongod
+         mongod --version
          mkdir test-results
          #py.test -svvvvv --junitxml=test-results/junit.xml
          python setup.py test --pytest-args=-v

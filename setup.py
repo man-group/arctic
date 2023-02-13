@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2015-2022 Man Group Ltd
+# Copyright (C) 2015-2023 Man Group Ltd
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -58,7 +58,7 @@ class PyTest(TestCommand):
 
 setup(
     name="arctic",
-    version="1.80.5",
+    version="1.80.6",
     author="Man AHL Technology",
     author_email="arctic@man.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
@@ -85,7 +85,7 @@ setup(
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
     # deprecated
-    tests_require=["mock",
+    tests_require=["mock<=2.0.0",
                    "mockextras",
                    "pytest",
                    "pytest-cov",
