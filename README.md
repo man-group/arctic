@@ -141,7 +141,7 @@ Arctic currently works with:
  * python 3.6, 3.7, 3.8
  * pymongo >= 3.6.0 <= 3.11.0
  * pandas >= 0.22.0 <1.1.0
- * MongoDB >= 2.4.x <= 4.2.8
+ * MongoDB >= 2.4.x <= 4.4.18
 
 
 Operating Systems:
