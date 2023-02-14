@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.80.6
+  * Bugfix: #979 fix circleci mongo install
+
 ### 1.80.5 (2022-09-05)
   * Feature: #950 remove all traces of python 2.7 and six package
   * Feature: #959 add python 3.8 support
