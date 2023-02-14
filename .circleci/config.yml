@@ -105,7 +105,6 @@ jobs:
     docker:
     - image: cimg/python:3.6-node
     <<: *defaults
-    # The resource_class feature allows configuring CPU and RAM resources for each job. Different resource classes are available for different executors. https://circleci.com/docs/2.0/configuration-reference/#resourceclass
     #resource_class: large
   build_3_7:
     environment:
@@ -118,7 +117,7 @@ jobs:
     docker:
     - image: cimg/python:3.7-node
     <<: *defaults
-    resource_class: large
+    #resource_class: large
   build_3_8:
     environment:
       PYTHON_VERSION: "3_8"
@@ -130,7 +129,7 @@ jobs:
     docker:
     - image: cimg/python:3.8-node
     <<: *defaults
-    resource_class: large
+    #resource_class: large
   publish-github-release:
    docker:
      - image: cibuilds/github:0.13
