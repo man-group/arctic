@@ -78,8 +78,8 @@ def test_indexes(arctic):
         # make a <=mongo42 index look like a >=mongo44 index
         fixed = dict()
         for k in sorted(oldindex.keys()):
-            oldindex[k].pop('ns')
             t2=dict(sorted(oldindex[k].items(), reverse=True))
+            t2.pop('ns')
             fixed[k]=t2
         return fixed
 
