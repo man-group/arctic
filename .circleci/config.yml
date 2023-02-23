@@ -24,7 +24,7 @@ defaults: &defaults
         command: |
           echo $VERSION > "$CIRCLE_ARTIFACTS/version.txt"
     - run:
-        name: Install MongoDB 4.4
+        name: Install MongoDB 5.0.14
         command: |
             # run "cat /etc/os-release" to view information about the OS
             # good article on how to install mongo, https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/
@@ -35,13 +35,13 @@ defaults: &defaults
             sudo apt-get update
             sudo apt-get install libssl1.1
             # -------
-            wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+            wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
             sudo apt-get install gnupg
-            wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
-            echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+            wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
+            echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
             sudo apt-get update
             sudo ln -Tf /bin/true /usr/bin/systemctl
-            sudo apt-get install -y mongodb-org=4.4.18 mongodb-org-server=4.4.18 mongodb-org-shell=4.4.18 mongodb-org-mongos=4.4.18 mongodb-org-tools=4.4.18
+            sudo apt-get install -y mongodb-org=5.0.14 mongodb-org-server=5.0.14 mongodb-org-shell=5.0.14 mongodb-org-mongos=5.0.14 mongodb-org-tools=5.0.14
             sudo rm /usr/bin/systemctl
 
             sudo rm /etc/apt/sources.list.d/focal-security.list
@@ -162,8 +162,8 @@ workflows:
   version: 2
   build_all:
     jobs:
-      #- build_3_6
-      #- build_3_7
-      #- build_3_8
+      - build_3_6
+      - build_3_7
+      - build_3_8
       - build_3_9
 
