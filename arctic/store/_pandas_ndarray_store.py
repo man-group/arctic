@@ -5,6 +5,9 @@ import numpy as np
 from bson.binary import Binary
 from pandas import DataFrame, Series
 try:
+    # TODO delete when early Pandas version support removed
+    import warnings
+    warnings.filterwarnings("ignore", category=FutureWarning)
     from pandas import Panel
 except ImportError:
     pass
