@@ -36,3 +36,8 @@ If you would like information on ArcticDB prior to the public release, please ge
 Information on how to set up, install and use Arctic has been migrated to [README-arctic.md](README-arctic.md). 
 
 Note that as explained in the above message, this repository is in maintenance mode as ongoing development has migrated to **ArcticDB**, our next-generation high-performance DataFrame database.
+ * python 3.6, 3.7, 3.8, 3.10
+ * pymongo >= 3.6.0 <= 3.12.0
+ * pandas >= 0.22.0 < 1.3.6
+ * numpy 1.23.5
+ * MongoDB >= 2.4.x <= 5.0.14
