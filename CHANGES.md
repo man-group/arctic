@@ -1,9 +1,10 @@
 ## Changelog
 
-### 1.80.6
+### 1.81
   * Bugfix: #979 fix circleci mongo install
   * Feature: #980 get testpack running with mongod 4.4.18
   * Bugfix: #985 suppress FutureWarning for Panel import
+  * Feature: python<=3.10, pandas<1.3.6, numpy<1.23.6, pymongo==3.12.0, mongod==5.0.14
 
 ### 1.80.5 (2022-09-05)
   * Feature: #950 remove all traces of python 2.7 and six package
