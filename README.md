@@ -27,7 +27,7 @@ Arctic has been under active development at [Man Group](https://www.man.com/) si
 * **Flexible**: Designed to handle complex real-world datasets
 * **Familiar**: Built for the modern Python Data Science ecosystem - Pandas In/Pandas Out!
 
-This repository **does not contain the code for ArcticDB**, but instead contains the first version of the Arctic platform. Please note that this repository is now in maintenance mode and all ongoing development efforts will be focused on ArcticDB.
+This repository **does not contain the code for ArcticDB**, but instead contains the older (first) version of the Arctic platform. Please note that this repository is now in maintenance mode and all ongoing development efforts will be focused on ArcticDB.
 
 If you would like information on ArcticDB prior to the public release, please get in touch with us at arcticdb@man.com. 
 
