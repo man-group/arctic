@@ -29,4 +29,4 @@ For more information on ArcticDB, please contact us as arcticdb@man.com.
 
 ---
 
-Information on how to set up, install and use Arctic has been migrated to [README-arctic.md](README-arctic.md]. Please view that file for more information. Note that as explained in the above message, this repository is in maintenance mode and as ongoing development has migrated to **ArcticDB**, our next-generation high-performance DataFrame database.
+Information on how to set up, install and use Arctic has been migrated to [README-arctic.md](README-arctic.md). Please view that file for more information. Note that as explained in the above message, this repository is in maintenance mode and as ongoing development has migrated to **ArcticDB**, our next-generation high-performance DataFrame database.
