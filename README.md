@@ -21,12 +21,18 @@ Arctic has been under active development at [Man Group](https://www.man.com/) si
 
 ## :mega: ArcticDB coming soon! :mega:
 
-[ArcticDB](https://www.man.com/man-group-brings-powerful-dataframe-database-product-arcticdb-to-market-with-bloomberg), Man Group's high-performance Python-native DataFrame database will soon be available on GitHub. 
+[ArcticDB](https://www.man.com/man-group-brings-powerful-dataframe-database-product-arcticdb-to-market-with-bloomberg), Man Group's high-performance Python-native DataFrame database will soon be available on GitHub. ArcticDB is the next generation of Arctic and is designed to be a drop-in replacement for Arctic, providing a platform that is:
 
-This repository **does not contain the code for ArcticDB**, but instead contains the first version of the Arctic platform. As a result, this repository is now in maintenance mode and all ongoing development efforts will be focused on ArcticDB.
+* **Fast**: Capable of processing billions of rows in seconds
+* **Flexible**: Designed to handle complex real-world datasets
+* **Familiar**: Built for the modern Python Data Science ecosystem - Pandas In/Pandas Out!
 
-For more information on ArcticDB, please contact us as arcticdb@man.com.
+This repository **does not contain the code for ArcticDB**, but instead contains the first version of the Arctic platform. Please note that this repository is now in maintenance mode and all ongoing development efforts will be focused on ArcticDB.
+
+If you would like information on ArcticDB prior to the public release, please get in touch with us at arcticdb@man.com. 
 
 ---
 
-Information on how to set up, install and use Arctic has been migrated to [README-arctic.md](README-arctic.md). Please view that file for more information. Note that as explained in the above message, this repository is in maintenance mode and as ongoing development has migrated to **ArcticDB**, our next-generation high-performance DataFrame database.
+Information on how to set up, install and use Arctic has been migrated to [README-arctic.md](README-arctic.md). 
+
+Note that as explained in the above message, this repository is in maintenance mode as ongoing development has migrated to **ArcticDB**, our next-generation high-performance DataFrame database.
