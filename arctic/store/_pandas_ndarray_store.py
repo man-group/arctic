@@ -188,12 +188,7 @@ class PandasDataFrameStore(PandasStore):
 
     @staticmethod
     def can_write_type(data):
-        try:
-            # TODO
-            from pandas import Panel
-            return isinstance(data, Panel)
-        except ImportError:
-            return False
+        return isinstance(data, DataFrame)
 
     def can_write(self, version, symbol, data):
         if self.can_write_type(data):
@@ -225,8 +220,12 @@ class PandasPanelStore(PandasDataFrameStore):
 
     @staticmethod
     def can_write_type(data):
-        pd.__version__ >= '0.25.0'
-        return isinstance(data, Panel)
+        try:
+            # TODO
+            from pandas import Panel
+            return isinstance(data, Panel)
+        except ImportError:
+            return False
 
     def can_write(self, version, symbol, data):
         if self.can_write_type(data):

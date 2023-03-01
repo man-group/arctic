@@ -61,8 +61,19 @@ def _multi_index_to_records(index, empty_index):
             index_names[i] = 'level_%d' % count
             count += 1
             log.info("Level in MultiIndex has no name, defaulting to %s" % index_names[i])
-    index_tz = [get_timezone(i.tz) if isinstance(i, DatetimeIndex) else None for i in index.levels]
-    return ix_vals, index_names, index_tz
+    # fix issue with pandas 1.3.5
+    #index_tz = [get_timezone(i.tz) if isinstance(i, DatetimeIndex) else None for i in index.levels]
+    ret = list()
+    for i in index.levels:
+        if isinstance(i, DatetimeIndex):
+            # TODO find breaking pandas version
+            if PD_VER >= '1.3.0' and i.tz is None:
+                ret.append(None)
+            else:
+                ret.append(get_timezone(i.tz))
+        else:
+            ret.append(None)
+    return ix_vals, index_names, ret
 
 
 class PandasSerializer(object):
