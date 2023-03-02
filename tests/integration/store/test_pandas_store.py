@@ -8,10 +8,6 @@ import pytest
 from dateutil.rrule import rrule, DAILY
 from mock import Mock, patch
 from pandas import DataFrame, Series, DatetimeIndex, MultiIndex, read_csv, date_range, concat
-try:
-    from pandas import Panel
-except ImportError:
-    pass
 from pandas.tseries.offsets import DateOffset
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from io import StringIO
@@ -641,11 +637,6 @@ def test_can_write_pandas_df_with_object_columns(library):
     saved_df = library.read('objects').data
 
     assert_frame_equal(saved_df, expected)
-
-
-def panel(i1, i2, i3):
-    return Panel(np.random.randn(i1, i2, i3), range(i1), ['A%d' % i for i in range(i2)],
-                 list(rrule(DAILY, count=i3, dtstart=dt(1970, 1, 1), interval=1)))
 
 
 @pytest.mark.skipif(pd.__version__ >= '0.25.0', reason="Panel has been removed")

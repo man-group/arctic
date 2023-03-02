@@ -4,14 +4,6 @@ import logging
 import numpy as np
 from bson.binary import Binary
 from pandas import DataFrame, Series
-try:
-    # TODO delete when early Pandas version support removed
-    import warnings
-    warnings.filterwarnings("ignore", category=FutureWarning)
-    from pandas import Panel
-except ImportError:
-    pass
-
 from arctic._util import NP_OBJECT_DTYPE
 from arctic.serialization.numpy_records import SeriesSerializer, DataFrameSerializer
 from ._ndarray_store import NdarrayStore
@@ -213,47 +205,3 @@ class PandasDataFrameStore(PandasStore):
 
     def read_options(self):
         return super(PandasDataFrameStore, self).read_options()
-
-
-class PandasPanelStore(PandasDataFrameStore):
-    TYPE = 'pandaspan'
-
-    @staticmethod
-    def can_write_type(data):
-        return isinstance(data, Panel)
-
-    def can_write(self, version, symbol, data):
-        if self.can_write_type(data):
-            frame = data.to_frame(filter_observations=False)
-            if NP_OBJECT_DTYPE in frame.dtypes.values or (hasattr(data, 'index') and data.index.dtype is NP_OBJECT_DTYPE):
-                return self.SERIALIZER.can_convert_to_records_without_objects(frame, symbol)
-            return True
-        return False
-
-    def write(self, arctic_lib, version, symbol, item, previous_version):
-        if np.product(item.shape) == 0:
-            # Currently not supporting zero size panels as they drop indices when converting to dataframes
-            # Plan is to find a better solution in due course.
-            raise ValueError('Cannot insert a zero size panel into mongo.')
-        if not np.all(len(i.names) == 1 for i in item.axes):
-            raise ValueError('Cannot insert panels with multiindexes')
-        item = item.to_frame(filter_observations=False)
-        if len(set(item.dtypes)) == 1:
-            # If all columns have the same dtype, we support non-string column names.
-            # We know from above check that columns is not a multiindex.
-            item = DataFrame(item.stack())
-        elif item.columns.dtype != np.dtype('object'):
-            raise ValueError('Cannot support non-object dtypes for columns')
-        super(PandasPanelStore, self).write(arctic_lib, version, symbol, item, previous_version)
-
-    def read(self, arctic_lib, version, symbol, **kwargs):
-        item = super(PandasPanelStore, self).read(arctic_lib, version, symbol, **kwargs)
-        if len(item.index.names) == 3:
-            return item.iloc[:, 0].unstack().to_panel()
-        return item.to_panel()
-
-    def read_options(self):
-        return super(PandasPanelStore, self).read_options()
-
-    def append(self, arctic_lib, version, symbol, item, previous_version, **kwargs):
-        raise ValueError('Appending not supported for pandas.Panel')
