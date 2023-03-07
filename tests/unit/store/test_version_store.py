@@ -188,7 +188,7 @@ def test_ensure_index():
          call([('symbol', 1), ('_id', -1)], background=True),
          call([('symbol', 1), ('version', -1)], background=True, unique=True),
          call([('symbol', 1), ('version', -1), ('metadata.deleted', 1)], background=True, name='versionstore_idx'),
-         call([('parent', 1)], background=True, name='versionstore_idx_2')
+         call([('parent', 1)], background=True)
     ]
     assert vs._collection.version_nums.create_index.call_args_list == [call('symbol', unique=True, background=True)]
     th._ensure_index.assert_called_once_with(vs._collection)

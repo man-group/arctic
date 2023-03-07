@@ -135,7 +135,7 @@ def test_indexes(arctic):
                                              'ns': 'arctic.library.versions', 'background': True},
                      'versionstore_idx': {'v': index_version, 'key': [('symbol', 1), ('version', -1), ('metadata.deleted', 1)],
                                           'ns': 'arctic.library.versions', 'background': True},
-                     'versionstore_idx_2': {'v': index_version, 'key': [('parent', 1)],
+                     'parent_1': {'v': index_version, 'key': [('parent', 1)],
                                             'ns': 'arctic.library.versions', 'background': True}}
     test_versions_44 = makeMongo44Index(test_versions)
     assert versions == test_versions or versions == test_versions_44
