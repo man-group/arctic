@@ -127,22 +127,16 @@ def test_indexes(arctic):
     assert snapshots == test_snapshots or snapshots == test_snapshots_44
 
     versions = c.arctic.library.versions.index_information()
-    test_versions = {u'_id_': {u'key': [(u'_id', 1)],
-                                           u'ns': u'arctic.library.versions',
-                                           u'v': index_version},
-                                 u'symbol_1__id_-1': {u'background': True,
-                                                      u'key': [(u'symbol', 1), (u'_id', -1)],
-                                                      u'ns': u'arctic.library.versions',
-                                                      u'v': index_version},
-                                 u'symbol_1_version_-1': {u'background': True,
-                                                          u'key': [(u'symbol', 1), (u'version', -1)],
-                                                          u'ns': u'arctic.library.versions',
-                                                          u'unique': True,
-                                                          u'v': index_version},
-                                 u'versionstore_idx': {u'background': True,
-                                                                             u'key': [(u'symbol', 1), (u'version', -1), (u'metadata.deleted', 1)],
-                                                                             u'ns': u'arctic.library.versions',
-                                                                             u'v': index_version}}
+    test_versions = {'_id_': {'v': index_version, 'key': [('_id', 1)],
+                              'ns': 'arctic.library.versions'},
+                     'symbol_1__id_-1': {'v': index_version, 'key': [('symbol', 1), ('_id', -1)],
+                                         'ns': 'arctic.library.versions', 'background': True},
+                     'symbol_1_version_-1': {'v': index_version, 'unique': True, 'key': [('symbol', 1), ('version', -1)],
+                                             'ns': 'arctic.library.versions', 'background': True},
+                     'versionstore_idx': {'v': index_version, 'key': [('symbol', 1), ('version', -1), ('metadata.deleted', 1)],
+                                          'ns': 'arctic.library.versions', 'background': True},
+                     'parent_1': {'v': index_version, 'key': [('parent', 1)],
+                                            'ns': 'arctic.library.versions', 'background': True}}
     test_versions_44 = makeMongo44Index(test_versions)
     assert versions == test_versions or versions == test_versions_44
 

@@ -83,6 +83,8 @@ class VersionStore(object):
                                           ('metadata.deleted', pymongo.ASCENDING)],
                                          name='versionstore_idx',
                                          background=True)
+        # Issue #987 slow snapshot delete
+        collection.versions.create_index([('parent', pymongo.ASCENDING)], background=True)
         collection.version_nums.create_index('symbol', unique=True, background=True)
         for th in _TYPE_HANDLERS:
             th._ensure_index(collection)
