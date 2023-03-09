@@ -5,7 +5,7 @@
   * Feature: #980 get testpack running with mongod 4.4.18
   * Bugfix:  #985 suppress FutureWarning for Panel import
   * Bugfix:  #989 VersionStore slow snapshot delete add new index
-  * Bugfix:  #990 serializing DateTimeIndex, cast .tz property to str
+  * Bugfix:  #806, #990 DateTimeIndex tz serialization
 
 ### 1.80.5 (2022-09-05)
   * Feature: #950 remove all traces of python 2.7 and six package
