@@ -61,7 +61,7 @@ def _multi_index_to_records(index, empty_index):
             index_names[i] = 'level_%d' % count
             count += 1
             log.info("Level in MultiIndex has no name, defaulting to %s" % index_names[i])
-    index_tz = [get_timezone(i.tz) if isinstance(i, DatetimeIndex) else None for i in index.levels]
+    index_tz = [str(get_timezone(i.tz)) if isinstance(i, DatetimeIndex) else None for i in index.levels]
     return ix_vals, index_names, index_tz
 
 
@@ -81,7 +81,7 @@ class PandasSerializer(object):
                 index_names = ['index']
                 log.info("Index has no name, defaulting to 'index'")
             if isinstance(index, DatetimeIndex) and index.tz is not None:
-                index_tz = get_timezone(index.tz)
+                index_tz = str(get_timezone(index.tz))
 
         if index_tz is not None:
             metadata['index_tz'] = index_tz
