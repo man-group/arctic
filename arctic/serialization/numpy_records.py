@@ -110,7 +110,7 @@ class PandasSerializer(object):
                 level = Index(np.copy(recarr[str(index_name)]))
                 if level_no < len(index_tz):
                     tz = index_tz[level_no]
-                    if tz is not None:
+                    if tz is not None and tz != 'None':
                         if not isinstance(level, DatetimeIndex) and len(level) == 0:
                             # index type information got lost during save as the index was empty, cast back
                             level = DatetimeIndex([], tz=tz)
