@@ -61,7 +61,14 @@ def _multi_index_to_records(index, empty_index):
             index_names[i] = 'level_%d' % count
             count += 1
             log.info("Level in MultiIndex has no name, defaulting to %s" % index_names[i])
-    index_tz = [str(get_timezone(i.tz)) if isinstance(i, DatetimeIndex) else None for i in index.levels]
+    index_tz = []
+    for i in index.levels:
+        if isinstance(i, DatetimeIndex):
+            tmp = get_timezone(i.tz)
+            index_tz.append(str(tmp) if tmp is not None else None)
+        else:
+            index_tz.append(None)
+
     return ix_vals, index_names, index_tz
 
 
@@ -81,7 +88,8 @@ class PandasSerializer(object):
                 index_names = ['index']
                 log.info("Index has no name, defaulting to 'index'")
             if isinstance(index, DatetimeIndex) and index.tz is not None:
-                index_tz = str(get_timezone(index.tz))
+                tmp = get_timezone(index.tz)
+                index_tz = str(tmp) if tmp is not None else None
 
         if index_tz is not None:
             metadata['index_tz'] = index_tz
@@ -110,7 +118,7 @@ class PandasSerializer(object):
                 level = Index(np.copy(recarr[str(index_name)]))
                 if level_no < len(index_tz):
                     tz = index_tz[level_no]
-                    if tz is not None and tz != 'None':
+                    if tz is not None:
                         if not isinstance(level, DatetimeIndex) and len(level) == 0:
                             # index type information got lost during save as the index was empty, cast back
                             level = DatetimeIndex([], tz=tz)
