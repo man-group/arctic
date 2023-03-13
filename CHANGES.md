@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.81.1 (2023-03-13)
+  * Feature: #996 release wheel to pypi as well as tar.gz, egg.
+
 ### 1.81.0 (2023-03-10)
   * Bugfix:  #979 fix circleci mongo install
   * Feature: #980 get testpack running with mongod 4.4.18
