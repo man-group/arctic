@@ -33,7 +33,7 @@ ArcticDB is the next generation of Arctic and is designed to be a drop-in replac
 This repository **does not contain the code for ArcticDB**, but instead contains the older (first) version of the Arctic platform.
 This repository is now in maintenance mode and all ongoing development efforts will be focused on ArcticDB.
 
-If you would like information on ArcticDB please see the [website](arcticdb.io) or get in touch with us at arcticdb@man.com.
+If you would like information on ArcticDB please see the [website](https://arcticdb.io) or get in touch with us at arcticdb@man.com.
 
 ---
 
