@@ -21,8 +21,7 @@ Arctic has been under active development at [Man Group](https://www.man.com/) si
 
 ## :mega: ArcticDB! :mega:
 
-[ArcticDB](https://www.man.com/man-group-brings-powerful-dataframe-database-product-arcticdb-to-market-with-bloomberg), Man Group's high-performance Python-native
-DataFrame database is available on [GitHub](https://github.com/man-group/arcticdb).
+ArcticDB, Man Group's high-performance Python-native DataFrame database, is available on [GitHub](https://github.com/man-group/arcticdb).
 
 ArcticDB is the next generation of Arctic and is designed to be a drop-in replacement for it, providing a platform that is:
 
