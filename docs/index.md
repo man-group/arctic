@@ -1,3 +1,7 @@
+| :memo:        | We've now moved to ArcticDB, check out the [repo](https://github.com/man-group/ArcticDB), [docs](https://docs.arcticdb.io/) and [website](https://arcticdb.io/)   |
+|---------------|:-------------------------------------------------------------------------|
+
+
 # Arctic Introduction
 
 ## ArcticDB
