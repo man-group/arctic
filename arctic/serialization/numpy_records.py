@@ -64,8 +64,11 @@ def _multi_index_to_records(index, empty_index):
     index_tz = []
     for i in index.levels:
         if isinstance(i, DatetimeIndex):
-            tmp = get_timezone(i.tz)
-            index_tz.append(str(tmp) if tmp is not None else None)
+            if i.tz is None:
+                index_tz.append(None)
+            else:
+                tmp = get_timezone(i.tz)
+                index_tz.append(str(tmp) if tmp is not None else None)
         else:
             index_tz.append(None)
 
