@@ -94,7 +94,7 @@ setup(
                    "pytest-xdist<=1.26.1",
                    "tomli<2; python_version=='3.6'",
                    "lz4",
-                   "tzlocal<=1.4; python_version<='3.6'"
+                   "tzlocal<=1.4"
                    ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',
