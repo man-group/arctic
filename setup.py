@@ -80,7 +80,7 @@ setup(
                       "numpy<1.19.0",
                       "pymongo>=3.6.0, <= 3.11.0",
                       "pytz",
-                      "tzlocal<=1.4",
+                      "tzlocal<=4.4b1", # <=1.4 works all versions python
                       "lz4",
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
