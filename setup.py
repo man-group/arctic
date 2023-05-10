@@ -95,7 +95,6 @@ setup(
                    "tomli<2; python_version=='3.6'",
                    "lz4",
                    "tzlocal<=1.4; python_version<='3.6'",
-                   "tzlocal<=4.4b1; python_version>'3.6'" # test see if we can circleci to use this
                    ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',
