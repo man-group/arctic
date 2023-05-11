@@ -20,9 +20,9 @@ def _split_arrs(array_2d, slices):
     but avoids fancy indexing
     """
     if len(array_2d) == 0:
-        return np.empty(0, dtype=np.object)
+        return np.empty(0, dtype=object)
 
-    rtn = np.empty(len(slices) + 1, dtype=np.object)
+    rtn = np.empty(len(slices) + 1, dtype=object)
     start = 0
     for i, s in enumerate(slices):
         rtn[i] = array_2d[start:s]

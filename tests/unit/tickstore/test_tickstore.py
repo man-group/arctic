@@ -40,7 +40,7 @@ def test_mongo_date_range_query():
         call({'sy': 's1', 's': dt(2014, 1, 1, 0, 0, tzinfo=mktz())}, {'e': 1}),
         call({'sy': 's2', 's': dt(2014, 1, 1, 12, 0, tzinfo=mktz())}, {'e': 1})]
 
-    assert query == {'s': {'$gte': dt(2014, 1, 1, 12, 0, tzinfo=mktz()), '$lte': dt(2014, 1, 3, 0, 0, tzinfo=mktz())}}
+    assert query == {'s': {'$gte': dt(2014, 1, 1, 12, 0, tzinfo=mktz("UTC")), '$lte': dt(2014, 1, 3, 0, 0, tzinfo=mktz())}}
 
 
 def test_mongo_date_range_query_asserts():
@@ -92,7 +92,7 @@ def test_tickstore_to_bucket_with_image():
     assert get_coldata(bucket[COLUMNS]['A']) == ([124, 125], [1, 1, 0, 0, 0, 0, 0, 0])
     assert get_coldata(bucket[COLUMNS]['B']) == ([27.2], [0, 1, 0, 0, 0, 0, 0, 0])
     assert get_coldata(bucket[COLUMNS]['D']) == ([0], [1, 0, 0, 0, 0, 0, 0, 0])
-    index = [dt.fromtimestamp(int(i/1000)).replace(tzinfo=mktz(tz)) for i in
+    index = [dt.fromtimestamp(int(i/1000)).astimezone(mktz(tz)).replace(tzinfo=mktz(tz)) for i in
              list(np.cumsum(np.frombuffer(decompress(bucket[INDEX]), dtype='uint64')))]
     assert index == [i['index'] for i in data]
     assert bucket[COLUMNS]['A'][DTYPE] == 'int64'
@@ -157,7 +157,7 @@ def test_tickstore_pandas_to_bucket_image():
     assert np.isnan(values[1])
     assert values[0] == 1 and values[2] == 1
     assert rowmask == [1, 1, 1, 0, 0, 0, 0, 0]
-    index = [dt.fromtimestamp(int(i/1000)).replace(tzinfo=mktz(tz)) for i in
+    index = [dt.fromtimestamp(int(i/1000)).astimezone(mktz(tz)).replace(tzinfo=mktz(tz)) for i in
              list(np.cumsum(np.frombuffer(decompress(bucket[INDEX]), dtype='uint64')))]
     assert index == tick_index
     assert bucket[COLUMNS]['A'][DTYPE] == 'int64'
