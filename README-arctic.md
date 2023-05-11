@@ -1,3 +1,8 @@
+[![Documentation Status](https://readthedocs.org/projects/arctic/badge/?version=latest)](https://arctic.readthedocs.io/en/latest/?badge=latest)
+[![CircleCI](https://circleci.com/gh/man-group/arctic/tree/master.svg?style=shield)](https://app.circleci.com/pipelines/github/man-group/arctic?branch=master)
+[![PyPI](https://img.shields.io/pypi/v/arctic)](https://pypi.org/project/arctic)
+[![Python](https://img.shields.io/badge/Python-3.6|3.7|3.8-green.svg)](https://github.com/man-group/arctic)
+
 ## Quickstart
 
 ### Install Arctic
