@@ -58,7 +58,7 @@ class PyTest(TestCommand):
 
 setup(
     name="arctic",
-    version="1.81.1",
+    version="1.81.2",
     author="Man AHL Technology",
     author_email="arctic@man.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
@@ -80,7 +80,7 @@ setup(
                       "numpy<1.19.0",
                       "pymongo>=3.6.0, <= 3.11.0",
                       "pytz",
-                      "tzlocal", # <=4.4b1 hardcoded in .circleci.yaml
+                      "tzlocal<=4.4b1", # required for circleCI builds
                       "lz4",
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
