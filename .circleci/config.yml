@@ -53,7 +53,8 @@ defaults: &defaults
          python setup.py develop
          pip install pytest-server-fixtures[mongodb]
          echo y | pip uninstall tzlocal # because circleci will install >5.0
-         pip install tzlocal==4.4b1
+         #pip install tzlocal==4.4b1
+         pip install tzlocal==4.2
          pip freeze
          python --version
     - run:
