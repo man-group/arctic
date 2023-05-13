@@ -80,7 +80,7 @@ setup(
                       "numpy<1.19.0",
                       "pymongo>=3.6.0, <= 3.11.0",
                       "pytz",
-                      "tzlocal", #"tzlocal<=4.4b1", # required for circleCI builds
+                      "tzlocal"
                       "lz4",
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
@@ -94,7 +94,7 @@ setup(
                    "pytest-xdist<=1.26.1",
                    "tomli<2; python_version=='3.6'",
                    "lz4",
-                   "tzlocal<=1.4; python_version<='3.6'",
+                   "tzlocal<=1.4; python_version<='3.6'"
                    ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',

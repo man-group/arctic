@@ -2,7 +2,7 @@
 
 ### 1.81.2 (2023-05-11)
   * Feature: #1000, #1001, #1002, #1003, #1007, #1008 ArcticDB docs, links etc
-  * Bugfix: #xxx tzlocal build issue fixed
+  * Bugfix:  #xxx force CircleCI to install tzlocal==4.2
 
 ### 1.81.1 (2023-03-13)
   * Feature: #996 release wheel to pypi as well as tar.gz, egg.
