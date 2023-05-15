@@ -58,7 +58,7 @@ class PyTest(TestCommand):
 
 setup(
     name="arctic",
-    version="1.81.1",
+    version="1.81.2",
     author="Man AHL Technology",
     author_email="arctic@man.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
@@ -94,7 +94,7 @@ setup(
                    "pytest-xdist<=1.26.1",
                    "tomli<2; python_version=='3.6'",
                    "lz4",
-                   "tzlocal<=1.4; python_version<='3.6'"
+                   "tzlocal<=1.4; python_version<='3.6'",
                    ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',

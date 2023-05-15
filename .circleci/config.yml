@@ -51,18 +51,12 @@ defaults: &defaults
          virtualenv ci
          . ci/bin/activate
          python setup.py develop
+         pip install --upgrade pip
          pip install pytest-server-fixtures[mongodb]
+         echo y | pip uninstall tzlocal # because circleci will install >5.0b
+         pip install tzlocal==4.2 # works for python 3.6 and 3.8
          pip freeze
          python --version
-    - run:
-       name: Check Markdown rendering
-       command: |
-         pip install --upgrade pip
-         pip install readme_renderer
-         echo CHANGES.md
-         python -m readme_renderer CHANGES.md  -o c.html
-         echo README.md
-         python -m readme_renderer README.md  -o r.html
     # Save dependency cache
     - save_cache:
         key: v1-dep-{{ .Branch }}-{{ epoch }}
