@@ -4,6 +4,7 @@
  * Compatibility: allow pandas version newer than 1.0, less than 2.0
  * Compatibility: allow numpy version newer than 1.18
  * Bugfix: resolve import error on pandas.Panel, Panel was removed in pandas 1.0
+ * Bugfix: fix np.float/np.int/np.book depreciations
  * Cleanup: remove async_benchmark
 
 ### 1.81.2 (2023-05-11)

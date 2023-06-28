@@ -261,13 +261,13 @@ def test_empty_append_concat_and_rewrite_3(library, fw_pointers_cfg):
 
 
 def test_append_with_extra_columns(library):
-    ndarr = np.array([(2.1, 1, "a")], dtype=[('C', np.float), ('B', np.int), ('A', 'S1')])
-    ndarr2 = np.array([("b", 2, 3.1, 'c', 4, 5.)], dtype=[('A', 'S1'), ('B', np.int), ('C', np.float),
-                                                          ('D', 'S1'), ('E', np.int), ('F', np.float)])
+    ndarr = np.array([(2.1, 1, "a")], dtype=[('C', float), ('B', int), ('A', 'S1')])
+    ndarr2 = np.array([("b", 2, 3.1, 'c', 4, 5.)], dtype=[('A', 'S1'), ('B', int), ('C', float),
+                                                          ('D', 'S1'), ('E', int), ('F', float)])
     expected = np.array([("a", 1, 2.1, '', 0, np.nan),
                          ("b", 2, 3.1, 'c', 4, 5.)],
-                        dtype=np.dtype([('A', 'S1'), ('B', np.int), ('C', np.float),
-                                        ('D', 'S1'), ('E', np.int), ('F', np.float)]))
+                        dtype=np.dtype([('A', 'S1'), ('B', int), ('C', float),
+                                        ('D', 'S1'), ('E', int), ('F', float)]))
     library.write('MYARR', ndarr)
     library.append('MYARR', ndarr2)
     saved_arr = library.read('MYARR').data
