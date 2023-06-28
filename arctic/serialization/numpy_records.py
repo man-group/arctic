@@ -63,9 +63,9 @@ def _multi_index_to_records(index, empty_index):
             log.info("Level in MultiIndex has no name, defaulting to %s" % index_names[i])
     index_tz = []
     for i in index.levels:
-        if isinstance(i, DatetimeIndex):
+        if isinstance(i, DatetimeIndex) and i.tz is not None:
             tmp = get_timezone(i.tz)
-            index_tz.append(str(tmp) if tmp is not None else None)
+            index_tz.append(str(tmp))
         else:
             index_tz.append(None)
 
