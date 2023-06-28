@@ -3,6 +3,7 @@
 ### HEAD
  * Compatibility: allow pandas version newer than 1.0, less than 2.0
  * Compatibility: allow numpy version newer than 1.18
+ * Bugfix: lazy import of pandas.Panel when available, Panel is removed in pandas 1.0
 
 ### 1.81.2 (2023-05-11)
   * Feature: #1000, #1001, #1002, #1003, #1007, #1008 ArcticDB docs, links etc

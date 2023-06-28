@@ -4,13 +4,6 @@ import logging
 import numpy as np
 from bson.binary import Binary
 from pandas import DataFrame, Series
-try:
-    # TODO delete when early Pandas version support removed
-    import warnings
-    warnings.filterwarnings("ignore", category=FutureWarning)
-    from pandas import Panel
-except ImportError:
-    pass
 
 from arctic._util import NP_OBJECT_DTYPE
 from arctic.serialization.numpy_records import SeriesSerializer, DataFrameSerializer
@@ -220,6 +213,8 @@ class PandasPanelStore(PandasDataFrameStore):
 
     @staticmethod
     def can_write_type(data):
+        # late import, Panel is removed in pandas 1
+        from pandas import Panel
         return isinstance(data, Panel)
 
     def can_write(self, version, symbol, data):
