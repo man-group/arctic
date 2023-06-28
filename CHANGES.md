@@ -3,6 +3,7 @@
 ### HEAD
  * Compatibility: allow pandas version newer than 1.0, less than 2.0
  * Compatibility: allow numpy version newer than 1.18
+ * Build: specify which version of python/numpy/pandas to test
  * Bugfix: resolve import error on pandas.Panel, Panel was removed in pandas 1.0
  * Bugfix: fix np.float/np.int/np.book depreciations
  * Bugfix: fix numpy tostring() is deprecated. Use tobytes() instead.
