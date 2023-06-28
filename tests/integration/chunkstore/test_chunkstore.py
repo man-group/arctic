@@ -7,7 +7,7 @@ import pandas as pd
 import pymongo
 import pytest
 from pandas import DataFrame, MultiIndex, Index, Series
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.testing import assert_frame_equal, assert_series_equal
 
 from arctic._util import mongo_count
 from arctic.chunkstore.chunkstore import START, SYMBOL

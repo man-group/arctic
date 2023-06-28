@@ -6,6 +6,8 @@
  * Bugfix: resolve import error on pandas.Panel, Panel was removed in pandas 1.0
  * Bugfix: fix np.float/np.int/np.book depreciations
  * Bugfix: fix numpy tostring() is deprecated. Use tobytes() instead.
+ * Bugfix: numpy.testing.utils is deprecated
+ * Bugfix: pandas.util.testing is deprecated
  * Cleanup: remove async_benchmark
 
 ### 1.81.2 (2023-05-11)
