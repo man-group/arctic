@@ -1,5 +1,9 @@
 ## Changelog
 
+### HEAD
+ * Compatibility: allow pandas version newer than 1.0, less than 2.0
+ * Compatibility: allow numpy version newer than 1.18
+
 ### 1.81.2 (2023-05-11)
   * Feature: #1000, #1001, #1002, #1003, #1007, #1008 ArcticDB docs, links etc
   * Bugfix:  #1009 force CircleCI to install tzlocal==4.2
