@@ -445,7 +445,7 @@ class NdarrayStore(object):
             self._do_append(collection, version, symbol, item, previous_version, dirty_append)
 
     def _do_append(self, collection, version, symbol, item, previous_version, dirty_append):
-        data = item.tostring()
+        data = item.tobytes()
         # Compatibility with Arctic 1.22.0 that didn't write base_sha into the version document
         version['base_sha'] = previous_version.get('base_sha', Binary(b''))
         version['up_to'] = previous_version['up_to'] + len(item)
@@ -596,7 +596,7 @@ class NdarrayStore(object):
 
     def checksum(self, item):
         sha = hashlib.sha1()
-        sha.update(item.tostring())
+        sha.update(item.tobytes())
         return Binary(sha.digest())
 
     def write(self, arctic_lib, version, symbol, item, previous_version, dtype=None):
@@ -656,7 +656,7 @@ class NdarrayStore(object):
 
         # Compress
         idxs = range(int(np.ceil(float(length) / rows_per_chunk)))
-        chunks = [(item[i * rows_per_chunk: (i + 1) * rows_per_chunk]).tostring() for i in idxs]
+        chunks = [(item[i * rows_per_chunk: (i + 1) * rows_per_chunk]).tobytes() for i in idxs]
         compressed_chunks = compress_array(chunks)
 
         # Write

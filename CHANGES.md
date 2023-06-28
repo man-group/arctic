@@ -5,6 +5,7 @@
  * Compatibility: allow numpy version newer than 1.18
  * Bugfix: resolve import error on pandas.Panel, Panel was removed in pandas 1.0
  * Bugfix: fix np.float/np.int/np.book depreciations
+ * Bugfix: fix numpy tostring() is deprecated. Use tobytes() instead.
  * Cleanup: remove async_benchmark
 
 ### 1.81.2 (2023-05-11)

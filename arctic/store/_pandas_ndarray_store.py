@@ -55,7 +55,7 @@ class PandasStore(NdarrayStore):
                 if start > 0:
                     existing_index_arr = existing_index_arr[existing_index_arr['index'] < start]
                 index = np.concatenate((existing_index_arr, index))
-            return Binary(compress(index.tostring()))
+            return Binary(compress(index.tobytes()))
         elif existing_index:
             raise ArcticException("Could not find datetime64 index in item but existing data contains one")
         return None

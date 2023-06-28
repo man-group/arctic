@@ -109,7 +109,7 @@ def test_append_read_large_ndarray(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         dtype = np.dtype([('abc', 'int64')])
         ndarr = np.arange(50 * 1024 * 1024 / dtype.itemsize).view(dtype=dtype)
-        assert len(ndarr.tostring()) > 16 * 1024 * 1024
+        assert len(ndarr.tobytes()) > 16 * 1024 * 1024
         library.write('MYARR1', ndarr)
         # Exactly enough appends to trigger 2 re-compacts, so the result should be identical
         # to writing the whole array at once
@@ -135,7 +135,7 @@ def test_save_append_read_ndarray(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         dtype = np.dtype([('abc', 'int64')])
         ndarr = np.arange(30 * 1024 * 1024 / dtype.itemsize).view(dtype=dtype)
-        assert len(ndarr.tostring()) > 16 * 1024 * 1024
+        assert len(ndarr.tobytes()) > 16 * 1024 * 1024
         library.write('MYARR', ndarr)
 
         sliver = np.arange(30).view(dtype=dtype)
@@ -152,7 +152,7 @@ def test_save_append_read_ndarray(library, fw_pointers_cfg):
 def test_save_append_read_1row_ndarray(library):
     dtype = np.dtype([('abc', 'int64')])
     ndarr = np.arange(30 * 1024 * 1024 / dtype.itemsize).view(dtype=dtype)
-    assert len(ndarr.tostring()) > 16 * 1024 * 1024
+    assert len(ndarr.tobytes()) > 16 * 1024 * 1024
     library.write('MYARR', ndarr)
 
     sliver = np.arange(1).view(dtype=dtype)
@@ -169,7 +169,7 @@ def test_save_append_read_1row_ndarray(library):
 def test_append_too_large_ndarray(library):
     dtype = np.dtype([('abc', 'int64')])
     ndarr = np.arange(30 * 1024 * 1024 / dtype.itemsize).view(dtype=dtype)
-    assert len(ndarr.tostring()) > 16 * 1024 * 1024
+    assert len(ndarr.tobytes()) > 16 * 1024 * 1024
     library.write('MYARR', ndarr)
     library.append('MYARR', ndarr)
     saved_arr = library.read('MYARR').data

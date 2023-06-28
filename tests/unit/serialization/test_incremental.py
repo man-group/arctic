@@ -50,7 +50,7 @@ def test_serialize_pandas_to_recarray(input_df_descr):
             [chunk for chunk, _, _, _ in incr_ser.generator_bytes()]
     else:
         incr_ser_data, incr_ser_dtype = incr_ser.serialize()
-        matching = expectation[0].tostring() == incr_ser_data.tostring()
+        matching = expectation[0].tobytes() == incr_ser_data.tobytes()
         assert matching
         assert expectation[1] == incr_ser_dtype
 
@@ -70,7 +70,7 @@ def test_serialize_incremental_pandas_to_recarray(input_df_descr):
             [chunk for chunk, _, _, _ in incr_ser.generator_bytes()]
     else:
         chunk_bytes = [chunk_b for chunk_b, _, _, _ in incr_ser.generator_bytes()]
-        matching = expectation[0].tostring() == b''.join(chunk_bytes)
+        matching = expectation[0].tobytes() == b''.join(chunk_bytes)
         assert matching
         assert expectation[1] == incr_ser.dtype
 
@@ -98,7 +98,7 @@ def test_serialize_incremental_chunk_size_pandas_to_recarray(input_df_descr):
             chunk_size = NON_HOMOGENEOUS_DTYPE_PATCH_SIZE_ROWS * row_size / div
         incr_ser = IncrementalPandasToRecArraySerializer(df_serializer, df, chunk_size=chunk_size)
         chunk_bytes = [chunk for chunk, _, _, _ in incr_ser.generator_bytes()]
-        matching = expectation[0].tostring() == b''.join(chunk_bytes)
+        matching = expectation[0].tobytes() == b''.join(chunk_bytes)
         assert matching
         assert expectation[1] == incr_ser.dtype
 
@@ -133,6 +133,6 @@ def test_generator_bytes_range(from_idx, to_idx):
     incr_ser = IncrementalPandasToRecArraySerializer(df_serializer, df, chunk_size=_CHUNK_SIZE)
 
     chunk_bytes = [chunk_b for chunk_b, _, _, _ in incr_ser.generator_bytes(from_idx=from_idx, to_idx=to_idx)]
-    matching = expectation[0][from_idx:to_idx].tostring() == b''.join(chunk_bytes)
+    matching = expectation[0][from_idx:to_idx].tobytes() == b''.join(chunk_bytes)
     assert matching
     assert expectation[1] == incr_ser.dtype

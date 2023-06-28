@@ -703,7 +703,7 @@ class TickStore(object):
         rtn[START] = start
 
         logger.warning("NB treating all values as 'exists' - no longer sparse")
-        rowmask = Binary(lz4_compressHC(np.packbits(np.ones(len(df), dtype='uint8')).tostring()))
+        rowmask = Binary(lz4_compressHC(np.packbits(np.ones(len(df), dtype='uint8')).tobytes()))
 
         index_name = df.index.names[0] or "index"
         if PD_VER < '0.23.0':
@@ -714,7 +714,7 @@ class TickStore(object):
         for col in df:
             array = TickStore._ensure_supported_dtypes(recs[col])
             col_data = {
-                DATA: Binary(lz4_compressHC(array.tostring())),
+                DATA: Binary(lz4_compressHC(array.tobytes())),
                 ROWMASK: rowmask,
                 DTYPE: TickStore._str_dtype(array.dtype),
             }
@@ -723,7 +723,7 @@ class TickStore(object):
             lz4_compressHC(np.concatenate(
                 ([recs[index_name][0].astype('datetime64[ms]').view('uint64')],
                  np.diff(
-                     recs[index_name].astype('datetime64[ms]').view('uint64')))).tostring()))
+                     recs[index_name].astype('datetime64[ms]').view('uint64')))).tobytes()))
         return rtn, final_image
 
     @staticmethod
@@ -753,13 +753,13 @@ class TickStore(object):
                         rowmask[k][i] = 1
                     data[k] = [v]
 
-        rowmask = dict([(k, Binary(lz4_compressHC(np.packbits(v).tostring())))
+        rowmask = dict([(k, Binary(lz4_compressHC(np.packbits(v).tobytes())))
                         for k, v in rowmask.items()])
         for k, v in data.items():
             if k != 'index':
                 v = np.array(v)
                 v = TickStore._ensure_supported_dtypes(v)
-                rtn[COLUMNS][k] = {DATA: Binary(lz4_compressHC(v.tostring())),
+                rtn[COLUMNS][k] = {DATA: Binary(lz4_compressHC(v.tobytes())),
                                    DTYPE: TickStore._str_dtype(v.dtype),
                                    ROWMASK: rowmask[k]}
 
@@ -772,7 +772,7 @@ class TickStore(object):
             rtn[IMAGE_DOC] = {IMAGE_TIME: image_start, IMAGE: initial_image}
         rtn[END] = end
         rtn[START] = start
-        rtn[INDEX] = Binary(lz4_compressHC(np.concatenate(([data['index'][0]], np.diff(data['index']))).tostring()))
+        rtn[INDEX] = Binary(lz4_compressHC(np.concatenate(([data['index'][0]], np.diff(data['index']))).tobytes()))
         return rtn, final_image
 
     def max_date(self, symbol):
