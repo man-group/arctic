@@ -465,7 +465,7 @@ def test_multiple_actions_monthly_data(chunkstore_lib):
 
         chunkstore_lib.update(name, append)
 
-        if chunk_size is not 'A':
+        if chunk_size != 'A':
             assert_frame_equal_(chunkstore_lib.read(name), pd.concat([df, append]))
         else:
             # chunksize is the entire DF, so we'll overwrite the whole thing
