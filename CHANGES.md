@@ -1,8 +1,8 @@
 ## Changelog
 
 ### HEAD
- * Compatibility: allow pandas version newer than 1.0, less than 2.0
- * Compatibility: allow numpy version newer than 1.18
+ * Compatibility: update pinning from pandas<1.1, to pandas<2
+ * Compatibility: update pinning from numpy<1.19 to numpy<2
  * Build: specify which version of python/numpy/pandas to test
  * Bugfix: resolve import error on pandas.Panel, Panel was removed in pandas 1.0
  * Bugfix: fix pandas get_timezone() argument cannot be None
