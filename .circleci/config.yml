@@ -51,10 +51,10 @@ defaults: &defaults
          virtualenv ci
          . ci/bin/activate
          python setup.py develop
-         pip install --upgrade pip
+         pip install --upgrade pip==21.0.1 setuptools==58.0.4
          pip install pytest-server-fixtures[mongodb]
-         echo y | pip uninstall tzlocal # because circleci will install >5.0b
-         pip install tzlocal==4.2 # works for python 3.6 and 3.8
+         pip uninstall -y tzlocal # because circleci will install >5.0b
+         pip install $TEST_PACKAGES
          pip freeze
          python --version
     # Save dependency cache
@@ -95,6 +95,7 @@ jobs:
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_6
       VERSION: $VERSION
       IMAGE_NAME: mangroup/arctic
+      TEST_PACKAGES: "tzlocal==4.2 numpy==1.14.6 pandas==0.25.3"
     working_directory: ~/arctic_3_6
     docker:
     - image: cimg/python:3.6-node
@@ -107,6 +108,7 @@ jobs:
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_7
       VERSION: $VERSION
       IMAGE_NAME: mangroup/arctic
+      TEST_PACKAGES: "tzlocal==4.2 numpy==1.18.5 pandas==1.0.5"
     working_directory: ~/arctic_3_7
     docker:
     - image: cimg/python:3.7-node
@@ -119,6 +121,7 @@ jobs:
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_8
       VERSION: $VERSION
       IMAGE_NAME: mangroup/arctic
+      TEST_PACKAGES: "tzlocal==4.2 numpy==1.21.6 pandas==1.3.5"
     working_directory: ~/arctic_3_8
     docker:
     - image: cimg/python:3.8-node

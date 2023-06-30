@@ -1,5 +1,17 @@
 ## Changelog
 
+### HEAD
+ * Compatibility: update pinning from pandas<1.1, to pandas<2
+ * Compatibility: update pinning from numpy<1.19 to numpy<2
+ * Build: specify which version of python/numpy/pandas to test
+ * Bugfix: #887 #928 resolve import error on pandas.Panel, Panel was removed in pandas 1.0
+ * Bugfix: fix pandas get_timezone() argument cannot be None
+ * Bugfix: fix np.float/np.int/np.book depreciations
+ * Bugfix: fix numpy tostring() is deprecated. Use tobytes() instead.
+ * Bugfix: numpy.testing.utils is deprecated
+ * Bugfix: pandas.util.testing is deprecated
+ * Cleanup: remove async_benchmark
+
 ### 1.81.2 (2023-05-11)
   * Feature: #1000, #1001, #1002, #1003, #1007, #1008 ArcticDB docs, links etc
   * Bugfix:  #1009 force CircleCI to install tzlocal==4.2

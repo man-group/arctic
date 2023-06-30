@@ -29,7 +29,7 @@ def construct_test_data(df_length, append_mul):
     serializer = DataFrameSerializer()
     tmp_df = get_random_df(df_length, 10)
     recs = serializer.serialize(tmp_df)[0]
-    _str = recs.tostring()
+    _str = recs.tobytes()
     if append_mul > 1:
         _str = "".join([_str] * append_mul)
     return _str

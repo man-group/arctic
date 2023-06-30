@@ -19,9 +19,9 @@ ABC = abc.ABCMeta('ABC', (object,), {})
 log = logging.getLogger(__name__)
 
 
-def incremental_checksum(item, curr_sha=None, is_bytes=False):
+def incremental_checksum(item, curr_sha=None):
     curr_sha = hashlib.sha1() if curr_sha is None else curr_sha
-    curr_sha.update(item if is_bytes else item.tostring())
+    curr_sha.update(item)
     return curr_sha
 
 
@@ -182,7 +182,7 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
             for chunk_bytes, dtype in self.generator_bytes(from_idx=from_idx, to_idx=to_idx):
                 # TODO: what about compress_array here in batches?
                 compressed_chunk = compress(chunk_bytes)
-                total_sha = incremental_checksum(compressed_chunk, curr_sha=total_sha, is_bytes=True)
+                total_sha = incremental_checksum(compressed_chunk, curr_sha=total_sha)
             self._checksum = Binary(total_sha.digest())
         return self._checksum
 
@@ -220,7 +220,7 @@ class IncrementalPandasToRecArraySerializer(LazyIncrementalSerializer):
                 forced_dtype=self.dtype if self._has_string_object else None)
 
             # Let the gc collect the intermediate serialized chunk as early as possible
-            chunk = chunk.tostring() if chunk is not None and get_bytes else chunk
+            chunk = chunk.tobytes() if chunk is not None and get_bytes else chunk
 
             yield chunk, self.dtype, from_idx, curr_stop
             from_idx = curr_stop

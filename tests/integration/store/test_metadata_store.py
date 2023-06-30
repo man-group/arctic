@@ -6,7 +6,7 @@ from datetime import datetime as dt
 
 import pandas as pd
 import pytest
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 
 symbol1 = 'symbol1'
 symbol2 = 'symbol2'

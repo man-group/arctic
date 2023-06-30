@@ -63,9 +63,23 @@ def _multi_index_to_records(index, empty_index):
             log.info("Level in MultiIndex has no name, defaulting to %s" % index_names[i])
     index_tz = []
     for i in index.levels:
-        if isinstance(i, DatetimeIndex):
-            tmp = get_timezone(i.tz)
-            index_tz.append(str(tmp) if tmp is not None else None)
+        if isinstance(i, DatetimeIndex) and i.tz is not None:
+            if PD_VER < '1.1.0':
+                tmp = get_timezone(i.tz)
+                index_tz.append(str(tmp))
+            else:
+                # see implementation of get_timezone() in github
+                # https://github.com/pandas-dev/pandas/blob/v0.25.3/pandas/_libs/tslibs/timezones.pyx
+                # https://github.com/pandas-dev/pandas/blob/v1.0.5/pandas/_libs/tslibs/timezones.pyx
+                # https://github.com/pandas-dev/pandas/blob/v1.3.5/pandas/_libs/tslibs/timezones.pyx
+                # get_timezone(mktz("UTC")) returns 'dateutil//usr/share/zoneinfo/UTC' string before pandas 1.3
+                # get_timezone(mktz("UTC")) returns the timezone object in pandas 1.3+
+                # we need a stable string to serialize and to deserialize,
+                # so let's always encode the filename like pandas is doing for standard datetime objects.
+                # NOTE: constrary to what it looks like, the path is not dependent on the machine,
+                #       there's logic in pandas and datetime to strip the directory prefix.
+                tmp = "dateutil/" + i.tz._filename
+                index_tz.append(str(tmp))
         else:
             index_tz.append(None)
 

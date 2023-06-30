@@ -3,7 +3,7 @@ from datetime import datetime as dt
 import pytest
 from bson import ObjectId
 from mock import patch
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 from pymongo.errors import OperationFailure
 
 from arctic._util import mongo_count

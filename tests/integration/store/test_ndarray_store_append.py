@@ -109,7 +109,7 @@ def test_append_read_large_ndarray(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         dtype = np.dtype([('abc', 'int64')])
         ndarr = np.arange(50 * 1024 * 1024 / dtype.itemsize).view(dtype=dtype)
-        assert len(ndarr.tostring()) > 16 * 1024 * 1024
+        assert len(ndarr.tobytes()) > 16 * 1024 * 1024
         library.write('MYARR1', ndarr)
         # Exactly enough appends to trigger 2 re-compacts, so the result should be identical
         # to writing the whole array at once
@@ -135,7 +135,7 @@ def test_save_append_read_ndarray(library, fw_pointers_cfg):
     with FwPointersCtx(fw_pointers_cfg):
         dtype = np.dtype([('abc', 'int64')])
         ndarr = np.arange(30 * 1024 * 1024 / dtype.itemsize).view(dtype=dtype)
-        assert len(ndarr.tostring()) > 16 * 1024 * 1024
+        assert len(ndarr.tobytes()) > 16 * 1024 * 1024
         library.write('MYARR', ndarr)
 
         sliver = np.arange(30).view(dtype=dtype)
@@ -152,7 +152,7 @@ def test_save_append_read_ndarray(library, fw_pointers_cfg):
 def test_save_append_read_1row_ndarray(library):
     dtype = np.dtype([('abc', 'int64')])
     ndarr = np.arange(30 * 1024 * 1024 / dtype.itemsize).view(dtype=dtype)
-    assert len(ndarr.tostring()) > 16 * 1024 * 1024
+    assert len(ndarr.tobytes()) > 16 * 1024 * 1024
     library.write('MYARR', ndarr)
 
     sliver = np.arange(1).view(dtype=dtype)
@@ -169,7 +169,7 @@ def test_save_append_read_1row_ndarray(library):
 def test_append_too_large_ndarray(library):
     dtype = np.dtype([('abc', 'int64')])
     ndarr = np.arange(30 * 1024 * 1024 / dtype.itemsize).view(dtype=dtype)
-    assert len(ndarr.tostring()) > 16 * 1024 * 1024
+    assert len(ndarr.tobytes()) > 16 * 1024 * 1024
     library.write('MYARR', ndarr)
     library.append('MYARR', ndarr)
     saved_arr = library.read('MYARR').data
@@ -261,13 +261,13 @@ def test_empty_append_concat_and_rewrite_3(library, fw_pointers_cfg):
 
 
 def test_append_with_extra_columns(library):
-    ndarr = np.array([(2.1, 1, "a")], dtype=[('C', np.float), ('B', np.int), ('A', 'S1')])
-    ndarr2 = np.array([("b", 2, 3.1, 'c', 4, 5.)], dtype=[('A', 'S1'), ('B', np.int), ('C', np.float),
-                                                          ('D', 'S1'), ('E', np.int), ('F', np.float)])
+    ndarr = np.array([(2.1, 1, "a")], dtype=[('C', float), ('B', int), ('A', 'S1')])
+    ndarr2 = np.array([("b", 2, 3.1, 'c', 4, 5.)], dtype=[('A', 'S1'), ('B', int), ('C', float),
+                                                          ('D', 'S1'), ('E', int), ('F', float)])
     expected = np.array([("a", 1, 2.1, '', 0, np.nan),
                          ("b", 2, 3.1, 'c', 4, 5.)],
-                        dtype=np.dtype([('A', 'S1'), ('B', np.int), ('C', np.float),
-                                        ('D', 'S1'), ('E', np.int), ('F', np.float)]))
+                        dtype=np.dtype([('A', 'S1'), ('B', int), ('C', float),
+                                        ('D', 'S1'), ('E', int), ('F', float)]))
     library.write('MYARR', ndarr)
     library.append('MYARR', ndarr2)
     saved_arr = library.read('MYARR').data

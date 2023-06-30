@@ -9,7 +9,7 @@ from arctic.store._version_store_utils import _split_arrs, checksum, version_bas
 
 def test_split_arrs_empty():
     split = _split_arrs(np.empty(0), [])
-    assert np.all(split == np.empty(0, dtype=np.object))
+    assert np.all(split == np.empty(0, dtype=object))
 
 
 def test_split_arrs():

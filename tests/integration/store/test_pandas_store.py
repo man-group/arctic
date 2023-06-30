@@ -13,7 +13,7 @@ try:
 except ImportError:
     pass
 from pandas.tseries.offsets import DateOffset
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.testing import assert_frame_equal, assert_series_equal
 from io import StringIO
 
 from arctic._compression import decompress
