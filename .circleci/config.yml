@@ -127,18 +127,6 @@ jobs:
     - image: cimg/python:3.8-node
     <<: *defaults
     #resource_class: large
-  build_3_9:
-    environment:
-      PYTHON_VERSION: "3_9"
-      CIRCLE_ARTIFACTS: /tmp/circleci-artifacts/3_9
-      CIRCLE_TEST_REPORTS: /tmp/circleci-test-results/3_9
-      VERSION: $VERSION
-      IMAGE_NAME: mangroup/arctic
-    working_directory: ~/arctic_3_9
-    docker:
-    - image: cimg/python:3.9-node
-    <<: *defaults
-    #resource_class: large
   publish-github-release:
    docker:
      - image: cibuilds/github:0.13
@@ -165,5 +153,4 @@ workflows:
       - build_3_6
       - build_3_7
       - build_3_8
-      - build_3_9
 
