@@ -1,6 +1,9 @@
 ## Changelog
 
 ### HEAD
+  
+### 1.82.0 (2023-07-24)
+ * Release: #1012 version 1.82.0
  * Compatibility: update pinning from pandas<1.1, to pandas<2
  * Compatibility: update pinning from numpy<1.19 to numpy<2
  * Build: specify which version of python/numpy/pandas to test
