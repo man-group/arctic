@@ -1,6 +1,8 @@
 ## Changelog
 
 ### HEAD
+ * Bugfix: #1013 Fix serialized tz name for index timezones of dateutil.timezone.tzutc()
+ * Bugfix: #1013 Fix serialized tz name for single-level index timezones of dateutil.timezone.gettz("UTC")
   
 ### 1.82.0 (2023-07-24)
  * Release: #1012 version 1.82.0

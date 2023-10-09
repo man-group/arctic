@@ -1,5 +1,10 @@
+import datetime
+import re
+
+import dateutil
 import numpy as np
 import pandas as pd
+import pytz
 import pytest
 from mock import patch, Mock, sentinel
 from numpy.testing import assert_array_equal
@@ -104,6 +109,77 @@ def test_can_convert_to_records_without_objects_returns_true_otherwise(fast_seri
             store.fast_check_serializable.assert_called_once_with(sentinel.df)
         else:
             store._to_records.assert_called_once_with(sentinel.df)
+
+
+@pytest.mark.parametrize(
+    ["tz", "expected_tz_str_pat"],
+    [
+        ("UTC", r"^UTC$"),
+        (pytz.utc, r"^UTC$"),
+        (dateutil.tz.tzutc(), r"^UTC$"),
+        (dateutil.tz.gettz("UTC"), r"^dateutil/.+UTC"),
+        *([(datetime.timezone.utc, r"^UTC$")] if hasattr(datetime, "timezone") else []),
+        (pytz.timezone("Europe/London"), r"^Europe/London$"),
+        (pytz.timezone("America/New_York"), r"^America/New_York$"),
+        (dateutil.tz.gettz("Europe/London"), r"^dateutil/.+Europe/London"),
+        (dateutil.tz.gettz("America/New_York"), r"^dateutil/.+America/New_York"),
+    ],
+)
+@pytest.mark.parametrize("index_nlevels", [1, 2])
+def test_dataframe_serializer_serialize_tz_index(
+    tz, expected_tz_str_pat, index_nlevels
+):
+    if index_nlevels == 1:
+        index = pd.date_range("2023-02-04", "2023-02-06", tz=tz, name="idx_lvl1")
+    else:
+        index = pd.MultiIndex.from_arrays(
+            [
+                pd.date_range(
+                    "2023-02-04", "2023-02-06", tz=tz, name="idx_lvl{}".format(idx_lvl)
+                )
+                for idx_lvl in range(1, index_nlevels + 1)
+            ]
+        )
+
+    df = pd.DataFrame({"a": [1, 2, 3]}, index=index)
+    serializer = anr.DataFrameSerializer()
+
+    result_records, result_dtype = serializer.serialize(df)
+
+    expected_dtype_descr = [
+        *(
+            ("idx_lvl{}".format(idx_lvl), str(np.dtype("datetime64[ns]")))
+            for idx_lvl in range(1, index_nlevels + 1)
+        ),
+        ("a", str(np.dtype("int64"))),
+    ]
+    expected_records = np.rec.fromarrays(
+        [
+            *(
+                [
+                    pd.date_range("2023-02-04", "2023-02-06", tz=tz)
+                    .tz_convert("UTC")
+                    .values
+                ]
+                * index_nlevels
+            ),
+            np.array([1, 2, 3], dtype=np.int64),
+        ],
+        dtype=np.dtype(expected_dtype_descr),
+    )
+
+    np.testing.assert_array_equal(result_records, expected_records)
+
+    assert result_dtype.metadata["columns"] == ["a"]
+    if index_nlevels == 1:
+        assert result_dtype.metadata["index"] == ["idx_lvl1"]
+        assert re.search(expected_tz_str_pat, result_dtype.metadata["index_tz"])
+    else:
+        assert result_dtype.metadata["index"] == [
+            "idx_lvl{}".format(idx_lvl) for idx_lvl in range(1, index_nlevels + 1)
+        ]
+        for index_lvl_tz in result_dtype.metadata["index_tz"]:
+            assert re.search(expected_tz_str_pat, index_lvl_tz)
 
 
 @pytest.mark.parametrize("fast_serializable_check", (False, True))
