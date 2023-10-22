@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2015-2022 Man Group Ltd
+# Copyright (C) 2015-2023 Man Group Ltd
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -58,7 +58,7 @@ class PyTest(TestCommand):
 
 setup(
     name="arctic",
-    version="1.80.5",
+    version="1.82.1",
     author="Man AHL Technology",
     author_email="arctic@man.com",
     description=("AHL Research Versioned TimeSeries and Tick store"),
@@ -69,23 +69,23 @@ setup(
     long_description='\n'.join((long_description, changelog)),
     long_description_content_type="text/markdown",
     cmdclass={'test': PyTest},
-    setup_requires=["numpy",
+    setup_requires=["numpy<2",
                     "setuptools-git",
                    ],
     install_requires=["decorator",
                       "enum-compat",
                       "mock",
                       "mockextras",
-                      "pandas",
-                      "numpy",
-                      "pymongo>=3.6.0, <= 3.13.0",
+                      "pandas<2",
+                      "numpy<2",
+                      "pymongo>=3.6.0, <= 3.11.0",
                       "pytz",
                       "tzlocal",
                       "lz4",
                      ],
     # Note: pytest >= 4.1.0 is not compatible with pytest-cov < 2.6.1.
     # deprecated
-    tests_require=["mock",
+    tests_require=["mock<=2.0.0",
                    "mockextras",
                    "pytest",
                    "pytest-cov",
@@ -93,8 +93,9 @@ setup(
                    "pytest-timeout",
                    "pytest-xdist<=1.26.1",
                    "tomli<2; python_version=='3.6'",
-                   "lz4"
-                  ],
+                   "lz4",
+                   "tzlocal<=1.4; python_version<='3.6'",
+                   ],
     entry_points={'console_scripts': [
                                         'arctic_init_library = arctic.scripts.arctic_init_library:main',
                                         'arctic_list_libraries = arctic.scripts.arctic_list_libraries:main',

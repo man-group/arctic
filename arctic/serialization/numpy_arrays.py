@@ -115,8 +115,8 @@ class FrameConverter(object):
                 arr, mask = self._convert_types(df[c].values)
                 dtypes[str(c)] = arr.dtype.str
                 if mask is not None:
-                    masks[str(c)] = Binary(compress(mask.tostring()))
-                arrays.append(arr.tostring())
+                    masks[str(c)] = Binary(compress(mask.tobytes()))
+                arrays.append(arr.tobytes())
             except Exception as e:
                 typ = infer_dtype(df[c], skipna=False)
                 msg = "Column '{}' type is {}".format(str(c), typ)

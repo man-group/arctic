@@ -152,7 +152,7 @@ def test_cant_write_objects():
 def test_save_read_large_ndarray(library):
     dtype = np.dtype([('abc', 'int64')])
     ndarr = np.arange(30 * 1024 * 1024 / dtype.itemsize).view(dtype=dtype)
-    assert len(ndarr.tostring()) > 16 * 1024 * 1024
+    assert len(ndarr.tobytes()) > 16 * 1024 * 1024
     library.write('MYARR', ndarr)
     saved_arr = library.read('MYARR').data
     assert np.all(ndarr == saved_arr)

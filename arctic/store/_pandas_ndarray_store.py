@@ -4,10 +4,6 @@ import logging
 import numpy as np
 from bson.binary import Binary
 from pandas import DataFrame, Series
-try:
-    from pandas import Panel
-except ImportError:
-    pass
 
 from arctic._util import NP_OBJECT_DTYPE
 from arctic.serialization.numpy_records import SeriesSerializer, DataFrameSerializer
@@ -59,7 +55,7 @@ class PandasStore(NdarrayStore):
                 if start > 0:
                     existing_index_arr = existing_index_arr[existing_index_arr['index'] < start]
                 index = np.concatenate((existing_index_arr, index))
-            return Binary(compress(index.tostring()))
+            return Binary(compress(index.tobytes()))
         elif existing_index:
             raise ArcticException("Could not find datetime64 index in item but existing data contains one")
         return None
@@ -217,6 +213,8 @@ class PandasPanelStore(PandasDataFrameStore):
 
     @staticmethod
     def can_write_type(data):
+        # late import, Panel is removed in pandas 1
+        from pandas import Panel
         return isinstance(data, Panel)
 
     def can_write(self, version, symbol, data):

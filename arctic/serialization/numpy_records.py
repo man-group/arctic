@@ -1,5 +1,8 @@
+import datetime
 import logging
+from typing import List, Optional, Union
 
+import dateutil
 import numpy as np
 from pandas import DataFrame, MultiIndex, Series, DatetimeIndex, Index
 import pandas as pd
@@ -8,6 +11,12 @@ import pandas as pd
 from .._config import FAST_CHECK_DF_SERIALIZABLE
 from .._util import NP_OBJECT_DTYPE
 from ..exceptions import ArcticException
+
+try:  # 1.3.0+ Compatibility
+    from pandas._libs.tslibs.timezones import is_utc
+except ImportError:  # < 1.3.0, this function is unavailable, but should never be called. Stub to satisfy linting.
+    def is_utc(tz):
+        raise AssertionError("Should never be called for Pandas versions where this is not an exported function")
 
 try:  # 0.21+ Compatibility
     from pandas._libs.tslib import Timestamp
@@ -47,6 +56,55 @@ def _to_primitive(arr, string_max_len=None, forced_dtype=None):
     return arr
 
 
+def treat_tz_as_dateutil(tz) -> bool:
+    """
+    Return whether the given tz object is from `dateutil`
+
+    Vendored from Pandas:
+    https://github.com/pandas-dev/pandas/blob/v1.3.5/pandas/_libs/tslibs/timezones.pyx#L66-L67
+    """
+    return hasattr(tz, '_trans_list') and hasattr(tz, '_trans_idx')
+
+
+def consistent_get_timezone_str(tz: Union[datetime.tzinfo, str]) -> str:
+    """
+    Convert a tzinfo object to a serializable string
+
+    Unlike the Pandas `get_timezone` function, this function should always return a string.
+    """
+    if isinstance(tz, str):
+        return tz
+
+    # The behaviour of Pandas' `get_timezone()` for UTC `tzinfo`s differs across versions.
+    # This is due to either changes to the underlying `is_utc()` function, or the behaviour when it returns `True`.
+    #
+    # Differing implementations:
+    #   `pandas` 0.22.0 - https://github.com/pandas-dev/pandas/blob/v0.22.0/pandas/_libs/tslibs/timezones.pyx#L71-L72
+    #      - Returns "UTC" for UTC `tzinfo`s, except:
+    #        - `dateutil.tz.gettz("UTC")` - Returns a string like "dateutil//usr/share/zoneinfo/UTC"
+    #   `pandas` 0.24.0 - https://github.com/pandas-dev/pandas/blob/v0.24.0/pandas/_libs/tslibs/timezones.pyx#L59-L60
+    #      - Returns the `tzinfo` object for UTC `tzinfo`s except:
+    #        - `dateutil.tz.gettz("UTC")` - Returns a string like "dateutil//usr/share/zoneinfo/UTC"
+    #   `pandas` 1.3.0 -  https://github.com/pandas-dev/pandas/blob/v1.3.0/pandas/_libs/tslibs/timezones.pyx#L53
+    #      - Returns the `tzinfo` object for UTC `tzinfo`s (including `dateutil.tz.gettz("UTC")`)
+    if PD_VER < "0.24.0":
+        return str(get_timezone(tz))
+
+    # Special case for `dateutil.tz.tzutc()` as `str(dateutil.tz.tzutc()) == "tzutc()"` and pandas does not know
+    # how to parse this.
+    if isinstance(tz, dateutil.tz.tzutc):
+        return "UTC"
+
+    if PD_VER < "1.3.0":
+        return str(get_timezone(tz))
+
+    # Special case for `dateutil.tz.gettz("UTC")` to ensure we always return a 'dateutil/...' string:
+    if is_utc(tz) and treat_tz_as_dateutil(tz):
+        return "dateutil/" + tz._filename
+
+    return str(get_timezone(tz))
+
+
 def _multi_index_to_records(index, empty_index):
     # array of tuples to numpy cols. copy copy copy
     if not empty_index:
@@ -61,7 +119,13 @@ def _multi_index_to_records(index, empty_index):
             index_names[i] = 'level_%d' % count
             count += 1
             log.info("Level in MultiIndex has no name, defaulting to %s" % index_names[i])
-    index_tz = [get_timezone(i.tz) if isinstance(i, DatetimeIndex) else None for i in index.levels]
+    index_tz = []
+    for i in index.levels:
+        if isinstance(i, DatetimeIndex) and i.tz is not None:
+            index_tz.append(consistent_get_timezone_str(i.tz))
+        else:
+            index_tz.append(None)
+
     return ix_vals, index_names, index_tz
 
 
@@ -70,7 +134,7 @@ class PandasSerializer(object):
     def _index_to_records(self, df):
         metadata = {}
         index = df.index
-        index_tz = None
+        index_tz: Union[Optional[str], List[Optional[str]]]
 
         if isinstance(index, MultiIndex):
             ix_vals, index_names, index_tz = _multi_index_to_records(index, len(df) == 0)
@@ -81,7 +145,9 @@ class PandasSerializer(object):
                 index_names = ['index']
                 log.info("Index has no name, defaulting to 'index'")
             if isinstance(index, DatetimeIndex) and index.tz is not None:
-                index_tz = get_timezone(index.tz)
+                index_tz = consistent_get_timezone_str(index.tz)
+            else:
+                index_tz = None
 
         if index_tz is not None:
             metadata['index_tz'] = index_tz

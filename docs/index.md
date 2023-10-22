@@ -1,5 +1,21 @@
 # Arctic Introduction
 
+## ArcticDB
+
+[ArcticDB](https://www.man.com/man-group-brings-powerful-dataframe-database-product-arcticdb-to-market-with-bloomberg), Man Group's high-performance Python-native
+DataFrame database is available on [GitHub](https://github.com/man-group/arcticdb).
+
+ArcticDB is the next generation of Arctic and is designed to be a drop-in replacement for it.
+
+These docs **do not describe ArcticDB**, but instead the older (first) version of the Arctic platform.
+The docs for ArcticDB are available [here](docs.arcticdb.io).
+
+If you would like information on ArcticDB please see the [website](arcticdb.io).
+
+The rest of these docs describe the first-generation Arctic platform.
+
+## Arctic
+
 Arctic is a timeseries / dataframe database that sits atop MongoDB. Arctic supports serialization of a number of datatypes for storage in the mongo document model.
 
 ## Why use Arctic? 

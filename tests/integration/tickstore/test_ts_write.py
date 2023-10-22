@@ -2,7 +2,7 @@ from datetime import datetime as dt
 
 import pytest
 import pytz
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 from tests.util import assert_frame_equal_
 
 from arctic.date import mktz, DateRange

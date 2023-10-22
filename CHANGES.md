@@ -1,5 +1,37 @@
 ## Changelog
 
+### 1.82.1 (2023-10-09)
+ * Release: #1014 Prepare release 1.82.1
+ * Bugfix: #1013 Fix serialized tz name for index timezones of dateutil.timezone.tzutc()
+ * Bugfix: #1013 Fix serialized tz name for single-level index timezones of dateutil.timezone.gettz("UTC")
+  
+### 1.82.0 (2023-07-24)
+ * Release: #1012 version 1.82.0
+ * Compatibility: update pinning from pandas<1.1, to pandas<2
+ * Compatibility: update pinning from numpy<1.19 to numpy<2
+ * Build: specify which version of python/numpy/pandas to test
+ * Bugfix: #887 #928 resolve import error on pandas.Panel, Panel was removed in pandas 1.0
+ * Bugfix: fix pandas get_timezone() argument cannot be None
+ * Bugfix: fix np.float/np.int/np.book depreciations
+ * Bugfix: fix numpy tostring() is deprecated. Use tobytes() instead.
+ * Bugfix: numpy.testing.utils is deprecated
+ * Bugfix: pandas.util.testing is deprecated
+ * Cleanup: remove async_benchmark
+
+### 1.81.2 (2023-05-11)
+  * Feature: #1000, #1001, #1002, #1003, #1007, #1008 ArcticDB docs, links etc
+  * Bugfix:  #1009 force CircleCI to install tzlocal==4.2
+
+### 1.81.1 (2023-03-13)
+  * Feature: #996 release wheel to pypi as well as tar.gz, egg.
+
+### 1.81.0 (2023-03-10)
+  * Bugfix:  #979 fix circleci mongo install
+  * Feature: #980 get testpack running with mongod 4.4.18
+  * Bugfix:  #985 suppress FutureWarning for Panel import
+  * Bugfix:  #989 VersionStore slow snapshot delete add new index
+  * Bugfix:  #806, #990 DateTimeIndex tz serialization
+
 ### 1.80.5 (2022-09-05)
   * Feature: #950 remove all traces of python 2.7 and six package
   * Feature: #959 add python 3.8 support

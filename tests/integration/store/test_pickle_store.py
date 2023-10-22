@@ -50,7 +50,7 @@ def test_get_info_bson_object(library):
 
 def test_bson_large_object(library):
     blob = {'foo': dt(2015, 1, 1), 'object': Arctic,
-            'large_thing': np.random.rand(int(2.1 * 1024 * 1024)).tostring()}
+            'large_thing': np.random.rand(int(2.1 * 1024 * 1024)).tobytes()}
     assert len(blob['large_thing']) > 16 * 1024 * 1024
     library.write('BLOB', blob)
     saved_blob = library.read('BLOB').data

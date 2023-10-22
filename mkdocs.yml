@@ -15,7 +15,7 @@ plugins:
     - search
 
 # Pages
-pages:
+nav:
   - Introduction: 'index.md'
   - Quickstart: 'quickstart.md'
   - Configuration: 'configuration.md'
