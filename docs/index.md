@@ -2,15 +2,15 @@
 
 ## ArcticDB
 
-[ArcticDB](https://arcticdb.io/), Man Group's high-performance Python-native
+[ArcticDB](https://arcticdb.io/#arctic1), Man Group's high-performance Python-native
 DataFrame database is available on [GitHub](https://github.com/man-group/arcticdb).
 
 ArcticDB is the next generation of Arctic and is designed to be a drop-in replacement for it.
 
-These docs **do not describe ArcticDB**, but instead the older (first) version of the Arctic platform.
-The docs for ArcticDB are available [here](https://docs.arcticdb.io/latest/).
+The docs below **do not describe ArcticDB**, but instead the older (first) version of the Arctic platform.
+The docs for ArcticDB are available [here](https://docs.arcticdb.io/latest/#arctic1).
 
-If you would like information on ArcticDB please see the [website](https://arcticdb.io/).
+If you would like information on ArcticDB please see the [website](https://arcticdb.io/#arctic1).
 
 The rest of these docs describe the first-generation Arctic platform.
 
