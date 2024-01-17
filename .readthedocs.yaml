@@ -14,7 +14,7 @@ mkdocs:
   configuration: mkdocs.yml
   fail_on_warning: false
 
-myst enable extensions:
+myst_enable_extensions:
 - colon_fence
 - deflist
 - dollarmath
