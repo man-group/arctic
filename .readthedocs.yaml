@@ -14,3 +14,9 @@ mkdocs:
   configuration: mkdocs.yml
   fail_on_warning: false
 
+myst enable extensions:
+- colon_fence
+- deflist
+- dollarmath
+myst_heading_anchors: 2
+myst_highlight_code_blocks: true
