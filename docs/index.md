@@ -1,4 +1,4 @@
-.. tip::
+```{tip}
    [ArcticDB](https://arcticdb.io/#arctic1), Man Group's high-performance Python-native
    DataFrame database is available on [GitHub](https://github.com/man-group/arcticdb).
 
@@ -10,7 +10,7 @@
    If you would like information on ArcticDB please see the [website](https://arcticdb.io/#arctic1).
 
    The rest of these docs describe the first-generation Arctic platform.
-
+```
 # Arctic Introduction
 
 ## Arctic
