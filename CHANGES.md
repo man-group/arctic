@@ -1,5 +1,12 @@
 ## Changelog
 
+### 1.82.2 (2024-02-01) 
+ * Release: #1022 Prepare release 1.82.2 
+ * Perf: #1021 Improve performance of Tickstore read 
+ * Bugfix: #1019 Remove failing requirements.txt versions
+ * Docs: #1019 Updated links to ArcticDB website and docs
+ * Docs: #1017 Fix doc for chunkstore's list_symbols
+
 ### 1.82.1 (2023-10-09)
  * Release: #1014 Prepare release 1.82.1
  * Bugfix: #1013 Fix serialized tz name for index timezones of dateutil.timezone.tzutc()
