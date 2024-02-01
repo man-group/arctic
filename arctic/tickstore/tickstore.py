@@ -334,7 +334,7 @@ class TickStore(object):
             raise NoDataFoundException("No Data found for {} in range: {}".format(symbol, date_range))
         rtn = self._pad_and_fix_dtypes(rtn, column_dtypes)
 
-        index = pd.to_datetime(np.concatenate(rtn[INDEX]), utc=True, unit='ms')
+        index = pd.DatetimeIndex(np.concatenate(rtn[INDEX]).astype('datetime64[ms]'), tz='UTC')
         if columns is None:
             columns = [x for x in rtn.keys() if x not in (INDEX, 'SYMBOL')]
         if multiple_symbols and 'SYMBOL' not in columns:
