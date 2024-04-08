@@ -366,7 +366,7 @@ class TickStore(object):
         ticks = len(rtn)
         rate = int(ticks / t) if t != 0 else float("nan")
         logger.info("%d rows in %s secs: %s ticks/sec" % (ticks, t, rate))
-        if not rtn.index.is_monotonic:
+        if not rtn.index.is_monotonic_increasing:
             logger.error("TimeSeries data is out of order, sorting!")
             rtn = rtn.sort_index(kind='mergesort')
         if date_range:
