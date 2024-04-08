@@ -1,5 +1,11 @@
 ## Changelog
 
+### 1.83.1 (2024-04-08) 
+ * Release: #1022 fixes for pandas 2 and latest numpy
+ * Compatibility: unpin pandas and numpy
+ * Compatibility: update pinning to pymongo<4
+ * Compatibility: tested on python 3.11
+
 ### 1.82.2 (2024-02-01) 
  * Release: #1022 Prepare release 1.82.2 
  * Perf: #1021 Improve performance of Tickstore read 
