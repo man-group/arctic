@@ -355,8 +355,8 @@ class TickStore(object):
         if pd.__version__.startswith("0.") or pd.__version__.startswith("1.0"):
             mgr = _arrays_to_mgr(arrays, columns, index, columns, dtype=None)
         else:
-            # new argument typ is mandatory
-            mgr = _arrays_to_mgr(arrays, columns, index, columns, dtype=None, typ="array")
+            # 4th argument removed + new argument typ is mandatory
+            mgr = _arrays_to_mgr(arrays, columns, index, dtype=None, typ="array")
 
         rtn = pd.DataFrame(mgr)
         # Present data in the user's default TimeZone
@@ -366,7 +366,7 @@ class TickStore(object):
         ticks = len(rtn)
         rate = int(ticks / t) if t != 0 else float("nan")
         logger.info("%d rows in %s secs: %s ticks/sec" % (ticks, t, rate))
-        if not rtn.index.is_monotonic:
+        if not rtn.index.is_monotonic_increasing:
             logger.error("TimeSeries data is out of order, sorting!")
             rtn = rtn.sort_index(kind='mergesort')
         if date_range:
