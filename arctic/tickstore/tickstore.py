@@ -355,8 +355,8 @@ class TickStore(object):
         if pd.__version__.startswith("0.") or pd.__version__.startswith("1.0"):
             mgr = _arrays_to_mgr(arrays, columns, index, columns, dtype=None)
         else:
-            # new argument typ is mandatory
-            mgr = _arrays_to_mgr(arrays, columns, index, columns, dtype=None, typ="array")
+            # 4th argument removed + new argument typ is mandatory
+            mgr = _arrays_to_mgr(arrays, columns, index, dtype=None, typ="array")
 
         rtn = pd.DataFrame(mgr)
         # Present data in the user's default TimeZone
