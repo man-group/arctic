@@ -142,7 +142,15 @@ def _define_compat_pickle_load():
     """
     if pd.__version__.startswith("0.14"):
         return pickle.load
-    return pickle_compat.load
+    if hasattr(pickle_compat, "load"):
+        return pickle_compat.load
+
+    # Newer Pandas versions (2.2+) dropped the file-object-based `load` in favour
+    # of a bytes-based `loads`. Wrap it so callers can keep passing file objects.
+    def _load(fh, **kwargs):
+        return pickle_compat.loads(fh.read(), **kwargs)
+
+    return _load
 
 
 def analyze_symbol(instance, sym, from_ver, to_ver, do_reads=False):
