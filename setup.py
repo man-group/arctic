@@ -69,7 +69,7 @@ setup(
     long_description='\n'.join((long_description, changelog)),
     long_description_content_type="text/markdown",
     cmdclass={'test': PyTest},
-    setup_requires=["numpy<2",
+    setup_requires=["numpy",
                     "setuptools-git",
                    ],
     install_requires=["decorator",
