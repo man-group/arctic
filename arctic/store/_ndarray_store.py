@@ -39,7 +39,7 @@ def _promote_struct_dtypes(dtype1, dtype2):
 
 
 def _attempt_update_unchanged(symbol, unchanged_segment_ids, collection, version, previous_version):
-    if not unchanged_segment_ids or not collection or not version:
+    if not unchanged_segment_ids or collection is None or not version:
         return
 
     # Currently it is called only from _concat_and_rewrite, with "base_version_id" always empty

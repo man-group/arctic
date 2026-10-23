@@ -1047,7 +1047,7 @@ class VersionStore(object):
 
         res = {}
         db = self._collection.database
-        conn = db.connection
+        conn = db.client
         res['sharding'] = {}
         try:
             sharding = conn.config.databases.find_one({'_id': db.name})

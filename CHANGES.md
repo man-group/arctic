@@ -1,5 +1,8 @@
 ## Changelog
 
+### Unreleased
+ * Compatibility: support pymongo >= 4 (credentials are bound to the MongoClient, removed `Database.authenticate`/`add_user`/`Collection.update`, no truthiness checks on collections)
+
 ### 1.83.1 (2024-04-08) 
  * Release: #1022 fixes for pandas 2 and latest numpy
  * Compatibility: unpin pandas and numpy

@@ -46,7 +46,8 @@ def main():
             db = Arctic.DB_PREFIX + '_' + user
 
         # Add the user to the database
-        c[db].add_user(user, p, read_only=not write_access)
+        c[db].command("createUser", user, pwd=p.decode() if isinstance(p, bytes) else p,
+                      roles=["readWrite" if write_access else "read"])
 
         logger.info("Granted: {user} [{permission}] to {db}".format(user=user,
                                                                     permission='WRITE' if write_access else 'READ',

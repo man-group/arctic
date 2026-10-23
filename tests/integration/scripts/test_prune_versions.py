@@ -10,7 +10,7 @@ from ...util import run_as_main
 def test_prune_versions_symbol(mongo_host, library, library_name):
     with patch('arctic.scripts.arctic_prune_versions.prune_versions', autospec=True) as prune_versions, \
             patch('arctic.scripts.utils.get_auth', return_value=Credential('admin', 'adminuser', 'adminpwd')), \
-            patch('pymongo.database.Database.authenticate', return_value=True):
+            patch('pymongo.database.Database.authenticate', return_value=True, create=True):
 
         run_as_main(mpv.main, '--host', mongo_host, '--library', library_name, '--symbols', 'sym1,sym2')
         prune_versions.assert_has_calls([call(ANY, ['sym1', 'sym2'], 10)])

@@ -160,7 +160,7 @@ def test_write_check_quota():
                      _versions=Mock(insert_one=lambda x: None),
                      _arctic_lib=create_autospec(ArcticLibraryBinding,
                                                  arctic=create_autospec(Arctic, mongo_host='some_host')))
-    vs._collection.database.connection.nodes = []
+    vs._collection.database.client.nodes = []
     vs._write_handler.return_value = write_handler
     VersionStore.write(vs, 'sym', sentinel.data, prune_previous_version=False)
     assert vs._arctic_lib.check_quota.call_count == 1
@@ -482,7 +482,7 @@ def test_write_error_clean_retry():
                          _arctic_lib=create_autospec(ArcticLibraryBinding,
                                                      arctic=create_autospec(Arctic, mongo_host='some_host')))
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
-    vs._collection.database.connection.nodes = []
+    vs._collection.database.client.nodes = []
     vs._write_handler.return_value = write_handler
     VersionStore.write(vs, 'sym', sentinel.data, prune_previous_version=False)
     assert vs._version_nums.find_one_and_update.call_count == 2
@@ -501,7 +501,7 @@ def test_write_insert_version_duplicatekey():
                                                      arctic=create_autospec(Arctic, mongo_host='some_host')))
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
     vs._versions.insert_one.side_effect = [DuplicateKeyError("dup key error"), None]
-    vs._collection.database.connection.nodes = []
+    vs._collection.database.client.nodes = []
     vs._write_handler.return_value = write_handler
     VersionStore.write(vs, 'sym', sentinel.data, prune_previous_version=False)
     assert vs._version_nums.find_one_and_update.call_count == 2
@@ -520,7 +520,7 @@ def test_write_insert_version_operror():
                                                      arctic=create_autospec(Arctic, mongo_host='some_host')))
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
     vs._versions.insert_one.side_effect = [OperationFailure("mongo op error"), None]
-    vs._collection.database.connection.nodes = []
+    vs._collection.database.client.nodes = []
     vs._write_handler.return_value = write_handler
     VersionStore.write(vs, 'sym', sentinel.data, prune_previous_version=False)
     assert vs._version_nums.find_one_and_update.call_count == 1
@@ -541,7 +541,7 @@ def test_append_error_clean_retry():
                          _arctic_lib=create_autospec(ArcticLibraryBinding,
                                                      arctic=create_autospec(Arctic, mongo_host='some_host')))
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
-    vs._collection.database.connection.nodes = []
+    vs._collection.database.client.nodes = []
     vs._read_handler.return_value = read_handler
     VersionStore.append(vs, 'sym', [1, 2, 3], prune_previous_version=False, upsert=False)
     assert vs._version_nums.find_one_and_update.call_count == 2
@@ -562,7 +562,7 @@ def test_append_insert_version_duplicatekey():
                                                      arctic=create_autospec(Arctic, mongo_host='some_host')))
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
     vs._versions.insert_one.side_effect = [DuplicateKeyError("dup key error"), None]
-    vs._collection.database.connection.nodes = []
+    vs._collection.database.client.nodes = []
     vs._read_handler.return_value = read_handler
     VersionStore.append(vs, 'sym', [1, 2, 3], prune_previous_version=False, upsert=False)
     assert vs._version_nums.find_one_and_update.call_count == 2
@@ -582,7 +582,7 @@ def test_append_insert_version_operror():
                                                      arctic=create_autospec(Arctic, mongo_host='some_host')))
     vs._insert_version = lambda version: VersionStore._insert_version(vs, version)
     vs._versions.insert_one.side_effect = [OperationFailure("mongo op error"), None]
-    vs._collection.database.connection.nodes = []
+    vs._collection.database.client.nodes = []
     vs._read_handler.return_value = read_handler
     VersionStore.append(vs, 'sym', [1, 2, 3], prune_previous_version=False, upsert=False)
     assert vs._version_nums.find_one_and_update.call_count == 1

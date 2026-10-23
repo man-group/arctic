@@ -10,7 +10,7 @@ from ...util import run_as_main
 def test_init_library(mongo_host):
     # Create the user agains the current mongo database
     with patch('arctic.scripts.arctic_init_library.do_db_auth', return_value=True), \
-         patch('pymongo.database.Database.authenticate', return_value=True):
+         patch('pymongo.database.Database.authenticate', return_value=True, create=True):
         run_as_main(mil.main, '--host', mongo_host, '--library', 'arctic_user.library')
 
     # Should be able to write something to the library now
@@ -23,7 +23,7 @@ def test_init_library(mongo_host):
 def test_init_library_no_arctic_prefix(mongo_host):
     # Create the user agains the current mongo database
     with patch('arctic.scripts.arctic_init_library.do_db_auth', return_value=True), \
-         patch('pymongo.database.Database.authenticate', return_value=True):
+         patch('pymongo.database.Database.authenticate', return_value=True, create=True):
         run_as_main(mil.main, '--host', mongo_host, '--library', 'user.library')
 
     # Should be able to write something to the library now
@@ -36,7 +36,7 @@ def test_init_library_no_arctic_prefix(mongo_host):
 def test_init_library_quota(mongo_host):
     # Create the user agains the current mongo database
     with patch('arctic.scripts.arctic_init_library.do_db_auth', return_value=True), \
-         patch('pymongo.database.Database.authenticate', return_value=True):
+         patch('pymongo.database.Database.authenticate', return_value=True, create=True):
         run_as_main(mil.main, '--host', mongo_host, '--library', 'arctic_user.library', '--quota', '100')
 
     # Should be able to write something to the library now
@@ -47,7 +47,7 @@ def test_init_library_quota(mongo_host):
 def test_init_library_bad_library(mongo_host):
     with pytest.raises(Exception):
         with patch('arctic.arctic.get_auth', return_value=Credential('admin', 'adminuser', 'adminpwd', 'admin')), \
-             patch('pymongo.database.Database.authenticate', return_value=True), \
+             patch('pymongo.database.Database.authenticate', return_value=True, create=True), \
              patch('argparse.ArgumentParser.error', side_effect=Exception):
             # Create the user agains the current mongo database
             run_as_main(mil.main, '--host', mongo_host, '--library', 'user')

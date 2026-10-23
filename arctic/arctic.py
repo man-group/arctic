@@ -12,7 +12,7 @@ from pymongo.errors import OperationFailure, AutoReconnect
 from ._cache import Cache
 from ._config import ENABLE_CACHE
 from ._util import indent
-from .auth import authenticate, get_auth
+from .auth import authenticate, get_auth, PYMONGO_4_PLUS
 from .chunkstore import chunkstore
 from .decorators import mongo_retry
 from .exceptions import LibraryNotFoundException, ArcticException, QuotaExceededException
@@ -144,18 +144,22 @@ class Arctic(object):
             if self.__conn is None:
                 host = get_mongodb_uri(self.mongo_host)
                 logger.info("Connecting to mongo: {0} ({1})".format(self.mongo_host, host))
+                # Authenticate against admin for the user
+                auth = get_auth(self.mongo_host, self._application_name, 'admin')
+                auth_kwargs = {}
+                if auth and PYMONGO_4_PLUS:
+                    # pymongo 4 removed Database.authenticate: credentials are bound to the client
+                    auth_kwargs = dict(username=auth.user, password=auth.password, authSource='admin')
                 self.__conn = pymongo.MongoClient(host=host,
                                                   maxPoolSize=self._MAX_CONNS,
                                                   socketTimeoutMS=self._socket_timeout,
                                                   connectTimeoutMS=self._connect_timeout,
                                                   serverSelectionTimeoutMS=self._server_selection_timeout,
-                                                  **self._pymongo_kwargs)
+                                                  **dict(auth_kwargs, **self._pymongo_kwargs))
                 self._adminDB = self.__conn.admin
                 self._cache = Cache(self.__conn)
 
-                # Authenticate against admin for the user
-                auth = get_auth(self.mongo_host, self._application_name, 'admin')
-                if auth:
+                if auth and not PYMONGO_4_PLUS:
                     authenticate(self._adminDB, auth.user, auth.password)
 
                 # Accessing _conn is synchronous. The new PyMongo driver may be lazier than the previous.
@@ -325,7 +329,7 @@ class Arctic(object):
         """
         lib = ArcticLibraryBinding(self, library)
         colname = lib.get_top_level_collection().name
-        if not [c for c in lib._db.list_collection_names(False) if re.match(r"^{}([\.].*)?$".format(colname), c)]:
+        if not [c for c in lib._db.list_collection_names() if re.match(r"^{}([\.].*)?$".format(colname), c)]:
             logger.info('Nothing to delete. Arctic library %s does not exist.' % colname)
         logger.info('Dropping collection: %s' % colname)
         lib._db.drop_collection(colname)
@@ -542,7 +546,8 @@ class ArcticLibraryBinding(object):
             return
 
         auth = get_auth(self.arctic.mongo_host, self.arctic._application_name, database.name)
-        if auth:
+        if auth and not PYMONGO_4_PLUS:
+            # With pymongo 4 credentials are bound to the MongoClient (see Arctic._conn)
             authenticate(database, auth.user, auth.password)
 
     def reset_auth(self):

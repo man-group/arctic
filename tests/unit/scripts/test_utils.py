@@ -1,6 +1,14 @@
+import pytest
 from mock import patch, Mock, call, MagicMock
 
 from arctic.scripts.utils import do_db_auth
+
+
+@pytest.fixture(autouse=True)
+def legacy_pymongo_auth():
+    """ These tests cover the pymongo<4 Database.authenticate flow """
+    with patch('arctic.auth.PYMONGO_4_PLUS', False):
+        yield
 
 
 def test_do_db_auth():

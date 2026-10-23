@@ -15,6 +15,13 @@ from arctic.exceptions import LibraryNotFoundException, \
 from arctic._cache import Cache
 
 
+@pytest.fixture(autouse=True)
+def legacy_pymongo_auth():
+    """ Tests below cover the pymongo<4 Database.authenticate flow; see test_auth for pymongo>=4 """
+    with patch('arctic.arctic.PYMONGO_4_PLUS', False), patch('arctic.auth.PYMONGO_4_PLUS', False):
+        yield
+
+
 def test_arctic_lazy_init():
     with patch('pymongo.MongoClient', return_value=MagicMock(), autospec=True) as mc, \
         patch('arctic.arctic.mongo_retry', side_effect=lambda x: x, autospec=True), \

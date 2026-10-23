@@ -19,7 +19,7 @@ def test_main_minimal():
                                               'admin')]
     assert MC.return_value.__getitem__.call_args_list == [call('arctic_user')]
     db = MC.return_value.__getitem__.return_value
-    assert [call('user', ANY, read_only=False)] == db.add_user.call_args_list
+    assert [call('createUser', 'user', pwd=ANY, roles=['readWrite'])] == db.command.call_args_list
     assert logger.info.call_args_list == [call('Granted: user [WRITE] to arctic_user'),
                                           call('User creds: arctic_user/user/asdf')]
 
@@ -38,7 +38,7 @@ def test_main_with_db():
                                               'some_db')]
     assert MC.return_value.__getitem__.call_args_list == [call('some_db')]
     db = MC.return_value.__getitem__.return_value
-    assert [call('jblackburn', ANY, read_only=True)] == db.add_user.call_args_list
+    assert [call('createUser', 'jblackburn', pwd=ANY, roles=['read'])] == db.command.call_args_list
 
 
 def test_main_with_db_write():
@@ -56,7 +56,7 @@ def test_main_with_db_write():
                                               'some_db')]
     assert MC.return_value.__getitem__.call_args_list == [call('some_db')]
     db = MC.return_value.__getitem__.return_value
-    assert [call('jblackburn', ANY, read_only=False)] == db.add_user.call_args_list
+    assert [call('createUser', 'jblackburn', pwd=ANY, roles=['readWrite'])] == db.command.call_args_list
 
 
 def test_no_auth():

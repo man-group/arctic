@@ -267,7 +267,7 @@ def test_list_libraries_cached(arctic):
     # Should default to uncached list_libraries if cache is empty.
     with patch('arctic.arctic.Arctic._list_libraries', return_value=libs) as uncached_list_libraries:
         # Empty cache manually.
-        arctic._conn.meta_db.cache.remove({})
+        arctic._conn.meta_db.cache.delete_many({})
         assert arctic._list_libraries_cached() == libs
         uncached_list_libraries.assert_called()
 

@@ -76,7 +76,7 @@ class Cache:
         :return: None unless if there is non stale data present in the cache.
         """
         try:
-            if not self._cachecol:
+            if self._cachecol is None:
                 # Collection not created or no permissions to read from it.
                 return None
             cached_data = self._cachecol.find_one({"type": key})
@@ -116,7 +116,7 @@ class Cache:
 
     def delete_item_from_key(self, key, item):
         try:
-            self._cachecol.update(
+            self._cachecol.update_one(
                 {'type': key},
                 {"$pull": {"data": item}}
             )
